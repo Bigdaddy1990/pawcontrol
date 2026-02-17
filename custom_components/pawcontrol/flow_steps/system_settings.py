@@ -72,38 +72,32 @@ from ..types import (
 )
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry  # noqa: E111
-    from homeassistant.core import HomeAssistant  # noqa: E111
-
-    from ..types import PawControlRuntimeData  # noqa: E111
-
-    RuntimeDataGetter = Callable[  # noqa: E111
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from ..types import PawControlRuntimeData
+    RuntimeDataGetter = Callable[
         [HomeAssistant, ConfigEntry], PawControlRuntimeData | None
     ]
 else:  # pragma: no cover - runtime typing support only
-    RuntimeDataGetter = Callable[[object, object], object]  # noqa: E111
-
+    RuntimeDataGetter = Callable[[object, object], object]
 _LOGGER = logging.getLogger(__name__)
 
 
 def _resolve_get_runtime_data() -> RuntimeDataGetter:
-    """Return the patched runtime data helper when available."""  # noqa: E111
-
-    try:  # noqa: E111
+    """Return the patched runtime data helper when available."""
+    try:
         options_flow_module = import_module(
             "custom_components.pawcontrol.options_flow_support"
         )
         patched = getattr(options_flow_module, "get_runtime_data", None)
         if callable(patched):
-            return patched  # noqa: E111
-    except Exception:  # noqa: E111
+            return patched
+    except Exception:
         pass
-    return _get_runtime_data  # noqa: E111
-
-
+    return _get_runtime_data
 if TYPE_CHECKING:
 
-    class SystemSettingsOptionsHost(Protocol):  # noqa: E111
+    class SystemSettingsOptionsHost(Protocol):
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -113,14 +107,11 @@ if TYPE_CHECKING:
         def __getattr__(self, name: str) -> Any: ...
 
 else:  # pragma: no cover
-    SystemSettingsOptionsHost = object  # noqa: E111
-
-
+    SystemSettingsOptionsHost = object
 class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
-    _current_dog: DogConfigData | None  # noqa: E111
-    _dogs: list[DogConfigData]  # noqa: E111
-
-    async def async_step_push_settings(  # noqa: E111
+    _current_dog: DogConfigData | None
+    _dogs: list[DogConfigData]
+    async def async_step_push_settings(
         self,
         user_input: PushSettingsInput | None = None,
     ) -> ConfigFlowResult:
@@ -135,17 +126,16 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         current = self._current_options()
 
         if user_input is not None:
-            new_options = self._clone_options()  # noqa: E111
-            mutable = cast(JSONMutableMapping, dict(new_options))  # noqa: E111
-
+            new_options = self._clone_options()
+            mutable = cast(JSONMutableMapping, dict(new_options))
             # Webhook  # noqa: E114
-            mutable[CONF_WEBHOOK_ENABLED] = bool(  # noqa: E111
+            mutable[CONF_WEBHOOK_ENABLED] = bool(
                 user_input.get(
                     CONF_WEBHOOK_ENABLED,
                     current.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED),
                 ),
             )
-            mutable[CONF_WEBHOOK_REQUIRE_SIGNATURE] = bool(  # noqa: E111
+            mutable[CONF_WEBHOOK_REQUIRE_SIGNATURE] = bool(
                 user_input.get(
                     CONF_WEBHOOK_REQUIRE_SIGNATURE,
                     current.get(
@@ -154,30 +144,30 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                     ),
                 ),
             )
-            secret = user_input.get(CONF_WEBHOOK_SECRET)  # noqa: E111
-            if isinstance(secret, str) and secret.strip():  # noqa: E111
+            secret = user_input.get(CONF_WEBHOOK_SECRET)
+            if isinstance(secret, str) and secret.strip():
                 mutable[CONF_WEBHOOK_SECRET] = secret.strip()
-            elif CONF_WEBHOOK_SECRET in mutable:  # noqa: E111
+            elif CONF_WEBHOOK_SECRET in mutable:
                 # allow clearing secret from UI
                 mutable.pop(CONF_WEBHOOK_SECRET, None)
 
             # MQTT  # noqa: E114
-            mutable[CONF_MQTT_ENABLED] = bool(  # noqa: E111
+            mutable[CONF_MQTT_ENABLED] = bool(
                 user_input.get(
                     CONF_MQTT_ENABLED,
                     current.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED),
                 ),
             )
-            topic = user_input.get(CONF_MQTT_TOPIC)  # noqa: E111
-            if isinstance(topic, str) and topic.strip():  # noqa: E111
+            topic = user_input.get(CONF_MQTT_TOPIC)
+            if isinstance(topic, str) and topic.strip():
                 mutable[CONF_MQTT_TOPIC] = topic.strip()
-            else:  # noqa: E111
+            else:
                 mutable[CONF_MQTT_TOPIC] = current.get(
                     CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC
                 )
 
             # Router limits  # noqa: E114
-            mutable[CONF_PUSH_PAYLOAD_MAX_BYTES] = self._coerce_int(  # noqa: E111
+            mutable[CONF_PUSH_PAYLOAD_MAX_BYTES] = self._coerce_int(
                 user_input.get(CONF_PUSH_PAYLOAD_MAX_BYTES),
                 int(
                     current.get(
@@ -186,7 +176,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                     ),
                 ),
             )
-            mutable[CONF_PUSH_NONCE_TTL_SECONDS] = self._coerce_int(  # noqa: E111
+            mutable[CONF_PUSH_NONCE_TTL_SECONDS] = self._coerce_int(
                 user_input.get(CONF_PUSH_NONCE_TTL_SECONDS),
                 int(
                     current.get(
@@ -195,7 +185,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                     ),
                 ),
             )
-            mutable[CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE] = self._coerce_int(  # noqa: E111
+            mutable[CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE] = self._coerce_int(
                 user_input.get(CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE),
                 int(
                     current.get(
@@ -204,7 +194,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                     ),
                 ),
             )
-            mutable[CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE] = self._coerce_int(  # noqa: E111
+            mutable[CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE] = self._coerce_int(
                 user_input.get(CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE),
                 int(
                     current.get(
@@ -213,7 +203,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                     ),
                 ),
             )
-            mutable[CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE] = self._coerce_int(  # noqa: E111
+            mutable[CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE] = self._coerce_int(
                 user_input.get(CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE),
                 int(
                     current.get(
@@ -223,8 +213,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                 ),
             )
 
-            return self.async_create_entry(title="", data=cast(dict[str, Any], mutable))  # noqa: E111
-
+            return self.async_create_entry(title="", data=cast(dict[str, Any], mutable))
         schema = vol.Schema({
             vol.Optional(
                 CONF_WEBHOOK_ENABLED,
@@ -329,7 +318,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         })
         return self.async_show_form(step_id="push_settings", data_schema=schema)
 
-    async def async_step_weather_settings(  # noqa: E111
+    async def async_step_weather_settings(
         self,
         user_input: OptionsWeatherSettingsInput | None = None,
     ) -> ConfigFlowResult:
@@ -340,13 +329,13 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         health recommendations.
         """
         if user_input is not None:
-            try:  # noqa: E111
+            try:
                 # Validate weather entity if specified
                 raw_entity = user_input.get("weather_entity")
                 candidate = raw_entity.strip() if isinstance(raw_entity, str) else None
                 if candidate and candidate.lower() != "none":
-                    weather_state = self.hass.states.get(candidate)  # noqa: E111
-                    if weather_state is None:  # noqa: E111
+                    weather_state = self.hass.states.get(candidate)
+                    if weather_state is None:
                         return self.async_show_form(
                             step_id="weather_settings",
                             data_schema=self._get_weather_settings_schema(
@@ -358,7 +347,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                         )
 
                     # Check if it's a weather entity  # noqa: E114
-                    if not candidate.startswith("weather."):  # noqa: E111
+                    if not candidate.startswith("weather."):
                         return self.async_show_form(
                             step_id="weather_settings",
                             data_schema=self._get_weather_settings_schema(
@@ -384,7 +373,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                 )
                 return self.async_create_entry(title="", data=typed_options)
 
-            except Exception as err:  # noqa: E111
+            except Exception as err:
                 _LOGGER.error("Error updating weather settings: %s", err)
                 return self.async_show_form(
                     step_id="weather_settings",
@@ -400,7 +389,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             ),
         )
 
-    def _get_weather_settings_schema(  # noqa: E111
+    def _get_weather_settings_schema(
         self,
         user_input: OptionsWeatherSettingsInput | None = None,
     ) -> vol.Schema:
@@ -411,14 +400,13 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         stored_entity = current_weather.get(CONF_WEATHER_ENTITY)
         entity_default = "none"
         if isinstance(stored_entity, str) and stored_entity.strip():
-            entity_default = stored_entity  # noqa: E111
-
+            entity_default = stored_entity
         # Get available weather entities
         weather_entities: list[str | dict[str, str]] = ["none"]
 
         for entity_id in self.hass.states.async_entity_ids("weather"):
-            entity_state = self.hass.states.get(entity_id)  # noqa: E111
-            if entity_state:  # noqa: E111
+            entity_state = self.hass.states.get(entity_id)
+            if entity_state:
                 friendly_name = entity_state.attributes.get(
                     "friendly_name",
                     entity_id,
@@ -558,18 +546,18 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             },
         )
 
-    def _get_weather_description_placeholders(self) -> ConfigFlowPlaceholders:  # noqa: E111
+    def _get_weather_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Get description placeholders for weather configuration."""
         current_weather = self._current_weather_options()
         current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
         current_dogs: list[DogConfigData] = []
         if isinstance(current_dogs_raw, Sequence):
-            for dog in current_dogs_raw:  # noqa: E111
+            for dog in current_dogs_raw:
                 if isinstance(dog, Mapping):
-                    normalised = ensure_dog_config_data(  # noqa: E111
+                    normalised = ensure_dog_config_data(
                         cast(Mapping[str, JSONValue], dog),
                     )
-                    if normalised is not None:  # noqa: E111
+                    if normalised is not None:
                         current_dogs.append(normalised)
 
         # Current weather entity status
@@ -578,8 +566,8 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         weather_info = "No weather entity selected"
 
         if weather_entity:
-            weather_state = self.hass.states.get(weather_entity)  # noqa: E111
-            if weather_state:  # noqa: E111
+            weather_state = self.hass.states.get(weather_entity)
+            if weather_state:
                 weather_status = "Available"
                 temperature = weather_state.attributes.get(
                     "temperature",
@@ -587,7 +575,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                 )
                 condition = weather_state.state or "Unknown"
                 weather_info = f"Current: {temperature}°C, {condition}"
-            else:  # noqa: E111
+            else:
                 weather_status = "Entity not found"
                 weather_info = f"Entity {weather_entity} is not available"
 
@@ -595,25 +583,24 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         dogs_with_health_conditions = 0
         dogs_with_breeds = 0
         for dog_config in current_dogs:
-            if dog_config.get("health_conditions"):  # noqa: E111
+            if dog_config.get("health_conditions"):
                 dogs_with_health_conditions += 1
-            dog_breed = dog_config.get(CONF_DOG_BREED)  # noqa: E111
-            if dog_breed and dog_breed != "Mixed Breed":  # noqa: E111
+            dog_breed = dog_config.get(CONF_DOG_BREED)
+            if dog_breed and dog_breed != "Mixed Breed":
                 dogs_with_breeds += 1
 
         # Alert configuration summary
         enabled_alerts = []
         if current_weather.get("temperature_alerts", True):
-            enabled_alerts.append("Temperature")  # noqa: E111
+            enabled_alerts.append("Temperature")
         if current_weather.get("uv_alerts", True):
-            enabled_alerts.append("UV")  # noqa: E111
+            enabled_alerts.append("UV")
         if current_weather.get("humidity_alerts", True):
-            enabled_alerts.append("Humidity")  # noqa: E111
+            enabled_alerts.append("Humidity")
         if current_weather.get("storm_alerts", True):
-            enabled_alerts.append("Storms")  # noqa: E111
+            enabled_alerts.append("Storms")
         if current_weather.get("wind_alerts", False):
-            enabled_alerts.append("Wind")  # noqa: E111
-
+            enabled_alerts.append("Wind")
         alerts_summary = (
             ", ".join(
                 enabled_alerts,
@@ -664,7 +651,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             },
         )
 
-    async def async_step_system_settings(  # noqa: E111
+    async def async_step_system_settings(
         self,
         user_input: OptionsSystemSettingsInput | None = None,
     ) -> ConfigFlowResult:
@@ -672,7 +659,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         await self._async_prepare_setup_flag_translations()
         placeholders = self._manual_event_description_placeholders()
         if user_input is not None:
-            try:  # noqa: E111
+            try:
                 current_system = self._current_system_options()
                 reset_default = self._coerce_time_string(
                     self._current_options().get(CONF_RESET_TIME),
@@ -695,18 +682,18 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                 ]
                 guard_option = system_settings.get("manual_guard_event")
                 if guard_option is None:
-                    mutable_options.pop("manual_guard_event", None)  # noqa: E111
+                    mutable_options.pop("manual_guard_event", None)
                 else:
-                    mutable_options["manual_guard_event"] = guard_option  # noqa: E111
+                    mutable_options["manual_guard_event"] = guard_option
                 breaker_option = system_settings.get("manual_breaker_event")
                 if breaker_option is None:
-                    mutable_options.pop("manual_breaker_event", None)  # noqa: E111
+                    mutable_options.pop("manual_breaker_event", None)
                 else:
-                    mutable_options["manual_breaker_event"] = breaker_option  # noqa: E111
+                    mutable_options["manual_breaker_event"] = breaker_option
                 runtime = _resolve_get_runtime_data()(self.hass, self._entry)
                 script_manager = getattr(runtime, "script_manager", None)
                 if script_manager is not None:
-                    await script_manager.async_sync_manual_resilience_events(  # noqa: E111
+                    await script_manager.async_sync_manual_resilience_events(
                         {
                             "manual_check_event": system_settings.get(
                                 "manual_check_event",
@@ -723,7 +710,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                     mutable_options,
                 )
                 return self.async_create_entry(title="", data=typed_options)
-            except Exception:  # noqa: E111
+            except Exception:
                 return self.async_show_form(
                     step_id="system_settings",
                     data_schema=self._get_system_settings_schema(user_input),
@@ -737,7 +724,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             description_placeholders=dict(placeholders),
         )
 
-    def _get_system_settings_schema(  # noqa: E111
+    def _get_system_settings_schema(
         self,
         user_input: OptionsSystemSettingsInput | None = None,
     ) -> vol.Schema:
@@ -810,19 +797,18 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             ("manual_breaker_event", "breaker_default"),
         )
         for field, context_key in context_mapping:
-            context_value = manual_context.get(context_key)  # noqa: E111
-            if isinstance(context_value, str):  # noqa: E111
+            context_value = manual_context.get(context_key)
+            if isinstance(context_value, str):
                 manual_context_defaults[field] = context_value
 
         def _manual_default(field: str) -> str:
-            raw_value = current_values.get(field)  # noqa: E111
-            if isinstance(raw_value, str):  # noqa: E111
+            raw_value = current_values.get(field)
+            if isinstance(raw_value, str):
                 return raw_value
-            override = manual_context_defaults.get(field)  # noqa: E111
-            if override:  # noqa: E111
+            override = manual_context_defaults.get(field)
+            if override:
                 return override
-            return manual_defaults[field]  # noqa: E111
-
+            return manual_defaults[field]
         return vol.Schema(
             {
                 vol.Optional(
@@ -927,13 +913,13 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             },
         )
 
-    async def async_step_dashboard_settings(  # noqa: E111
+    async def async_step_dashboard_settings(
         self,
         user_input: OptionsDashboardSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure dashboard and display settings."""
         if user_input is not None:
-            try:  # noqa: E111
+            try:
                 current_dashboard = self._current_dashboard_options()
                 default_mode = self._normalize_choice(
                     self._current_options().get(CONF_DASHBOARD_MODE, "full"),
@@ -958,7 +944,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                     mutable_options,
                 )
                 return self.async_create_entry(title="", data=typed_options)
-            except Exception:  # noqa: E111
+            except Exception:
                 return self.async_show_form(
                     step_id="dashboard_settings",
                     data_schema=self._get_dashboard_settings_schema(
@@ -972,7 +958,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             data_schema=self._get_dashboard_settings_schema(),
         )
 
-    def _get_dashboard_settings_schema(  # noqa: E111
+    def _get_dashboard_settings_schema(
         self,
         user_input: OptionsDashboardSettingsInput | None = None,
     ) -> vol.Schema:
@@ -1030,31 +1016,30 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             },
         )
 
-    async def async_step_advanced_settings(  # noqa: E111
+    async def async_step_advanced_settings(
         self,
         user_input: OptionsAdvancedSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Handle advanced settings configuration."""
         if user_input is not None:
-            errors: dict[str, str] = {}  # noqa: E111
-            raw_endpoint = user_input.get(CONF_API_ENDPOINT, "")  # noqa: E111
+            errors: dict[str, str] = {}
+            raw_endpoint = user_input.get(CONF_API_ENDPOINT, "")
             endpoint_value = (
                 raw_endpoint.strip() if isinstance(raw_endpoint, str) else ""
-            )  # noqa: E111
-            if endpoint_value:  # noqa: E111
+            )
+            if endpoint_value:
                 try:
-                    validate_device_endpoint(endpoint_value)  # noqa: E111
+                    validate_device_endpoint(endpoint_value)
                 except ValueError:
-                    errors[CONF_API_ENDPOINT] = "invalid_api_endpoint"  # noqa: E111
-
-            if errors:  # noqa: E111
+                    errors[CONF_API_ENDPOINT] = "invalid_api_endpoint"
+            if errors:
                 return self.async_show_form(
                     step_id="advanced_settings",
                     errors=errors,
                     data_schema=self._get_advanced_settings_schema(user_input),
                 )
 
-            try:  # noqa: E111
+            try:
                 current_advanced = self._current_advanced_options()
                 new_options = self._clone_options()
                 advanced_settings = self._build_advanced_settings(
@@ -1067,17 +1052,17 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                     advanced_settings,
                 )
                 for key, value in advanced_settings.items():
-                    if isinstance(value, bool | int | float | str) or value is None:  # noqa: E111
+                    if isinstance(value, bool | int | float | str) or value is None:
                         mutable_options[str(key)] = value
-                    elif isinstance(value, Mapping):  # noqa: E111
+                    elif isinstance(value, Mapping):
                         mutable_options[str(key)] = cast(JSONValue, dict(value))
-                    else:  # noqa: E111
+                    else:
                         mutable_options[str(key)] = repr(value)
                 return self.async_create_entry(
                     title="",
                     data=self._normalise_options_snapshot(mutable_options),
                 )
-            except Exception as err:  # noqa: E111
+            except Exception as err:
                 _LOGGER.error("Error saving advanced settings: %s", err)
                 return self.async_show_form(
                     step_id="advanced_settings",
@@ -1090,7 +1075,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             data_schema=self._get_advanced_settings_schema(),
         )
 
-    def _get_advanced_settings_schema(  # noqa: E111
+    def _get_advanced_settings_schema(
         self,
         user_input: OptionsAdvancedSettingsInput | None = None,
     ) -> vol.Schema:

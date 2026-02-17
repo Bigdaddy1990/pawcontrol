@@ -15,10 +15,8 @@ from homeassistant.exceptions import HomeAssistantError
 from ..const import PLATFORMS
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant  # noqa: E111
-
-    from ..types import PawControlConfigEntry, PawControlRuntimeData  # noqa: E111
-
+    from homeassistant.core import HomeAssistant
+    from ..types import PawControlConfigEntry, PawControlRuntimeData
 _LOGGER = logging.getLogger(__name__)
 
 # Timeouts for platform operations
@@ -30,18 +28,15 @@ _SCRIPT_CREATION_TIMEOUT: int = 20  # seconds
 def _resolve_enabled_modules(
     options: object | None,
 ) -> Collection[str] | Mapping[str, bool]:
-    """Return enabled module data in the shape expected by managers."""  # noqa: E111
-
-    if not isinstance(options, Mapping):  # noqa: E111
+    """Return enabled module data in the shape expected by managers."""
+    if not isinstance(options, Mapping):
         return frozenset()
-    raw: object = options.get("enabled_modules", frozenset())  # noqa: E111
-    if isinstance(raw, Mapping):  # noqa: E111
+    raw: object = options.get("enabled_modules", frozenset())
+    if isinstance(raw, Mapping):
         return {str(key): bool(value) for key, value in raw.items()}
-    if isinstance(raw, Collection) and not isinstance(raw, str | bytes):  # noqa: E111
+    if isinstance(raw, Collection) and not isinstance(raw, str | bytes):
         return frozenset(str(item) for item in raw)
-    return frozenset()  # noqa: E111
-
-
+    return frozenset()
 async def async_setup_platforms(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
@@ -56,16 +51,15 @@ async def async_setup_platforms(
 
     Raises:
         ConfigEntryNotReady: If platform setup fails after retries
-    """  # noqa: E111
+    """
     # Forward entry setup to all platforms  # noqa: E114
-    await _async_forward_platforms(hass, entry)  # noqa: E111
-
+    await _async_forward_platforms(hass, entry)
     # Create helpers and scripts if not skipped  # noqa: E114
-    options = runtime_data.config_entry_options  # noqa: E111
+    options = runtime_data.config_entry_options
     skip_optional = (
         bool(options.get("skip_optional_setup", False)) if options else False
-    )  # noqa: E111
-    if not skip_optional:  # noqa: E111
+    )
+    if not skip_optional:
         await _async_setup_helpers(hass, entry, runtime_data)
         await _async_setup_scripts(hass, entry, runtime_data)
 
@@ -82,60 +76,53 @@ async def _async_forward_platforms(
 
     Raises:
         ConfigEntryNotReady: If all retry attempts fail
-    """  # noqa: E111
-    from homeassistant.exceptions import ConfigEntryNotReady  # noqa: E111
-
-    platform_setup_start = time.monotonic()  # noqa: E111
-    max_retries = 2  # noqa: E111
-
-    for attempt in range(max_retries + 1):  # noqa: E111
+    """
+    from homeassistant.exceptions import ConfigEntryNotReady
+    platform_setup_start = time.monotonic()
+    max_retries = 2
+    for attempt in range(max_retries + 1):
         try:
-            forward_callable = hass.config_entries.async_forward_entry_setups  # noqa: E111
-            forward_result = forward_callable(entry, PLATFORMS)  # noqa: E111
-
+            forward_callable = hass.config_entries.async_forward_entry_setups
+            forward_result = forward_callable(entry, PLATFORMS)
             # Handle async result if necessary  # noqa: E114
-            if hasattr(forward_result, "__await__"):  # noqa: E111
+            if hasattr(forward_result, "__await__"):
                 await asyncio.wait_for(forward_result, timeout=_PLATFORM_SETUP_TIMEOUT)
 
-            platform_setup_duration = time.monotonic() - platform_setup_start  # noqa: E111
-            _LOGGER.debug(  # noqa: E111
+            platform_setup_duration = time.monotonic() - platform_setup_start
+            _LOGGER.debug(
                 "Platform setup completed in %.2f seconds (attempt %d)",
                 platform_setup_duration,
                 attempt + 1,
             )
-            return  # noqa: E111
-
+            return
         except TimeoutError as err:
-            if attempt == max_retries:  # noqa: E111
+            if attempt == max_retries:
                 platform_setup_duration = time.monotonic() - platform_setup_start
                 raise ConfigEntryNotReady(
                     f"Platform setup timeout after {platform_setup_duration:.2f}s",
                 ) from err
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Platform setup attempt %d timed out, retrying...",
                 attempt + 1,
             )
-            await asyncio.sleep(1)  # noqa: E111
-
+            await asyncio.sleep(1)
         except ImportError as err:
-            raise ConfigEntryNotReady(  # noqa: E111
+            raise ConfigEntryNotReady(
                 f"Platform import failed - missing dependency: {err}",
             ) from err
 
         except Exception as err:
-            if attempt == max_retries:  # noqa: E111
+            if attempt == max_retries:
                 _LOGGER.exception("Platform setup failed")
                 raise ConfigEntryNotReady(
                     f"Platform setup failed ({err.__class__.__name__}): {err}",
                 ) from err
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Platform setup attempt %d failed: %s, retrying...",
                 attempt + 1,
                 err,
             )
-            await asyncio.sleep(1)  # noqa: E111
-
-
+            await asyncio.sleep(1)
 async def _async_setup_helpers(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
@@ -147,18 +134,16 @@ async def _async_setup_helpers(
         hass: Home Assistant instance
         entry: Config entry
         runtime_data: Runtime data with helper manager
-    """  # noqa: E111
-    helper_manager = runtime_data.helper_manager  # noqa: E111
-    if helper_manager is None:  # noqa: E111
+    """
+    helper_manager = runtime_data.helper_manager
+    if helper_manager is None:
         _LOGGER.debug("Helper manager not available, skipping helper creation")
         return
 
-    dogs_config = runtime_data.dogs  # noqa: E111
-    enabled_modules = _resolve_enabled_modules(runtime_data.config_entry_options)  # noqa: E111
-
-    helpers_start = time.monotonic()  # noqa: E111
-
-    try:  # noqa: E111
+    dogs_config = runtime_data.dogs
+    enabled_modules = _resolve_enabled_modules(runtime_data.config_entry_options)
+    helpers_start = time.monotonic()
+    try:
         created_helpers = await asyncio.wait_for(
             helper_manager.async_create_helpers_for_dogs(
                 dogs_config,
@@ -171,7 +156,7 @@ async def _async_setup_helpers(
         helpers_duration = time.monotonic() - helpers_start
 
         if helper_count > 0:
-            _LOGGER.info(  # noqa: E111
+            _LOGGER.info(
                 "Created %d Home Assistant helpers for %d dogs in %.2f seconds",
                 helper_count,
                 len(dogs_config),
@@ -179,15 +164,15 @@ async def _async_setup_helpers(
             )
 
             # Send notification about helper creation  # noqa: E114
-            notification_manager = runtime_data.notification_manager  # noqa: E111
-            if notification_manager:  # noqa: E111
+            notification_manager = runtime_data.notification_manager
+            if notification_manager:
                 try:
-                    from ..notifications import (  # noqa: E111
+                    from ..notifications import (
                         NotificationPriority,
                         NotificationType,
                     )
 
-                    await notification_manager.async_send_notification(  # noqa: E111
+                    await notification_manager.async_send_notification(
                         notification_type=NotificationType.SYSTEM_INFO,
                         title="PawControl Helper Setup Complete",
                         message=(
@@ -197,12 +182,12 @@ async def _async_setup_helpers(
                         priority=NotificationPriority.NORMAL,
                     )
                 except Exception as notification_err:
-                    _LOGGER.debug(  # noqa: E111
+                    _LOGGER.debug(
                         "Helper creation notification failed (non-critical): %s",
                         notification_err,
                     )
 
-    except TimeoutError:  # noqa: E111
+    except TimeoutError:
         helpers_duration = time.monotonic() - helpers_start
         _LOGGER.warning(
             "Helper creation timed out after %.2f seconds (non-critical). "
@@ -210,7 +195,7 @@ async def _async_setup_helpers(
             helpers_duration,
         )
 
-    except Exception as helper_err:  # noqa: E111
+    except Exception as helper_err:
         helpers_duration = time.monotonic() - helpers_start
         _LOGGER.warning(
             "Helper creation failed after %.2f seconds (non-critical): %s. "
@@ -231,18 +216,16 @@ async def _async_setup_scripts(
         hass: Home Assistant instance
         entry: Config entry
         runtime_data: Runtime data with script manager
-    """  # noqa: E111
-    script_manager = runtime_data.script_manager  # noqa: E111
-    if script_manager is None:  # noqa: E111
+    """
+    script_manager = runtime_data.script_manager
+    if script_manager is None:
         _LOGGER.debug("Script manager not available, skipping script generation")
         return
 
-    dogs_config = runtime_data.dogs  # noqa: E111
-    enabled_modules = _resolve_enabled_modules(runtime_data.config_entry_options)  # noqa: E111
-
-    scripts_start = time.monotonic()  # noqa: E111
-
-    try:  # noqa: E111
+    dogs_config = runtime_data.dogs
+    enabled_modules = _resolve_enabled_modules(runtime_data.config_entry_options)
+    scripts_start = time.monotonic()
+    try:
         created_scripts = await asyncio.wait_for(
             script_manager.async_generate_scripts_for_dogs(
                 dogs_config,
@@ -260,12 +243,12 @@ async def _async_setup_scripts(
         scripts_duration = time.monotonic() - scripts_start
 
         if script_count > 0:
-            entry_detail = (  # noqa: E111
+            entry_detail = (
                 f" including {entry_script_count} entry escalation script(s)"
                 if entry_script_count
                 else ""
             )
-            _LOGGER.info(  # noqa: E111
+            _LOGGER.info(
                 "Created %d PawControl automation script(s) for %d dog(s)%s in %.2f seconds",
                 script_count,
                 dog_target_count,
@@ -274,15 +257,15 @@ async def _async_setup_scripts(
             )
 
             # Send notification about script creation  # noqa: E114
-            notification_manager = runtime_data.notification_manager  # noqa: E111
-            if notification_manager:  # noqa: E111
+            notification_manager = runtime_data.notification_manager
+            if notification_manager:
                 try:
-                    from ..notifications import (  # noqa: E111
+                    from ..notifications import (
                         NotificationPriority,
                         NotificationType,
                     )
 
-                    await notification_manager.async_send_notification(  # noqa: E111
+                    await notification_manager.async_send_notification(
                         notification_type=NotificationType.SYSTEM_INFO,
                         title="PawControl scripts ready",
                         message=(
@@ -294,12 +277,12 @@ async def _async_setup_scripts(
                         priority=NotificationPriority.NORMAL,
                     )
                 except Exception as notification_err:
-                    _LOGGER.debug(  # noqa: E111
+                    _LOGGER.debug(
                         "Script creation notification failed (non-critical): %s",
                         notification_err,
                     )
 
-    except TimeoutError:  # noqa: E111
+    except TimeoutError:
         scripts_duration = time.monotonic() - scripts_start
         _LOGGER.warning(
             "Script creation timed out after %.2f seconds (non-critical). "
@@ -307,7 +290,7 @@ async def _async_setup_scripts(
             scripts_duration,
         )
 
-    except (HomeAssistantError, Exception) as script_err:  # noqa: E111
+    except (HomeAssistantError, Exception) as script_err:
         scripts_duration = time.monotonic() - scripts_start
         error_type = (
             "skipped" if isinstance(script_err, HomeAssistantError) else "failed"

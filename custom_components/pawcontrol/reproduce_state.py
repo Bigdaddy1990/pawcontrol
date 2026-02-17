@@ -24,28 +24,25 @@ async def async_reproduce_platform_states[T](
     *,
     context: Context | None = None,
 ) -> None:
-    """Iterate over states and call a handler for each valid one."""  # noqa: E111
-    for state in states:  # noqa: E111
+    """Iterate over states and call a handler for each valid one."""
+    for state in states:
         if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Cannot reproduce %s state for %s: %s",
                 platform_name,
                 state.entity_id,
                 state.state,
             )
-            continue  # noqa: E111
-
+            continue
         processed = preprocess(state)
         if processed is None:
-            continue  # noqa: E111
-
+            continue
         current_state = hass.states.get(state.entity_id)
         if current_state is None:
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "%s entity %s not found for state reproduction",
                 platform_name.capitalize(),
                 state.entity_id,
             )
-            continue  # noqa: E111
-
+            continue
         await handler(hass, state, current_state, processed, context)

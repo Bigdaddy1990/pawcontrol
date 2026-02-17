@@ -50,13 +50,10 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class HealthSummaryHost(Protocol):
-    """Protocol describing the config flow host requirements."""  # noqa: E111
-
-
+    """Protocol describing the config flow host requirements."""
 class HealthSummaryMixin(HealthSummaryHost):
-    """Provide health summary formatting for reconfigure flows."""  # noqa: E111
-
-    def _summarise_health_summary(self, summary: Any) -> str:  # noqa: E111
+    """Provide health summary formatting for reconfigure flows."""
+    def _summarise_health_summary(self, summary: Any) -> str:
         """Convert a health summary mapping into a user-facing string."""
 
         return summarise_health_summary(summary)
@@ -64,7 +61,7 @@ class HealthSummaryMixin(HealthSummaryHost):
 
 if TYPE_CHECKING:
 
-    class DogHealthFlowHost(Protocol):  # noqa: E111
+    class DogHealthFlowHost(Protocol):
         _current_dog_config: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -115,13 +112,10 @@ if TYPE_CHECKING:
         ) -> ConfigFlowResult: ...
 
 else:  # pragma: no cover
-    DogHealthFlowHost = object  # noqa: E111
-
-
+    DogHealthFlowHost = object
 class DogHealthFlowMixin(DogHealthFlowHost):
-    """Handle health configuration steps in the config flow."""  # noqa: E111
-
-    async def async_step_dog_health(  # noqa: E111
+    """Handle health configuration steps in the config flow."""
+    async def async_step_dog_health(
         self,
         user_input: DogHealthStepInput | None = None,
     ) -> ConfigFlowResult:
@@ -129,14 +123,13 @@ class DogHealthFlowMixin(DogHealthFlowHost):
 
         current_dog = self._current_dog_config
         if current_dog is None:
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Health configuration step invoked without active dog; restarting add_dog",
             )
-            return await self.async_step_add_dog()  # noqa: E111
-
+            return await self.async_step_add_dog()
         if user_input is not None:
-            modules = ensure_dog_modules_config(current_dog)  # noqa: E111
-            health_config: DogHealthConfig = {  # noqa: E111
+            modules = ensure_dog_modules_config(current_dog)
+            health_config: DogHealthConfig = {
                 "vet_name": coerce_str(user_input.get("vet_name")),
                 "vet_phone": coerce_str(user_input.get("vet_phone")),
                 "weight_tracking": coerce_bool(
@@ -164,24 +157,22 @@ class DogHealthFlowMixin(DogHealthFlowHost):
                 "special_diet_requirements": self._collect_special_diet(user_input),
             }
 
-            if last_visit := coerce_optional_str(user_input.get("last_vet_visit")):  # noqa: E111
+            if last_visit := coerce_optional_str(user_input.get("last_vet_visit")):
                 health_config["last_vet_visit"] = last_visit
-            if next_checkup := coerce_optional_str(user_input.get("next_checkup")):  # noqa: E111
+            if next_checkup := coerce_optional_str(user_input.get("next_checkup")):
                 health_config["next_checkup"] = next_checkup
 
-            vaccinations = self._build_vaccination_records(user_input)  # noqa: E111
-            if vaccinations:  # noqa: E111
+            vaccinations = self._build_vaccination_records(user_input)
+            if vaccinations:
                 health_config["vaccinations"] = vaccinations
 
-            if modules.get(MODULE_MEDICATION, False):  # noqa: E111
+            if modules.get(MODULE_MEDICATION, False):
                 medications = self._build_medication_entries(user_input)
                 if medications:
-                    health_config["medications"] = medications  # noqa: E111
-
-            current_dog[DOG_HEALTH_CONFIG_FIELD] = health_config  # noqa: E111
-
-            feeding_config = current_dog.get(DOG_FEEDING_CONFIG_FIELD)  # noqa: E111
-            if isinstance(feeding_config, dict):  # noqa: E111
+                    health_config["medications"] = medications
+            current_dog[DOG_HEALTH_CONFIG_FIELD] = health_config
+            feeding_config = current_dog.get(DOG_FEEDING_CONFIG_FIELD)
+            if isinstance(feeding_config, dict):
                 feeding_config_typed = feeding_config
 
                 dog_weight_update = coerce_optional_float(
@@ -226,16 +217,15 @@ class DogHealthFlowMixin(DogHealthFlowHost):
                 )
 
                 if diet_validation["recommended_vet_consultation"]:
-                    _LOGGER.info(  # noqa: E111
+                    _LOGGER.info(
                         "Diet validation for %s recommends veterinary consultation: %s conflicts, %s warnings",  # noqa: E501
                         current_dog[DOG_NAME_FIELD],
                         len(diet_validation["conflicts"]),
                         len(diet_validation["warnings"]),
                     )
 
-            self._dogs.append(current_dog)  # noqa: E111
-            return await self.async_step_add_another_dog()  # noqa: E111
-
+            self._dogs.append(current_dog)
+            return await self.async_step_add_another_dog()
         dog_age_raw = current_dog.get(DOG_AGE_FIELD)
         dog_age = int(dog_age_raw) if isinstance(dog_age_raw, int | float) else 3
 
@@ -292,62 +282,55 @@ class DogHealthFlowMixin(DogHealthFlowHost):
 
 
 if TYPE_CHECKING:
-    from ..options_flow_hosts import DogOptionsHost  # noqa: E111
-
-    class HealthOptionsHost(DogOptionsHost):  # noqa: E111
+    from ..options_flow_hosts import DogOptionsHost
+    class HealthOptionsHost(DogOptionsHost):
         """Type-checking host for health options mixin."""
 
 else:  # pragma: no cover
-    from ..options_flow_shared import OptionsFlowSharedMixin  # noqa: E111
-
-    class HealthOptionsHost(OptionsFlowSharedMixin):  # noqa: E111
+    from ..options_flow_shared import OptionsFlowSharedMixin
+    class HealthOptionsHost(OptionsFlowSharedMixin):
         """Runtime host for health options mixin."""
 
         pass
 
 
 class HealthOptionsMixin(HealthOptionsHost):
-    """Handle per-dog health options."""  # noqa: E111
-
-    def _current_health_options(self, dog_id: str) -> HealthOptions:  # noqa: E111
+    """Handle per-dog health options."""
+    def _current_health_options(self, dog_id: str) -> HealthOptions:
         """Return the stored health configuration as a typed mapping."""
 
         dog_options = self._current_dog_options()
         entry = dog_options.get(dog_id, {})
         raw = entry.get("health_settings")
         if isinstance(raw, Mapping):
-            return cast(HealthOptions, dict(raw))  # noqa: E111
-
+            return cast(HealthOptions, dict(raw))
         legacy = self._current_options().get("health_settings", {})
         if isinstance(legacy, Mapping):
-            return cast(HealthOptions, dict(legacy))  # noqa: E111
-
+            return cast(HealthOptions, dict(legacy))
         return cast(HealthOptions, {})
 
-    async def async_step_select_dog_for_health_settings(  # noqa: E111
+    async def async_step_select_dog_for_health_settings(
         self,
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure health settings for."""
 
         if not self._dogs:
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")  # noqa: E111
-            self._select_dog_by_id(  # noqa: E111
+            selected_dog_id = user_input.get("dog_id")
+            self._select_dog_by_id(
                 selected_dog_id if isinstance(selected_dog_id, str) else None,
             )
-            if self._current_dog:  # noqa: E111
+            if self._current_dog:
                 return await self.async_step_health_settings()
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         return self.async_show_form(
             step_id="select_dog_for_health_settings",
             data_schema=self._build_dog_selector_schema(),
         )
 
-    async def async_step_health_settings(  # noqa: E111
+    async def async_step_health_settings(
         self,
         user_input: OptionsHealthSettingsInput | None = None,
     ) -> ConfigFlowResult:
@@ -355,14 +338,12 @@ class HealthOptionsMixin(HealthOptionsHost):
 
         current_dog = self._require_current_dog()
         if current_dog is None:
-            return await self.async_step_select_dog_for_health_settings()  # noqa: E111
-
+            return await self.async_step_select_dog_for_health_settings()
         dog_id = current_dog.get(DOG_ID_FIELD)
         if not isinstance(dog_id, str):
-            return await self.async_step_select_dog_for_health_settings()  # noqa: E111
-
+            return await self.async_step_select_dog_for_health_settings()
         if user_input is not None:
-            try:  # noqa: E111
+            try:
                 current_health = self._current_health_options(dog_id)
                 new_options = self._clone_options()
                 dog_options = self._current_dog_options()
@@ -375,15 +356,15 @@ class HealthOptionsMixin(HealthOptionsHost):
                     current_health,
                 )
                 if dog_id in dog_options or not dog_options:
-                    dog_options[dog_id] = entry  # noqa: E111
-                    new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)  # noqa: E111
+                    dog_options[dog_id] = entry
+                    new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
                 new_options["health_settings"] = cast(
                     JSONValue, entry["health_settings"]
                 )
 
                 typed_options = self._normalise_options_snapshot(new_options)
                 return self.async_create_entry(title="", data=typed_options)
-            except FlowValidationError as err:  # noqa: E111
+            except FlowValidationError as err:
                 return self.async_show_form(
                     step_id="health_settings",
                     data_schema=self._get_health_settings_schema(
@@ -392,7 +373,7 @@ class HealthOptionsMixin(HealthOptionsHost):
                     ),
                     errors=err.as_form_errors(),
                 )
-            except Exception:  # noqa: E111
+            except Exception:
                 return self.async_show_form(
                     step_id="health_settings",
                     data_schema=self._get_health_settings_schema(
@@ -407,7 +388,7 @@ class HealthOptionsMixin(HealthOptionsHost):
             data_schema=self._get_health_settings_schema(dog_id),
         )
 
-    def _get_health_settings_schema(  # noqa: E111
+    def _get_health_settings_schema(
         self,
         dog_id: str,
         user_input: OptionsHealthSettingsInput | None = None,
@@ -420,7 +401,7 @@ class HealthOptionsMixin(HealthOptionsHost):
             user_input,
         )
 
-    def _build_health_settings(  # noqa: E111
+    def _build_health_settings(
         self,
         user_input: OptionsHealthSettingsInput,
         current: HealthOptions,

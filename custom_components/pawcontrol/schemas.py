@@ -50,13 +50,10 @@ from .validation import (
 
 @dataclass(frozen=True, slots=True)
 class SchemaViolation:
-    """Describe a JSON schema validation issue."""  # noqa: E111
-
-    field: str  # noqa: E111
-    value: Any  # noqa: E111
-    constraint: str  # noqa: E111
-
-
+    """Describe a JSON schema validation issue."""
+    field: str
+    value: Any
+    constraint: str
 GPS_DOG_CONFIG_JSON_SCHEMA: Final[dict[str, Any]] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
@@ -164,104 +161,94 @@ def validate_json_schema_payload(
     payload: Any,
     schema: dict[str, Any],
 ) -> list[SchemaViolation]:
-    """Validate a payload against a JSON schema subset."""  # noqa: E111
-
-    if not isinstance(payload, dict):  # noqa: E111
+    """Validate a payload against a JSON schema subset."""
+    if not isinstance(payload, dict):
         return [SchemaViolation(field="payload", value=payload, constraint="type")]
 
-    violations: list[SchemaViolation] = []  # noqa: E111
-    properties = schema.get("properties", {})  # noqa: E111
-    required = set(schema.get("required", []))  # noqa: E111
-    additional_allowed = schema.get("additionalProperties", True)  # noqa: E111
-
-    for key in required:  # noqa: E111
+    violations: list[SchemaViolation] = []
+    properties = schema.get("properties", {})
+    required = set(schema.get("required", []))
+    additional_allowed = schema.get("additionalProperties", True)
+    for key in required:
         if key not in payload:
-            violations.append(  # noqa: E111
+            violations.append(
                 SchemaViolation(field=key, value=None, constraint="required"),
             )
 
-    for key, value in payload.items():  # noqa: E111
+    for key, value in payload.items():
         if key not in properties:
-            if not additional_allowed:  # noqa: E111
+            if not additional_allowed:
                 violations.append(
                     SchemaViolation(field=key, value=value, constraint="additional"),
                 )
-            continue  # noqa: E111
+            continue
         violations.extend(_validate_schema_property(key, value, properties[key]))
 
-    return violations  # noqa: E111
-
-
+    return violations
 def _validate_schema_property(
     key: str,
     value: Any,
     schema: dict[str, Any],
 ) -> list[SchemaViolation]:
-    violations: list[SchemaViolation] = []  # noqa: E111
-    expected_type = schema.get("type")  # noqa: E111
-    if expected_type is not None and not _matches_type(value, expected_type):  # noqa: E111
+    violations: list[SchemaViolation] = []
+    expected_type = schema.get("type")
+    if expected_type is not None and not _matches_type(value, expected_type):
         violations.append(
             SchemaViolation(field=key, value=value, constraint="type"),
         )
         return violations
 
-    if "enum" in schema and value not in schema["enum"]:  # noqa: E111
+    if "enum" in schema and value not in schema["enum"]:
         violations.append(SchemaViolation(field=key, value=value, constraint="enum"))
         return violations
 
-    if isinstance(value, str):  # noqa: E111
+    if isinstance(value, str):
         min_length = schema.get("minLength")
         if min_length is not None and len(value) < min_length:
-            violations.append(  # noqa: E111
+            violations.append(
                 SchemaViolation(field=key, value=value, constraint="minLength"),
             )
         max_length = schema.get("maxLength")
         if max_length is not None and len(value) > max_length:
-            violations.append(  # noqa: E111
+            violations.append(
                 SchemaViolation(field=key, value=value, constraint="maxLength"),
             )
 
-    if _is_number(value):  # noqa: E111
+    if _is_number(value):
         minimum = schema.get("minimum")
         if minimum is not None and value < minimum:
-            violations.append(  # noqa: E111
+            violations.append(
                 SchemaViolation(field=key, value=value, constraint="minimum"),
             )
         maximum = schema.get("maximum")
         if maximum is not None and value > maximum:
-            violations.append(  # noqa: E111
+            violations.append(
                 SchemaViolation(field=key, value=value, constraint="maximum"),
             )
 
-    if _is_integer(value):  # noqa: E111
+    if _is_integer(value):
         multiple_of = schema.get("multipleOf")
         if multiple_of is not None and value % multiple_of != 0:
-            violations.append(  # noqa: E111
+            violations.append(
                 SchemaViolation(field=key, value=value, constraint="multipleOf"),
             )
 
-    return violations  # noqa: E111
-
-
+    return violations
 def _matches_type(value: Any, expected: Any) -> bool:
-    if isinstance(expected, list):  # noqa: E111
+    if isinstance(expected, list):
         return any(_matches_type(value, entry) for entry in expected)
-    if expected == "number":  # noqa: E111
+    if expected == "number":
         return _is_number(value)
-    if expected == "integer":  # noqa: E111
+    if expected == "integer":
         return _is_integer(value)
-    if expected == "string":  # noqa: E111
+    if expected == "string":
         return isinstance(value, str)
-    if expected == "boolean":  # noqa: E111
+    if expected == "boolean":
         return isinstance(value, bool)
-    if expected == "null":  # noqa: E111
+    if expected == "null":
         return value is None
-    return False  # noqa: E111
-
-
+    return False
 def _is_number(value: Any) -> bool:
-    return isinstance(value, Real) and not isinstance(value, bool)  # noqa: E111
-
-
+    return isinstance(value, Real) and not isinstance(value, bool)
 def _is_integer(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool)  # noqa: E111
+    return isinstance(value, int) and not isinstance(value, bool)

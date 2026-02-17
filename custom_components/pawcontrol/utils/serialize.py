@@ -36,10 +36,8 @@ def serialize_datetime(dt: datetime) -> str:
         >>> dt = datetime(2026, 2, 15, 10, 30, 0, tzinfo=UTC)
         >>> serialize_datetime(dt)
         '2026-02-15T10:30:00+00:00'
-    """  # noqa: E111
-    return dt.isoformat()  # noqa: E111
-
-
+    """
+    return dt.isoformat()
 def serialize_timedelta(td: timedelta) -> int:
     """Convert timedelta to total seconds.
 
@@ -54,10 +52,8 @@ def serialize_timedelta(td: timedelta) -> int:
         >>> td = timedelta(minutes=30)
         >>> serialize_timedelta(td)
         1800
-    """  # noqa: E111
-    return int(td.total_seconds())  # noqa: E111
-
-
+    """
+    return int(td.total_seconds())
 def serialize_dataclass(obj: Any) -> dict[str, Any]:
     """Convert dataclass instance to dictionary.
 
@@ -79,7 +75,7 @@ def serialize_dataclass(obj: Any) -> dict[str, Any]:
         >>> dog = Dog("Buddy", 5)
         >>> serialize_dataclass(dog)
         {'name': 'Buddy', 'age': 5}
-    """  # noqa: E111
+    """
     if not is_dataclass(obj):
         raise TypeError(f"Expected dataclass instance, got {type(obj).__name__}")
     if isinstance(obj, type):
@@ -117,15 +113,12 @@ def serialize_entity_attributes(attrs: Mapping[str, Any]) -> dict[str, Any]:
         1800
         >>> result["count"]
         42
-    """  # noqa: E111
-    result: dict[str, Any] = {}  # noqa: E111
-
-    for key, value in attrs.items():  # noqa: E111
+    """
+    result: dict[str, Any] = {}
+    for key, value in attrs.items():
         result[key] = _serialize_value(value)
 
-    return result  # noqa: E111
-
-
+    return result
 def _serialize_value(value: Any) -> Any:
     """Recursively serialize a value to JSON-safe format.
 
@@ -134,35 +127,35 @@ def _serialize_value(value: Any) -> Any:
 
     Returns:
         JSON-serializable value
-    """  # noqa: E111
+    """
     # Handle None  # noqa: E114
-    if value is None:  # noqa: E111
+    if value is None:
         return None
 
     # Handle datetime  # noqa: E114
-    if isinstance(value, datetime):  # noqa: E111
+    if isinstance(value, datetime):
         return serialize_datetime(value)
 
     # Handle timedelta  # noqa: E114
-    if isinstance(value, timedelta):  # noqa: E111
+    if isinstance(value, timedelta):
         return serialize_timedelta(value)
 
     # Handle dataclass  # noqa: E114
-    if is_dataclass(value) and not isinstance(value, type):  # noqa: E111
+    if is_dataclass(value) and not isinstance(value, type):
         # Recursively serialize dataclass fields
         return {k: _serialize_value(v) for k, v in asdict(value).items()}
 
     # Handle dict (recursively)  # noqa: E114
-    if isinstance(value, dict):  # noqa: E111
+    if isinstance(value, dict):
         return {k: _serialize_value(v) for k, v in value.items()}
 
     # Handle list/tuple (recursively)  # noqa: E114
-    if isinstance(value, list | tuple):  # noqa: E111
+    if isinstance(value, list | tuple):
         return [_serialize_value(item) for item in value]
 
     # Handle primitives (str, int, float, bool)  # noqa: E114
-    if isinstance(value, str | int | float | bool):  # noqa: E111
+    if isinstance(value, str | int | float | bool):
         return value
 
     # Fallback: convert to string  # noqa: E114
-    return str(value)  # noqa: E111
+    return str(value)

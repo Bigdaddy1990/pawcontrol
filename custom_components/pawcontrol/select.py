@@ -24,10 +24,9 @@ ATTR_OPTION = getattr(select_component, "ATTR_OPTION", "option")
 ATTR_OPTIONS = getattr(select_component, "ATTR_OPTIONS", "options")
 
 try:
-    from homeassistant.const import ATTR_ENTITY_ID  # noqa: E111
+    from homeassistant.const import ATTR_ENTITY_ID
 except ImportError:  # pragma: no cover
-    ATTR_ENTITY_ID = "entity_id"  # noqa: E111
-
+    ATTR_ENTITY_ID = "entity_id"
 from homeassistant.exceptions import HomeAssistantError  # noqa: E402
 
 from .const import (  # noqa: E402
@@ -101,8 +100,7 @@ from .utils import (  # noqa: E402
 )
 
 if TYPE_CHECKING:
-    from .data_manager import PawControlDataManager  # noqa: E111
-
+    from .data_manager import PawControlDataManager
 _LOGGER = logging.getLogger(__name__)
 
 # Select entities invoke coordinator-backed actions. The coordinator is
@@ -112,11 +110,8 @@ PARALLEL_UPDATES = 0
 
 
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
-    """Return JSON-serialisable attributes for select entities."""  # noqa: E111
-
-    return normalise_entity_attributes(attrs)  # noqa: E111
-
-
+    """Return JSON-serialisable attributes for select entities."""
+    return normalise_entity_attributes(attrs)
 # Additional option lists for selects
 WALK_MODES: list[WalkModeKey] = [
     "automatic",
@@ -436,13 +431,10 @@ def _merge_json_mappings(
     base: Mapping[str, JSONValue] | None,
     updates: Mapping[str, JSONValue],
 ) -> JSONMutableMapping:
-    """Return a JSON-compatible mapping that merges base and updates."""  # noqa: E111
-
-    base_payload: dict[str, JSONValue] = dict(base) if base is not None else {}  # noqa: E111
-    merged = deep_merge_dicts(base_payload, dict(updates))  # noqa: E111
-    return merged  # noqa: E111
-
-
+    """Return a JSON-compatible mapping that merges base and updates."""
+    base_payload: dict[str, JSONValue] = dict(base) if base is not None else {}
+    merged = deep_merge_dicts(base_payload, dict(updates))
+    return merged
 async def _async_add_entities_in_batches(
     async_add_entities_func: AddEntitiesCallback,
     entities: Sequence[PawControlSelectBase],
@@ -460,17 +452,16 @@ async def _async_add_entities_in_batches(
         entities: List of select entities to add
         batch_size: Number of entities per batch (default: 10)
         delay_between_batches: Seconds to wait between batches (default: 0.1s)
-    """  # noqa: E111
-    total_entities = len(entities)  # noqa: E111
-
-    _LOGGER.debug(  # noqa: E111
+    """
+    total_entities = len(entities)
+    _LOGGER.debug(
         "Adding %d select entities in batches of %d to prevent Registry overload",
         total_entities,
         batch_size,
     )
 
     # Process entities in batches  # noqa: E114
-    for i in range(0, total_entities, batch_size):  # noqa: E111
+    for i in range(0, total_entities, batch_size):
         batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
@@ -491,9 +482,7 @@ async def _async_add_entities_in_batches(
 
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch
-            await asyncio.sleep(delay_between_batches)  # noqa: E111
-
-
+            await asyncio.sleep(delay_between_batches)
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
@@ -509,19 +498,17 @@ async def async_setup_entry(
         hass: Home Assistant instance
         entry: Configuration entry containing dog configurations
         async_add_entities: Callback to add select entities
-    """  # noqa: E111
-    runtime_data = get_runtime_data(hass, entry)  # noqa: E111
-    if runtime_data is None:  # noqa: E111
+    """
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data is None:
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
         return
 
-    coordinator: PawControlCoordinator = runtime_data.coordinator  # noqa: E111
-    dogs: list[DogConfigData] = runtime_data.dogs  # noqa: E111
-
-    entities: list[PawControlSelectBase] = []  # noqa: E111
-
+    coordinator: PawControlCoordinator = runtime_data.coordinator
+    dogs: list[DogConfigData] = runtime_data.dogs
+    entities: list[PawControlSelectBase] = []
     # Create select entities for each configured dog  # noqa: E114
-    for dog in dogs:  # noqa: E111
+    for dog in dogs:
         dog_id = dog[DOG_ID_FIELD]
         dog_name = dog[DOG_NAME_FIELD]
         modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
@@ -544,7 +531,7 @@ async def async_setup_entry(
 
         # Module-specific selects
         if modules.get(MODULE_FEEDING, False):
-            entities.extend(  # noqa: E111
+            entities.extend(
                 _create_feeding_selects(
                     coordinator,
                     dog_id,
@@ -553,7 +540,7 @@ async def async_setup_entry(
             )
 
         if modules.get(MODULE_WALK, False):
-            entities.extend(  # noqa: E111
+            entities.extend(
                 _create_walk_selects(
                     coordinator,
                     dog_id,
@@ -562,10 +549,9 @@ async def async_setup_entry(
             )
 
         if modules.get(MODULE_GPS, False):
-            entities.extend(_create_gps_selects(coordinator, dog_id, dog_name))  # noqa: E111
-
+            entities.extend(_create_gps_selects(coordinator, dog_id, dog_name))
         if modules.get(MODULE_HEALTH, False):
-            entities.extend(  # noqa: E111
+            entities.extend(
                 _create_health_selects(
                     coordinator,
                     dog_id,
@@ -575,9 +561,8 @@ async def async_setup_entry(
 
     # Add entities in smaller batches to prevent Entity Registry overload  # noqa: E114
     # With 32+ select entities (2 dogs), batching prevents Registry flooding  # noqa: E114
-    await _async_add_entities_in_batches(async_add_entities, entities, batch_size=10)  # noqa: E111
-
-    _LOGGER.info(  # noqa: E111
+    await _async_add_entities_in_batches(async_add_entities, entities, batch_size=10)
+    _LOGGER.info(
         "Created %d select entities for %d dogs using batched approach",
         len(entities),
         len(dogs),
@@ -590,8 +575,8 @@ async def async_reproduce_state(
     *,
     context: Context | None = None,
 ) -> None:
-    """Reproduce select states for PawControl entities."""  # noqa: E111
-    await async_reproduce_platform_states(  # noqa: E111
+    """Reproduce select states for PawControl entities."""
+    await async_reproduce_platform_states(
         hass,
         states,
         "select",
@@ -602,9 +587,7 @@ async def async_reproduce_state(
 
 
 def _preprocess_select_state(state: State) -> str:
-    return state.state  # noqa: E111
-
-
+    return state.state
 async def _async_reproduce_select_state(
     hass: HomeAssistant,
     state: State,
@@ -612,11 +595,11 @@ async def _async_reproduce_select_state(
     target_option: str,
     context: Context | None,
 ) -> None:
-    if current_state.state == target_option:  # noqa: E111
+    if current_state.state == target_option:
         return
 
-    options = current_state.attributes.get(ATTR_OPTIONS, [])  # noqa: E111
-    if options and target_option not in options:  # noqa: E111
+    options = current_state.attributes.get(ATTR_OPTIONS, [])
+    if options and target_option not in options:
         _LOGGER.warning(
             "Invalid select option for %s: %s",
             state.entity_id,
@@ -624,7 +607,7 @@ async def _async_reproduce_select_state(
         )
         return
 
-    await hass.services.async_call(  # noqa: E111
+    await hass.services.async_call(
         select_component.DOMAIN,
         select_component.SERVICE_SELECT_OPTION,
         {ATTR_ENTITY_ID: state.entity_id, ATTR_OPTION: target_option},
@@ -649,8 +632,8 @@ def _create_base_selects(
 
     Returns:
         List of base select entities
-    """  # noqa: E111
-    return [  # noqa: E111
+    """
+    return [
         PawControlDogSizeSelect(coordinator, dog_id, dog_name, dog_config),
         PawControlPerformanceModeSelect(coordinator, dog_id, dog_name),
         PawControlNotificationPrioritySelect(coordinator, dog_id, dog_name),
@@ -671,8 +654,8 @@ def _create_feeding_selects(
 
     Returns:
         List of feeding select entities
-    """  # noqa: E111
-    return [  # noqa: E111
+    """
+    return [
         PawControlFoodTypeSelect(coordinator, dog_id, dog_name),
         PawControlFeedingScheduleSelect(coordinator, dog_id, dog_name),
         PawControlDefaultMealTypeSelect(coordinator, dog_id, dog_name),
@@ -694,8 +677,8 @@ def _create_walk_selects(
 
     Returns:
         List of walk select entities
-    """  # noqa: E111
-    return [  # noqa: E111
+    """
+    return [
         PawControlWalkModeSelect(coordinator, dog_id, dog_name),
         PawControlWeatherPreferenceSelect(coordinator, dog_id, dog_name),
         PawControlWalkIntensitySelect(coordinator, dog_id, dog_name),
@@ -716,8 +699,8 @@ def _create_gps_selects(
 
     Returns:
         List of GPS select entities
-    """  # noqa: E111
-    return [  # noqa: E111
+    """
+    return [
         PawControlGPSSourceSelect(coordinator, dog_id, dog_name),
         PawControlTrackingModeSelect(coordinator, dog_id, dog_name),
         PawControlLocationAccuracySelect(coordinator, dog_id, dog_name),
@@ -738,8 +721,8 @@ def _create_health_selects(
 
     Returns:
         List of health select entities
-    """  # noqa: E111
-    return [  # noqa: E111
+    """
+    return [
         PawControlHealthStatusSelect(coordinator, dog_id, dog_name),
         PawControlActivityLevelSelect(coordinator, dog_id, dog_name),
         PawControlMoodSelect(coordinator, dog_id, dog_name),
@@ -753,9 +736,8 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
     Provides common functionality and ensures consistent behavior across
     all select types. Includes proper device grouping, state persistence,
     validation, and error handling.
-    """  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -802,68 +784,63 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
             sw_version=DEFAULT_SW_VERSION,
         )
 
-    def _get_runtime_data(self) -> PawControlRuntimeData | None:  # noqa: E111
+    def _get_runtime_data(self) -> PawControlRuntimeData | None:
         """Return runtime data associated with the config entry."""
 
         if self.hass is None:
-            return None  # noqa: E111
-
+            return None
         return get_runtime_data(self.hass, self.coordinator.config_entry)
 
-    def _get_domain_entry_data(self) -> JSONMutableMapping:  # noqa: E111
+    def _get_domain_entry_data(self) -> JSONMutableMapping:
         """Return the hass.data payload for this config entry."""
 
         runtime_data = self._get_runtime_data()
         if runtime_data is not None:
-            return cast(JSONMutableMapping, runtime_data.as_dict())  # noqa: E111
-
+            return cast(JSONMutableMapping, runtime_data.as_dict())
         return {}
 
-    def _get_data_manager(self) -> PawControlDataManager | None:  # noqa: E111
+    def _get_data_manager(self) -> PawControlDataManager | None:
         """Return the data manager for persistence if available."""
 
         runtime_data = self._get_runtime_data()
         if runtime_data is not None:
-            direct_manager = getattr(runtime_data, "data_manager", None)  # noqa: E111
-            if direct_manager is not None:  # noqa: E111
+            direct_manager = getattr(runtime_data, "data_manager", None)
+            if direct_manager is not None:
                 return direct_manager
 
-            manager_container = getattr(runtime_data, "runtime_managers", None)  # noqa: E111
-            if manager_container is not None:  # noqa: E111
+            manager_container = getattr(runtime_data, "runtime_managers", None)
+            if manager_container is not None:
                 return getattr(manager_container, "data_manager", None)
 
         entry_data = self._get_domain_entry_data()
         managers = entry_data.get("runtime_managers")
         if managers is None:
-            return None  # noqa: E111
-
+            return None
         manager_obj = getattr(managers, "data_manager", None)
         if manager_obj is not None:
-            return cast(PawControlDataManager | None, manager_obj)  # noqa: E111
-
+            return cast(PawControlDataManager | None, manager_obj)
         if isinstance(managers, Mapping):
-            candidate = managers.get("data_manager")  # noqa: E111
-            if candidate is not None:  # noqa: E111
+            candidate = managers.get("data_manager")
+            if candidate is not None:
                 return cast(PawControlDataManager | None, candidate)
 
         return None
 
-    def _get_current_gps_config(self) -> JSONMutableMapping:  # noqa: E111
+    def _get_current_gps_config(self) -> JSONMutableMapping:
         """Return the currently stored GPS configuration."""
 
         dog_data = self._get_dog_data()
         if dog_data is None:
-            return cast(JSONMutableMapping, {})  # noqa: E111
-
+            return cast(JSONMutableMapping, {})
         gps_data = dog_data.get("gps")
         if isinstance(gps_data, Mapping):
-            config = gps_data.get("config")  # noqa: E111
-            if isinstance(config, Mapping):  # noqa: E111
+            config = gps_data.get("config")
+            if isinstance(config, Mapping):
                 return cast(JSONMutableMapping, dict(config))
 
         return cast(JSONMutableMapping, {})
 
-    async def _async_update_module_settings(  # noqa: E111
+    async def _async_update_module_settings(
         self,
         module: str,
         updates: JSONMutableMapping,
@@ -872,12 +849,12 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
         data_manager = self._get_data_manager()
         if data_manager:
-            try:  # noqa: E111
+            try:
                 await data_manager.async_update_dog_data(
                     self._dog_id,
                     {module: updates},
                 )
-            except Exception as err:  # pragma: no cover - defensive log  # noqa: E111
+            except Exception as err:  # pragma: no cover - defensive log
                 _LOGGER.warning(
                     "Failed to persist %s updates for %s: %s",
                     module,
@@ -890,7 +867,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
             updates,
         )
 
-    async def _async_update_gps_settings(  # noqa: E111
+    async def _async_update_gps_settings(
         self,
         *,
         state_updates: JSONMutableMapping | None = None,
@@ -902,40 +879,37 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         merged_config: JSONMutableMapping | None = None
 
         if state_updates:
-            gps_updates.update(state_updates)  # noqa: E111
-
+            gps_updates.update(state_updates)
         if config_updates:
-            current_config = self._get_current_gps_config()  # noqa: E111
-            merged_config = _merge_json_mappings(  # noqa: E111
+            current_config = self._get_current_gps_config()
+            merged_config = _merge_json_mappings(
                 current_config,
                 config_updates,
             )
-            gps_updates.setdefault("config", merged_config)  # noqa: E111
-
+            gps_updates.setdefault("config", merged_config)
         if gps_updates:
-            await self._async_update_module_settings("gps", gps_updates)  # noqa: E111
-
+            await self._async_update_module_settings("gps", gps_updates)
         if merged_config:
-            runtime_data = self._get_runtime_data()  # noqa: E111
-            gps_manager = (  # noqa: E111
+            runtime_data = self._get_runtime_data()
+            gps_manager = (
                 getattr(runtime_data, "gps_geofence_manager", None)
                 if runtime_data
                 else None
             )
-            if gps_manager:  # noqa: E111
+            if gps_manager:
                 try:
-                    await gps_manager.async_configure_dog_gps(  # noqa: E111
+                    await gps_manager.async_configure_dog_gps(
                         self._dog_id,
                         cast(GPSTrackingConfigInput, dict(merged_config)),
                     )
                 except Exception as err:  # pragma: no cover - defensive log
-                    _LOGGER.warning(  # noqa: E111
+                    _LOGGER.warning(
                         "Failed to apply GPS configuration for %s: %s",
                         self._dog_name,
                         err,
                     )
 
-    async def async_added_to_hass(self) -> None:  # noqa: E111
+    async def async_added_to_hass(self) -> None:
         """Called when entity is added to Home Assistant.
 
         Restores the previous option and sets up any required listeners.
@@ -945,16 +919,16 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         # Restore previous option
         last_state = await self.async_get_last_state()
         if last_state is not None and last_state.state in self.options:
-            self._current_option = last_state.state  # noqa: E111
-            _LOGGER.debug(  # noqa: E111
+            self._current_option = last_state.state
+            _LOGGER.debug(
                 "Restored select option for %s %s: %s",
                 self._dog_name,
                 self._select_type,
                 self._current_option,
             )
 
-    @property  # noqa: E111
-    def current_option(self) -> str | None:  # noqa: E111
+    @property
+    def current_option(self) -> str | None:
         """Return the current selected option.
 
         Returns:
@@ -962,8 +936,8 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         """
         return self._current_option
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional state attributes for the select.
 
         Provides information about the select's function and available options.
@@ -981,7 +955,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
         return _normalise_attributes(attrs)
 
-    async def async_select_option(self, option: str) -> None:  # noqa: E111
+    async def async_select_option(self, option: str) -> None:
         """Select an option.
 
         Args:
@@ -991,16 +965,15 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
             HomeAssistantError: If option is invalid or cannot be set
         """
         if option not in self.options:
-            raise HomeAssistantError(  # noqa: E111
+            raise HomeAssistantError(
                 f"Invalid option '{option}' for {self._select_type}",
             )
 
         try:
-            await self._async_set_select_option(option)  # noqa: E111
-            self._current_option = option  # noqa: E111
-            self.async_write_ha_state()  # noqa: E111
-
-            _LOGGER.info(  # noqa: E111
+            await self._async_set_select_option(option)
+            self._current_option = option
+            self.async_write_ha_state()
+            _LOGGER.info(
                 "Set %s for %s (%s) to '%s'",
                 self._select_type,
                 self._dog_name,
@@ -1009,17 +982,17 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
             )
 
         except Exception as err:
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Failed to set %s for %s: %s",
                 self._select_type,
                 self._dog_name,
                 err,
             )
-            raise HomeAssistantError(  # noqa: E111
+            raise HomeAssistantError(
                 f"Failed to set {self._select_type}",
             ) from err
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the select option implementation.
 
         This method should be overridden by subclasses to implement
@@ -1031,12 +1004,12 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         # Base implementation - subclasses should override
         pass
 
-    def _get_dog_data(self) -> CoordinatorDogData | None:  # noqa: E111
+    def _get_dog_data(self) -> CoordinatorDogData | None:
         """Get data for this select's dog from the coordinator."""
 
         return self._get_dog_data_cached()
 
-    def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:  # noqa: E111
+    def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
         """Get specific module data for this dog.
 
         Args:
@@ -1047,8 +1020,8 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         """
         return super()._get_module_data(module)
 
-    @property  # noqa: E111
-    def available(self) -> bool:  # noqa: E111
+    @property
+    def available(self) -> bool:
         """Return if the select is available.
 
         A select is available when the coordinator is available and
@@ -1062,9 +1035,8 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
 # Base selects
 class PawControlDogSizeSelect(PawControlSelectBase):
-    """Select entity for the dog's size category."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for the dog's size category."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1086,14 +1058,14 @@ class PawControlDogSizeSelect(PawControlSelectBase):
             initial_option=current_size,
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the dog's size."""
         # This would update the dog's size in the configuration
         # and trigger size-related calculations
         await self.coordinator.async_refresh_dog(self._dog_id)
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes for the size select."""
         attrs = super().extra_state_attributes
 
@@ -1102,7 +1074,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
 
         return _normalise_attributes(attrs)
 
-    def _get_size_info(self, size: str | None) -> DogSizeInfo:  # noqa: E111
+    def _get_size_info(self, size: str | None) -> DogSizeInfo:
         """Get information about the selected size.
 
         Args:
@@ -1112,19 +1084,16 @@ class PawControlDogSizeSelect(PawControlSelectBase):
             Size information dictionary
         """
         if size is None:
-            return cast(DogSizeInfo, {})  # noqa: E111
-
+            return cast(DogSizeInfo, {})
         info = DOG_SIZE_DETAILS.get(size)
         if info is None:
-            return cast(DogSizeInfo, {})  # noqa: E111
-
+            return cast(DogSizeInfo, {})
         return cast(DogSizeInfo, dict(info))
 
 
 class PawControlPerformanceModeSelect(PawControlSelectBase):
-    """Select entity for system performance mode."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for system performance mode."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1142,13 +1111,13 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
             initial_option=DEFAULT_PERFORMANCE_MODE,
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the performance mode."""
         # This would update system performance settings
         pass
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes for performance mode."""
         attrs = super().extra_state_attributes
 
@@ -1157,7 +1126,7 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
 
         return _normalise_attributes(attrs)
 
-    def _get_performance_mode_info(self, mode: str | None) -> PerformanceModeInfo:  # noqa: E111
+    def _get_performance_mode_info(self, mode: str | None) -> PerformanceModeInfo:
         """Get information about the selected performance mode.
 
         Args:
@@ -1167,19 +1136,16 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
             Performance mode information
         """
         if mode is None:
-            return cast(PerformanceModeInfo, {})  # noqa: E111
-
+            return cast(PerformanceModeInfo, {})
         info = PERFORMANCE_MODE_DETAILS.get(mode)
         if info is None:
-            return cast(PerformanceModeInfo, {})  # noqa: E111
-
+            return cast(PerformanceModeInfo, {})
         return cast(PerformanceModeInfo, dict(info))
 
 
 class PawControlNotificationPrioritySelect(PawControlSelectBase):
-    """Select entity for default notification priority."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for default notification priority."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1196,13 +1162,13 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
             initial_option="normal",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the notification priority."""
 
         try:
-            priority = NotificationPriority(option)  # noqa: E111
+            priority = NotificationPriority(option)
         except ValueError as err:
-            raise HomeAssistantError(  # noqa: E111
+            raise HomeAssistantError(
                 f"Unsupported notification priority '{option}'",
             ) from err
 
@@ -1212,22 +1178,21 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
         )
 
         if notification_manager is None:
-            entry_data = self._get_domain_entry_data()  # noqa: E111
-            fallback = entry_data.get("notification_manager")  # noqa: E111
-            if isinstance(fallback, PawControlNotificationManager):  # noqa: E111
+            entry_data = self._get_domain_entry_data()
+            fallback = entry_data.get("notification_manager")
+            if isinstance(fallback, PawControlNotificationManager):
                 notification_manager = fallback
-            else:  # noqa: E111
+            else:
                 legacy = entry_data.get("notifications")
                 if isinstance(legacy, PawControlNotificationManager):
-                    notification_manager = legacy  # noqa: E111
-
+                    notification_manager = legacy
         if notification_manager is not None:
-            await notification_manager.async_set_priority_threshold(  # noqa: E111
+            await notification_manager.async_set_priority_threshold(
                 self._dog_id,
                 priority,
             )
         else:
-            _LOGGER.debug(  # noqa: E111
+            _LOGGER.debug(
                 "Notification manager not available when updating priority for %s",
                 self._dog_name,
             )
@@ -1243,9 +1208,8 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
 
 # Feeding selects
 class PawControlFoodTypeSelect(PawControlSelectBase):
-    """Select entity for primary food type."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for primary food type."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1262,13 +1226,13 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
             initial_option="dry_food",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the food type."""
         # This would update feeding calculations and nutritional data
         pass
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes for food type."""
         attrs = super().extra_state_attributes
 
@@ -1277,7 +1241,7 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
 
         return _normalise_attributes(attrs)
 
-    def _get_food_type_info(self, food_type: str | None) -> FoodTypeInfo:  # noqa: E111
+    def _get_food_type_info(self, food_type: str | None) -> FoodTypeInfo:
         """Get information about the selected food type.
 
         Args:
@@ -1287,19 +1251,16 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
             Food type information
         """
         if food_type is None:
-            return cast(FoodTypeInfo, {})  # noqa: E111
-
+            return cast(FoodTypeInfo, {})
         info = FOOD_TYPE_DETAILS.get(food_type)
         if info is None:
-            return cast(FoodTypeInfo, {})  # noqa: E111
-
+            return cast(FoodTypeInfo, {})
         return cast(FoodTypeInfo, dict(info))
 
 
 class PawControlFeedingScheduleSelect(PawControlSelectBase):
-    """Select entity for feeding schedule type."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for feeding schedule type."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1316,16 +1277,15 @@ class PawControlFeedingScheduleSelect(PawControlSelectBase):
             initial_option="flexible",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the feeding schedule."""
         # This would update feeding schedule enforcement
         pass
 
 
 class PawControlDefaultMealTypeSelect(PawControlSelectBase):
-    """Select entity for default meal type."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for default meal type."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1342,7 +1302,7 @@ class PawControlDefaultMealTypeSelect(PawControlSelectBase):
             initial_option="dinner",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the default meal type."""
         timestamp = dt_util.utcnow().isoformat()
         await self._async_update_module_settings(
@@ -1355,9 +1315,8 @@ class PawControlDefaultMealTypeSelect(PawControlSelectBase):
 
 
 class PawControlFeedingModeSelect(PawControlSelectBase):
-    """Select entity for feeding mode."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for feeding mode."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1374,17 +1333,17 @@ class PawControlFeedingModeSelect(PawControlSelectBase):
             initial_option="manual",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the feeding mode."""
         runtime_data = self._get_runtime_data()
         feeding_manager = runtime_data.feeding_manager if runtime_data else None
 
         if feeding_manager is not None:
-            if option == "diabetic":  # noqa: E111
+            if option == "diabetic":
                 await feeding_manager.async_activate_diabetic_feeding_mode(
                     self._dog_id,
                 )
-            elif option == "emergency":  # noqa: E111
+            elif option == "emergency":
                 await feeding_manager.async_activate_emergency_feeding_mode(
                     self._dog_id,
                     "illness",
@@ -1403,9 +1362,8 @@ class PawControlFeedingModeSelect(PawControlSelectBase):
 
 # Walk selects
 class PawControlWalkModeSelect(PawControlSelectBase):
-    """Select entity for walk tracking mode."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for walk tracking mode."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1422,7 +1380,7 @@ class PawControlWalkModeSelect(PawControlSelectBase):
             initial_option="automatic",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the walk mode."""
         timestamp = dt_util.utcnow().isoformat()
         await self._async_update_module_settings(
@@ -1433,8 +1391,8 @@ class PawControlWalkModeSelect(PawControlSelectBase):
             },
         )
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes for walk mode."""
         attrs = super().extra_state_attributes
 
@@ -1443,7 +1401,7 @@ class PawControlWalkModeSelect(PawControlSelectBase):
 
         return _normalise_attributes(attrs)
 
-    def _get_walk_mode_info(self, mode: str | None) -> WalkModeInfo:  # noqa: E111
+    def _get_walk_mode_info(self, mode: str | None) -> WalkModeInfo:
         """Get information about the selected walk mode.
 
         Args:
@@ -1453,19 +1411,16 @@ class PawControlWalkModeSelect(PawControlSelectBase):
             Walk mode information
         """
         if mode is None:
-            return cast(WalkModeInfo, {})  # noqa: E111
-
+            return cast(WalkModeInfo, {})
         info = WALK_MODE_DETAILS.get(mode)
         if info is None:
-            return cast(WalkModeInfo, {})  # noqa: E111
-
+            return cast(WalkModeInfo, {})
         return cast(WalkModeInfo, dict(info))
 
 
 class PawControlWeatherPreferenceSelect(PawControlSelectBase):
-    """Select entity for walk weather preference."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for walk weather preference."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1482,16 +1437,15 @@ class PawControlWeatherPreferenceSelect(PawControlSelectBase):
             initial_option="any",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the weather preference."""
         # This would update weather-based walk recommendations
         pass
 
 
 class PawControlWalkIntensitySelect(PawControlSelectBase):
-    """Select entity for preferred walk intensity."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for preferred walk intensity."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1508,7 +1462,7 @@ class PawControlWalkIntensitySelect(PawControlSelectBase):
             initial_option="moderate",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the walk intensity."""
         # This would update walk goal calculations
         pass
@@ -1516,9 +1470,8 @@ class PawControlWalkIntensitySelect(PawControlSelectBase):
 
 # GPS selects
 class PawControlGPSSourceSelect(PawControlSelectBase):
-    """Select entity for GPS data source."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for GPS data source."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1536,7 +1489,7 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
             initial_option="device_tracker",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the GPS source."""
 
         timestamp = dt_util.utcnow().isoformat()
@@ -1547,8 +1500,8 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
             },
         )
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes for GPS source."""
         attrs = super().extra_state_attributes
 
@@ -1557,7 +1510,7 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
 
         return _normalise_attributes(attrs)
 
-    def _get_gps_source_info(self, source: str | None) -> GPSSourceInfo:  # noqa: E111
+    def _get_gps_source_info(self, source: str | None) -> GPSSourceInfo:
         """Get information about the selected GPS source.
 
         Args:
@@ -1567,19 +1520,16 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
             GPS source information
         """
         if source is None:
-            return cast(GPSSourceInfo, {})  # noqa: E111
-
+            return cast(GPSSourceInfo, {})
         info = GPS_SOURCE_DETAILS.get(source)
         if info is None:
-            return cast(GPSSourceInfo, {})  # noqa: E111
-
+            return cast(GPSSourceInfo, {})
         return cast(GPSSourceInfo, dict(info))
 
 
 class PawControlTrackingModeSelect(PawControlSelectBase):
-    """Select entity for GPS tracking mode."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for GPS tracking mode."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1596,7 +1546,7 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
             initial_option="interval",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the tracking mode."""
 
         timestamp = dt_util.utcnow().isoformat()
@@ -1619,9 +1569,8 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
 
 
 class PawControlLocationAccuracySelect(PawControlSelectBase):
-    """Select entity for location accuracy preference."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for location accuracy preference."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1639,7 +1588,7 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
             initial_option="balanced",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the location accuracy preference."""
 
         timestamp = dt_util.utcnow().isoformat()
@@ -1660,9 +1609,8 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
 
 # Health selects
 class PawControlHealthStatusSelect(PawControlSelectBase):
-    """Select entity for current health status."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for current health status."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1679,27 +1627,26 @@ class PawControlHealthStatusSelect(PawControlSelectBase):
             initial_option="good",
         )
 
-    @property  # noqa: E111
-    def current_option(self) -> str | None:  # noqa: E111
+    @property
+    def current_option(self) -> str | None:
         """Return the current health status from data."""
         health_data = self._get_module_data("health")
         if health_data:
-            value = health_data.get("health_status")  # noqa: E111
-            if isinstance(value, str):  # noqa: E111
+            value = health_data.get("health_status")
+            if isinstance(value, str):
                 return value
 
         return self._current_option
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the health status."""
         # This would update health status and trigger alerts if needed
         pass
 
 
 class PawControlActivityLevelSelect(PawControlSelectBase):
-    """Select entity for current activity level."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for current activity level."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1716,27 +1663,26 @@ class PawControlActivityLevelSelect(PawControlSelectBase):
             initial_option="normal",
         )
 
-    @property  # noqa: E111
-    def current_option(self) -> str | None:  # noqa: E111
+    @property
+    def current_option(self) -> str | None:
         """Return the current activity level from data."""
         health_data = self._get_module_data("health")
         if health_data:
-            value = health_data.get("activity_level")  # noqa: E111
-            if isinstance(value, str):  # noqa: E111
+            value = health_data.get("activity_level")
+            if isinstance(value, str):
                 return value
 
         return self._current_option
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the activity level."""
         # This would update activity tracking and recommendations
         pass
 
 
 class PawControlMoodSelect(PawControlSelectBase):
-    """Select entity for current mood."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for current mood."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1753,16 +1699,15 @@ class PawControlMoodSelect(PawControlSelectBase):
             initial_option="happy",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the mood."""
         # This would log mood data and adjust recommendations
         pass
 
 
 class PawControlGroomingTypeSelect(PawControlSelectBase):
-    """Select entity for selecting grooming type."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Select entity for selecting grooming type."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1779,13 +1724,13 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
             initial_option="brush",
         )
 
-    async def _async_set_select_option(self, option: str) -> None:  # noqa: E111
+    async def _async_set_select_option(self, option: str) -> None:
         """Set the grooming type."""
         # This would be used for logging grooming activities
         pass
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes for grooming type."""
         attrs = super().extra_state_attributes
 
@@ -1794,7 +1739,7 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
 
         return _normalise_attributes(attrs)
 
-    def _get_grooming_type_info(self, grooming_type: str | None) -> GroomingTypeInfo:  # noqa: E111
+    def _get_grooming_type_info(self, grooming_type: str | None) -> GroomingTypeInfo:
         """Get information about the selected grooming type.
 
         Args:
@@ -1804,10 +1749,8 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
             Grooming type information
         """
         if grooming_type is None:
-            return cast(GroomingTypeInfo, {})  # noqa: E111
-
+            return cast(GroomingTypeInfo, {})
         info = GROOMING_TYPE_DETAILS.get(grooming_type)
         if info is None:
-            return cast(GroomingTypeInfo, {})  # noqa: E111
-
+            return cast(GroomingTypeInfo, {})
         return cast(GroomingTypeInfo, dict(info))

@@ -105,21 +105,18 @@ def _validate_gps_update_interval(
     minimum: int,
     maximum: int,
 ) -> int:
-    """Validate a required GPS update interval for flow steps."""  # noqa: E111
-
-    validated = validate_gps_interval(  # noqa: E111
+    """Validate a required GPS update interval for flow steps."""
+    validated = validate_gps_interval(
         value,
         field=field,
         minimum=minimum,
         maximum=maximum,
         required=True,
     )
-    if validated is None:  # noqa: E111
+    if validated is None:
         # Defensive guard: required=True should return an int or raise.
         raise ValidationError(field, value, "gps_update_interval_required")
-    return validated  # noqa: E111
-
-
+    return validated
 def _validate_gps_accuracy(
     value: JSONValue | None,
     *,
@@ -127,31 +124,24 @@ def _validate_gps_accuracy(
     minimum: float,
     maximum: float,
 ) -> float:
-    """Validate a required GPS accuracy filter for flow steps."""  # noqa: E111
-
-    validated = InputValidator.validate_gps_accuracy(  # noqa: E111
+    """Validate a required GPS accuracy filter for flow steps."""
+    validated = InputValidator.validate_gps_accuracy(
         value,
         required=True,
         field=field,
         min_value=minimum,
         max_value=maximum,
     )
-    if validated is None:  # noqa: E111
+    if validated is None:
         # Defensive guard: required=True should return a float or raise.
         raise ValidationError(field, value, "gps_accuracy_required")
-    return validated  # noqa: E111
-
-
+    return validated
 class GPSDefaultsHost(Protocol):
-    """Protocol describing the config flow host requirements."""  # noqa: E111
-
-    _discovery_info: ConfigFlowDiscoveryData  # noqa: E111
-
-
+    """Protocol describing the config flow host requirements."""
+    _discovery_info: ConfigFlowDiscoveryData
 class GPSModuleDefaultsMixin(GPSDefaultsHost):
-    """Provide GPS-aware defaults for module selection."""  # noqa: E111
-
-    def _get_enhanced_modules_schema(self, dog_config: DogConfigData) -> vol.Schema:  # noqa: E111
+    """Provide GPS-aware defaults for module selection."""
+    def _get_enhanced_modules_schema(self, dog_config: DogConfigData) -> vol.Schema:
         """Get enhanced modules schema with smart defaults.
 
         Args:
@@ -188,7 +178,7 @@ class GPSModuleDefaultsMixin(GPSDefaultsHost):
             },
         )
 
-    def _should_enable_gps(self, dog_config: DogConfigData) -> bool:  # noqa: E111
+    def _should_enable_gps(self, dog_config: DogConfigData) -> bool:
         """Determine if GPS should be enabled by default.
 
         Args:
@@ -199,12 +189,11 @@ class GPSModuleDefaultsMixin(GPSDefaultsHost):
         """
         # Enable GPS for discovered devices or large dogs
         if self._discovery_info:
-            return True  # noqa: E111
-
+            return True
         dog_size = dog_config.get("dog_size", "medium")
         return dog_size in {"large", "giant"}
 
-    def _get_smart_module_defaults(self, dog_config: DogConfigData) -> str:  # noqa: E111
+    def _get_smart_module_defaults(self, dog_config: DogConfigData) -> str:
         """Get explanation for smart module defaults.
 
         Args:
@@ -216,19 +205,16 @@ class GPSModuleDefaultsMixin(GPSDefaultsHost):
         reasons = []
 
         if self._discovery_info:
-            reasons.append("GPS enabled due to discovered tracking device")  # noqa: E111
-
+            reasons.append("GPS enabled due to discovered tracking device")
         dog_size = dog_config.get("dog_size", "medium")
         if dog_size in {"large", "giant"}:
-            reasons.append("GPS recommended for larger dogs")  # noqa: E111
-
+            reasons.append("GPS recommended for larger dogs")
         return "; ".join(reasons) if reasons else "Standard defaults applied"
 
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant  # noqa: E111
-
-    class DogGPSFlowHost(Protocol):  # noqa: E111
+    from homeassistant.core import HomeAssistant
+    class DogGPSFlowHost(Protocol):
         _current_dog_config: DogConfigData | None
         _dogs: list[DogConfigData]
         hass: HomeAssistant
@@ -267,15 +253,11 @@ if TYPE_CHECKING:
         ) -> ConfigFlowResult: ...
 
 else:  # pragma: no cover
-    DogGPSFlowHost = object  # noqa: E111
-
-
+    DogGPSFlowHost = object
 class DogGPSFlowMixin(DogGPSFlowHost):
-    """Handle GPS configuration steps in the config flow."""  # noqa: E111
-
-    _current_dog_config: DogConfigData | None  # noqa: E111
-
-    async def async_step_dog_gps(  # noqa: E111
+    """Handle GPS configuration steps in the config flow."""
+    _current_dog_config: DogConfigData | None
+    async def async_step_dog_gps(
         self,
         user_input: DogGPSStepInput | None = None,
     ) -> ConfigFlowResult:
@@ -283,58 +265,57 @@ class DogGPSFlowMixin(DogGPSFlowHost):
 
         current_dog = self._current_dog_config
         if current_dog is None:
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "GPS configuration step invoked without active dog; restarting add_dog",
             )
-            return await self.async_step_add_dog()  # noqa: E111
-
+            return await self.async_step_add_dog()
         if user_input is not None:
-            errors: dict[str, str] = {}  # noqa: E111
-            try:  # noqa: E111
+            errors: dict[str, str] = {}
+            try:
                 gps_source = validate_gps_source(
                     self.hass,
                     user_input.get(CONF_GPS_SOURCE),
                     field=CONF_GPS_SOURCE,
                     allow_manual=True,
                 )
-            except ValidationError as err:  # noqa: E111
+            except ValidationError as err:
                 if err.constraint == "gps_source_unavailable":
-                    errors[CONF_GPS_SOURCE] = "gps_entity_unavailable"  # noqa: E111
+                    errors[CONF_GPS_SOURCE] = "gps_entity_unavailable"
                 elif err.constraint == "gps_source_not_found":
-                    errors[CONF_GPS_SOURCE] = "gps_entity_not_found"  # noqa: E111
+                    errors[CONF_GPS_SOURCE] = "gps_entity_not_found"
                 else:
-                    errors[CONF_GPS_SOURCE] = "required"  # noqa: E111
+                    errors[CONF_GPS_SOURCE] = "required"
                 gps_source = "manual"
 
-            try:  # noqa: E111
+            try:
                 gps_update_interval = _validate_gps_update_interval(
                     user_input.get("gps_update_interval"),
                     field="gps_update_interval",
                     minimum=5,
                     maximum=600,
                 )
-            except ValidationError as err:  # noqa: E111
+            except ValidationError as err:
                 errors["gps_update_interval"] = validation_error_key(
                     err,
                     "validation_error",
                 )
                 gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
-            try:  # noqa: E111
+            try:
                 gps_accuracy = _validate_gps_accuracy(
                     user_input.get("gps_accuracy_filter"),
                     field="gps_accuracy_filter",
                     minimum=5.0,
                     maximum=500.0,
                 )
-            except ValidationError as err:  # noqa: E111
+            except ValidationError as err:
                 errors["gps_accuracy_filter"] = validation_error_key(
                     err,
                     "validation_error",
                 )
                 gps_accuracy = DEFAULT_GPS_ACCURACY_FILTER
 
-            try:  # noqa: E111
+            try:
                 home_zone_radius = InputValidator.validate_geofence_radius(
                     user_input.get("home_zone_radius"),
                     required=True,
@@ -342,14 +323,14 @@ class DogGPSFlowMixin(DogGPSFlowHost):
                     min_value=10.0,
                     max_value=500.0,
                 )
-            except ValidationError as err:  # noqa: E111
+            except ValidationError as err:
                 errors["home_zone_radius"] = validation_error_key(
                     err,
                     "validation_error",
                 )
                 home_zone_radius = 50.0
 
-            if errors:  # noqa: E111
+            if errors:
                 return self.async_show_form(
                     step_id="dog_gps",
                     data_schema=self._get_dog_gps_schema(),
@@ -366,9 +347,8 @@ class DogGPSFlowMixin(DogGPSFlowHost):
 
             home_zone_radius = (
                 home_zone_radius if home_zone_radius is not None else 50.0
-            )  # noqa: E111
-
-            gps_config: DogGPSConfig = {  # noqa: E111
+            )
+            gps_config: DogGPSConfig = {
                 "gps_source": gps_source,
                 "gps_update_interval": gps_update_interval,
                 "gps_accuracy_filter": gps_accuracy,
@@ -378,22 +358,20 @@ class DogGPSFlowMixin(DogGPSFlowHost):
                 ),
                 "home_zone_radius": home_zone_radius,
             }
-            schema_issues = validate_json_schema_payload(  # noqa: E111
+            schema_issues = validate_json_schema_payload(
                 gps_config,
                 GPS_DOG_CONFIG_JSON_SCHEMA,
             )
-            if schema_issues:  # noqa: E111
+            if schema_issues:
                 _LOGGER.error(
                     "GPS config failed JSON schema validation: %s",
                     [issue.constraint for issue in schema_issues],
                 )
-            current_dog[DOG_GPS_CONFIG_FIELD] = gps_config  # noqa: E111
-
-            modules = ensure_dog_modules_config(current_dog)  # noqa: E111
-            if modules.get(MODULE_HEALTH, False):  # noqa: E111
+            current_dog[DOG_GPS_CONFIG_FIELD] = gps_config
+            modules = ensure_dog_modules_config(current_dog)
+            if modules.get(MODULE_HEALTH, False):
                 return await self.async_step_dog_health()
-            return await self.async_step_dog_feeding()  # noqa: E111
-
+            return await self.async_step_dog_feeding()
         return self.async_show_form(
             step_id="dog_gps",
             data_schema=self._get_dog_gps_schema(),
@@ -407,7 +385,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
             ),
         )
 
-    def _get_dog_gps_schema(self) -> vol.Schema:  # noqa: E111
+    def _get_dog_gps_schema(self) -> vol.Schema:
         """Build the schema for GPS configuration."""
 
         gps_sources = self._get_available_device_trackers()
@@ -416,7 +394,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
 
 if TYPE_CHECKING:
 
-    class GPSOptionsHost(Protocol):  # noqa: E111
+    class GPSOptionsHost(Protocol):
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -482,29 +460,27 @@ if TYPE_CHECKING:
         async def async_step_init(self) -> ConfigFlowResult: ...
 
 else:  # pragma: no cover
-    from ..options_flow_shared import OptionsFlowSharedMixin  # noqa: E111
-
-    class GPSOptionsHost(OptionsFlowSharedMixin):  # noqa: E111
+    from ..options_flow_shared import OptionsFlowSharedMixin
+    class GPSOptionsHost(OptionsFlowSharedMixin):
         """Runtime host for GPS options mixin."""
 
         pass
 
 
 class GPSOptionsMixin(GPSOptionsHost):
-    _current_dog_config: DogConfigData | None  # noqa: E111
-    """Handle per-dog GPS and geofencing options."""  # noqa: E111
-
-    def _current_gps_options(self, dog_id: str) -> GPSOptions:  # noqa: E111
+    _current_dog_config: DogConfigData | None
+    """Handle per-dog GPS and geofencing options."""
+    def _current_gps_options(self, dog_id: str) -> GPSOptions:
         """Return the stored GPS configuration with legacy fallbacks."""
 
         dog_options = self._current_dog_options()
         entry = dog_options.get(dog_id, {})
         raw = entry.get(GPS_SETTINGS_FIELD)
         if isinstance(raw, Mapping):
-            current = cast(GPSOptions, dict(raw))  # noqa: E111
+            current = cast(GPSOptions, dict(raw))
         else:
-            legacy = self._current_options().get(GPS_SETTINGS_FIELD, {})  # noqa: E111
-            current = (  # noqa: E111
+            legacy = self._current_options().get(GPS_SETTINGS_FIELD, {})
+            current = (
                 cast(GPSOptions, dict(legacy))
                 if isinstance(
                     legacy,
@@ -518,100 +494,91 @@ class GPSOptionsMixin(GPSOptionsHost):
             and (interval := self._current_options().get(CONF_GPS_UPDATE_INTERVAL))
             is not None
         ):
-            if isinstance(interval, int):  # noqa: E111
+            if isinstance(interval, int):
                 current[GPS_UPDATE_INTERVAL_FIELD] = interval
-            elif isinstance(interval, float):  # noqa: E111
+            elif isinstance(interval, float):
                 current[GPS_UPDATE_INTERVAL_FIELD] = int(interval)
-            elif isinstance(interval, str):  # noqa: E111
+            elif isinstance(interval, str):
                 with suppress(ValueError):
-                    current[GPS_UPDATE_INTERVAL_FIELD] = int(interval)  # noqa: E111
-
+                    current[GPS_UPDATE_INTERVAL_FIELD] = int(interval)
         if (
             GPS_ACCURACY_FILTER_FIELD not in current
             and (accuracy := self._current_options().get(CONF_GPS_ACCURACY_FILTER))
             is not None
         ):
-            if isinstance(accuracy, int | float):  # noqa: E111
+            if isinstance(accuracy, int | float):
                 current[GPS_ACCURACY_FILTER_FIELD] = float(accuracy)
-            elif isinstance(accuracy, str):  # noqa: E111
+            elif isinstance(accuracy, str):
                 with suppress(ValueError):
-                    current[GPS_ACCURACY_FILTER_FIELD] = float(accuracy)  # noqa: E111
-
+                    current[GPS_ACCURACY_FILTER_FIELD] = float(accuracy)
         if (
             GPS_DISTANCE_FILTER_FIELD not in current
             and (distance := self._current_options().get(CONF_GPS_DISTANCE_FILTER))
             is not None
         ):
-            if isinstance(distance, int | float):  # noqa: E111
+            if isinstance(distance, int | float):
                 current[GPS_DISTANCE_FILTER_FIELD] = float(distance)
-            elif isinstance(distance, str):  # noqa: E111
+            elif isinstance(distance, str):
                 with suppress(ValueError):
-                    current[GPS_DISTANCE_FILTER_FIELD] = float(distance)  # noqa: E111
-
+                    current[GPS_DISTANCE_FILTER_FIELD] = float(distance)
         return self._normalise_gps_settings(cast(Mapping[str, JSONValue], current))
 
-    def _current_geofence_options(self, dog_id: str) -> GeofenceOptions:  # noqa: E111
+    def _current_geofence_options(self, dog_id: str) -> GeofenceOptions:
         """Fetch the stored geofence configuration as a typed mapping."""
 
         dog_options = self._current_dog_options()
         entry = dog_options.get(dog_id, {})
         raw = entry.get("geofence_settings")
         if isinstance(raw, Mapping):
-            return cast(GeofenceOptions, dict(raw))  # noqa: E111
-
+            return cast(GeofenceOptions, dict(raw))
         legacy = self._current_options().get("geofence_settings", {})
         if isinstance(legacy, Mapping):
-            return cast(GeofenceOptions, dict(legacy))  # noqa: E111
-
+            return cast(GeofenceOptions, dict(legacy))
         return cast(GeofenceOptions, {})
 
-    async def async_step_select_dog_for_gps_settings(  # noqa: E111
+    async def async_step_select_dog_for_gps_settings(
         self,
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure GPS settings for."""
 
         if not self._dogs:
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")  # noqa: E111
-            self._select_dog_by_id(  # noqa: E111
+            selected_dog_id = user_input.get("dog_id")
+            self._select_dog_by_id(
                 selected_dog_id if isinstance(selected_dog_id, str) else None,
             )
-            if self._current_dog:  # noqa: E111
+            if self._current_dog:
                 return await self.async_step_gps_settings()
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         return self.async_show_form(
             step_id="select_dog_for_gps_settings",
             data_schema=self._build_dog_selector_schema(),
         )
 
-    async def async_step_select_dog_for_geofence_settings(  # noqa: E111
+    async def async_step_select_dog_for_geofence_settings(
         self,
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure geofencing for."""
 
         if not self._dogs:
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")  # noqa: E111
-            self._select_dog_by_id(  # noqa: E111
+            selected_dog_id = user_input.get("dog_id")
+            self._select_dog_by_id(
                 selected_dog_id if isinstance(selected_dog_id, str) else None,
             )
-            if self._current_dog:  # noqa: E111
+            if self._current_dog:
                 return await self.async_step_geofence_settings()
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         return self.async_show_form(
             step_id="select_dog_for_geofence_settings",
             data_schema=self._build_dog_selector_schema(),
         )
 
-    async def async_step_gps_settings(  # noqa: E111
+    async def async_step_gps_settings(
         self,
         user_input: OptionsGPSSettingsInput | None = None,
     ) -> ConfigFlowResult:
@@ -620,51 +587,48 @@ class GPSOptionsMixin(GPSOptionsHost):
         explicitly_selected_dog = self._current_dog
         current_dog = self._require_current_dog()
         if current_dog is None:
-            return await self.async_step_select_dog_for_gps_settings()  # noqa: E111
-
+            return await self.async_step_select_dog_for_gps_settings()
         dog_id = current_dog.get(DOG_ID_FIELD)
         if not isinstance(dog_id, str):
-            return await self.async_step_select_dog_for_gps_settings()  # noqa: E111
-
+            return await self.async_step_select_dog_for_gps_settings()
         persist_dog_id: str | None = None
         if explicitly_selected_dog is not None:
-            explicit_id = explicitly_selected_dog.get(DOG_ID_FIELD)  # noqa: E111
-            if isinstance(explicit_id, str):  # noqa: E111
+            explicit_id = explicitly_selected_dog.get(DOG_ID_FIELD)
+            if isinstance(explicit_id, str):
                 persist_dog_id = explicit_id
 
         current_options = self._current_gps_options(dog_id)
         if user_input is not None:
-            errors: dict[str, str] = {}  # noqa: E111
-
-            try:  # noqa: E111
+            errors: dict[str, str] = {}
+            try:
                 gps_update_interval = _validate_gps_update_interval(
                     user_input.get(GPS_UPDATE_INTERVAL_FIELD),
                     field=GPS_UPDATE_INTERVAL_FIELD,
                     minimum=5,
                     maximum=600,
                 )
-            except ValidationError as err:  # noqa: E111
+            except ValidationError as err:
                 errors[GPS_UPDATE_INTERVAL_FIELD] = validation_error_key(
                     err,
                     "invalid_configuration",
                 )
                 gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
-            try:  # noqa: E111
+            try:
                 gps_accuracy = _validate_gps_accuracy(
                     user_input.get(GPS_ACCURACY_FILTER_FIELD),
                     field=GPS_ACCURACY_FILTER_FIELD,
                     minimum=5.0,
                     maximum=500.0,
                 )
-            except ValidationError as err:  # noqa: E111
+            except ValidationError as err:
                 errors[GPS_ACCURACY_FILTER_FIELD] = validation_error_key(
                     err,
                     "invalid_configuration",
                 )
                 gps_accuracy = DEFAULT_GPS_ACCURACY_FILTER
 
-            try:  # noqa: E111
+            try:
                 gps_distance = validate_float_range(
                     user_input.get(GPS_DISTANCE_FILTER_FIELD),
                     field=GPS_DISTANCE_FILTER_FIELD,
@@ -672,11 +636,11 @@ class GPSOptionsMixin(GPSOptionsHost):
                     maximum=2000.0,
                     required=True,
                 )
-            except ValidationError:  # noqa: E111
+            except ValidationError:
                 errors[GPS_DISTANCE_FILTER_FIELD] = "invalid_configuration"
                 gps_distance = DEFAULT_GPS_DISTANCE_FILTER
 
-            try:  # noqa: E111
+            try:
                 route_history = validate_flow_timer_interval(
                     user_input.get(ROUTE_HISTORY_DAYS_FIELD),
                     field=ROUTE_HISTORY_DAYS_FIELD,
@@ -684,18 +648,18 @@ class GPSOptionsMixin(GPSOptionsHost):
                     maximum=365,
                     required=True,
                 )
-            except ValidationError:  # noqa: E111
+            except ValidationError:
                 errors[ROUTE_HISTORY_DAYS_FIELD] = "invalid_configuration"
                 route_history = 30
 
-            if errors:  # noqa: E111
+            if errors:
                 return self.async_show_form(
                     step_id="gps_settings",
                     data_schema=self._build_gps_settings_schema(current_options),
                     errors=errors,
                 )
 
-            current_options = cast(  # noqa: E111
+            current_options = cast(
                 GPSOptions,
                 {
                     GPS_ENABLED_FIELD: coerce_bool(
@@ -717,18 +681,18 @@ class GPSOptionsMixin(GPSOptionsHost):
                 },
             )
 
-            schema_issues = validate_json_schema_payload(  # noqa: E111
+            schema_issues = validate_json_schema_payload(
                 current_options,
                 GPS_OPTIONS_JSON_SCHEMA,
             )
-            if schema_issues:  # noqa: E111
+            if schema_issues:
                 _LOGGER.error(
                     "GPS options failed JSON schema validation: %s",
                     [issue.constraint for issue in schema_issues],
                 )
 
-            updated_options = self._clone_options()  # noqa: E111
-            if persist_dog_id is not None:  # noqa: E111
+            updated_options = self._clone_options()
+            if persist_dog_id is not None:
                 dog_options = self._current_dog_options()
                 dog_entry = ensure_dog_options_entry(
                     cast(
@@ -741,12 +705,12 @@ class GPSOptionsMixin(GPSOptionsHost):
                 dog_entry[DOG_ID_FIELD] = persist_dog_id
                 dog_options[persist_dog_id] = dog_entry
                 updated_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
-            updated_options[GPS_SETTINGS_FIELD] = cast(  # noqa: E111
+            updated_options[GPS_SETTINGS_FIELD] = cast(
                 JSONValue,
                 current_options,
             )
 
-            return self.async_create_entry(  # noqa: E111
+            return self.async_create_entry(
                 title="GPS settings updated",
                 data=self._normalise_options_snapshot(updated_options),
             )
@@ -756,7 +720,7 @@ class GPSOptionsMixin(GPSOptionsHost):
             data_schema=self._build_gps_settings_schema(current_options),
         )
 
-    async def async_step_geofence_settings(  # noqa: E111
+    async def async_step_geofence_settings(
         self,
         user_input: OptionsGPSSettingsInput | None = None,
     ) -> ConfigFlowResult:
@@ -767,24 +731,23 @@ class GPSOptionsMixin(GPSOptionsHost):
 
         dog_id: str | None = None
         if explicitly_selected_dog:
-            current_dog_id = explicitly_selected_dog.get(DOG_ID_FIELD)  # noqa: E111
-            if isinstance(current_dog_id, str):  # noqa: E111
+            current_dog_id = explicitly_selected_dog.get(DOG_ID_FIELD)
+            if isinstance(current_dog_id, str):
                 dog_id = current_dog_id
 
         if dog_id is not None:
-            current_options = self._current_geofence_options(dog_id)  # noqa: E111
+            current_options = self._current_geofence_options(dog_id)
         else:
-            legacy_options = self._current_options().get("geofence_settings", {})  # noqa: E111
-            current_options = (  # noqa: E111
+            legacy_options = self._current_options().get("geofence_settings", {})
+            current_options = (
                 cast(GeofenceOptions, dict(legacy_options))
                 if isinstance(legacy_options, Mapping)
                 else cast(GeofenceOptions, {})
             )
 
         if user_input is not None:
-            errors: dict[str, str] = {}  # noqa: E111
-
-            try:  # noqa: E111
+            errors: dict[str, str] = {}
+            try:
                 geofence_radius = InputValidator.validate_geofence_radius(
                     user_input.get(GEOFENCE_RADIUS_FIELD),
                     required=True,
@@ -792,23 +755,23 @@ class GPSOptionsMixin(GPSOptionsHost):
                     min_value=float(MIN_GEOFENCE_RADIUS),
                     max_value=float(MAX_GEOFENCE_RADIUS),
                 )
-            except ValidationError as err:  # noqa: E111
+            except ValidationError as err:
                 errors[GEOFENCE_RADIUS_FIELD] = validation_error_key(
                     err,
                     "invalid_configuration",
                 )
                 geofence_radius = current_options.get(GEOFENCE_RADIUS_FIELD, 100.0)
 
-            geofence_lat: float | None  # noqa: E111
-            geofence_lon: float | None  # noqa: E111
-            try:  # noqa: E111
+            geofence_lat: float | None
+            geofence_lon: float | None
+            try:
                 geofence_lat, geofence_lon = validate_flow_gps_coordinates(
                     user_input.get(GEOFENCE_LAT_FIELD),
                     user_input.get(GEOFENCE_LON_FIELD),
                     latitude_field=GEOFENCE_LAT_FIELD,
                     longitude_field=GEOFENCE_LON_FIELD,
                 )
-            except ValidationError as err:  # noqa: E111
+            except ValidationError as err:
                 errors[err.field] = validation_error_key(
                     err,
                     "invalid_configuration",
@@ -816,25 +779,25 @@ class GPSOptionsMixin(GPSOptionsHost):
                 geofence_lat = current_options.get(GEOFENCE_LAT_FIELD)
                 geofence_lon = current_options.get(GEOFENCE_LON_FIELD)
 
-            if errors:  # noqa: E111
+            if errors:
                 return self.async_show_form(
                     step_id="geofence_settings",
                     data_schema=self._build_geofence_settings_schema(current_options),
                     errors=errors,
                 )
 
-            geofence_radius_value = (  # noqa: E111
+            geofence_radius_value = (
                 float(geofence_radius) if geofence_radius is not None else 100.0
             )
-            geofence_radius_m = int(round(geofence_radius_value))  # noqa: E111
-            if geofence_radius_m != geofence_radius_value:  # noqa: E111
+            geofence_radius_m = int(round(geofence_radius_value))
+            if geofence_radius_m != geofence_radius_value:
                 _LOGGER.debug(
                     "Geofence radius %.3f normalized to integer %d for options schema",
                     geofence_radius_value,
                     geofence_radius_m,
                 )
 
-            geofence_options = cast(  # noqa: E111
+            geofence_options = cast(
                 GeofenceOptions,
                 {
                     GEOFENCE_ENABLED_FIELD: coerce_bool(
@@ -871,19 +834,19 @@ class GPSOptionsMixin(GPSOptionsHost):
                 },
             )
 
-            schema_issues = validate_json_schema_payload(  # noqa: E111
+            schema_issues = validate_json_schema_payload(
                 geofence_options,
                 GEOFENCE_OPTIONS_JSON_SCHEMA,
             )
-            if schema_issues:  # noqa: E111
+            if schema_issues:
                 _LOGGER.error(
                     "Geofence options failed JSON schema validation: %s",
                     [issue.constraint for issue in schema_issues],
                 )
 
-            updated_options = self._clone_options()  # noqa: E111
-            updated_options["geofence_settings"] = cast(JSONValue, geofence_options)  # noqa: E111
-            if dog_id is not None:  # noqa: E111
+            updated_options = self._clone_options()
+            updated_options["geofence_settings"] = cast(JSONValue, geofence_options)
+            if dog_id is not None:
                 dog_options = self._current_dog_options()
                 dog_entry = ensure_dog_options_entry(
                     cast(
@@ -897,7 +860,7 @@ class GPSOptionsMixin(GPSOptionsHost):
                 dog_options[dog_id] = dog_entry
                 updated_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
 
-            return self.async_create_entry(  # noqa: E111
+            return self.async_create_entry(
                 title="Geofence settings updated",
                 data=self._normalise_options_snapshot(updated_options),
             )
@@ -907,7 +870,7 @@ class GPSOptionsMixin(GPSOptionsHost):
             data_schema=self._build_geofence_settings_schema(current_options),
         )
 
-    def _build_gps_settings_schema(  # noqa: E111
+    def _build_gps_settings_schema(
         self,
         current_options: GPSOptions,
     ) -> vol.Schema:
@@ -915,7 +878,7 @@ class GPSOptionsMixin(GPSOptionsHost):
 
         return build_gps_settings_schema(current_options)
 
-    def _build_geofence_settings_schema(  # noqa: E111
+    def _build_geofence_settings_schema(
         self,
         current_options: GeofenceOptions,
     ) -> vol.Schema:
@@ -925,27 +888,23 @@ class GPSOptionsMixin(GPSOptionsHost):
 
 
 class GPSOptionsNormalizerHost(Protocol):
-    """Protocol describing the options flow host requirements."""  # noqa: E111
-
-    def _coerce_bool(self, value: Any, default: bool) -> bool: ...  # noqa: E111
-
-
+    """Protocol describing the options flow host requirements."""
+    def _coerce_bool(self, value: Any, default: bool) -> bool: ...
 class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
-    """Mixin providing GPS normalization for options payloads."""  # noqa: E111
-
-    @staticmethod  # noqa: E111
-    def _coerce_bool(value: Any, default: bool) -> bool:  # noqa: E111
+    """Mixin providing GPS normalization for options payloads."""
+    @staticmethod
+    def _coerce_bool(value: Any, default: bool) -> bool:
         """Return a boolean using Home Assistant style truthiness rules."""
 
         if value is None:
-            return default  # noqa: E111
+            return default
         if isinstance(value, bool):
-            return value  # noqa: E111
+            return value
         if isinstance(value, str):
-            return value.strip().lower() in {"1", "true", "on", "yes"}  # noqa: E111
+            return value.strip().lower() in {"1", "true", "on", "yes"}
         return bool(value)
 
-    def _normalise_gps_settings(self, raw: Mapping[str, JSONValue]) -> GPSOptions:  # noqa: E111
+    def _normalise_gps_settings(self, raw: Mapping[str, JSONValue]) -> GPSOptions:
         """Return a normalised GPS options payload."""
 
         def _safe_interval(
@@ -956,7 +915,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
             maximum: int,
             field: str,
         ) -> int:
-            return safe_validate_interval(  # noqa: E111
+            return safe_validate_interval(
                 value,
                 default=default,
                 minimum=minimum,
@@ -973,7 +932,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
             maximum: float,
             field: str,
         ) -> float:
-            try:  # noqa: E111
+            try:
                 return validate_float_range(
                     value,
                     field=field,
@@ -982,7 +941,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
                     default=default,
                     clamp=True,
                 )
-            except ValidationError:  # noqa: E111
+            except ValidationError:
                 return default
 
         def _safe_gps_interval(
@@ -993,7 +952,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
             maximum: int,
             field: str,
         ) -> int:
-            try:  # noqa: E111
+            try:
                 return cast(
                     int,
                     validate_gps_interval(
@@ -1005,7 +964,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
                         clamp=True,
                     ),
                 )
-            except ValidationError:  # noqa: E111
+            except ValidationError:
                 return default
 
         def _safe_gps_accuracy(
@@ -1016,7 +975,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
             maximum: float,
             field: str,
         ) -> float:
-            try:  # noqa: E111
+            try:
                 return cast(
                     float,
                     validate_gps_accuracy_value(
@@ -1028,7 +987,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
                         clamp=True,
                     ),
                 )
-            except ValidationError:  # noqa: E111
+            except ValidationError:
                 return default
 
         payload = cast(
@@ -1078,11 +1037,11 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
             GPS_OPTIONS_JSON_SCHEMA,
         )
         if schema_issues:
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "GPS options payload failed JSON schema validation; using defaults: %s",
                 [issue.constraint for issue in schema_issues],
             )
-            payload = cast(  # noqa: E111
+            payload = cast(
                 GPSOptions,
                 {
                     GPS_ENABLED_FIELD: True,
@@ -1096,7 +1055,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
             )
         return payload
 
-    def _normalise_gps_options_snapshot(  # noqa: E111
+    def _normalise_gps_options_snapshot(
         self,
         mutable: JSONMutableMapping,
     ) -> GPSOptions | None:
@@ -1105,47 +1064,46 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
         gps_settings: GPSOptions | None = None
 
         if DOG_OPTIONS_FIELD in mutable:
-            raw_dog_options = mutable.get(DOG_OPTIONS_FIELD)  # noqa: E111
-            typed_dog_options: DogOptionsMap = {}  # noqa: E111
-            if isinstance(raw_dog_options, Mapping):  # noqa: E111
+            raw_dog_options = mutable.get(DOG_OPTIONS_FIELD)
+            typed_dog_options: DogOptionsMap = {}
+            if isinstance(raw_dog_options, Mapping):
                 for raw_id, raw_entry in raw_dog_options.items():
-                    dog_id = str(raw_id)  # noqa: E111
-                    entry_source = (  # noqa: E111
+                    dog_id = str(raw_id)
+                    entry_source = (
                         raw_entry if isinstance(raw_entry, Mapping) else {}
                     )
-                    entry = ensure_dog_options_entry(  # noqa: E111
+                    entry = ensure_dog_options_entry(
                         cast(JSONLikeMapping, dict(entry_source)),
                         dog_id=dog_id,
                     )
-                    dog_gps = entry.get(GPS_SETTINGS_FIELD)  # noqa: E111
-                    if isinstance(dog_gps, Mapping):  # noqa: E111
+                    dog_gps = entry.get(GPS_SETTINGS_FIELD)
+                    if isinstance(dog_gps, Mapping):
                         entry[GPS_SETTINGS_FIELD] = self._normalise_gps_settings(
                             cast(Mapping[str, JSONValue], dog_gps),
                         )
                         gps_settings = entry[GPS_SETTINGS_FIELD]
-                    if dog_id and entry.get(DOG_ID_FIELD) != dog_id:  # noqa: E111
+                    if dog_id and entry.get(DOG_ID_FIELD) != dog_id:
                         entry[DOG_ID_FIELD] = dog_id
-                    typed_dog_options[dog_id] = entry  # noqa: E111
-            mutable[DOG_OPTIONS_FIELD] = cast(JSONValue, typed_dog_options)  # noqa: E111
-
+                    typed_dog_options[dog_id] = entry
+            mutable[DOG_OPTIONS_FIELD] = cast(JSONValue, typed_dog_options)
         if GPS_SETTINGS_FIELD in mutable:
-            raw_gps_settings = mutable.get(GPS_SETTINGS_FIELD)  # noqa: E111
-            if isinstance(raw_gps_settings, Mapping):  # noqa: E111
+            raw_gps_settings = mutable.get(GPS_SETTINGS_FIELD)
+            if isinstance(raw_gps_settings, Mapping):
                 gps_settings = self._normalise_gps_settings(
                     raw_gps_settings,
                 )
                 mutable[GPS_SETTINGS_FIELD] = cast(JSONValue, gps_settings)
 
         if gps_settings is not None:
-            mutable[CONF_GPS_UPDATE_INTERVAL] = cast(  # noqa: E111
+            mutable[CONF_GPS_UPDATE_INTERVAL] = cast(
                 JSONValue,
                 gps_settings[GPS_UPDATE_INTERVAL_FIELD],
             )
-            mutable[CONF_GPS_ACCURACY_FILTER] = cast(  # noqa: E111
+            mutable[CONF_GPS_ACCURACY_FILTER] = cast(
                 JSONValue,
                 gps_settings[GPS_ACCURACY_FILTER_FIELD],
             )
-            mutable[CONF_GPS_DISTANCE_FILTER] = cast(  # noqa: E111
+            mutable[CONF_GPS_DISTANCE_FILTER] = cast(
                 JSONValue,
                 gps_settings[GPS_DISTANCE_FILTER_FIELD],
             )

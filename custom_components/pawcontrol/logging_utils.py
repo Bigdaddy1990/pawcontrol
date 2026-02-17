@@ -1,589 +1,187 @@
-"""Enhanced logging utilities for PawControl integration.
+"""Centralized logging utilities and sensitive-data redaction for PawControl.
 
-This module provides structured logging, context tracking, and diagnostic
-capabilities to improve troubleshooting and observability.
+All log calls that include user-provided or credential data must route
+through the helpers in this module so that secrets are never written to
+the Home Assistant log in clear text.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.0+
-Python: 3.13+
+Home Assistant: 2026.2.1+
+Python: 3.14+
 """
 
-from collections import defaultdict, deque
-from collections.abc import Awaitable, Callable
-import contextvars
-from dataclasses import dataclass, field
-from datetime import datetime
-import functools
-import inspect
+from __future__ import annotations
+
+from collections.abc import Mapping
 import logging
-import traceback
-from types import TracebackType
-from typing import Any, ParamSpec, TypeVar, cast
-from uuid import uuid4
-
-_LOGGER = logging.getLogger(__name__)
-
-P = ParamSpec("P")
-T = TypeVar("T")
-
-
-# Context variables for tracking request flow
-_correlation_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    "correlation_id", default=None
-)
-_request_context: contextvars.ContextVar[dict[str, Any] | None] = (
-    contextvars.ContextVar("request_context", default=None)
-)
-
-
-@dataclass
-class LogEntry:
-    """Structured log entry.
-
-    Attributes:
-        timestamp: When log was created
-        level: Log level
-        message: Log message
-        correlation_id: Request correlation ID
-        context: Additional context data
-        exception: Exception info if present
-    """  # noqa: E111
-
-    timestamp: datetime  # noqa: E111
-    level: str  # noqa: E111
-    message: str  # noqa: E111
-    correlation_id: str | None = None  # noqa: E111
-    context: dict[str, Any] = field(default_factory=dict)  # noqa: E111
-    exception: str | None = None  # noqa: E111
-
-    def to_dict(self) -> dict[str, Any]:  # noqa: E111
-        """Convert to dictionary."""
-        data: dict[str, Any] = {
-            "timestamp": self.timestamp.isoformat(),
-            "level": self.level,
-            "message": self.message,
-        }
-
-        if self.correlation_id:
-            data["correlation_id"] = self.correlation_id  # noqa: E111
-
-        if self.context:
-            data["context"] = self.context  # noqa: E111
-
-        if self.exception:
-            data["exception"] = self.exception  # noqa: E111
-
-        return data
-
-
-class StructuredLogger:
-    """Structured logger with context support.
-
-    Provides enhanced logging with automatic context tracking,
-    correlation IDs, and structured data.
-
-    Examples:
-        >>> logger = StructuredLogger("pawcontrol.api")
-        >>> logger.info("API call started", endpoint="/dogs", method="GET")
-    """  # noqa: E111
-
-    def __init__(self, name: str) -> None:  # noqa: E111
-        """Initialize structured logger.
-
-        Args:
-            name: Logger name
-        """
-        self._logger = logging.getLogger(name)
-        self._name = name
-
-    def _log(  # noqa: E111
-        self,
-        level: int,
-        message: str,
-        *,
-        exc_info: bool = False,
-        **context: Any,
-    ) -> None:
-        """Internal logging method.
-
-        Args:
-            level: Log level
-            message: Log message
-            exc_info: Include exception info
-            **context: Additional context
-        """
-        # Get correlation ID
-        correlation_id = _correlation_id.get()
-
-        # Merge with request context
-        request_ctx = _request_context.get() or {}
-        full_context = {**request_ctx, **context}
-
-        # Build extra dict for logging
-        extra: dict[str, Any] = {}
-        if correlation_id:
-            extra["correlation_id"] = correlation_id  # noqa: E111
-
-        if full_context:
-            extra["context"] = full_context  # noqa: E111
-
-        # Format message with context
-        if full_context:
-            context_str = " ".join(f"{k}={v}" for k, v in full_context.items())  # noqa: E111
-            formatted_message = f"{message} [{context_str}]"  # noqa: E111
-        else:
-            formatted_message = message  # noqa: E111
-
-        # Add correlation ID to message
-        if correlation_id:
-            formatted_message = f"[{correlation_id[:8]}] {formatted_message}"  # noqa: E111
-
-        # Log
-        self._logger.log(level, formatted_message, extra=extra, exc_info=exc_info)
-
-    def debug(self, message: str, **context: Any) -> None:  # noqa: E111
-        """Log debug message.
-
-        Args:
-            message: Log message
-            **context: Additional context
-        """
-        self._log(logging.DEBUG, message, **context)
-
-    def info(self, message: str, **context: Any) -> None:  # noqa: E111
-        """Log info message.
-
-        Args:
-            message: Log message
-            **context: Additional context
-        """
-        self._log(logging.INFO, message, **context)
-
-    def warning(self, message: str, **context: Any) -> None:  # noqa: E111
-        """Log warning message.
-
-        Args:
-            message: Log message
-            **context: Additional context
-        """
-        self._log(logging.WARNING, message, **context)
-
-    def error(self, message: str, *, exc_info: bool = False, **context: Any) -> None:  # noqa: E111
-        """Log error message.
-
-        Args:
-            message: Log message
-            exc_info: Include exception traceback
-            **context: Additional context
-        """
-        self._log(logging.ERROR, message, exc_info=exc_info, **context)
-
-    def critical(self, message: str, *, exc_info: bool = False, **context: Any) -> None:  # noqa: E111
-        """Log critical message.
-
-        Args:
-            message: Log message
-            exc_info: Include exception traceback
-            **context: Additional context
-        """
-        self._log(logging.CRITICAL, message, exc_info=exc_info, **context)
-
-    def exception(self, message: str, **context: Any) -> None:  # noqa: E111
-        """Log exception with traceback.
-
-        Args:
-            message: Log message
-            **context: Additional context
-        """
-        self._log(logging.ERROR, message, exc_info=True, **context)
-
-
-class LogBuffer:
-    """Circular buffer for storing recent log entries.
-
-    Useful for diagnostics and debugging - keeps last N log entries
-    in memory for inspection.
-
-    Examples:
-        >>> buffer = LogBuffer(maxlen=1000)
-        >>> buffer.add_entry(level="INFO", message="Test")
-        >>> recent = buffer.get_recent_entries(10)
-    """  # noqa: E111
-
-    def __init__(self, maxlen: int = 1000) -> None:  # noqa: E111
-        """Initialize log buffer.
-
-        Args:
-            maxlen: Maximum number of entries to keep
-        """
-        self._entries: deque[LogEntry] = deque(maxlen=maxlen)
-        self._maxlen = maxlen
-
-    def add_entry(  # noqa: E111
-        self,
-        level: str,
-        message: str,
-        *,
-        correlation_id: str | None = None,
-        context: dict[str, Any] | None = None,
-        exception: str | None = None,
-    ) -> None:
-        """Add log entry to buffer.
-
-        Args:
-            level: Log level
-            message: Log message
-            correlation_id: Optional correlation ID
-            context: Optional context data
-            exception: Optional exception info
-        """
-        entry = LogEntry(
-            timestamp=datetime.now(),
-            level=level,
-            message=message,
-            correlation_id=correlation_id,
-            context=context or {},
-            exception=exception,
-        )
-        self._entries.append(entry)
-
-    def get_recent_entries(self, count: int = 100) -> list[LogEntry]:  # noqa: E111
-        """Get recent log entries.
-
-        Args:
-            count: Number of entries to return
-
-        Returns:
-            List of log entries (newest first)
-        """
-        entries = list(self._entries)
-        return entries[-count:][::-1]
-
-    def get_entries_by_correlation_id(self, correlation_id: str) -> list[LogEntry]:  # noqa: E111
-        """Get entries for specific correlation ID.
-
-        Args:
-            correlation_id: Correlation ID to filter by
-
-        Returns:
-            List of matching log entries
-        """
-        return [
-            entry for entry in self._entries if entry.correlation_id == correlation_id
-        ]
-
-    def get_entries_by_level(self, level: str) -> list[LogEntry]:  # noqa: E111
-        """Get entries by log level.
-
-        Args:
-            level: Log level to filter by
-
-        Returns:
-            List of matching log entries
-        """
-        return [entry for entry in self._entries if entry.level == level]
-
-    def clear(self) -> None:  # noqa: E111
-        """Clear all entries."""
-        self._entries.clear()
-
-    def get_stats(self) -> dict[str, Any]:  # noqa: E111
-        """Get buffer statistics.
-
-        Returns:
-            Statistics dictionary
-        """
-        level_counts: defaultdict[str, int] = defaultdict(int)
-        for entry in self._entries:
-            level_counts[entry.level] += 1  # noqa: E111
-
-        return {
-            "total_entries": len(self._entries),
-            "max_entries": self._maxlen,
-            "level_counts": dict(level_counts),
-        }
-
-
-# Global log buffer
-_log_buffer = LogBuffer(maxlen=1000)
-
-
-class CorrelationContext:
-    """Context manager for request correlation.
-
-    Automatically generates and tracks correlation IDs across
-    async operations to trace request flow.
-
-    Examples:
-        >>> async with CorrelationContext(dog_id="buddy"):
-        ...     await fetch_data()  # All logs get same correlation ID
-    """  # noqa: E111
-
-    def __init__(self, **context: Any) -> None:  # noqa: E111
-        """Initialize correlation context.
-
-        Args:
-            **context: Context data to track
-        """
-        self._correlation_id = str(uuid4())
-        self._context = context
-        self._token_correlation: contextvars.Token[str | None] | None = None
-        self._token_context: contextvars.Token[dict[str, Any] | None] | None = None
-
-    async def __aenter__(self) -> str:  # noqa: E111
-        """Enter async context.
-
-        Returns:
-            Correlation ID
-        """
-        self._token_correlation = _correlation_id.set(self._correlation_id)
-        self._token_context = _request_context.set(self._context)
-        return self._correlation_id
-
-    async def __aexit__(  # noqa: E111
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        """Exit async context."""
-        if self._token_correlation:
-            _correlation_id.reset(self._token_correlation)  # noqa: E111
-        if self._token_context:
-            _request_context.reset(self._token_context)  # noqa: E111
-
-
-def get_correlation_id() -> str | None:
-    """Get current correlation ID.
-
-    Returns:
-        Correlation ID or None
-    """  # noqa: E111
-    return _correlation_id.get()  # noqa: E111
-
-
-def set_correlation_id(correlation_id: str) -> None:
-    """Set correlation ID.
-
-    Args:
-        correlation_id: Correlation ID to set
-    """  # noqa: E111
-    _correlation_id.set(correlation_id)  # noqa: E111
-
-
-def get_request_context() -> dict[str, Any]:
-    """Get current request context.
-
-    Returns:
-        Request context dictionary
-    """  # noqa: E111
-    return _request_context.get() or {}  # noqa: E111
-
-
-def update_request_context(**context: Any) -> None:
-    """Update request context.
-
-    Args:
-        **context: Context data to add
-    """  # noqa: E111
-    current = dict(_request_context.get() or {})  # noqa: E111
-    current.update(context)  # noqa: E111
-    _request_context.set(current)  # noqa: E111
-
-
-# Logging decorators
-
-
-def log_calls(
-    logger: StructuredLogger | None = None,
-    *,
-    log_args: bool = True,
-    log_result: bool = False,
-    log_duration: bool = True,
-) -> Callable[
-    [Callable[P, T] | Callable[P, Awaitable[T]]],
-    Callable[P, T] | Callable[P, Awaitable[T]],
-]:
-    """Decorator to log function calls.
-
-    Args:
-        logger: Logger instance (creates one if None)
-        log_args: Whether to log arguments
-        log_result: Whether to log result
-        log_duration: Whether to log duration
-
-    Returns:
-        Decorated function
-
-    Examples:
-        >>> @log_calls(log_args=True, log_duration=True)
-        ... async def fetch_data(dog_id: str):
-        ...     return await api.get(dog_id)
-    """  # noqa: E111
-
-    def decorator(  # noqa: E111
-        func: Callable[P, T] | Callable[P, Awaitable[T]],
-    ) -> Callable[P, T] | Callable[P, Awaitable[T]]:
-        """Decorate sync and async callables with structured call logging."""
-
-        active_logger = (
-            logger if logger is not None else StructuredLogger(func.__module__)
-        )
-
-        @functools.wraps(func)
-        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            import time  # noqa: E111
-
-            # Log call start  # noqa: E114
-            context: dict[str, Any] = {}  # noqa: E111
-            if log_args:  # noqa: E111
-                context["args"] = str(args)
-                context["kwargs"] = str(kwargs)
-
-            active_logger.debug(f"Calling {func.__name__}", **context)  # noqa: E111
-
-            # Execute  # noqa: E114
-            start = time.time()  # noqa: E111
-            try:  # noqa: E111
-                async_func = cast(Callable[P, Awaitable[T]], func)
-                result = await async_func(*args, **kwargs)
-
-                # Log result
-                result_context: dict[str, Any] = {}
-                if log_duration:
-                    result_context["duration_ms"] = (time.time() - start) * 1000  # noqa: E111
-
-                if log_result:
-                    result_context["result"] = str(result)  # noqa: E111
-
-                active_logger.debug(f"{func.__name__} completed", **result_context)
-
-                return result
-
-            except Exception as e:  # noqa: E111
-                active_logger.error(
-                    f"{func.__name__} failed",
-                    exc_info=True,
-                    error=str(e),
-                    duration_ms=(time.time() - start) * 1000,
-                )
-                raise
-
-        @functools.wraps(func)
-        def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            import time  # noqa: E111
-
-            # Log call start  # noqa: E114
-            context: dict[str, Any] = {}  # noqa: E111
-            if log_args:  # noqa: E111
-                context["args"] = str(args)
-                context["kwargs"] = str(kwargs)
-
-            active_logger.debug(f"Calling {func.__name__}", **context)  # noqa: E111
-
-            # Execute  # noqa: E114
-            start = time.time()  # noqa: E111
-            try:  # noqa: E111
-                sync_func = cast(Callable[P, T], func)
-                result = sync_func(*args, **kwargs)
-
-                # Log result
-                result_context: dict[str, Any] = {}
-                if log_duration:
-                    result_context["duration_ms"] = (time.time() - start) * 1000  # noqa: E111
-
-                if log_result:
-                    result_context["result"] = str(result)  # noqa: E111
-
-                active_logger.debug(f"{func.__name__} completed", **result_context)
-
-                return result
-
-            except Exception as e:  # noqa: E111
-                active_logger.error(
-                    f"{func.__name__} failed",
-                    exc_info=True,
-                    error=str(e),
-                    duration_ms=(time.time() - start) * 1000,
-                )
-                raise
-
-        # Return appropriate wrapper
-
-        if inspect.iscoroutinefunction(func):  # noqa: E111
-            return async_wrapper  # noqa: E111
-        return sync_wrapper  # noqa: E111
-
-    return decorator  # noqa: E111
-
-
-# Log buffer integration
-
-
-def get_recent_logs(count: int = 100) -> list[dict[str, Any]]:
-    """Get recent log entries.
-
-    Args:
-        count: Number of entries to return
-
-    Returns:
-        List of log entries as dictionaries
-    """  # noqa: E111
-    entries = _log_buffer.get_recent_entries(count)  # noqa: E111
-    return [entry.to_dict() for entry in entries]  # noqa: E111
-
-
-def get_logs_by_correlation_id(correlation_id: str) -> list[dict[str, Any]]:
-    """Get logs for specific correlation ID.
-
-    Args:
-        correlation_id: Correlation ID
-
-    Returns:
-        List of log entries as dictionaries
-    """  # noqa: E111
-    entries = _log_buffer.get_entries_by_correlation_id(correlation_id)  # noqa: E111
-    return [entry.to_dict() for entry in entries]  # noqa: E111
-
-
-def get_log_stats() -> dict[str, Any]:
-    """Get log buffer statistics.
-
-    Returns:
-        Statistics dictionary
-    """  # noqa: E111
-    return _log_buffer.get_stats()  # noqa: E111
-
-
-def clear_log_buffer() -> None:
-    """Clear log buffer."""  # noqa: E111
-    _log_buffer.clear()  # noqa: E111
-
-
-# Exception formatting
-
-
-def format_exception_with_context(
-    exception: Exception,
-    include_traceback: bool = True,
-) -> dict[str, Any]:
-    """Format exception with context.
-
-    Args:
-        exception: Exception to format
-        include_traceback: Include traceback
-
-    Returns:
-        Formatted exception data
-    """  # noqa: E111
-    data: dict[str, Any] = {  # noqa: E111
-        "type": exception.__class__.__name__,
-        "message": str(exception),
-        "correlation_id": get_correlation_id(),
-        "context": get_request_context(),
+from typing import Any
+
+# ---------------------------------------------------------------------------
+# Sensitive key registry — extend here when new credential fields are added.
+# Keys are lower-cased for case-insensitive matching.
+# ---------------------------------------------------------------------------
+_SENSITIVE_KEYS: frozenset[str] = frozenset(
+    {
+        "api_key",
+        "api_token",
+        "auth_token",
+        "bearer",
+        "password",
+        "secret",
+        "token",
+        "webhook_secret",
+        # Const-value equivalents (keep in sync with const.py)
+        "api_endpoint_token",
+        "conf_api_token",
+        "conf_webhook_secret",
+        "private_key",
+        "access_token",
+        "refresh_token",
     }
+)
 
-    if include_traceback:  # noqa: E111
-        data["traceback"] = traceback.format_exc()
+_REDACTED = "***REDACTED***"
 
-    return data  # noqa: E111
+
+def redact_sensitive(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Return a shallow copy of *data* with sensitive values replaced.
+
+    The check is case-insensitive and also matches any key that *contains*
+    a sensitive keyword (e.g. ``"dog_api_token"`` → redacted).
+
+    Args:
+        data: Mapping whose values may include secrets.
+
+    Returns:
+        New dict safe to pass to logging formatters.
+    """
+    result: dict[str, Any] = {}
+    for key, value in data.items():
+        key_lower = str(key).lower()
+        if _is_sensitive_key(key_lower):
+            result[key] = _REDACTED
+        elif isinstance(value, Mapping):
+            result[key] = redact_sensitive(value)
+        else:
+            result[key] = value
+    return result
+
+
+def _is_sensitive_key(key_lower: str) -> bool:
+    """Return True if *key_lower* matches or contains a sensitive keyword."""
+    if key_lower in _SENSITIVE_KEYS:
+        return True
+    return any(sensitive in key_lower for sensitive in _SENSITIVE_KEYS)
+
+
+def redact_value(key: str, value: Any) -> Any:
+    """Redact *value* if *key* is sensitive, otherwise return *value* unchanged.
+
+    Args:
+        key: The config / log field name.
+        value: The value to potentially redact.
+
+    Returns:
+        ``_REDACTED`` placeholder or the original value.
+    """
+    if _is_sensitive_key(key.lower()):
+        return _REDACTED
+    return value
+
+
+# ---------------------------------------------------------------------------
+# Module-level logger helpers
+# ---------------------------------------------------------------------------
+
+def get_logger(name: str) -> logging.Logger:
+    """Return a logger prefixed with the integration domain.
+
+    Args:
+        name: Typically ``__name__`` from the calling module.
+
+    Returns:
+        Configured :class:`logging.Logger`.
+    """
+    return logging.getLogger(name)
+
+
+def log_config_entry_setup(
+    logger: logging.Logger,
+    entry_id: str,
+    dogs_count: int,
+    profile: str,
+    duration_s: float,
+) -> None:
+    """Emit a structured INFO log for a successful config-entry setup.
+
+    No user credentials are included.
+
+    Args:
+        logger: The module logger.
+        entry_id: Config entry identifier.
+        dogs_count: Number of configured dogs.
+        profile: Active entity profile name.
+        duration_s: Setup duration in seconds.
+    """
+    logger.info(
+        "PawControl entry setup complete "
+        "(entry_id=%s dogs=%d profile=%s duration_s=%.2f)",
+        entry_id,
+        dogs_count,
+        profile,
+        duration_s,
+    )
+
+
+def log_api_client_build_error(
+    logger: logging.Logger,
+    endpoint: str,
+    error: Exception,
+) -> None:
+    """Log an API client build failure without exposing credentials.
+
+    The endpoint URL is included (it is not a secret) but the token is never
+    logged here.
+
+    Args:
+        logger: The module logger.
+        endpoint: The sanitized endpoint URL (no credentials).
+        error: The exception that caused the failure.
+    """
+    # Strip any embedded credentials from the URL before logging.
+    safe_endpoint = _strip_url_credentials(endpoint)
+    logger.warning(
+        "Invalid PawControl API endpoint '%s': %s (%s)",
+        safe_endpoint,
+        error,
+        error.__class__.__name__,
+    )
+
+
+def _strip_url_credentials(url: str) -> str:
+    """Remove user:password@ prefix from a URL string.
+
+    Args:
+        url: Possibly credential-bearing URL.
+
+    Returns:
+        URL with credentials removed.
+    """
+    try:
+        # yarl is available in the HA environment
+        from yarl import URL  # noqa: PLC0415
+
+        parsed = URL(url)
+        if parsed.user or parsed.password:
+            return str(parsed.with_user(None))
+    except Exception:  # noqa: BLE001 — best-effort sanitization
+        pass
+    return url
+
+
+__all__ = [
+    "get_logger",
+    "log_api_client_build_error",
+    "log_config_entry_setup",
+    "redact_sensitive",
+    "redact_value",
+]

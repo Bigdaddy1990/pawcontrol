@@ -21,13 +21,12 @@ def build_walk_timing_schema_fields(
     values: Mapping[str, Any],
     defaults: DoorSensorSettingsConfig,
 ) -> dict[vol.Optional, object]:
-    """Build schema fields for walk timing settings."""  # noqa: E111
-
-    def _value(key: str, fallback: Any) -> Any:  # noqa: E111
+    """Build schema fields for walk timing settings."""
+    def _value(key: str, fallback: Any) -> Any:
         return values.get(key, fallback)
 
-    fields: dict[vol.Optional, object] = {}  # noqa: E111
-    fields[  # noqa: E111
+    fields: dict[vol.Optional, object] = {}
+    fields[
         vol.Optional(
             WALK_DETECTION_TIMEOUT_FIELD,
             default=_value(
@@ -44,7 +43,7 @@ def build_walk_timing_schema_fields(
             unit_of_measurement="seconds",
         ),
     )
-    fields[  # noqa: E111
+    fields[
         vol.Optional(
             MINIMUM_WALK_DURATION_FIELD,
             default=_value(
@@ -61,7 +60,7 @@ def build_walk_timing_schema_fields(
             unit_of_measurement="seconds",
         ),
     )
-    fields[  # noqa: E111
+    fields[
         vol.Optional(
             MAXIMUM_WALK_DURATION_FIELD,
             default=_value(
@@ -78,19 +77,16 @@ def build_walk_timing_schema_fields(
             unit_of_measurement="seconds",
         ),
     )
-    return fields  # noqa: E111
-
-
+    return fields
 def build_auto_end_walks_field(
     values: Mapping[str, Any],
     defaults: DoorSensorSettingsConfig,
 ) -> dict[vol.Optional, object]:
-    """Build schema field for the auto-end walks toggle."""  # noqa: E111
-
-    def _value(key: str, fallback: Any) -> Any:  # noqa: E111
+    """Build schema field for the auto-end walks toggle."""
+    def _value(key: str, fallback: Any) -> Any:
         return values.get(key, fallback)
 
-    return {  # noqa: E111
+    return {
         vol.Optional(
             AUTO_END_WALKS_FIELD,
             default=_value(AUTO_END_WALKS_FIELD, defaults.auto_end_walks),

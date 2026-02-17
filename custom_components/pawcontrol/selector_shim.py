@@ -16,87 +16,78 @@ from typing import Any, Protocol, TypeVar, cast
 
 
 class _SelectorNamespace(SimpleNamespace):
-    """Namespace exposing selector helpers and callable schema factory."""  # noqa: E111
-
-    def __call__(self, config: Any) -> Any:  # noqa: E111
+    """Namespace exposing selector helpers and callable schema factory."""
+    def __call__(self, config: Any) -> Any:
         selector_factory = getattr(self, "selector", None)
         if callable(selector_factory):
-            return selector_factory(config)  # noqa: E111
+            return selector_factory(config)
         return config
 
 
 class _SelectorNamespaceProtocol(Protocol):
-    """Typing contract for the exported selector namespace."""  # noqa: E111
-
-    Selector: Any  # noqa: E111
-    BooleanSelector: Any  # noqa: E111
-    BooleanSelectorConfig: Any  # noqa: E111
-    DateSelector: Any  # noqa: E111
-    DateSelectorConfig: Any  # noqa: E111
-    NumberSelector: Any  # noqa: E111
-    NumberSelectorConfig: Any  # noqa: E111
-    NumberSelectorMode: Any  # noqa: E111
-    SelectOptionDict: Any  # noqa: E111
-    SelectSelector: Any  # noqa: E111
-    SelectSelectorConfig: Any  # noqa: E111
-    SelectSelectorMode: Any  # noqa: E111
-    TextSelector: Any  # noqa: E111
-    TextSelectorConfig: Any  # noqa: E111
-    TextSelectorType: Any  # noqa: E111
-    TimeSelector: Any  # noqa: E111
-    TimeSelectorConfig: Any  # noqa: E111
-
-    def __call__(self, config: Any) -> Any:  # noqa: E111
+    """Typing contract for the exported selector namespace."""
+    Selector: Any
+    BooleanSelector: Any
+    BooleanSelectorConfig: Any
+    DateSelector: Any
+    DateSelectorConfig: Any
+    NumberSelector: Any
+    NumberSelectorConfig: Any
+    NumberSelectorMode: Any
+    SelectOptionDict: Any
+    SelectSelector: Any
+    SelectSelectorConfig: Any
+    SelectSelectorMode: Any
+    TextSelector: Any
+    TextSelectorConfig: Any
+    TextSelectorType: Any
+    TimeSelector: Any
+    TimeSelectorConfig: Any
+    def __call__(self, config: Any) -> Any:
         """Return normalized selector config payload."""
 
         pass
 
 
 try:  # pragma: no cover - exercised when Home Assistant is installed
-    from homeassistant.helpers import selector as ha_selector  # noqa: E111
+    from homeassistant.helpers import selector as ha_selector
 except ImportError:  # pragma: no cover - used in tests
-    ha_selector = None  # noqa: E111
-
-
+    ha_selector = None
 def _supports_selector_callables(module: object) -> bool:
-    """Return ``True`` when selector instances behave like validators."""  # noqa: E111
-
-    text_selector = getattr(module, "TextSelector", None)  # noqa: E111
-    text_selector_config = getattr(module, "TextSelectorConfig", None)  # noqa: E111
-    if not callable(text_selector) or text_selector_config is None:  # noqa: E111
+    """Return ``True`` when selector instances behave like validators."""
+    text_selector = getattr(module, "TextSelector", None)
+    text_selector_config = getattr(module, "TextSelectorConfig", None)
+    if not callable(text_selector) or text_selector_config is None:
         return False
 
-    try:  # noqa: E111
+    try:
         selector_instance = text_selector(text_selector_config())
-    except Exception:  # noqa: E111
+    except Exception:
         return False
 
-    return callable(selector_instance)  # noqa: E111
-
-
+    return callable(selector_instance)
 if ha_selector is not None and _supports_selector_callables(ha_selector):
     # pragma: no cover - passthrough when available  # noqa: E114
-    selector = cast(  # noqa: E111
+    selector = cast(
         _SelectorNamespaceProtocol, _SelectorNamespace(**ha_selector.__dict__)
     )
 else:
-    from typing import Literal, Required, TypedDict  # noqa: E111
-
-    class BaseSelectorConfig(TypedDict, total=False):  # noqa: E111
+    from typing import Literal, Required, TypedDict
+    class BaseSelectorConfig(TypedDict, total=False):
         """Common selector configuration shared across helpers."""
 
         read_only: bool
 
-    class BooleanSelectorConfig(BaseSelectorConfig, total=False):  # noqa: E111
+    class BooleanSelectorConfig(BaseSelectorConfig, total=False):
         """Boolean selector configuration shim."""
 
-    class NumberSelectorMode(StrEnum):  # noqa: E111
+    class NumberSelectorMode(StrEnum):
         """Available modes for number selectors."""
 
         BOX = "box"
         SLIDER = "slider"
 
-    class NumberSelectorConfig(BaseSelectorConfig, total=False):  # noqa: E111
+    class NumberSelectorConfig(BaseSelectorConfig, total=False):
         """Number selector configuration shim."""
 
         min: float
@@ -106,19 +97,19 @@ else:
         mode: NumberSelectorMode
         translation_key: str
 
-    class SelectOptionDict(TypedDict):  # noqa: E111
+    class SelectOptionDict(TypedDict):
         """Select selector option entry."""
 
         value: str
         label: str
 
-    class SelectSelectorMode(StrEnum):  # noqa: E111
+    class SelectSelectorMode(StrEnum):
         """Available modes for select selectors."""
 
         LIST = "list"
         DROPDOWN = "dropdown"
 
-    class SelectSelectorConfig(BaseSelectorConfig, total=False):  # noqa: E111
+    class SelectSelectorConfig(BaseSelectorConfig, total=False):
         """Select selector configuration shim."""
 
         options: Required[Sequence[SelectOptionDict | str]]
@@ -128,7 +119,7 @@ else:
         translation_key: str
         sort: bool
 
-    class TextSelectorType(StrEnum):  # noqa: E111
+    class TextSelectorType(StrEnum):
         """Valid text selector input types."""
 
         COLOR = "color"
@@ -145,7 +136,7 @@ else:
         URL = "url"
         WEEK = "week"
 
-    class TextSelectorConfig(BaseSelectorConfig, total=False):  # noqa: E111
+    class TextSelectorConfig(BaseSelectorConfig, total=False):
         """Text selector configuration shim."""
 
         multiline: bool
@@ -155,15 +146,14 @@ else:
         autocomplete: str
         multiple: bool
 
-    class TimeSelectorConfig(BaseSelectorConfig, total=False):  # noqa: E111
+    class TimeSelectorConfig(BaseSelectorConfig, total=False):
         """Time selector configuration shim."""
 
-    class DateSelectorConfig(BaseSelectorConfig, total=False):  # noqa: E111
+    class DateSelectorConfig(BaseSelectorConfig, total=False):
         """Date selector configuration shim."""
 
-    ConfigT = TypeVar("ConfigT", bound=BaseSelectorConfig)  # noqa: E111
-
-    class _BaseSelector[ConfigT: BaseSelectorConfig]:  # noqa: E111
+    ConfigT = TypeVar("ConfigT", bound=BaseSelectorConfig)
+    class _BaseSelector[ConfigT: BaseSelectorConfig]:
         """Typed selector stub that mirrors Home Assistant's runtime helpers.
 
         The shim relies on PEP 695 generics so each fallback selector exposes the
@@ -177,7 +167,7 @@ else:
             # TypedDict type advertised by ``ConfigT``. The cast is safe because  # noqa: E114
             # TypedDicts accept missing keys when ``total=False`` and the runtime  # noqa: E114, E501
             # helpers perform the same normalisation before storing configs.  # noqa: E114
-            default_config: ConfigT = (  # noqa: E111
+            default_config: ConfigT = (
                 cast(
                     ConfigT,
                     {},
@@ -185,38 +175,34 @@ else:
                 if config is None
                 else config
             )
-            self.config = default_config  # noqa: E111
-
+            self.config = default_config
         def __call__(self, value: Any) -> Any:
-            """Return the provided value without validation."""  # noqa: E111
-
-            return value  # noqa: E111
-
+            """Return the provided value without validation."""
+            return value
         def __repr__(self) -> str:  # pragma: no cover - debug helper
-            return f"{self.__class__.__name__}(config={self.config!r})"  # noqa: E111
-
-    class BooleanSelector(_BaseSelector[BooleanSelectorConfig]):  # noqa: E111
+            return f"{self.__class__.__name__}(config={self.config!r})"
+    class BooleanSelector(_BaseSelector[BooleanSelectorConfig]):
         """Boolean selector shim."""
 
-    class Selector(_BaseSelector[BaseSelectorConfig]):  # noqa: E111
+    class Selector(_BaseSelector[BaseSelectorConfig]):
         """Generic selector shim matching Home Assistant type hints."""
 
-    class NumberSelector(_BaseSelector[NumberSelectorConfig]):  # noqa: E111
+    class NumberSelector(_BaseSelector[NumberSelectorConfig]):
         """Number selector shim."""
 
-    class SelectSelector(_BaseSelector[SelectSelectorConfig]):  # noqa: E111
+    class SelectSelector(_BaseSelector[SelectSelectorConfig]):
         """Select selector shim."""
 
-    class TextSelector(_BaseSelector[TextSelectorConfig]):  # noqa: E111
+    class TextSelector(_BaseSelector[TextSelectorConfig]):
         """Text selector shim."""
 
-    class TimeSelector(_BaseSelector[TimeSelectorConfig]):  # noqa: E111
+    class TimeSelector(_BaseSelector[TimeSelectorConfig]):
         """Time selector shim."""
 
-    class DateSelector(_BaseSelector[DateSelectorConfig]):  # noqa: E111
+    class DateSelector(_BaseSelector[DateSelectorConfig]):
         """Date selector shim."""
 
-    selector = cast(  # noqa: E111
+    selector = cast(
         _SelectorNamespaceProtocol,
         _SelectorNamespace(
             # Home Assistant's selector() helper wraps selector config mappings into a

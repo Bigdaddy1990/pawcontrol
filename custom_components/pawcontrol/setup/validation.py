@@ -14,8 +14,7 @@ from ..exceptions import ConfigurationError
 from ..types import DogConfigData, ensure_dog_config_data
 
 if TYPE_CHECKING:
-    from ..types import PawControlConfigEntry  # noqa: E111
-
+    from ..types import PawControlConfigEntry
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -39,26 +38,21 @@ async def async_validate_entry_config(
         2
         >>> profile
         'standard'
-    """  # noqa: E111
+    """
     # Validate dogs configuration  # noqa: E114
-    dogs_config = await _async_validate_dogs_config(entry)  # noqa: E111
-
+    dogs_config = await _async_validate_dogs_config(entry)
     # Validate and normalize profile  # noqa: E114
-    profile = _validate_profile(entry)  # noqa: E111
-
+    profile = _validate_profile(entry)
     # Extract enabled modules  # noqa: E114
-    enabled_modules = _extract_enabled_modules(dogs_config)  # noqa: E111
-
-    _LOGGER.debug(  # noqa: E111
+    enabled_modules = _extract_enabled_modules(dogs_config)
+    _LOGGER.debug(
         "Config validation complete: %d dogs, profile='%s', %d modules enabled",
         len(dogs_config),
         profile,
         len(enabled_modules),
     )
 
-    return dogs_config, profile, enabled_modules  # noqa: E111
-
-
+    return dogs_config, profile, enabled_modules
 async def _async_validate_dogs_config(
     entry: PawControlConfigEntry,
 ) -> list[DogConfigData]:
@@ -72,23 +66,22 @@ async def _async_validate_dogs_config(
 
     Raises:
         ConfigurationError: If dogs configuration is invalid
-    """  # noqa: E111
-    dogs_config_raw = entry.data.get(CONF_DOGS, [])  # noqa: E111
-    if dogs_config_raw is None:  # noqa: E111
+    """
+    dogs_config_raw = entry.data.get(CONF_DOGS, [])
+    if dogs_config_raw is None:
         dogs_config_raw = []
 
-    dogs_config: list[DogConfigData] = []  # noqa: E111
-
-    if not isinstance(dogs_config_raw, list):  # noqa: E111
+    dogs_config: list[DogConfigData] = []
+    if not isinstance(dogs_config_raw, list):
         raise ConfigurationError(
             "dogs_configuration",
             type(dogs_config_raw).__name__,
             "Dogs configuration must be a list",
         )
 
-    for i, dog in enumerate(dogs_config_raw):  # noqa: E111
+    for i, dog in enumerate(dogs_config_raw):
         if not isinstance(dog, Mapping):
-            raise ConfigurationError(  # noqa: E111
+            raise ConfigurationError(
                 f"dog_config_{i}",
                 dog,
                 "Dog configuration entries must be mappings",
@@ -96,7 +89,7 @@ async def _async_validate_dogs_config(
 
         normalised = ensure_dog_config_data(dog)
         if normalised is None:
-            raise ConfigurationError(  # noqa: E111
+            raise ConfigurationError(
                 f"dog_config_{i}",
                 dog,
                 (
@@ -106,15 +99,13 @@ async def _async_validate_dogs_config(
             )
         dogs_config.append(normalised)
 
-    if not dogs_config:  # noqa: E111
+    if not dogs_config:
         _LOGGER.debug(
             "No dogs configured for entry %s; continuing without dog-specific entities",
             entry.entry_id,
         )
 
-    return dogs_config  # noqa: E111
-
-
+    return dogs_config
 def _validate_profile(entry: PawControlConfigEntry) -> str:
     """Validate and normalize entity profile.
 
@@ -123,20 +114,17 @@ def _validate_profile(entry: PawControlConfigEntry) -> str:
 
     Returns:
         Validated profile name (defaults to 'standard')
-    """  # noqa: E111
-    profile_raw = entry.options.get("entity_profile", "standard")  # noqa: E111
-    if profile_raw is None:  # noqa: E111
+    """
+    profile_raw = entry.options.get("entity_profile", "standard")
+    if profile_raw is None:
         profile_raw = "standard"
 
-    profile = profile_raw if isinstance(profile_raw, str) else str(profile_raw)  # noqa: E111
-
-    if profile not in ENTITY_PROFILES:  # noqa: E111
+    profile = profile_raw if isinstance(profile_raw, str) else str(profile_raw)
+    if profile not in ENTITY_PROFILES:
         _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
         profile = "standard"
 
-    return profile  # noqa: E111
-
-
+    return profile
 def _extract_enabled_modules(dogs_config: Sequence[DogConfigData]) -> frozenset[str]:
     """Extract enabled modules from dogs configuration.
 
@@ -145,38 +133,33 @@ def _extract_enabled_modules(dogs_config: Sequence[DogConfigData]) -> frozenset[
 
     Returns:
         Set of enabled module names
-    """  # noqa: E111
-    from ..const import ALL_MODULES  # noqa: E111
-
-    enabled_modules: set[str] = set()  # noqa: E111
-    unknown_modules: set[str] = set()  # noqa: E111
-
-    for dog in dogs_config:  # noqa: E111
+    """
+    from ..const import ALL_MODULES
+    enabled_modules: set[str] = set()
+    unknown_modules: set[str] = set()
+    for dog in dogs_config:
         modules_config = dog.get(CONF_MODULES)
         if modules_config is None:
-            continue  # noqa: E111
-
+            continue
         if not isinstance(modules_config, Mapping):
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Ignoring modules for dog %s because configuration is not a mapping",
                 dog.get("dog_id", "<unknown>"),
             )
-            continue  # noqa: E111
-
+            continue
         for module_name, enabled in modules_config.items():
-            if not enabled:  # noqa: E111
+            if not enabled:
                 continue
 
-            if module_name not in ALL_MODULES:  # noqa: E111
+            if module_name not in ALL_MODULES:
                 unknown_modules.add(module_name)
                 continue
 
-            enabled_modules.add(module_name)  # noqa: E111
-
-    if unknown_modules:  # noqa: E111
+            enabled_modules.add(module_name)
+    if unknown_modules:
         _LOGGER.warning(
             "Ignoring unknown PawControl modules: %s",
             ", ".join(sorted(unknown_modules)),
         )
 
-    return frozenset(enabled_modules)  # noqa: E111
+    return frozenset(enabled_modules)

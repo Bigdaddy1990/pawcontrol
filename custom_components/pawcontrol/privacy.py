@@ -31,14 +31,11 @@ class RedactionRule:
         replacement: Replacement string
         field_names: Specific field names to redact
         redactor: Custom redaction function
-    """  # noqa: E111
-
-    pattern: Pattern[str] | None = None  # noqa: E111
-    replacement: str = "[REDACTED]"  # noqa: E111
-    field_names: list[str] = field(default_factory=list)  # noqa: E111
-    redactor: Callable[[str], str] | None = None  # noqa: E111
-
-
+    """
+    pattern: Pattern[str] | None = None
+    replacement: str = "[REDACTED]"
+    field_names: list[str] = field(default_factory=list)
+    redactor: Callable[[str], str] | None = None
 class PIIRedactor:
     """Redacts personally identifiable information (PII).
 
@@ -49,14 +46,13 @@ class PIIRedactor:
         >>> redactor = PIIRedactor()
         >>> clean = redactor.redact_text("My email is user@example.com")
         >>> # Result: "My email is [EMAIL]"
-    """  # noqa: E111
-
-    def __init__(self) -> None:  # noqa: E111
+    """
+    def __init__(self) -> None:
         """Initialize PII redactor."""
         self._rules: list[RedactionRule] = []
         self._register_default_rules()
 
-    def _register_default_rules(self) -> None:  # noqa: E111
+    def _register_default_rules(self) -> None:
         """Register default PII redaction rules."""
         # Email addresses
         self._rules.append(
@@ -102,7 +98,7 @@ class PIIRedactor:
             )
         )
 
-    def add_rule(self, rule: RedactionRule) -> None:  # noqa: E111
+    def add_rule(self, rule: RedactionRule) -> None:
         r"""Add custom redaction rule.
 
         Args:
@@ -117,7 +113,7 @@ class PIIRedactor:
         """
         self._rules.append(rule)
 
-    def redact_text(self, text: str) -> str:  # noqa: E111
+    def redact_text(self, text: str) -> str:
         """Redact PII from text.
 
         Args:
@@ -131,19 +127,18 @@ class PIIRedactor:
             'Contact: [EMAIL], [PHONE]'
         """
         if not isinstance(text, str):
-            return text  # noqa: E111
-
+            return text
         result = text
 
         for rule in self._rules:
-            if rule.pattern:  # noqa: E111
+            if rule.pattern:
                 result = rule.pattern.sub(rule.replacement, result)
-            elif rule.redactor:  # noqa: E111
+            elif rule.redactor:
                 result = rule.redactor(result)
 
         return result
 
-    def redact_dict(  # noqa: E111
+    def redact_dict(
         self,
         data: dict[str, Any],
         *,
@@ -166,22 +161,21 @@ class PIIRedactor:
 
         for key, value in data.items():
             # Check if field should be redacted by name  # noqa: E114
-            should_redact_field = any(key in rule.field_names for rule in self._rules)  # noqa: E111
-
-            if should_redact_field:  # noqa: E111
+            should_redact_field = any(key in rule.field_names for rule in self._rules)
+            if should_redact_field:
                 redacted[key] = "[REDACTED]"
-            elif isinstance(value, str):  # noqa: E111
+            elif isinstance(value, str):
                 redacted[key] = self.redact_text(value)
-            elif isinstance(value, dict) and recursive:  # noqa: E111
+            elif isinstance(value, dict) and recursive:
                 redacted[key] = self.redact_dict(value, recursive=True)
-            elif isinstance(value, list) and recursive:  # noqa: E111
+            elif isinstance(value, list) and recursive:
                 redacted[key] = [
                     self.redact_dict(item, recursive=True)
                     if isinstance(item, dict)
                     else (self.redact_text(item) if isinstance(item, str) else item)
                     for item in value
                 ]
-            else:  # noqa: E111
+            else:
                 redacted[key] = value
 
         return redacted
@@ -197,9 +191,8 @@ class GPSAnonymizer:
         >>> anonymizer = GPSAnonymizer(precision=3)
         >>> anon_lat, anon_lon = anonymizer.anonymize(45.5231, -122.6765)
         >>> # Result: (45.523, -122.677)
-    """  # noqa: E111
-
-    def __init__(self, precision: int = 3) -> None:  # noqa: E111
+    """
+    def __init__(self, precision: int = 3) -> None:
         """Initialize GPS anonymizer.
 
         Args:
@@ -207,7 +200,7 @@ class GPSAnonymizer:
         """
         self._precision = precision
 
-    def anonymize(  # noqa: E111
+    def anonymize(
         self,
         latitude: float,
         longitude: float,
@@ -229,7 +222,7 @@ class GPSAnonymizer:
         anon_lon = round(longitude, self._precision)
         return anon_lat, anon_lon
 
-    def anonymize_dict(  # noqa: E111
+    def anonymize_dict(
         self,
         data: dict[str, Any],
         *,
@@ -249,13 +242,12 @@ class GPSAnonymizer:
         result = dict(data)
 
         if lat_key in result and lon_key in result:
-            anon_lat, anon_lon = self.anonymize(  # noqa: E111
+            anon_lat, anon_lon = self.anonymize(
                 result[lat_key],
                 result[lon_key],
             )
-            result[lat_key] = anon_lat  # noqa: E111
-            result[lon_key] = anon_lon  # noqa: E111
-
+            result[lat_key] = anon_lat
+            result[lon_key] = anon_lon
         return result
 
 
@@ -268,9 +260,8 @@ class DataHasher:
     Examples:
         >>> hasher = DataHasher()
         >>> hashed = hasher.hash_string("user@example.com")
-    """  # noqa: E111
-
-    def __init__(self, algorithm: str = "sha256") -> None:  # noqa: E111
+    """
+    def __init__(self, algorithm: str = "sha256") -> None:
         """Initialize data hasher.
 
         Args:
@@ -278,7 +269,7 @@ class DataHasher:
         """
         self._algorithm = algorithm
 
-    def hash_string(self, text: str, salt: str = "") -> str:  # noqa: E111
+    def hash_string(self, text: str, salt: str = "") -> str:
         """Hash a string.
 
         Args:
@@ -296,7 +287,7 @@ class DataHasher:
         hash_func = getattr(hashlib, self._algorithm)
         return hash_func(data).hexdigest()
 
-    def hash_dict(  # noqa: E111
+    def hash_dict(
         self,
         data: dict[str, Any],
         fields: list[str],
@@ -315,7 +306,7 @@ class DataHasher:
         result = dict(data)
 
         for field_name in fields:
-            if field_name in result and isinstance(result[field_name], str):  # noqa: E111
+            if field_name in result and isinstance(result[field_name], str):
                 result[field_name] = self.hash_string(result[field_name], salt)
 
         return result
@@ -330,9 +321,8 @@ class PrivacyManager:
     Examples:
         >>> manager = PrivacyManager(hass)
         >>> clean_data = await manager.async_sanitize_data(user_data)
-    """  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """
+    def __init__(
         self,
         hass: HomeAssistant,
         *,
@@ -352,7 +342,7 @@ class PrivacyManager:
         self._hasher = DataHasher(algorithm=hash_algorithm)
         self._logger = StructuredLogger(__name__)
 
-    async def async_sanitize_data(  # noqa: E111
+    async def async_sanitize_data(
         self,
         data: dict[str, Any],
         *,
@@ -382,16 +372,13 @@ class PrivacyManager:
 
         # Redact PII
         if redact_pii:
-            result = self._redactor.redact_dict(result)  # noqa: E111
-
+            result = self._redactor.redact_dict(result)
         # Anonymize GPS
         if anonymize_gps and "latitude" in result and "longitude" in result:
-            result = self._gps_anonymizer.anonymize_dict(result)  # noqa: E111
-
+            result = self._gps_anonymizer.anonymize_dict(result)
         # Hash fields
         if hash_fields:
-            result = self._hasher.hash_dict(result, hash_fields)  # noqa: E111
-
+            result = self._hasher.hash_dict(result, hash_fields)
         self._logger.debug(
             "Data sanitized",
             redact_pii=redact_pii,
@@ -401,7 +388,7 @@ class PrivacyManager:
 
         return result
 
-    async def async_prepare_diagnostics(  # noqa: E111
+    async def async_prepare_diagnostics(
         self,
         data: dict[str, Any],
     ) -> dict[str, Any]:
@@ -422,7 +409,7 @@ class PrivacyManager:
             hash_fields=["device_id", "mac_address"],
         )
 
-    def add_redaction_rule(self, rule: RedactionRule) -> None:  # noqa: E111
+    def add_redaction_rule(self, rule: RedactionRule) -> None:
         """Add custom redaction rule.
 
         Args:
@@ -459,27 +446,21 @@ def sanitize_return_value(
         >>> @sanitize_return_value(redact_pii=True)
         ... async def get_user_data():
         ...     return {"email": "user@example.com"}
-    """  # noqa: E111
-    redactor = PIIRedactor()  # noqa: E111
-    gps_anonymizer = GPSAnonymizer()  # noqa: E111
-
-    def decorator(func: Any) -> Any:  # noqa: E111
+    """
+    redactor = PIIRedactor()
+    gps_anonymizer = GPSAnonymizer()
+    def decorator(func: Any) -> Any:
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            result = await func(*args, **kwargs)  # noqa: E111
-
-            if isinstance(result, dict):  # noqa: E111
+            result = await func(*args, **kwargs)
+            if isinstance(result, dict):
                 if redact_pii:
-                    result = redactor.redact_dict(result)  # noqa: E111
+                    result = redactor.redact_dict(result)
                 if anonymize_gps and "latitude" in result and "longitude" in result:
-                    result = gps_anonymizer.anonymize_dict(result)  # noqa: E111
-
-            return result  # noqa: E111
-
+                    result = gps_anonymizer.anonymize_dict(result)
+            return result
         return wrapper
 
-    return decorator  # noqa: E111
-
-
+    return decorator
 # Utility functions
 
 
@@ -496,13 +477,11 @@ def mask_string(text: str, visible_chars: int = 4) -> str:
     Examples:
         >>> mask_string("sensitive_data", visible_chars=4)
         'sens***********'
-    """  # noqa: E111
-    if len(text) <= visible_chars:  # noqa: E111
+    """
+    if len(text) <= visible_chars:
         return "*" * len(text)
 
-    return text[:visible_chars] + "*" * (len(text) - visible_chars)  # noqa: E111
-
-
+    return text[:visible_chars] + "*" * (len(text) - visible_chars)
 def anonymize_user_id(user_id: str) -> str:
     """Anonymize user ID.
 
@@ -515,7 +494,7 @@ def anonymize_user_id(user_id: str) -> str:
     Examples:
         >>> anonymize_user_id("user_12345")
         'user_a4e2f...'
-    """  # noqa: E111
-    hasher = DataHasher()  # noqa: E111
-    hash_value = hasher.hash_string(user_id)  # noqa: E111
-    return f"user_{hash_value[:8]}"  # noqa: E111
+    """
+    hasher = DataHasher()
+    hash_value = hasher.hash_string(user_id)
+    return f"user_{hash_value[:8]}"

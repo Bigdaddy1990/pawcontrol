@@ -20,9 +20,8 @@ def build_dog_health_schema(
     suggested_activity: str,
     modules: DogModulesConfig,
 ) -> vol.Schema:
-    """Build schema for dog health configuration."""  # noqa: E111
-
-    schema_dict: dict[vol.Marker, object] = {  # noqa: E111
+    """Build schema for dog health configuration."""
+    schema_dict: dict[vol.Marker, object] = {
         vol.Optional("vet_name", default=""): selector.TextSelector(),
         vol.Optional("vet_phone", default=""): selector.TextSelector(
             selector.TextSelectorConfig(
@@ -101,7 +100,7 @@ def build_dog_health_schema(
         ): selector.TextSelector(),
     }
 
-    medical_diets = [  # noqa: E111
+    medical_diets = [
         "prescription",
         "diabetic",
         "kidney_support",
@@ -109,38 +108,36 @@ def build_dog_health_schema(
         "weight_control",
         "sensitive_stomach",
     ]
-    for diet in medical_diets:  # noqa: E111
+    for diet in medical_diets:
         if diet in SPECIAL_DIET_OPTIONS:
-            schema_dict[vol.Optional(diet, default=False)] = selector.BooleanSelector()  # noqa: E111
-
-    age_diets = ["senior_formula", "puppy_formula"]  # noqa: E111
-    for diet in age_diets:  # noqa: E111
+            schema_dict[vol.Optional(diet, default=False)] = selector.BooleanSelector()
+    age_diets = ["senior_formula", "puppy_formula"]
+    for diet in age_diets:
         if diet in SPECIAL_DIET_OPTIONS:
-            default_value = (diet == "senior_formula" and dog_age >= 7) or (  # noqa: E111
+            default_value = (diet == "senior_formula" and dog_age >= 7) or (
                 diet == "puppy_formula" and dog_age < 2
             )
-            schema_dict[vol.Optional(diet, default=default_value)] = (  # noqa: E111
+            schema_dict[vol.Optional(diet, default=default_value)] = (
                 selector.BooleanSelector()
             )
 
-    allergy_diets = ["grain_free", "hypoallergenic"]  # noqa: E111
-    for diet in allergy_diets:  # noqa: E111
+    allergy_diets = ["grain_free", "hypoallergenic"]
+    for diet in allergy_diets:
         if diet in SPECIAL_DIET_OPTIONS:
-            schema_dict[vol.Optional(diet, default=False)] = selector.BooleanSelector()  # noqa: E111
-
-    lifestyle_diets = ["organic", "raw_diet", "dental_care", "joint_support"]  # noqa: E111
-    for diet in lifestyle_diets:  # noqa: E111
+            schema_dict[vol.Optional(diet, default=False)] = selector.BooleanSelector()
+    lifestyle_diets = ["organic", "raw_diet", "dental_care", "joint_support"]
+    for diet in lifestyle_diets:
         if diet in SPECIAL_DIET_OPTIONS:
-            default_value = False  # noqa: E111
+            default_value = False
             if diet == "joint_support" and (
                 dog_age >= 7 or dog_size in ("large", "giant")
-            ):  # noqa: E111
+            ):
                 default_value = True
-            schema_dict[vol.Optional(diet, default=default_value)] = (  # noqa: E111
+            schema_dict[vol.Optional(diet, default=default_value)] = (
                 selector.BooleanSelector()
             )
 
-    schema_dict.update(  # noqa: E111
+    schema_dict.update(
         {
             vol.Optional("rabies_vaccination"): selector.DateSelector(),
             vol.Optional("rabies_next"): selector.DateSelector(),
@@ -151,7 +148,7 @@ def build_dog_health_schema(
         },
     )
 
-    if modules.get(MODULE_MEDICATION, False):  # noqa: E111
+    if modules.get(MODULE_MEDICATION, False):
         schema_dict.update(
             {
                 vol.Optional("medication_1_name"): selector.TextSelector(),
@@ -199,18 +196,14 @@ def build_dog_health_schema(
             },
         )
 
-    return vol.Schema(schema_dict)  # noqa: E111
-
-
+    return vol.Schema(schema_dict)
 def build_health_settings_schema(
     current_health: HealthOptions,
     user_input: OptionsHealthSettingsInput | None = None,
 ) -> vol.Schema:
-    """Get health settings schema."""  # noqa: E111
-
-    current_values = user_input or {}  # noqa: E111
-
-    return vol.Schema(  # noqa: E111
+    """Get health settings schema."""
+    current_values = user_input or {}
+    return vol.Schema(
         {
             vol.Optional(
                 "weight_tracking",

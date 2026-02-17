@@ -30,7 +30,7 @@ from .notifications_schemas import build_notifications_schema
 
 if TYPE_CHECKING:
 
-    class NotificationOptionsHost:  # noqa: E111
+    class NotificationOptionsHost:
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -81,7 +81,7 @@ if TYPE_CHECKING:
 
         async def async_step_init(self) -> ConfigFlowResult: ...
 
-    class NotificationOptionsNormalizerHost(Protocol):  # noqa: E111
+    class NotificationOptionsNormalizerHost(Protocol):
         """Protocol describing the options flow host requirements."""
 
         _current_dog: DogConfigData | None
@@ -138,14 +138,11 @@ if TYPE_CHECKING:
         async def async_step_init(self) -> ConfigFlowResult: ...
 
 else:  # pragma: no cover
-    NotificationOptionsHost = object  # noqa: E111
-    NotificationOptionsNormalizerHost = object  # noqa: E111
-
-
+    NotificationOptionsHost = object
+    NotificationOptionsNormalizerHost = object
 class NotificationOptionsMixin(NotificationOptionsHost):
-    """Handle per-dog notification options."""  # noqa: E111
-
-    def _current_notification_options(  # noqa: E111
+    """Handle per-dog notification options."""
+    def _current_notification_options(
         self,
         dog_id: str | None = None,
     ) -> NotificationOptions:
@@ -153,16 +150,15 @@ class NotificationOptionsMixin(NotificationOptionsHost):
 
         raw = None
         if dog_id is not None:
-            dog_options = self._current_dog_options()  # noqa: E111
-            entry = dog_options.get(dog_id, {})  # noqa: E111
-            raw = entry.get(CONF_NOTIFICATIONS)  # noqa: E111
+            dog_options = self._current_dog_options()
+            entry = dog_options.get(dog_id, {})
+            raw = entry.get(CONF_NOTIFICATIONS)
         payload: Mapping[str, JSONValue]
         if isinstance(raw, Mapping):
-            payload = raw  # noqa: E111
+            payload = raw
         else:
-            legacy = self._current_options().get(CONF_NOTIFICATIONS, {})  # noqa: E111
-            payload = legacy if isinstance(legacy, Mapping) else {}  # noqa: E111
-
+            legacy = self._current_options().get(CONF_NOTIFICATIONS, {})
+            payload = legacy if isinstance(legacy, Mapping) else {}
         return ensure_notification_options(
             cast(JSONLikeMapping, dict(payload)),
             defaults=cast(
@@ -175,17 +171,15 @@ class NotificationOptionsMixin(NotificationOptionsHost):
 
 
 class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
-    """Mixin providing notification normalization for options payloads."""  # noqa: E111
-
-    def _normalise_notification_options(  # noqa: E111
+    """Mixin providing notification normalization for options payloads."""
+    def _normalise_notification_options(
         self,
         mutable: JSONMutableMapping,
     ) -> NotificationOptions | None:
         """Normalise notification payloads in the options snapshot."""
 
         if CONF_NOTIFICATIONS not in mutable:
-            return None  # noqa: E111
-
+            return None
         raw_notifications = mutable.get(CONF_NOTIFICATIONS)
         notifications_source = (
             raw_notifications if isinstance(raw_notifications, Mapping) else {}
@@ -198,7 +192,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
         raw_dog_options = mutable.get(DOG_OPTIONS_FIELD, {})
         dog_options: DogOptionsMap = {}
         if isinstance(raw_dog_options, Mapping):
-            for raw_id, entry_source in raw_dog_options.items():  # noqa: E111
+            for raw_id, entry_source in raw_dog_options.items():
                 dog_id = str(raw_id)
                 entry_payload = (
                     entry_source if isinstance(entry_source, Mapping) else {}
@@ -208,19 +202,18 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
                     dog_id=dog_id,
                 )
                 if "notifications" not in entry:
-                    entry["notifications"] = normalised_notifications  # noqa: E111
+                    entry["notifications"] = normalised_notifications
                 dog_options[dog_id] = entry
         if dog_options:
-            mutable[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)  # noqa: E111
-
+            mutable[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
         mutable["notifications"] = cast(
             JSONValue,
             normalised_notifications,
         )
         return normalised_notifications
 
-    @classmethod  # noqa: E111
-    def _build_notification_settings_payload(  # noqa: E111
+    @classmethod
+    def _build_notification_settings_payload(
         cls,
         user_input: NotificationSettingsInput,
         current: NotificationOptions,
@@ -234,7 +227,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
             coerce_time_string=cls._coerce_time_string,
         )
 
-    def _build_notification_settings(  # noqa: E111
+    def _build_notification_settings(
         self,
         user_input: NotificationSettingsInput,
         current: NotificationOptions,
@@ -243,30 +236,28 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
 
         return self._build_notification_settings_payload(user_input, current)
 
-    async def async_step_select_dog_for_notifications(  # noqa: E111
+    async def async_step_select_dog_for_notifications(
         self,
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure notifications for."""
 
         if not self._dogs:
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")  # noqa: E111
-            self._select_dog_by_id(  # noqa: E111
+            selected_dog_id = user_input.get("dog_id")
+            self._select_dog_by_id(
                 selected_dog_id if isinstance(selected_dog_id, str) else None,
             )
-            if self._current_dog:  # noqa: E111
+            if self._current_dog:
                 return await self.async_step_notifications()
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         return self.async_show_form(
             step_id="select_dog_for_notifications",
             data_schema=self._build_dog_selector_schema(),
         )
 
-    async def async_step_notifications(  # noqa: E111
+    async def async_step_notifications(
         self,
         user_input: NotificationSettingsInput | None = None,
     ) -> ConfigFlowResult:
@@ -274,14 +265,12 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
 
         current_dog = self._require_current_dog()
         if current_dog is None:
-            return await self.async_step_select_dog_for_notifications()  # noqa: E111
-
+            return await self.async_step_select_dog_for_notifications()
         dog_id = current_dog.get(DOG_ID_FIELD)
         if not isinstance(dog_id, str):
-            return await self.async_step_select_dog_for_notifications()  # noqa: E111
-
+            return await self.async_step_select_dog_for_notifications()
         if user_input is not None:
-            try:  # noqa: E111
+            try:
                 current_notifications = self._current_notification_options(
                     dog_id,
                 )
@@ -298,14 +287,14 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
                 )
                 entry["notifications"] = notification_settings
                 if dog_id in dog_options or not dog_options:
-                    dog_options[dog_id] = entry  # noqa: E111
-                    new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)  # noqa: E111
+                    dog_options[dog_id] = entry
+                    new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
                 new_options["notifications"] = cast(JSONValue, notification_settings)
 
                 typed_options = self._normalise_options_snapshot(new_options)
                 return self.async_create_entry(title="", data=typed_options)
 
-            except FlowValidationError as err:  # noqa: E111
+            except FlowValidationError as err:
                 return self.async_show_form(
                     step_id="notifications",
                     data_schema=self._get_notifications_schema(
@@ -314,7 +303,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
                     ),
                     errors=err.as_form_errors(),
                 )
-            except Exception:  # noqa: E111
+            except Exception:
                 return self.async_show_form(
                     step_id="notifications",
                     data_schema=self._get_notifications_schema(
@@ -329,7 +318,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
             data_schema=self._get_notifications_schema(dog_id),
         )
 
-    def _get_notifications_schema(  # noqa: E111
+    def _get_notifications_schema(
         self,
         dog_id: str,
         user_input: NotificationSettingsInput | None = None,

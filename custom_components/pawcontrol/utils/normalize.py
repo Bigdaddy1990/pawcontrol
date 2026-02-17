@@ -13,21 +13,21 @@ def normalize_value(value: object) -> JSONValue:
 
     Converts datetimes to ISO strings, timedeltas to seconds, dataclasses to dicts,
     mappings, sets, and iterables to recursively normalised forms. Falls back to repr().
-    """  # noqa: E111
-    if value is None or isinstance(value, int | float | str | bool):  # noqa: E111
+    """
+    if value is None or isinstance(value, int | float | str | bool):
         return value
-    if isinstance(value, datetime):  # noqa: E111
+    if isinstance(value, datetime):
         return value.isoformat()
-    if isinstance(value, date | time):  # noqa: E111
+    if isinstance(value, date | time):
         return value.isoformat()
-    if isinstance(value, timedelta):  # noqa: E111
+    if isinstance(value, timedelta):
         return value.total_seconds()
-    if is_dataclass(value) and not isinstance(value, type):  # noqa: E111
+    if is_dataclass(value) and not isinstance(value, type):
         return {k: normalize_value(v) for k, v in asdict(value).items()}
-    if isinstance(value, Mapping):  # noqa: E111
+    if isinstance(value, Mapping):
         return {str(k): normalize_value(v) for k, v in value.items()}
-    if isinstance(value, ABCSet):  # noqa: E111
+    if isinstance(value, ABCSet):
         return [normalize_value(v) for v in value]
-    if isinstance(value, Iterable) and not isinstance(value, str | bytes):  # noqa: E111
+    if isinstance(value, Iterable) and not isinstance(value, str | bytes):
         return [normalize_value(v) for v in value]
-    return repr(value)  # noqa: E111
+    return repr(value)

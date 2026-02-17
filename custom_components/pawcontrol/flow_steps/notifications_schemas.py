@@ -20,11 +20,9 @@ def build_notifications_schema(
     current_notifications: NotificationOptions,
     user_input: NotificationSettingsInput | None = None,
 ) -> vol.Schema:
-    """Build notifications schema."""  # noqa: E111
-
-    current_values = user_input or {}  # noqa: E111
-
-    return vol.Schema(  # noqa: E111
+    """Build notifications schema."""
+    current_values = user_input or {}
+    return vol.Schema(
         {
             vol.Optional(
                 NOTIFICATION_QUIET_HOURS_FIELD,

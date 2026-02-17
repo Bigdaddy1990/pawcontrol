@@ -11,10 +11,8 @@ import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant  # noqa: E111
-
-    from ..types import PawControlConfigEntry, PawControlRuntimeData  # noqa: E111
-
+    from homeassistant.core import HomeAssistant
+    from ..types import PawControlConfigEntry, PawControlRuntimeData
 _LOGGER = logging.getLogger(__name__)
 
 # Timeout for cleanup operations
@@ -30,26 +28,20 @@ async def async_cleanup_runtime_data(runtime_data: PawControlRuntimeData) -> Non
     Example:
         >>> await async_cleanup_runtime_data(runtime_data)
         # All managers shut down, listeners removed, tasks cancelled
-    """  # noqa: E111
-    cleanup_start = time.monotonic()  # noqa: E111
-
+    """
+    cleanup_start = time.monotonic()
     # Cancel background monitoring task  # noqa: E114
-    await _async_cancel_background_monitor(runtime_data)  # noqa: E111
-
+    await _async_cancel_background_monitor(runtime_data)
     # Clean up managers  # noqa: E114
-    await _async_cleanup_managers(runtime_data)  # noqa: E111
-
+    await _async_cleanup_managers(runtime_data)
     # Remove listeners  # noqa: E114
-    _remove_listeners(runtime_data)  # noqa: E111
-
+    _remove_listeners(runtime_data)
     # Shutdown core managers  # noqa: E114
-    await _async_shutdown_core_managers(runtime_data)  # noqa: E111
-
+    await _async_shutdown_core_managers(runtime_data)
     # Clear coordinator references  # noqa: E114
-    _clear_coordinator_references(runtime_data)  # noqa: E111
-
-    cleanup_duration = time.monotonic() - cleanup_start  # noqa: E111
-    _LOGGER.debug(  # noqa: E111
+    _clear_coordinator_references(runtime_data)
+    cleanup_duration = time.monotonic() - cleanup_start
+    _LOGGER.debug(
         "Runtime data cleanup completed in %.2f seconds",
         cleanup_duration,
     )
@@ -66,17 +58,14 @@ async def async_register_cleanup(
         hass: Home Assistant instance
         entry: Config entry
         runtime_data: Runtime data
-    """  # noqa: E111
+    """
     # Add reload listener  # noqa: E114
-    reload_unsub = entry.add_update_listener(_async_reload_entry_wrapper(hass))  # noqa: E111
-    if callable(reload_unsub):  # noqa: E111
+    reload_unsub = entry.add_update_listener(_async_reload_entry_wrapper(hass))
+    if callable(reload_unsub):
         runtime_data.reload_unsub = reload_unsub
         if hasattr(entry, "async_on_unload"):
-            entry.async_on_unload(reload_unsub)  # noqa: E111
-
-    _LOGGER.debug("Registered cleanup handlers for entry %s", entry.entry_id)  # noqa: E111
-
-
+            entry.async_on_unload(reload_unsub)
+    _LOGGER.debug("Registered cleanup handlers for entry %s", entry.entry_id)
 def _async_reload_entry_wrapper(
     hass: HomeAssistant,
 ) -> Callable[[HomeAssistant, PawControlConfigEntry], Any]:
@@ -87,9 +76,8 @@ def _async_reload_entry_wrapper(
 
     Returns:
         Async function that reloads the entry
-    """  # noqa: E111
-
-    async def _reload(  # noqa: E111
+    """
+    async def _reload(
         hass_inner: HomeAssistant,
         entry: PawControlConfigEntry,
     ) -> None:
@@ -98,38 +86,34 @@ def _async_reload_entry_wrapper(
 
         await async_reload_entry(hass_inner, entry)
 
-    return _reload  # noqa: E111
-
-
+    return _reload
 async def _async_cancel_background_monitor(runtime_data: PawControlRuntimeData) -> None:
     """Cancel background monitoring task.
 
     Args:
         runtime_data: Runtime data
-    """  # noqa: E111
-    monitor_task = getattr(runtime_data, "background_monitor_task", None)  # noqa: E111
-    if monitor_task:  # noqa: E111
+    """
+    monitor_task = getattr(runtime_data, "background_monitor_task", None)
+    if monitor_task:
         monitor_task.cancel()
         try:
-            await monitor_task  # noqa: E111
+            await monitor_task
         except asyncio.CancelledError:
-            _LOGGER.debug("Background monitor task cancelled")  # noqa: E111
+            _LOGGER.debug("Background monitor task cancelled")
         except Exception as err:
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Error while awaiting background monitor task: %s",
                 err,
             )
         finally:
-            runtime_data.background_monitor_task = None  # noqa: E111
-
-
+            runtime_data.background_monitor_task = None
 async def _async_cleanup_managers(runtime_data: PawControlRuntimeData) -> None:
     """Clean up optional managers.
 
     Args:
         runtime_data: Runtime data
-    """  # noqa: E111
-    managers = [  # noqa: E111
+    """
+    managers = [
         ("door_sensor_manager", getattr(runtime_data, "door_sensor_manager", None)),
         ("geofencing_manager", getattr(runtime_data, "geofencing_manager", None)),
         ("garden_manager", getattr(runtime_data, "garden_manager", None)),
@@ -137,9 +121,9 @@ async def _async_cleanup_managers(runtime_data: PawControlRuntimeData) -> None:
         ("script_manager", getattr(runtime_data, "script_manager", None)),
     ]
 
-    for manager_name, manager in managers:  # noqa: E111
+    for manager_name, manager in managers:
         if manager is not None:
-            await _async_run_manager_method(  # noqa: E111
+            await _async_run_manager_method(
                 manager,
                 "async_cleanup",
                 f"{manager_name} cleanup",
@@ -152,30 +136,27 @@ def _remove_listeners(runtime_data: PawControlRuntimeData) -> None:
 
     Args:
         runtime_data: Runtime data
-    """  # noqa: E111
+    """
     # Remove daily reset scheduler  # noqa: E114
-    if getattr(runtime_data, "daily_reset_unsub", None):  # noqa: E111
+    if getattr(runtime_data, "daily_reset_unsub", None):
         try:
-            runtime_data.daily_reset_unsub()  # noqa: E111
+            runtime_data.daily_reset_unsub()
         except Exception as err:
-            _LOGGER.warning("Error canceling daily reset scheduler: %s", err)  # noqa: E111
-
+            _LOGGER.warning("Error canceling daily reset scheduler: %s", err)
     # Remove reload listener  # noqa: E114
-    reload_unsub = getattr(runtime_data, "reload_unsub", None)  # noqa: E111
-    if callable(reload_unsub):  # noqa: E111
+    reload_unsub = getattr(runtime_data, "reload_unsub", None)
+    if callable(reload_unsub):
         try:
-            reload_unsub()  # noqa: E111
+            reload_unsub()
         except Exception as err:
-            _LOGGER.warning("Error removing config entry listener: %s", err)  # noqa: E111
-
-
+            _LOGGER.warning("Error removing config entry listener: %s", err)
 async def _async_shutdown_core_managers(runtime_data: PawControlRuntimeData) -> None:
     """Shut down core managers.
 
     Args:
         runtime_data: Runtime data
-    """  # noqa: E111
-    core_managers = [  # noqa: E111
+    """
+    core_managers = [
         ("Coordinator", runtime_data.coordinator),
         ("Data manager", runtime_data.data_manager),
         ("Notification manager", runtime_data.notification_manager),
@@ -183,7 +164,7 @@ async def _async_shutdown_core_managers(runtime_data: PawControlRuntimeData) -> 
         ("Walk manager", runtime_data.walk_manager),
     ]
 
-    for manager_name, manager in core_managers:  # noqa: E111
+    for manager_name, manager in core_managers:
         await _async_run_manager_method(
             manager,
             "async_shutdown",
@@ -197,10 +178,10 @@ def _clear_coordinator_references(runtime_data: PawControlRuntimeData) -> None:
 
     Args:
         runtime_data: Runtime data
-    """  # noqa: E111
-    try:  # noqa: E111
+    """
+    try:
         runtime_data.coordinator.clear_runtime_managers()
-    except Exception as err:  # noqa: E111
+    except Exception as err:
         _LOGGER.warning("Error clearing coordinator references: %s", err)
 
 
@@ -218,17 +199,17 @@ async def _async_run_manager_method(
         method_name: Name of method to invoke
         description: Description for logging
         timeout: Timeout in seconds
-    """  # noqa: E111
-    if manager is None:  # noqa: E111
+    """
+    if manager is None:
         return
 
-    method = getattr(manager, method_name, None)  # noqa: E111
-    if method is None:  # noqa: E111
+    method = getattr(manager, method_name, None)
+    if method is None:
         return
 
-    try:  # noqa: E111
+    try:
         result = method()
-    except Exception as err:  # noqa: E111
+    except Exception as err:
         _LOGGER.warning(
             "Error starting %s: %s",
             description,
@@ -237,12 +218,12 @@ async def _async_run_manager_method(
         )
         return
 
-    try:  # noqa: E111
+    try:
         # Check if result is awaitable
         if hasattr(result, "__await__"):
-            await asyncio.wait_for(result, timeout=timeout)  # noqa: E111
+            await asyncio.wait_for(result, timeout=timeout)
         _LOGGER.debug("%s completed", description)
-    except TimeoutError:  # noqa: E111
+    except TimeoutError:
         _LOGGER.warning("%s timed out", description)
-    except Exception as err:  # noqa: E111
+    except Exception as err:
         _LOGGER.warning("Error during %s: %s", description, err, exc_info=True)

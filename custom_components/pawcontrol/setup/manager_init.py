@@ -39,10 +39,8 @@ from ..types import (
 from ..walk_manager import WalkManager
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant  # noqa: E111
-
-    from ..types import PawControlConfigEntry  # noqa: E111
-
+    from homeassistant.core import HomeAssistant
+    from ..types import PawControlConfigEntry
 _LOGGER = logging.getLogger(__name__)
 
 # Timeouts for manager initialization
@@ -74,16 +72,14 @@ async def async_initialize_managers(
         ConfigEntryNotReady: If initialization fails
         ConfigEntryAuthFailed: If authentication fails
         ValidationError: If validation fails
-    """  # noqa: E111
+    """
     # Create session and coordinator  # noqa: E114
-    session = async_get_clientsession(hass)  # noqa: E111
-    coordinator = PawControlCoordinator(hass, entry, session)  # noqa: E111
-
+    session = async_get_clientsession(hass)
+    coordinator = PawControlCoordinator(hass, entry, session)
     # Initialize coordinator  # noqa: E114
-    await _async_initialize_coordinator(coordinator, skip_optional_setup)  # noqa: E111
-
+    await _async_initialize_coordinator(coordinator, skip_optional_setup)
     # Create core managers  # noqa: E114
-    core_managers = await _async_create_core_managers(  # noqa: E111
+    core_managers = await _async_create_core_managers(
         hass,
         entry,
         coordinator,
@@ -92,7 +88,7 @@ async def async_initialize_managers(
     )
 
     # Create optional managers  # noqa: E114
-    optional_managers = await _async_create_optional_managers(  # noqa: E111
+    optional_managers = await _async_create_optional_managers(
         hass,
         entry,
         dogs_config,
@@ -101,7 +97,7 @@ async def async_initialize_managers(
     )
 
     # Initialize all managers in parallel  # noqa: E114
-    await _async_initialize_all_managers(  # noqa: E111
+    await _async_initialize_all_managers(
         core_managers,
         optional_managers,
         dogs_config,
@@ -109,10 +105,9 @@ async def async_initialize_managers(
     )
 
     # Attach managers to coordinator  # noqa: E114
-    _attach_managers_to_coordinator(coordinator, core_managers, optional_managers)  # noqa: E111
-
+    _attach_managers_to_coordinator(coordinator, core_managers, optional_managers)
     # Create runtime data  # noqa: E114
-    runtime_data = _create_runtime_data(  # noqa: E111
+    runtime_data = _create_runtime_data(
         entry,
         coordinator,
         core_managers,
@@ -122,13 +117,9 @@ async def async_initialize_managers(
     )
 
     # Register runtime monitors  # noqa: E114
-    _register_runtime_monitors(runtime_data)  # noqa: E111
-
-    _LOGGER.debug("Manager initialization completed successfully")  # noqa: E111
-
-    return runtime_data  # noqa: E111
-
-
+    _register_runtime_monitors(runtime_data)
+    _LOGGER.debug("Manager initialization completed successfully")
+    return runtime_data
 async def _async_initialize_coordinator(
     coordinator: PawControlCoordinator,
     skip_optional_setup: bool,
@@ -142,59 +133,59 @@ async def _async_initialize_coordinator(
     Raises:
         ConfigEntryNotReady: If initialization fails
         ConfigEntryAuthFailed: If authentication fails
-    """  # noqa: E111
+    """
     # Pre-setup coordinator  # noqa: E114
-    coordinator_setup_start = time.monotonic()  # noqa: E111
-    try:  # noqa: E111
+    coordinator_setup_start = time.monotonic()
+    try:
         prepare_method = getattr(coordinator, "async_prepare_entry", None)
         if callable(prepare_method) and not skip_optional_setup:
-            await asyncio.wait_for(  # noqa: E111
+            await asyncio.wait_for(
                 prepare_method(),
                 timeout=_COORDINATOR_SETUP_TIMEOUT,
             )
-            coordinator_setup_duration = time.monotonic() - coordinator_setup_start  # noqa: E111
-            _LOGGER.debug(  # noqa: E111
+            coordinator_setup_duration = time.monotonic() - coordinator_setup_start
+            _LOGGER.debug(
                 "Coordinator pre-setup completed in %.2f seconds",
                 coordinator_setup_duration,
             )
-    except TimeoutError as err:  # noqa: E111
+    except TimeoutError as err:
         coordinator_setup_duration = time.monotonic() - coordinator_setup_start
         raise ConfigEntryNotReady(
             f"Coordinator pre-setup timeout after {coordinator_setup_duration:.2f}s",
         ) from err
-    except ConfigEntryAuthFailed:  # noqa: E111
+    except ConfigEntryAuthFailed:
         raise
-    except (OSError, ConnectionError) as err:  # noqa: E111
+    except (OSError, ConnectionError) as err:
         raise ConfigEntryNotReady(
             f"Network connectivity issue during coordinator pre-setup: {err}",
         ) from err
 
     # First refresh  # noqa: E114
-    coordinator_refresh_start = time.monotonic()  # noqa: E111
-    try:  # noqa: E111
+    coordinator_refresh_start = time.monotonic()
+    try:
         first_refresh = getattr(
             coordinator,
             "async_config_entry_first_refresh",
             None,
         )
         if callable(first_refresh) and not skip_optional_setup:
-            await asyncio.wait_for(  # noqa: E111
+            await asyncio.wait_for(
                 first_refresh(),
                 timeout=_COORDINATOR_REFRESH_TIMEOUT,
             )
-            coordinator_refresh_duration = time.monotonic() - coordinator_refresh_start  # noqa: E111
-            _LOGGER.debug(  # noqa: E111
+            coordinator_refresh_duration = time.monotonic() - coordinator_refresh_start
+            _LOGGER.debug(
                 "Coordinator refresh completed in %.2f seconds",
                 coordinator_refresh_duration,
             )
-    except TimeoutError as err:  # noqa: E111
+    except TimeoutError as err:
         coordinator_refresh_duration = time.monotonic() - coordinator_refresh_start
         raise ConfigEntryNotReady(
             f"Coordinator initialization timeout after {coordinator_refresh_duration:.2f}s",
         ) from err
-    except ConfigEntryAuthFailed:  # noqa: E111
+    except ConfigEntryAuthFailed:
         raise
-    except (OSError, ConnectionError) as err:  # noqa: E111
+    except (OSError, ConnectionError) as err:
         raise ConfigEntryNotReady(
             f"Network connectivity issue during coordinator setup: {err}",
         ) from err
@@ -218,28 +209,26 @@ async def _async_create_core_managers(
 
     Returns:
         Dictionary of core managers
-    """  # noqa: E111
-    dogs_config_payload: list[DogConfigData] = list(dogs_config)  # noqa: E111
-    dog_ids: list[str] = [dog[DOG_ID_FIELD] for dog in dogs_config]  # noqa: E111
-
-    data_manager = PawControlDataManager(  # noqa: E111
+    """
+    dogs_config_payload: list[DogConfigData] = list(dogs_config)
+    dog_ids: list[str] = [dog[DOG_ID_FIELD] for dog in dogs_config]
+    data_manager = PawControlDataManager(
         hass,
         entry.entry_id,
         coordinator=coordinator,
         dogs_config=dogs_config_payload,
     )
 
-    notification_manager = PawControlNotificationManager(  # noqa: E111
+    notification_manager = PawControlNotificationManager(
         hass,
         entry.entry_id,
         session=session,
     )
 
-    feeding_manager = FeedingManager(hass)  # noqa: E111
-    walk_manager = WalkManager()  # noqa: E111
-    entity_factory = EntityFactory(coordinator, prewarm=True)  # noqa: E111
-
-    return {  # noqa: E111
+    feeding_manager = FeedingManager(hass)
+    walk_manager = WalkManager()
+    entity_factory = EntityFactory(coordinator, prewarm=True)
+    return {
         "data_manager": data_manager,
         "notification_manager": notification_manager,
         "feeding_manager": feeding_manager,
@@ -267,8 +256,8 @@ async def _async_create_optional_managers(
 
     Returns:
         Dictionary of optional managers
-    """  # noqa: E111
-    optional_managers: dict[str, Any] = {  # noqa: E111
+    """
+    optional_managers: dict[str, Any] = {
         "helper_manager": None,
         "script_manager": None,
         "door_sensor_manager": None,
@@ -277,30 +266,28 @@ async def _async_create_optional_managers(
         "geofencing_manager": None,
     }
 
-    if skip_optional_setup:  # noqa: E111
+    if skip_optional_setup:
         _LOGGER.debug("Skipping optional manager creation")
         return optional_managers
 
     # Create standard optional managers  # noqa: E114
-    optional_managers["helper_manager"] = PawControlHelperManager(hass, entry)  # noqa: E111
-    optional_managers["script_manager"] = PawControlScriptManager(hass, entry)  # noqa: E111
-    optional_managers["door_sensor_manager"] = DoorSensorManager(hass, entry.entry_id)  # noqa: E111
-    optional_managers["garden_manager"] = GardenManager(hass, entry.entry_id)  # noqa: E111
-
+    optional_managers["helper_manager"] = PawControlHelperManager(hass, entry)
+    optional_managers["script_manager"] = PawControlScriptManager(hass, entry)
+    optional_managers["door_sensor_manager"] = DoorSensorManager(hass, entry.entry_id)
+    optional_managers["garden_manager"] = GardenManager(hass, entry.entry_id)
     # Migrate script manager options if needed  # noqa: E114
-    script_manager = optional_managers["script_manager"]  # noqa: E111
-    if script_manager is not None:  # noqa: E111
+    script_manager = optional_managers["script_manager"]
+    if script_manager is not None:
         migrated_options = script_manager.ensure_resilience_threshold_options()
         if migrated_options is not None:
-            hass.config_entries.async_update_entry(entry, options=migrated_options)  # noqa: E111
-
+            hass.config_entries.async_update_entry(entry, options=migrated_options)
     # Create GPS managers if GPS is enabled  # noqa: E114
-    gps_enabled = any(  # noqa: E111
+    gps_enabled = any(
         bool(dog.get(DOG_MODULES_FIELD, {}).get(MODULE_GPS, False))
         for dog in dogs_config
     )
 
-    if gps_enabled:  # noqa: E111
+    if gps_enabled:
         notification_manager = core_managers["notification_manager"]
 
         gps_geofence_manager = GPSGeofenceManager(hass)
@@ -312,12 +299,10 @@ async def _async_create_optional_managers(
         optional_managers["geofencing_manager"] = geofencing_manager
 
         _LOGGER.debug("GPS/geofencing managers created for GPS-enabled dogs")
-    else:  # noqa: E111
+    else:
         _LOGGER.debug("GPS/geofencing managers not created - GPS disabled")
 
-    return optional_managers  # noqa: E111
-
-
+    return optional_managers
 async def _async_initialize_all_managers(
     core_managers: dict[str, Any],
     optional_managers: dict[str, Any],
@@ -335,17 +320,15 @@ async def _async_initialize_all_managers(
     Raises:
         TimeoutError: If initialization times out
         ValidationError: If validation fails
-    """  # noqa: E111
-    initialization_tasks: list[asyncio.Task[None]] = []  # noqa: E111
-    dog_ids = core_managers["dog_ids"]  # noqa: E111
-
+    """
+    initialization_tasks: list[asyncio.Task[None]] = []
+    dog_ids = core_managers["dog_ids"]
     # Initialize core managers  # noqa: E114
-    data_manager = core_managers["data_manager"]  # noqa: E111
-    notification_manager = core_managers["notification_manager"]  # noqa: E111
-    feeding_manager = core_managers["feeding_manager"]  # noqa: E111
-    walk_manager = core_managers["walk_manager"]  # noqa: E111
-
-    initialization_tasks.append(  # noqa: E111
+    data_manager = core_managers["data_manager"]
+    notification_manager = core_managers["notification_manager"]
+    feeding_manager = core_managers["feeding_manager"]
+    walk_manager = core_managers["walk_manager"]
+    initialization_tasks.append(
         asyncio.create_task(
             _async_initialize_manager_with_timeout(
                 "data_manager",
@@ -354,7 +337,7 @@ async def _async_initialize_all_managers(
         ),
     )
 
-    initialization_tasks.append(  # noqa: E111
+    initialization_tasks.append(
         asyncio.create_task(
             _async_initialize_manager_with_timeout(
                 "notification_manager",
@@ -363,7 +346,7 @@ async def _async_initialize_all_managers(
         ),
     )
 
-    initialization_tasks.append(  # noqa: E111
+    initialization_tasks.append(
         asyncio.create_task(
             _async_initialize_manager_with_timeout(
                 "feeding_manager",
@@ -374,7 +357,7 @@ async def _async_initialize_all_managers(
         ),
     )
 
-    initialization_tasks.append(  # noqa: E111
+    initialization_tasks.append(
         asyncio.create_task(
             _async_initialize_manager_with_timeout(
                 "walk_manager",
@@ -384,12 +367,11 @@ async def _async_initialize_all_managers(
     )
 
     # Initialize optional managers  # noqa: E114
-    for manager_name, manager in optional_managers.items():  # noqa: E111
+    for manager_name, manager in optional_managers.items():
         if manager is None:
-            continue  # noqa: E111
-
+            continue
         if manager_name == "door_sensor_manager":
-            initialization_tasks.append(  # noqa: E111
+            initialization_tasks.append(
                 asyncio.create_task(
                     _async_initialize_manager_with_timeout(
                         manager_name,
@@ -403,8 +385,8 @@ async def _async_initialize_all_managers(
                 ),
             )
         elif manager_name == "garden_manager":
-            door_sensor_manager = optional_managers.get("door_sensor_manager")  # noqa: E111
-            initialization_tasks.append(  # noqa: E111
+            door_sensor_manager = optional_managers.get("door_sensor_manager")
+            initialization_tasks.append(
                 asyncio.create_task(
                     _async_initialize_manager_with_timeout(
                         manager_name,
@@ -417,14 +399,14 @@ async def _async_initialize_all_managers(
                 ),
             )
         elif manager_name == "geofencing_manager":
-            await _async_initialize_geofencing_manager(  # noqa: E111
+            await _async_initialize_geofencing_manager(
                 manager,
                 dog_ids,
                 entry,
                 initialization_tasks,
             )
         elif hasattr(manager, "async_initialize"):
-            initialization_tasks.append(  # noqa: E111
+            initialization_tasks.append(
                 asyncio.create_task(
                     _async_initialize_manager_with_timeout(
                         manager_name,
@@ -434,9 +416,7 @@ async def _async_initialize_all_managers(
             )
 
     # Wait for all initializations  # noqa: E114
-    await asyncio.gather(*initialization_tasks, return_exceptions=False)  # noqa: E111
-
-
+    await asyncio.gather(*initialization_tasks, return_exceptions=False)
 async def _async_initialize_geofencing_manager(
     geofencing_manager: Any,
     dog_ids: list[str],
@@ -450,32 +430,30 @@ async def _async_initialize_geofencing_manager(
         dog_ids: List of dog IDs
         entry: Config entry
         initialization_tasks: List to append initialization task to
-    """  # noqa: E111
-    geofence_options_raw = entry.options.get("geofence_settings", {})  # noqa: E111
-    geofence_options = (  # noqa: E111
+    """
+    geofence_options_raw = entry.options.get("geofence_settings", {})
+    geofence_options = (
         geofence_options_raw if isinstance(geofence_options_raw, Mapping) else {}
     )
 
-    dog_options_raw = entry.options.get(CONF_DOG_OPTIONS, {})  # noqa: E111
-    dog_options = dog_options_raw if isinstance(dog_options_raw, Mapping) else {}  # noqa: E111
-
-    per_dog_geofence_settings: list[Mapping[str, object]] = []  # noqa: E111
-    for dog_id in dog_ids:  # noqa: E111
+    dog_options_raw = entry.options.get(CONF_DOG_OPTIONS, {})
+    dog_options = dog_options_raw if isinstance(dog_options_raw, Mapping) else {}
+    per_dog_geofence_settings: list[Mapping[str, object]] = []
+    for dog_id in dog_ids:
         entry_payload = dog_options.get(dog_id)
         if not isinstance(entry_payload, Mapping):
-            continue  # noqa: E111
+            continue
         geofence_payload = entry_payload.get("geofence_settings")
         if isinstance(geofence_payload, Mapping):
             per_dog_geofence_settings.append(
                 cast(Mapping[str, object], geofence_payload)
-            )  # noqa: E111
-
-    geofencing_enabled = any(  # noqa: E111
+            )
+    geofencing_enabled = any(
         settings.get("geofencing_enabled", False)
         for settings in per_dog_geofence_settings
     ) or bool(geofence_options.get("geofencing_enabled", False))
 
-    use_home_location = (  # noqa: E111
+    use_home_location = (
         any(
             settings.get("use_home_location", True)
             for settings in per_dog_geofence_settings
@@ -484,19 +462,18 @@ async def _async_initialize_geofencing_manager(
         else bool(geofence_options.get("use_home_location", True))
     )
 
-    radius_candidates: list[float] = []  # noqa: E111
-    for settings in per_dog_geofence_settings:  # noqa: E111
+    radius_candidates: list[float] = []
+    for settings in per_dog_geofence_settings:
         radius_value = settings.get("geofence_radius_m")
         if isinstance(radius_value, int | float):
-            radius_candidates.append(float(radius_value))  # noqa: E111
-
-    if radius_candidates:  # noqa: E111
+            radius_candidates.append(float(radius_value))
+    if radius_candidates:
         home_zone_radius = int(max(radius_candidates))
-    else:  # noqa: E111
+    else:
         radius = geofence_options.get("geofence_radius_m", 50)
         home_zone_radius = int(radius) if isinstance(radius, int | float) else 50
 
-    initialization_tasks.append(  # noqa: E111
+    initialization_tasks.append(
         asyncio.create_task(
             _async_initialize_manager_with_timeout(
                 "geofencing_manager",
@@ -526,13 +503,13 @@ async def _async_initialize_manager_with_timeout(
     Raises:
         TimeoutError: If initialization times out
         Exception: If initialization fails
-    """  # noqa: E111
-    start_time = time.monotonic()  # noqa: E111
-    try:  # noqa: E111
+    """
+    start_time = time.monotonic()
+    try:
         await asyncio.wait_for(coro, timeout=timeout)
         duration = time.monotonic() - start_time
         _LOGGER.debug("Initialized %s in %.2f seconds", manager_name, duration)
-    except TimeoutError:  # noqa: E111
+    except TimeoutError:
         duration = time.monotonic() - start_time
         _LOGGER.error(
             "Manager %s initialization timed out after %.2f seconds",
@@ -540,7 +517,7 @@ async def _async_initialize_manager_with_timeout(
             duration,
         )
         raise
-    except Exception as err:  # noqa: E111
+    except Exception as err:
         duration = time.monotonic() - start_time
         _LOGGER.error(
             "Manager %s initialization failed after %.2f seconds: %s",
@@ -562,8 +539,8 @@ def _attach_managers_to_coordinator(
         coordinator: Coordinator instance
         core_managers: Core managers dict
         optional_managers: Optional managers dict
-    """  # noqa: E111
-    coordinator.attach_runtime_managers(  # noqa: E111
+    """
+    coordinator.attach_runtime_managers(
         data_manager=core_managers["data_manager"],
         feeding_manager=core_managers["feeding_manager"],
         walk_manager=core_managers["walk_manager"],
@@ -574,13 +551,13 @@ def _attach_managers_to_coordinator(
     )
 
     # Share resilience manager  # noqa: E114
-    gps_geofence_manager = optional_managers.get("gps_geofence_manager")  # noqa: E111
-    if gps_geofence_manager:  # noqa: E111
+    gps_geofence_manager = optional_managers.get("gps_geofence_manager")
+    if gps_geofence_manager:
         gps_geofence_manager.resilience_manager = coordinator.resilience_manager
         _LOGGER.debug("Shared ResilienceManager with GPS manager")
 
-    notification_manager = core_managers["notification_manager"]  # noqa: E111
-    if notification_manager:  # noqa: E111
+    notification_manager = core_managers["notification_manager"]
+    if notification_manager:
         notification_manager.resilience_manager = coordinator.resilience_manager
         _LOGGER.debug("Shared ResilienceManager with Notification manager")
 
@@ -605,8 +582,8 @@ def _create_runtime_data(
 
     Returns:
         Populated runtime data
-    """  # noqa: E111
-    runtime_data = PawControlRuntimeData(  # noqa: E111
+    """
+    runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
         data_manager=core_managers["data_manager"],
         notification_manager=core_managers["notification_manager"],
@@ -619,32 +596,28 @@ def _create_runtime_data(
         config_entry_options=cast(ConfigEntryOptionsPayload, entry.options),
     )
 
-    runtime_data.helper_manager = optional_managers.get("helper_manager")  # noqa: E111
-    runtime_data.script_manager = optional_managers.get("script_manager")  # noqa: E111
-    runtime_data.geofencing_manager = optional_managers.get("geofencing_manager")  # noqa: E111
-    runtime_data.gps_geofence_manager = optional_managers.get("gps_geofence_manager")  # noqa: E111
-    runtime_data.door_sensor_manager = optional_managers.get("door_sensor_manager")  # noqa: E111
-    runtime_data.garden_manager = optional_managers.get("garden_manager")  # noqa: E111
-    runtime_data.device_api_client = coordinator.api_client  # noqa: E111
-
+    runtime_data.helper_manager = optional_managers.get("helper_manager")
+    runtime_data.script_manager = optional_managers.get("script_manager")
+    runtime_data.geofencing_manager = optional_managers.get("geofencing_manager")
+    runtime_data.gps_geofence_manager = optional_managers.get("gps_geofence_manager")
+    runtime_data.door_sensor_manager = optional_managers.get("door_sensor_manager")
+    runtime_data.garden_manager = optional_managers.get("garden_manager")
+    runtime_data.device_api_client = coordinator.api_client
     # Attach runtime data to script manager  # noqa: E114
-    script_manager = optional_managers.get("script_manager")  # noqa: E111
-    if script_manager is not None:  # noqa: E111
+    script_manager = optional_managers.get("script_manager")
+    if script_manager is not None:
         script_manager.attach_runtime_manual_history(runtime_data)
         script_manager.sync_manual_event_history()
 
     # Update telemetry  # noqa: E114
-    update_runtime_reconfigure_summary(runtime_data)  # noqa: E111
-
-    return runtime_data  # noqa: E111
-
-
+    update_runtime_reconfigure_summary(runtime_data)
+    return runtime_data
 def _register_runtime_monitors(runtime_data: PawControlRuntimeData) -> None:
     """Register runtime cache monitors.
 
     Args:
         runtime_data: Runtime data
-    """  # noqa: E111
-    data_manager = runtime_data.data_manager  # noqa: E111
-    if hasattr(data_manager, "register_runtime_cache_monitors"):  # noqa: E111
+    """
+    data_manager = runtime_data.data_manager
+    if hasattr(data_manager, "register_runtime_cache_monitors"):
         data_manager.register_runtime_cache_monitors(runtime_data)
