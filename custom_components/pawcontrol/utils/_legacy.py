@@ -1092,7 +1092,7 @@ def safe_get_nested[DefaultT](
                 return default
 
         return current
-    except AttributeError, KeyError, TypeError:  # noqa: E111
+    except (AttributeError, KeyError, TypeError):  # noqa: E111
         return default
 
 
@@ -1142,7 +1142,7 @@ def validate_time_string(time_str: str | None) -> time | None:
         if re.match(r"^\d{1,2}:\d{2}:\d{2}$", time_str):
             hour, minute, second = map(int, time_str.split(":"))  # noqa: E111
             return time(hour, minute, second)  # noqa: E111
-    except ValueError, AttributeError:  # noqa: E111
+    except (ValueError, AttributeError):  # noqa: E111
         pass
 
     return None  # noqa: E111
@@ -1507,7 +1507,7 @@ def safe_divide(numerator: float, denominator: float, default: float = 0.0) -> f
     """  # noqa: E111
     try:  # noqa: E111
         return numerator / denominator if denominator != 0 else default
-    except TypeError, ZeroDivisionError:  # noqa: E111
+    except (TypeError, ZeroDivisionError):  # noqa: E111
         return default
 
 
@@ -1539,7 +1539,7 @@ def is_dict_subset[K, V](subset: Mapping[K, V], superset: Mapping[K, V]) -> bool
         return all(
             key in superset and superset[key] == value for key, value in subset.items()
         )
-    except AttributeError, TypeError:  # noqa: E111
+    except (AttributeError, TypeError):  # noqa: E111
         return False
 
 

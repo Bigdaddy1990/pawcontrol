@@ -588,7 +588,7 @@ class WeatherHealthManager:
 
         try:
             return resolved.format(**kwargs) if kwargs else resolved  # noqa: E111
-        except KeyError, ValueError:
+        except (KeyError, ValueError):
             return resolved  # noqa: E111
 
     @staticmethod  # noqa: E111

@@ -1643,7 +1643,7 @@ class FeedingManager:
                 return time(int(parts[0]), int(parts[1]))
             if len(parts) == 3:  # noqa: E111
                 return time(int(parts[0]), int(parts[1]), int(parts[2]))
-        except ValueError, AttributeError:
+        except (ValueError, AttributeError):
             _LOGGER.warning("Failed to parse time: %s", time_str)  # noqa: E111
 
         return None
@@ -2411,7 +2411,7 @@ class FeedingManager:
             if daily_calorie_target:  # noqa: E111
                 try:
                     progress = (total_calories_today / daily_calorie_target) * 100  # noqa: E111
-                except TypeError, ZeroDivisionError:
+                except (TypeError, ZeroDivisionError):
                     calorie_goal_progress = 0.0  # noqa: E111
                 else:
                     calorie_goal_progress = round(min(progress, 150.0), 1)  # noqa: E111
@@ -2489,7 +2489,7 @@ class FeedingManager:
                             0.0,
                             min(100.0, 100.0 - (diff / max(ideal, 1.0)) * 100.0),
                         )
-                except TypeError, ZeroDivisionError:
+                except (TypeError, ZeroDivisionError):
                     weight_goal_progress = None  # noqa: E111
 
         emergency_mode: FeedingEmergencyState | None = None
@@ -2543,7 +2543,7 @@ class FeedingManager:
         elif total_calories_today is not None and daily_calorie_target:
             try:  # noqa: E111
                 ratio = total_calories_today / daily_calorie_target
-            except TypeError, ZeroDivisionError:  # noqa: E111
+            except (TypeError, ZeroDivisionError):  # noqa: E111
                 health_status = "unknown"
             else:  # noqa: E111
                 if ratio < 0.85:

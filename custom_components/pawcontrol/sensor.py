@@ -2264,7 +2264,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 
             return next_feeding.isoformat()  # noqa: E111
 
-        except TypeError, ValueError, KeyError:
+        except (TypeError, ValueError, KeyError):
             return None  # noqa: E111
 
 
@@ -2429,7 +2429,7 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
             if meals_per_day > 0:  # noqa: E111
                 return round(daily_amount / meals_per_day, 1)
 
-        except TypeError, ValueError, ZeroDivisionError:
+        except (TypeError, ValueError, ZeroDivisionError):
             pass  # noqa: E111
 
         return None
@@ -2934,7 +2934,7 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
             # Cap at 150% to show overfeeding  # noqa: E114
             return round(min(progress, 150.0), 1)  # noqa: E111
 
-        except TypeError, ValueError, ZeroDivisionError:
+        except (TypeError, ValueError, ZeroDivisionError):
             return 0.0  # noqa: E111
 
     @property  # noqa: E111
@@ -3680,7 +3680,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 
             return round(base_calories, 1)  # noqa: E111
 
-        except TypeError, ValueError, ZeroDivisionError:
+        except (TypeError, ValueError, ZeroDivisionError):
             return 0.0  # noqa: E111
 
     @property  # noqa: E111
@@ -3911,7 +3911,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
             # Fallback: just return today's count (limited info)  # noqa: E114
             return walks_today  # noqa: E111
 
-        except TypeError, ValueError, KeyError:
+        except (TypeError, ValueError, KeyError):
             return 0  # noqa: E111
 
     @property  # noqa: E111
