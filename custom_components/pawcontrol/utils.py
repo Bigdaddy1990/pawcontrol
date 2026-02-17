@@ -74,7 +74,7 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
     from homeassistant.helpers.entity import Entity
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
     from homeassistant.util import dt as dt_util
-  except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+  except ModuleNotFoundError:  # pragma: no cover compatibility shim
 
     class Context:  # type: ignore[override]
       """Placeholder for Home Assistant's request context."""
@@ -955,9 +955,9 @@ class PawControlDeviceLinkMixin:
 
     return cast("DeviceLinkDetails", dict(self._device_link_defaults))
 
-  # Home Assistant's cooperative multiple inheritance confuses type checkers
-  # about the precise async_added_to_hass signature, so we silence the
-  # override warning here.
+  # Home Assistant's cooperative multiple inheritance confuses type 
+  # checkers about the precise async_added_to_hass signature, 
+  # so we silence the override warning here.
   async def async_added_to_hass(self) -> None:  # type: ignore[override]
     """Link entity to device entry after regular setup."""
 
