@@ -925,7 +925,7 @@ class PawControlScriptManager:
 
     try:
       automation_entries = entries_callable("automation")  # noqa: E111
-    except AttributeError, TypeError, KeyError:
+    except (AttributeError, TypeError, KeyError):
       automation_entries = []  # noqa: E111
 
     _register_listener(system_guard, "guard", "system_options")
