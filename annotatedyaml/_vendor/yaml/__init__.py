@@ -8,65 +8,65 @@ from typing import Any
 
 
 class FullLoader:
-    """Placeholder loader type for compatibility."""  # noqa: E111
+    """Placeholder loader type for compatibility."""
 
 
 class SafeLoader(FullLoader):
-    """Placeholder safe loader type."""  # noqa: E111
+    """Placeholder safe loader type."""
 
 
 class UnsafeLoader(FullLoader):
-    """Placeholder unsafe loader type."""  # noqa: E111
+    """Placeholder unsafe loader type."""
 
 
 class Dumper:
-    """Placeholder dumper type."""  # noqa: E111
+    """Placeholder dumper type."""
 
 
 def _strip_inline_comment(line: str) -> str:
-    in_single = False  # noqa: E111
-    in_double = False  # noqa: E111
-    for index, char in enumerate(line):  # noqa: E111
+    in_single = False
+    in_double = False
+    for index, char in enumerate(line):
         if char == "'" and not in_double:
-            in_single = not in_single  # noqa: E111
+            in_single = not in_single
         elif char == '"' and not in_single:
-            in_double = not in_double  # noqa: E111
+            in_double = not in_double
         elif char == "#" and not in_single and not in_double:
-            return line[:index].rstrip()  # noqa: E111
-    return line.rstrip()  # noqa: E111
+            return line[:index].rstrip()
+    return line.rstrip()
 
 
 def _parse_scalar(value: str) -> Any:
-    text = value.strip()  # noqa: E111
-    if text in {"", "~", "null", "Null", "NULL", "none", "None"}:  # noqa: E111
+    text = value.strip()
+    if text in {"", "~", "null", "Null", "NULL", "none", "None"}:
         return None
-    lowered = text.lower()  # noqa: E111
-    if lowered == "true":  # noqa: E111
+    lowered = text.lower()
+    if lowered == "true":
         return True
-    if lowered == "false":  # noqa: E111
+    if lowered == "false":
         return False
-    if (text.startswith('"') and text.endswith('"')) or (  # noqa: E111
+    if (text.startswith('"') and text.endswith('"')) or (
         text.startswith("'") and text.endswith("'")
     ):
         return text[1:-1]
-    with contextlib.suppress(ValueError):  # noqa: E111
+    with contextlib.suppress(ValueError):
         if "." in text:
-            return float(text)  # noqa: E111
+            return float(text)
         return int(text)
-    with contextlib.suppress(json.JSONDecodeError, ValueError, SyntaxError):  # noqa: E111
+    with contextlib.suppress(json.JSONDecodeError, ValueError, SyntaxError):
         return json.loads(text)
-    with contextlib.suppress(ValueError, SyntaxError):  # noqa: E111
+    with contextlib.suppress(ValueError, SyntaxError):
         return ast.literal_eval(text)
-    return text  # noqa: E111
+    return text
 
 
 def _next_content_indent(lines: list[str], start: int) -> int | None:
-    for index in range(start, len(lines)):  # noqa: E111
+    for index in range(start, len(lines)):
         line = lines[index]
         if not line.strip() or line.strip() == "---":
-            continue  # noqa: E111
+            continue
         return len(line) - len(line.lstrip(" "))
-    return None  # noqa: E111
+    return None
 
 
 def _parse_block_scalar(
@@ -75,22 +75,22 @@ def _parse_block_scalar(
     indent: int,
     style: str,
 ) -> tuple[str, int]:
-    parts: list[str] = []  # noqa: E111
-    index = start  # noqa: E111
-    while index < len(lines):  # noqa: E111
+    parts: list[str] = []
+    index = start
+    while index < len(lines):
         line = lines[index]
         if not line.strip():
-            parts.append("")  # noqa: E111
-            index += 1  # noqa: E111
-            continue  # noqa: E111
+            parts.append("")
+            index += 1
+            continue
         current_indent = len(line) - len(line.lstrip(" "))
         if current_indent < indent:
-            break  # noqa: E111
+            break
         parts.append(line[indent:])
         index += 1
-    if style == ">":  # noqa: E111
+    if style == ">":
         return " ".join(part.strip() for part in parts).strip(), index
-    return "\n".join(parts).rstrip(), index  # noqa: E111
+    return "\n".join(parts).rstrip(), index
 
 
 def _parse_block(
@@ -98,133 +98,133 @@ def _parse_block(
     start: int,
     indent: int,
 ) -> tuple[Any, int]:
-    container: Any | None = None  # noqa: E111
-    index = start  # noqa: E111
-    while index < len(lines):  # noqa: E111
+    container: Any | None = None
+    index = start
+    while index < len(lines):
         line = lines[index]
         if not line.strip() or line.strip() == "---":
-            index += 1  # noqa: E111
-            continue  # noqa: E111
+            index += 1
+            continue
         current_indent = len(line) - len(line.lstrip(" "))
         if current_indent < indent:
-            break  # noqa: E111
+            break
         if current_indent > indent:
-            raise ValueError("Invalid YAML indentation")  # noqa: E111
+            raise ValueError("Invalid YAML indentation")
         stripped = line.strip()
         if stripped.startswith("-"):
-            if container is None:  # noqa: E111
+            if container is None:
                 container = []
-            if not isinstance(container, list):  # noqa: E111
+            if not isinstance(container, list):
                 raise ValueError("Invalid YAML content")
-            item_text = stripped[1:].lstrip()  # noqa: E111
-            if not item_text:  # noqa: E111
+            item_text = stripped[1:].lstrip()
+            if not item_text:
                 next_indent = _next_content_indent(lines, index + 1)
                 if next_indent is None or next_indent <= indent:
-                    container.append(None)  # noqa: E111
-                    index += 1  # noqa: E111
+                    container.append(None)
+                    index += 1
                 else:
-                    value, index = _parse_block(lines, index + 1, indent + 2)  # noqa: E111
-                    container.append(value)  # noqa: E111
+                    value, index = _parse_block(lines, index + 1, indent + 2)
+                    container.append(value)
                 continue
-            if item_text in {"|", ">"}:  # noqa: E111
+            if item_text in {"|", ">"}:
                 value, index = _parse_block_scalar(
                     lines, index + 1, indent + 2, item_text
                 )
                 container.append(value)
                 continue
-            if ":" in item_text:  # noqa: E111
+            if ":" in item_text:
                 key, rest = item_text.split(":", 1)
                 key = key.strip()
                 rest = rest.strip()
                 if not key:
-                    raise ValueError("Invalid YAML content")  # noqa: E111
+                    raise ValueError("Invalid YAML content")
                 if rest in {"|", ">"}:
                     value, index = _parse_block_scalar(
                         lines, index + 1, indent + 2, rest
-                    )  # noqa: E111
-                    container.append({key: value})  # noqa: E111
+                    )
+                    container.append({key: value})
                 elif rest:
-                    container.append({key: _parse_scalar(rest)})  # noqa: E111
-                    index += 1  # noqa: E111
+                    container.append({key: _parse_scalar(rest)})
+                    index += 1
                 else:
-                    next_indent = _next_content_indent(lines, index + 1)  # noqa: E111
-                    if next_indent is None or next_indent <= indent:  # noqa: E111
+                    next_indent = _next_content_indent(lines, index + 1)
+                    if next_indent is None or next_indent <= indent:
                         container.append({key: None})
                         index += 1
-                    else:  # noqa: E111
+                    else:
                         value, index = _parse_block(lines, index + 1, indent + 2)
                         container.append({key: value})
                 continue
-            container.append(_parse_scalar(item_text))  # noqa: E111
-            index += 1  # noqa: E111
-            continue  # noqa: E111
+            container.append(_parse_scalar(item_text))
+            index += 1
+            continue
 
         if container is None:
-            container = {}  # noqa: E111
+            container = {}
         if not isinstance(container, dict):
-            raise ValueError("Invalid YAML content")  # noqa: E111
+            raise ValueError("Invalid YAML content")
         if ":" not in stripped:
-            raise ValueError("Invalid YAML content")  # noqa: E111
+            raise ValueError("Invalid YAML content")
         key, rest = stripped.split(":", 1)
         key = key.strip()
         rest = rest.strip()
         if not key:
-            raise ValueError("Invalid YAML content")  # noqa: E111
+            raise ValueError("Invalid YAML content")
         if rest in {"|", ">"}:
-            value, index = _parse_block_scalar(lines, index + 1, indent + 2, rest)  # noqa: E111
-            container[key] = value  # noqa: E111
+            value, index = _parse_block_scalar(lines, index + 1, indent + 2, rest)
+            container[key] = value
         elif rest:
-            container[key] = _parse_scalar(rest)  # noqa: E111
-            index += 1  # noqa: E111
+            container[key] = _parse_scalar(rest)
+            index += 1
         else:
-            next_indent = _next_content_indent(lines, index + 1)  # noqa: E111
-            if next_indent is None or next_indent <= indent:  # noqa: E111
+            next_indent = _next_content_indent(lines, index + 1)
+            if next_indent is None or next_indent <= indent:
                 container[key] = None
                 index += 1
-            else:  # noqa: E111
+            else:
                 value, index = _parse_block(lines, index + 1, indent + 2)
                 container[key] = value
-    if container is None:  # noqa: E111
+    if container is None:
         return {}, index
-    return container, index  # noqa: E111
+    return container, index
 
 
 def _parse_mapping(content: str) -> Any:
-    lines: list[str] = []  # noqa: E111
-    for raw_line in content.splitlines():  # noqa: E111
+    lines: list[str] = []
+    for raw_line in content.splitlines():
         stripped = _strip_inline_comment(raw_line)
         if stripped:
-            lines.append(stripped)  # noqa: E111
+            lines.append(stripped)
         else:
-            lines.append("")  # noqa: E111
-    parsed, _ = _parse_block(lines, 0, 0)  # noqa: E111
-    return parsed  # noqa: E111
+            lines.append("")
+    parsed, _ = _parse_block(lines, 0, 0)
+    return parsed
 
 
 def _split_documents(content: str) -> list[str]:
-    if "---" not in content:  # noqa: E111
+    if "---" not in content:
         return [content]
-    docs = []  # noqa: E111
-    current: list[str] = []  # noqa: E111
-    for line in content.splitlines():  # noqa: E111
+    docs = []
+    current: list[str] = []
+    for line in content.splitlines():
         if line.strip() == "---":
-            if current:  # noqa: E111
+            if current:
                 docs.append("\n".join(current))
                 current = []
-            continue  # noqa: E111
+            continue
         current.append(line)
-    if current:  # noqa: E111
+    if current:
         docs.append("\n".join(current))
-    return docs  # noqa: E111
+    return docs
 
 
 def _extract_legacy_loader(func_name: str, kwargs: dict[str, Any]) -> type | None:
-    if "Loader" not in kwargs:  # noqa: E111
+    if "Loader" not in kwargs:
         return None
-    if len(kwargs) > 1:  # noqa: E111
+    if len(kwargs) > 1:
         unexpected = next(key for key in kwargs if key != "Loader")
         raise TypeError(f"{func_name}() got unexpected keyword argument '{unexpected}'")
-    return kwargs.pop("Loader")  # noqa: E111
+    return kwargs.pop("Loader")
 
 
 def _select_loader(
@@ -235,75 +235,75 @@ def _select_loader(
     default_loader: type | None = None,
     required: bool = False,
 ) -> type | None:
-    if loader_cls is not None and legacy_loader is not None:  # noqa: E111
+    if loader_cls is not None and legacy_loader is not None:
         raise TypeError(f"{func_name}() received both 'Loader' and its replacement")
-    if loader_cls is None and legacy_loader is None:  # noqa: E111
+    if loader_cls is None and legacy_loader is None:
         if required and default_loader is None:
             raise TypeError(
                 f"{func_name}() missing 1 required positional argument: 'Loader'"
-            )  # noqa: E111
+            )
         return default_loader
-    return loader_cls or legacy_loader  # noqa: E111
+    return loader_cls or legacy_loader
 
 
 def load(stream: str, loader_cls: type | None = None, **kwargs: Any) -> Any:
-    legacy_loader = _extract_legacy_loader("load", kwargs)  # noqa: E111
-    loader = _select_loader(  # noqa: E111
+    legacy_loader = _extract_legacy_loader("load", kwargs)
+    loader = _select_loader(
         "load",
         loader_cls=loader_cls,
         legacy_loader=legacy_loader,
         required=True,
     )
-    _ = loader  # noqa: E111
-    return _parse_mapping(stream)  # noqa: E111
+    _ = loader
+    return _parse_mapping(stream)
 
 
 def load_all(
     stream: str, loader_cls: type | None = None, **kwargs: Any
 ) -> Generator[Any]:
-    legacy_loader = _extract_legacy_loader("load_all", kwargs)  # noqa: E111
-    loader = _select_loader(  # noqa: E111
+    legacy_loader = _extract_legacy_loader("load_all", kwargs)
+    loader = _select_loader(
         "load_all",
         loader_cls=loader_cls,
         legacy_loader=legacy_loader,
         required=True,
     )
-    _ = loader  # noqa: E111
-    for doc in _split_documents(stream):  # noqa: E111
+    _ = loader
+    for doc in _split_documents(stream):
         yield _parse_mapping(doc)
 
 
 def safe_load(stream: str, loader_cls: type | None = None, **kwargs: Any) -> Any:
-    legacy_loader = _extract_legacy_loader("safe_load", kwargs)  # noqa: E111
-    loader = _select_loader(  # noqa: E111
+    legacy_loader = _extract_legacy_loader("safe_load", kwargs)
+    loader = _select_loader(
         "safe_load",
         loader_cls=loader_cls,
         legacy_loader=legacy_loader,
         default_loader=SafeLoader,
     )
-    if loader is not None and not issubclass(loader, SafeLoader):  # noqa: E111
+    if loader is not None and not issubclass(loader, SafeLoader):
         raise ValueError("safe_load() custom Loader must be a subclass")
-    return _parse_mapping(stream)  # noqa: E111
+    return _parse_mapping(stream)
 
 
 def safe_load_all(
     stream: str, loader_cls: type | None = None, **kwargs: Any
 ) -> Generator[Any]:
-    legacy_loader = _extract_legacy_loader("safe_load_all", kwargs)  # noqa: E111
-    loader = _select_loader(  # noqa: E111
+    legacy_loader = _extract_legacy_loader("safe_load_all", kwargs)
+    loader = _select_loader(
         "safe_load_all",
         loader_cls=loader_cls,
         legacy_loader=legacy_loader,
         default_loader=SafeLoader,
     )
-    if loader is not None and not issubclass(loader, SafeLoader):  # noqa: E111
+    if loader is not None and not issubclass(loader, SafeLoader):
         raise ValueError("safe_load_all() custom Loader must be a subclass")
-    for doc in _split_documents(stream):  # noqa: E111
+    for doc in _split_documents(stream):
         yield _parse_mapping(doc)
 
 
 def dump(data: dict[str, Any], *_args: Any, **_kwargs: Any) -> str:
-    return "\n".join(f"{key}: {value}" for key, value in data.items())  # noqa: E111
+    return "\n".join(f"{key}: {value}" for key, value in data.items())
 
 
 __all__ = [

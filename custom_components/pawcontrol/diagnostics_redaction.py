@@ -57,6 +57,8 @@ def redact_sensitive_data(data: JSONValue, *, patterns: RedactionPatterns) -> JS
         return data
 
     return data
+
+
 def _looks_like_sensitive_string(value: str) -> bool:
     """Return True if ``value`` appears to contain sensitive information."""
     sensitive_patterns = [

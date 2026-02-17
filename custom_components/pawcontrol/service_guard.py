@@ -10,11 +10,13 @@ from .types import JSONLikeMapping, JSONMutableMapping, JSONValue
 @dataclass(slots=True, frozen=True)
 class ServiceGuardResult:
     """Snapshot describing a guarded Home Assistant service invocation."""
+
     domain: str
     service: str
     executed: bool
     reason: str | None = None
     description: str | None = None
+
     def to_mapping(self) -> ServiceGuardResultPayload:
         """Return a serialisable mapping for diagnostics exports."""
 
@@ -40,37 +42,48 @@ class ServiceGuardResult:
 
 class ServiceGuardResultPayload(TypedDict, total=False):
     """JSON-compatible payload describing a guarded service invocation."""
+
     executed: Required[bool]
     domain: NotRequired[str]
     service: NotRequired[str]
     reason: NotRequired[str]
     description: NotRequired[str]
+
+
 type ServiceGuardResultHistory = list[ServiceGuardResultPayload]
 """Ordered telemetry entries for guarded service invocations."""
 
 
 class ServiceGuardSummary(TypedDict, total=False):
     """Aggregated metrics describing guarded Home Assistant service calls."""
+
     executed: int
     skipped: int
     reasons: dict[str, int]
     results: ServiceGuardResultHistory
+
+
 class ServiceGuardMetricsSnapshot(TypedDict, total=False):
     """Aggregated runtime metrics for guarded service calls."""
+
     executed: int
     skipped: int
     reasons: dict[str, int]
     last_results: ServiceGuardResultHistory
+
+
 TGuardResult = TypeVar("TGuardResult", bound=ServiceGuardResult)
 
 
 @dataclass(slots=True, frozen=True)
 class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
     """Aggregated telemetry derived from a guard result sequence."""
+
     results: tuple[TGuardResult, ...]
     executed: int
     skipped: int
     reasons: dict[str, int]
+
     @classmethod
     def from_sequence(
         cls,
@@ -210,6 +223,8 @@ def normalise_guard_result_payload(
         result["description"] = description
 
     return result
+
+
 def _coerce_int(value: object) -> int:
     """Return ``value`` coerced to an ``int`` when safe."""
     if isinstance(value, bool):
@@ -224,6 +239,8 @@ def _coerce_int(value: object) -> int:
         except ValueError:
             return 0
     return 0
+
+
 def normalise_guard_history(payload: Any) -> ServiceGuardResultHistory:
     """Convert an arbitrary sequence into a guard result history payload."""
     if not isinstance(payload, Sequence) or isinstance(

@@ -28,6 +28,8 @@ def validate_flow_dog_name(
 ) -> str | None:
     """Validate dog names submitted through config or options flows."""
     return validate_dog_name(name, field=field, required=required)
+
+
 def validate_flow_gps_coordinates(
     latitude: Any,
     longitude: Any,

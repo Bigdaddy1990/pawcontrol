@@ -20,11 +20,15 @@ _TYPED_MODULES: frozenset[CoordinatorTypedModuleName] = frozenset(
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
     from .coordinator_support import DogConfigRegistry
+
+
 class CoordinatorDataAccessMixin:
     """Provide read helpers for coordinator managed state."""
+
     registry: DogConfigRegistry
     _data: CoordinatorDataPayload
     runtime_managers: CoordinatorRuntimeManagers
+
     def get_dog_config(self, dog_id: str) -> DogConfigData | None:
         """Return the configuration payload for a dog."""
 

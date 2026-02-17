@@ -213,6 +213,8 @@ def _format_guard_reasons(
     )
 
     return [f"{reason}: {count}" for reason, count in sorted_reasons]
+
+
 def _format_guard_results(
     results: Sequence[ServiceGuardResultPayload],
     translation_lookup: TranslationLookup,
@@ -253,36 +255,53 @@ def _format_guard_results(
         default_value,
     )
     return [fallback]
+
+
 class WeatherThemeConfig(TypedDict):
     """Color palette for weather dashboards."""
+
     primary_color: str
     accent_color: str
     success_color: str
     warning_color: str
     danger_color: str
+
+
 class ThemeIconStyle(TypedDict, total=False):
     """Icon styling flags used by themed dashboards."""
+
     style: str
     animated: bool
     bounce: bool
     glow: bool
+
+
 class ThemeColorPalette(TypedDict):
     """Named colors exposed to templates and helper methods."""
+
     primary: str
     accent: str
     background: str
     text: str
+
+
 class ThemeStyles(TypedDict):
     """Theme metadata applied to generated card templates."""
+
     colors: ThemeColorPalette
     card_mod: NotRequired[CardModConfig]
     icons: NotRequired[ThemeIconStyle]
+
+
 class MapCardOptions(TypedDict, total=False):
     """Options that adjust the generated map card template."""
+
     zoom: int
     default_zoom: int
     dark_mode: bool
     hours_to_show: int
+
+
 type _MapOptionPairs = Iterable[tuple[str, object]]
 type MapOptionsInput = (
     MapCardOptions
@@ -297,6 +316,7 @@ type MapOptionsInput = (
 
 class NotificationLastEvent(TypedDict, total=False):
     """Details about the most recent notification sent for a dog."""
+
     type: str
     priority: str
     sent_at: str
@@ -304,19 +324,30 @@ class NotificationLastEvent(TypedDict, total=False):
     message: str
     channel: str
     status: str
+
+
 class NotificationDogOverview(TypedDict, total=False):
     """Per-dog delivery metrics tracked by the notifications dashboard."""
+
     sent_today: int
     quiet_hours_active: bool
     channels: list[str]
     last_notification: NotRequired[NotificationLastEvent]
+
+
 class NotificationPerformanceMetrics(TypedDict, total=False):
     """High-level delivery metrics exported by the notifications sensor."""
+
     notifications_failed: int
+
+
 class NotificationOverviewAttributes(TypedDict, total=False):
     """Attributes exposed by ``sensor.pawcontrol_notifications``."""
+
     performance_metrics: NotificationPerformanceMetrics
     per_dog: dict[str, NotificationDogOverview]
+
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -377,6 +408,8 @@ def _translated_notification_template(
         default=template,
     )
     return template_value.format(**values)
+
+
 def _translated_notification_fallback(
     translation_lookup: TranslationLookup,
     label: str,
@@ -434,6 +467,8 @@ def _translated_health_template(
         default=template,
     )
     return template_value.format(**values)
+
+
 # Weather dashboard constants
 WEATHER_THEMES: Final[dict[str, WeatherThemeConfig]] = {
     "modern": {
@@ -503,12 +538,15 @@ def _clone_template[PayloadT: CardTemplatePayload](template: PayloadT) -> Payloa
     if isinstance(template, list):
         return cast(PayloadT, [card.copy() for card in template])
     return cast(PayloadT, template.copy())
+
+
 class TemplateCache[PayloadT: CardTemplatePayload]:
     """High-performance template cache with LRU eviction and TTL.
 
     Provides memory-efficient caching of dashboard card templates with
     automatic expiration and memory management.
     """
+
     def __init__(self, maxsize: int = TEMPLATE_CACHE_SIZE) -> None:
         """Initialize template cache.
 
@@ -538,17 +576,18 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
                 self._misses += 1
                 return None
 
-            # Check TTL  # noqa: E114
+            # Check TTL
             if current_time - self._access_times[key] > TEMPLATE_TTL_SECONDS:
                 del self._cache[key]
                 del self._access_times[key]
                 self._misses += 1
                 return None
 
-            # Update access time  # noqa: E114
+            # Update access time
             self._access_times[key] = current_time
             self._hits += 1
             return _clone_template(self._cache[key])
+
     async def set(self, key: str, template: PayloadT) -> None:
         """Store template in cache.
 
@@ -557,7 +596,7 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
             template: Template to cache
         """
         async with self._lock:
-            # Check template size to prevent memory bloat  # noqa: E114
+            # Check template size to prevent memory bloat
             template_size = len(json.dumps(template, separators=(",", ":")))
             if template_size > MAX_TEMPLATE_SIZE:
                 _LOGGER.warning(
@@ -568,12 +607,13 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
                 return
 
             current_time = dt_util.utcnow().timestamp()
-            # Evict LRU items if needed  # noqa: E114
+            # Evict LRU items if needed
             while len(self._cache) >= self._maxsize:
                 await self._evict_lru()
 
             self._cache[key] = _clone_template(template)
             self._access_times[key] = current_time
+
     async def _evict_lru(self) -> None:
         """Evict least recently used template."""
         if not self._access_times:
@@ -594,6 +634,7 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
             self._hits = 0
             self._misses = 0
             self._evictions = 0
+
     @callback
     def get_stats(self) -> TemplateCacheStats:
         """Get cache statistics."""
@@ -640,6 +681,7 @@ class DashboardTemplates:
     Provides efficient template generation and caching for dashboard cards
     with automatic optimization based on usage patterns and multiple visual themes.
     """
+
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize template manager.
 
@@ -1135,7 +1177,7 @@ class DashboardTemplates:
         layout: str = "cards",
     ) -> CardCollection:
         """Get themed action buttons template for dog."""
-        cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}_{theme}_{layout}"
+        cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}_{theme}_{layout}"  # noqa: E501
 
         cached = await self._cache.get(cache_key)
         if isinstance(cached, list):
@@ -1386,7 +1428,7 @@ class DashboardTemplates:
             for key, value in options.items():
                 if not isinstance(key, str):
                     _LOGGER.debug(
-                        "Skipping map option entry with non-string key from mapping: %r",
+                        "Skipping map option entry with non-string key from mapping: %r",  # noqa: E501
                         key,
                     )
                     continue
@@ -1400,7 +1442,7 @@ class DashboardTemplates:
 
             if not filtered_options:
                 _LOGGER.debug(
-                    "Ignoring map options mapping payload without supported entries: %s",
+                    "Ignoring map options mapping payload without supported entries: %s",  # noqa: E501
                     type(options).__name__,
                 )
                 return resolved
@@ -1413,13 +1455,13 @@ class DashboardTemplates:
                     for key, value in item.items():
                         if not isinstance(key, str):
                             _LOGGER.debug(
-                                "Skipping map option entry with non-string key from mapping: %r",
+                                "Skipping map option entry with non-string key from mapping: %r",  # noqa: E501
                                 key,
                             )
                             continue
                         if key not in MAP_OPTION_KEYS:
                             _LOGGER.debug(
-                                "Ignoring unsupported map option key '%s' from iterable mapping",
+                                "Ignoring unsupported map option key '%s' from iterable mapping",  # noqa: E501
                                 key,
                             )
                             continue
@@ -1434,7 +1476,7 @@ class DashboardTemplates:
                     if isinstance(key, str):
                         if key not in MAP_OPTION_KEYS:
                             _LOGGER.debug(
-                                "Ignoring unsupported map option key '%s' from iterable pair",
+                                "Ignoring unsupported map option key '%s' from iterable pair",  # noqa: E501
                                 key,
                             )
                             continue
@@ -1466,6 +1508,7 @@ class DashboardTemplates:
                 type(options).__name__,
             )
             return resolved
+
         def _coerce_int(candidate: object | None) -> int | None:
             """Convert ``candidate`` to ``int`` when possible."""
             if candidate is None:
@@ -1490,6 +1533,7 @@ class DashboardTemplates:
                     return None
                 return int(numeric)
             return None
+
         zoom_candidate = options_mapping.get("zoom")
         zoom_value = _coerce_int(zoom_candidate)
         if zoom_value is not None:
@@ -1506,7 +1550,7 @@ class DashboardTemplates:
             if zoom_value is None:
                 resolved["zoom"] = resolved_default_zoom
         elif zoom_value is not None:
-            # Mirror the explicitly provided zoom when no default override exists.  # noqa: E114, E501
+            # Mirror the explicitly provided zoom when no default override exists.  # noqa: E501
             resolved["default_zoom"] = resolved["zoom"]
         dark_mode = options_mapping.get("dark_mode")
         if isinstance(dark_mode, bool):
@@ -1635,7 +1679,7 @@ class DashboardTemplates:
 - **Today's Meals**: {{{{ states('sensor.{dog_id}_meals_today') }}}}
 - **Daily Amount**: {{{{ states('sensor.{dog_id}_daily_food_consumed') }}}}g
 - **Schedule Adherence**: {{{{ states('sensor.{dog_id}_feeding_schedule_adherence') }}}}%
-"""  # noqa: E111, E501
+"""  # noqa: E501
 
         if modules.get("walk"):
             stats_content += f"""
@@ -1801,6 +1845,7 @@ class DashboardTemplates:
                 return metrics
 
             return None
+
         def _coerce_guard_metrics(
             payload: JSONMapping | HelperManagerGuardMetrics | None,
         ) -> HelperManagerGuardMetrics | None:
@@ -1808,6 +1853,7 @@ class DashboardTemplates:
                 return None
 
             if isinstance(payload, Mapping):
+
                 def _int_value(value: JSONValue | object) -> int:
                     if isinstance(value, bool):
                         return int(value)
@@ -1821,6 +1867,7 @@ class DashboardTemplates:
                         except ValueError:
                             return 0
                     return 0
+
                 reasons_payload: dict[str, int] = {}
                 raw_reasons = payload.get("reasons")
                 if isinstance(raw_reasons, Mapping):
@@ -1843,6 +1890,7 @@ class DashboardTemplates:
                 }
 
             return None
+
         coordinator_metrics: CoordinatorRejectionMetrics | None = None
         if isinstance(coordinator_statistics, Mapping):
             raw_metrics = coordinator_statistics.get("rejection_metrics")
@@ -1967,7 +2015,7 @@ class DashboardTemplates:
 
             for label, breaker_names in breaker_name_lists.items():
                 lines.append(
-                    f"- {label}: {_format_breaker_list(breaker_names, translation_lookup)}",
+                    f"- {label}: {_format_breaker_list(breaker_names, translation_lookup)}",  # noqa: E501
                 )
 
             breaker_lists = {
@@ -1991,7 +2039,7 @@ class DashboardTemplates:
 
             for label, breaker_ids in breaker_lists.items():
                 lines.append(
-                    f"- {label}: {_format_breaker_list(breaker_ids, translation_lookup)}",
+                    f"- {label}: {_format_breaker_list(breaker_ids, translation_lookup)}",  # noqa: E501
                 )
 
             if guard_payload is not None:
@@ -2044,6 +2092,7 @@ class DashboardTemplates:
                 )
 
             return lines
+
         metrics_sections: list[
             tuple[
                 str,
@@ -2180,8 +2229,8 @@ class DashboardTemplates:
             "- **Total errors:** {{ metrics.get('total_errors', 0) }}\n"
             "- **Guard skipped:** {{ guard.get('skipped', 0) }}\n"
             "- **Guard reasons:** {{ guard.get('reasons', {}) | tojson }}\n"
-            "- **Notification failures:** {{ notifications.get('total_failures', 0) }}\n"
-            "- **Classified errors:** {{ metrics.get('classified_errors', {}) | tojson }}\n"
+            "- **Notification failures:** {{ notifications.get('total_failures', 0) }}\n"  # noqa: E501
+            "- **Classified errors:** {{ metrics.get('classified_errors', {}) | tojson }}\n"  # noqa: E501
         )
 
         template: CardConfig = {
@@ -2481,7 +2530,7 @@ class DashboardTemplates:
 
         template: CardConfig
         if theme == "modern":
-            # Use a clean timeline view  # noqa: E114
+            # Use a clean timeline view
             card_mod = self._card_mod(theme_styles)
             template = {
                 "type": "custom:scheduler-card",
@@ -2492,10 +2541,10 @@ class DashboardTemplates:
                 "card_mod": card_mod,
             }
         elif theme == "playful":
-            # Use colorful meal buttons  # noqa: E114
+            # Use colorful meal buttons
             template = await self.get_feeding_controls_template(dog_id, theme)
         else:
-            # Minimal text-based schedule  # noqa: E114
+            # Minimal text-based schedule
             template = {
                 "type": "entities",
                 "title": schedule_label,
@@ -2612,7 +2661,7 @@ class DashboardTemplates:
 
         # Group buttons based on theme
         if theme == "playful":
-            # Circular arrangement  # noqa: E114
+            # Circular arrangement
             return {
                 "type": "horizontal-stack",
                 "cards": buttons,
@@ -2656,7 +2705,7 @@ class DashboardTemplates:
 
         template: CardConfig
         if theme in ["modern", "dark"]:
-            # Use advanced graph card  # noqa: E114
+            # Use advanced graph card
             card_mod = self._card_mod(theme_styles)
             template = {
                 "type": "custom:mini-graph-card",
@@ -2690,7 +2739,7 @@ class DashboardTemplates:
                 "card_mod": card_mod,
             }
         elif theme == "playful":
-            # Use colorful gauge cards  # noqa: E114
+            # Use colorful gauge cards
             template = {
                 "type": "horizontal-stack",
                 "cards": [
@@ -2741,7 +2790,7 @@ class DashboardTemplates:
                 ],
             }
         else:
-            # Minimal line graph  # noqa: E114
+            # Minimal line graph
             template = {
                 "type": "history-graph",
                 "title": _translated_health_label(translation_lookup, "health_trends"),
@@ -2834,7 +2883,7 @@ class DashboardTemplates:
 
         template: CardConfig
         if compact:
-            # Compact card for mobile/small spaces  # noqa: E114
+            # Compact card for mobile/small spaces
             card_mod = self._card_mod(theme_styles)
             template = {
                 "type": "custom:mushroom-entity",
@@ -2853,7 +2902,7 @@ class DashboardTemplates:
                 "card_mod": card_mod,
             }
         else:
-            # Full weather status card  # noqa: E114
+            # Full weather status card
             entities = [
                 {
                     "entity": f"sensor.{dog_id}_weather_health_score",
@@ -2899,7 +2948,7 @@ class DashboardTemplates:
                 "card_mod": card_mod,
             }
 
-            # Add theme-specific styling  # noqa: E114
+            # Add theme-specific styling
             if theme == "modern":
                 style = card_mod.get("style", "")
                 style += """
@@ -3011,7 +3060,7 @@ class DashboardTemplates:
                     50% { transform: scale(1.02); }
                     100% { transform: scale(1); }
                 }
-            """.replace("{dog_id}", dog_id)  # noqa: E111, E501
+            """.replace("{dog_id}", dog_id)  # noqa: E501
         else:
             card_mod_style = self._card_mod(theme_styles).get("style", "")
         template: CardConfig = {
@@ -3075,7 +3124,7 @@ class DashboardTemplates:
         if include_breed_specific:
             breed_section = [
                 "### 🐕 Breed-Specific Advice",
-                "{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}",
+                "{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}",  # noqa: E501
                 "{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}",  # noqa: E501
             ]
 
@@ -3083,7 +3132,7 @@ class DashboardTemplates:
             f"## {rec_icon} Weather Recommendations for {dog_name}",
             "",
             "### 🌡️ Temperature Guidance",
-            f"**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C",
+            f"**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C",  # noqa: E501
             f"**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}",  # noqa: E501
             "",
             "### 🚶 Activity Suggestions",
@@ -3096,10 +3145,10 @@ class DashboardTemplates:
             [
                 "",
                 "### ⏰ Best Activity Times",
-                f"**Optimal Walk Time:** {{{{ states('sensor.{dog_id}_optimal_walk_time') }}}}",
-                f"**Avoid Outdoors:** {{{{ states('sensor.{dog_id}_weather_avoid_times') }}}}",
+                f"**Optimal Walk Time:** {{{{ states('sensor.{dog_id}_optimal_walk_time') }}}}",  # noqa: E501
+                f"**Avoid Outdoors:** {{{{ states('sensor.{dog_id}_weather_avoid_times') }}}}",  # noqa: E501
                 "",
-                f"**Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}",
+                f"**Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}",  # noqa: E501
             ],
         )
 
@@ -3251,7 +3300,7 @@ class DashboardTemplates:
                 "card_mod": card_mod,
             }
         else:
-            # Fallback to simple history graph  # noqa: E114
+            # Fallback to simple history graph
             card_mod = self._card_mod(theme_styles)
             template = {
                 "type": "history-graph",
@@ -3343,6 +3392,7 @@ class DashboardTemplates:
                 except ValueError:
                     return fallback
             return fallback
+
         comfort_min_value = _coerce_temperature(comfort_range.get("min"), 10.0)
         comfort_max_value = _coerce_temperature(comfort_range.get("max"), 25.0)
 
@@ -3597,7 +3647,7 @@ class DashboardTemplates:
         valid_entities = await self._filter_valid_entities(entities)
 
         if not valid_entities:
-            # Return empty markdown card if no valid entities  # noqa: E114
+            # Return empty markdown card if no valid entities
             return {
                 "type": "markdown",
                 "content": f"**{title}**\n\nNo data available",
@@ -3659,7 +3709,7 @@ class DashboardTemplates:
             Complete weather dashboard layout
         """
         if layout == "compact":
-            # Compact layout for smaller screens  # noqa: E114
+            # Compact layout for smaller screens
             compact_cards: CardCollection = [
                 await self.get_weather_status_card_template(
                     dog_id,
@@ -3686,7 +3736,7 @@ class DashboardTemplates:
             }
 
         if layout == "mobile":
-            # Mobile-optimized layout  # noqa: E114
+            # Mobile-optimized layout
             mobile_cards: CardCollection = [
                 await self.get_weather_status_card_template(
                     dog_id,

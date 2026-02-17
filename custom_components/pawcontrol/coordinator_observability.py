@@ -56,7 +56,9 @@ _LOGGER = getLogger(__name__)
 
 class EntityBudgetTracker:
     """Track entity budget snapshots per dog."""
+
     __slots__ = ("_snapshots",)
+
     def __init__(self) -> None:
         """Initialise the budget tracker with an empty snapshot cache."""
         self._snapshots: dict[str, EntityBudgetSnapshot] = {}
@@ -175,6 +177,8 @@ def build_performance_snapshot(
             bool_summary = module_summary
     snapshot["bool_coercion"] = bool_summary
     return snapshot
+
+
 def _coerce_float(value: Any, default: float) -> float:
     """Return a finite float or the provided default."""
     try:
@@ -188,6 +192,8 @@ def _coerce_float(value: Any, default: float) -> float:
         return default
 
     return number
+
+
 def _normalise_resilience_summary(
     summary: CoordinatorResilienceSummary | Mapping[str, object],
 ) -> CoordinatorResilienceSummary:
@@ -197,6 +203,8 @@ def _normalise_resilience_summary(
         payload[field] = _coerce_string_list(payload.get(field))
 
     return payload
+
+
 def _coerce_string_list(value: object) -> list[str]:
     """Return a list of strings for resilience diagnostics fields."""
     if value is None:
@@ -214,6 +222,8 @@ def _coerce_string_list(value: object) -> list[str]:
         return items
 
     return [_stringify_resilience_value(value)]
+
+
 def _stringify_resilience_value(value: object) -> str:
     """Convert resilience identifiers to safe diagnostic strings."""
     if isinstance(value, str):
@@ -224,6 +234,8 @@ def _stringify_resilience_value(value: object) -> str:
         except Exception:  # pragma: no cover - defensive fallback
             return value.decode(errors="ignore")
     return str(value)
+
+
 def _apply_rejection_metrics_to_performance(
     performance_metrics: CoordinatorPerformanceSnapshotMetrics,
     rejection_metrics: CoordinatorRejectionMetrics,
@@ -338,6 +350,8 @@ def build_security_scorecard(
         "checks": checks,
     }
     return scorecard
+
+
 def normalise_webhook_status(manager: Any) -> WebhookSecurityStatus:
     """Normalise webhook security payloads coming from notification manager."""
     if manager is None or not hasattr(manager, "webhook_security_status"):

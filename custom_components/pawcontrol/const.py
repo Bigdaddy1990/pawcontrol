@@ -20,13 +20,16 @@ from typing import TYPE_CHECKING, Any, Final
 
 if TYPE_CHECKING:
     from homeassistant.const import Platform
+
     NumberSelectorType = Any
 else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
     try:
         from homeassistant.const import Platform
     except ModuleNotFoundError:
+
         class Platform(StrEnum):  # type: ignore[misc]
             """Minimal Platform enum used when Home Assistant isn't installed."""
+
             SENSOR = "sensor"
             BINARY_SENSOR = "binary_sensor"
             BUTTON = "button"
@@ -37,6 +40,7 @@ else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
             DEVICE_TRACKER = "device_tracker"
             DATE = "date"
             DATETIME = "datetime"
+
     NumberSelectorType = Any
 from .selector_shim import selector
 

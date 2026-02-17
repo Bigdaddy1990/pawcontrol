@@ -80,38 +80,54 @@ PERFORMANCE_LOG_THRESHOLD: Final[float] = 2.0  # Log if operation takes > 2s
 
 class DashboardViewSummary(TypedDict):
     """Summary describing an exported Lovelace view."""
+
     path: str
     title: str
     icon: str
     card_count: int
     module: NotRequired[str]
     notifications: NotRequired[bool]
+
+
 class DashboardPerformanceMetrics(TypedDict):
     """Core runtime metrics tracked for dashboard generation."""
+
     total_generations: int
     avg_generation_time: float
     cache_hits: int
     cache_misses: int
     file_operations: int
     errors: int
+
+
 class DashboardPerformanceSnapshot(TypedDict):
     """Derived performance snapshot exposed through diagnostics."""
+
     avg_generation_time: float
     total_operations: int
     error_rate: float
     cache_efficiency: float
+
+
 class DashboardGenerationMetrics(TypedDict):
     """Generation metrics captured when a dashboard is created."""
+
     generation_time: float
     entity_count: int
+
+
 class WeatherDashboardFeatures(TypedDict):
     """Feature flags exported by weather dashboards."""
+
     health_monitoring: bool
     breed_specific: bool
     interactive_charts: bool
     recommendations: bool
+
+
 class DashboardMetadataBase(TypedDict):
     """Common metadata shared by all dashboard variants."""
+
     url: str
     title: str
     path: str
@@ -122,8 +138,11 @@ class DashboardMetadataBase(TypedDict):
     version: int
     views: list[DashboardViewSummary]
     has_notifications_view: bool
+
+
 class DashboardMetadata(DashboardMetadataBase, total=False):
     """Extended metadata for specific dashboard variants."""
+
     dogs: list[str]
     performance: DashboardGenerationMetrics
     dog_id: str
@@ -136,6 +155,8 @@ class DashboardMetadata(DashboardMetadataBase, total=False):
     updated: str
     performance_metrics: DashboardPerformanceSnapshot
     system_performance: DashboardPerformanceSnapshot
+
+
 MetaT = TypeVar("MetaT", bound=DashboardMetadataBase)
 
 
@@ -144,18 +165,24 @@ type DashboardRegistry[MetaT: DashboardMetadataBase] = dict[str, MetaT]
 
 class DashboardStorePayload(TypedDict, total=False):
     """Structure persisted in Home Assistant storage."""
+
     dashboards: DashboardRegistry[DashboardMetadata]
     updated: str
     version: int
     entry_id: str
     performance_metrics: DashboardPerformanceMetrics
+
+
 class DashboardPerformanceReport(TypedDict, total=False):
     """Public performance report exposed to diagnostics/UI callers."""
+
     dashboards_count: int
     initialized: bool
     storage_version: int
     metrics: DashboardPerformanceMetrics
     renderer: JSONMutableMapping
+
+
 _TrackedResultT = TypeVar("_TrackedResultT")
 
 
@@ -169,6 +196,7 @@ class PawControlDashboardGenerator:
     - Resource pooling for concurrent operations
     - Comprehensive performance monitoring
     """
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize optimized dashboard generator."""
         self.hass = hass
@@ -299,6 +327,7 @@ class PawControlDashboardGenerator:
         init = getattr(self._renderer, "async_initialize", None)
         if callable(init):
             await init()
+
     def _track_task(
         self,
         awaitable: Coroutine[Any, Any, _TrackedResultT] | asyncio.Task[_TrackedResultT],
@@ -497,6 +526,7 @@ class PawControlDashboardGenerator:
             return asyncio.get_running_loop().time()
         except RuntimeError:
             return time.perf_counter()
+
     @staticmethod
     def _summarise_dashboard_views(
         dashboard_config: DashboardRenderResult | JSONMapping,
@@ -677,6 +707,7 @@ class PawControlDashboardGenerator:
                 init_time = self._monotonic_time() - start_time
                 if init_time > PERFORMANCE_LOG_THRESHOLD:
                     _LOGGER.info("Dashboard init took %.2fs", init_time)
+
     async def _load_stored_data(self) -> None:
         """Load stored data with validation and cleanup."""
         try:
@@ -697,7 +728,7 @@ class PawControlDashboardGenerator:
             else:
                 self._dashboards = {}
 
-            # OPTIMIZED: Async validation to prevent blocking  # noqa: E114
+            # OPTIMIZED: Async validation to prevent blocking
             validation_task = self._track_task(
                 self._validate_stored_dashboards(),
                 name="pawcontrol_dashboard_validate_stored",
@@ -709,6 +740,7 @@ class PawControlDashboardGenerator:
         except Exception as err:
             _LOGGER.warning("Error loading stored dashboards: %s", err)
             self._dashboards = {}
+
     async def _cleanup_failed_initialization(self) -> None:
         """Cleanup resources after failed initialization."""
         cleanup_jobs: list[tuple[str, Awaitable[Any]]] = []
@@ -829,7 +861,7 @@ class PawControlDashboardGenerator:
         async with self._lock:
             dashboard_title = options.get("title", DEFAULT_DASHBOARD_TITLE)
             dashboard_icon = options.get("icon", DEFAULT_DASHBOARD_ICON)
-            # OPTIMIZED: Async file creation with error recovery  # noqa: E114
+            # OPTIMIZED: Async file creation with error recovery
             try:
                 dashboard_path = await self._create_dashboard_file_async(
                     dashboard_url,
@@ -907,7 +939,7 @@ class PawControlDashboardGenerator:
                 dashboard_file,
                 err,
             )
-            # OPTIMIZED: Cleanup partial file  # noqa: E114
+            # OPTIMIZED: Cleanup partial file
             with contextlib.suppress(Exception):
                 await self.hass.async_add_executor_job(
                     partial(dashboard_file.unlink, missing_ok=True),
@@ -1198,14 +1230,12 @@ class PawControlDashboardGenerator:
                         else "full"
                     )
 
-                    weather_layout = (
-                        await self._dashboard_templates.get_weather_dashboard_layout_template(
-                            dog_id,
-                            dog_name,
-                            breed,
-                            theme,
-                            layout,
-                        )
+                    weather_layout = await self._dashboard_templates.get_weather_dashboard_layout_template(  # noqa: E501
+                        dog_id,
+                        dog_name,
+                        breed,
+                        theme,
+                        layout,
                     )
                     dashboard_config = {
                         "views": [
@@ -1250,9 +1280,7 @@ class PawControlDashboardGenerator:
                     dashboard_info["updated"] = dt_util.utcnow().isoformat()
                     dashboard_info["views"] = view_summaries
                     dashboard_info["has_notifications_view"] = (
-                        self._has_notifications_view(
-                            view_summaries
-                        )
+                        self._has_notifications_view(view_summaries)
                     )
 
                     if options is not None:
@@ -1371,7 +1399,7 @@ class PawControlDashboardGenerator:
         batch_size = MAX_CONCURRENT_DASHBOARD_OPERATIONS
         for i in range(0, len(updates), batch_size):
             batch = updates[i : i + batch_size]
-            # Process batch concurrently  # noqa: E114
+            # Process batch concurrently
             batch_tasks = [
                 self._track_task(
                     self.async_update_dashboard(url, dogs_config, options),
@@ -1381,7 +1409,7 @@ class PawControlDashboardGenerator:
             ]
 
             batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
-            # Process results  # noqa: E114
+            # Process results
             for (url, _, _), result in zip(batch, batch_results, strict=False):
                 resolved = _unwrap_async_result(
                     result,
@@ -1429,7 +1457,7 @@ class PawControlDashboardGenerator:
                 err,
                 exc_info=True,
             )
-            # Don't raise - metadata save failure shouldn't break dashboard creation  # noqa: E114, E501
+            # Don't raise - metadata save failure shouldn't break dashboard creation  # noqa: E501
 
     async def _update_performance_metrics(
         self,
@@ -1459,9 +1487,9 @@ class PawControlDashboardGenerator:
     async def _cleanup_failed_dashboard(self, dashboard_url: str) -> None:
         """Cleanup failed dashboard creation."""
         try:
-            # Remove from registry if exists  # noqa: E114
+            # Remove from registry if exists
             self._dashboards.pop(dashboard_url, None)
-            # Try to remove file  # noqa: E114
+            # Try to remove file
             storage_dir = Path(self.hass.config.path(".storage"))
             dashboard_file = storage_dir / f"lovelace.{dashboard_url}"
             await self.hass.async_add_executor_job(
@@ -1470,6 +1498,7 @@ class PawControlDashboardGenerator:
 
         except Exception as err:
             _LOGGER.debug("Error during dashboard cleanup: %s", err)
+
     async def async_cleanup(self) -> None:
         """Enhanced cleanup with resource management."""
         _LOGGER.info(
@@ -1497,7 +1526,7 @@ class PawControlDashboardGenerator:
                 )
             self._cleanup_tasks.clear()
         async with self._lock:
-            # OPTIMIZED: Concurrent file cleanup  # noqa: E114
+            # OPTIMIZED: Concurrent file cleanup
             cleanup_jobs: list[tuple[str, Awaitable[Any]]] = []
             for dashboard_info in self._dashboards.values():
                 try:
@@ -1516,7 +1545,7 @@ class PawControlDashboardGenerator:
                         err,
                     )
 
-            # Execute cleanup concurrently  # noqa: E114
+            # Execute cleanup concurrently
             if cleanup_jobs:
                 cleanup_results = await asyncio.gather(
                     *(job for _, job in cleanup_jobs),
@@ -1534,7 +1563,7 @@ class PawControlDashboardGenerator:
                         suppress_cancelled=True,
                     )
 
-            # Remove storage  # noqa: E114
+            # Remove storage
             try:
                 await self._store.async_remove()
             except Exception as err:
@@ -1546,6 +1575,7 @@ class PawControlDashboardGenerator:
             await self._renderer.cleanup()
         if hasattr(self, "_dashboard_templates"):
             await self._dashboard_templates.cleanup()
+
     async def _dashboard_templates_async_initialize(self) -> None:
         """Async initialize dashboard templates if method exists."""
         # Handle case where dashboard templates might not have async_initialize
@@ -1612,6 +1642,7 @@ class PawControlDashboardGenerator:
             metadata_updated = True
         if metadata_updated:
             await self._save_dashboard_metadata_async()
+
     async def _validate_single_dashboard(
         self,
         url: str,
@@ -1682,7 +1713,8 @@ class PawControlDashboardGenerator:
         except Exception as err:
             _LOGGER.warning("Dashboard validation error for %s: %s", url, err)
             return (False, metadata_updated)
-    # OPTIMIZED: Enhanced callback methods with performance data  # noqa: E114
+
+    # OPTIMIZED: Enhanced callback methods with performance data
     @callback
     def get_dashboard_info(self, dashboard_url: str) -> DashboardMetadata | None:
         """Get dashboard information with performance data."""
@@ -1814,7 +1846,7 @@ class PawControlDashboardGenerator:
                     else "full"
                 )
 
-                weather_config = await self._dashboard_templates.get_weather_dashboard_layout_template(
+                weather_config = await self._dashboard_templates.get_weather_dashboard_layout_template(  # noqa: E501
                     dog_id,
                     dog_name,
                     breed,
@@ -1966,7 +1998,7 @@ class PawControlDashboardGenerator:
             if not dog_id or not dog_name:
                 continue
 
-            # Add compact weather status card for each dog  # noqa: E114
+            # Add compact weather status card for each dog
             weather_status = cast(
                 LovelaceCardConfig,
                 await self._dashboard_templates.get_weather_status_card_template(
@@ -2005,7 +2037,7 @@ class PawControlDashboardGenerator:
                     ),
                 ]
 
-            # Add weather overview view  # noqa: E114
+            # Add weather overview view
             weather_view = cast(
                 LovelaceViewConfig,
                 {
@@ -2095,7 +2127,7 @@ class PawControlDashboardGenerator:
                 overview_view.setdefault("cards", []),
             )
 
-            # Add weather status card to overview  # noqa: E114
+            # Add weather status card to overview
             weather_status = cast(
                 LovelaceCardConfig,
                 await self._dashboard_templates.get_weather_status_card_template(
@@ -2106,8 +2138,8 @@ class PawControlDashboardGenerator:
                 ),
             )
 
-            # Insert weather card after existing status cards  # noqa: E114
-            # Insert at position 2 or end  # noqa: E114
+            # Insert weather card after existing status cards
+            # Insert at position 2 or end
             insert_index = min(2, len(overview_cards))
             overview_cards.insert(insert_index, weather_status)
         _LOGGER.debug(
@@ -2152,21 +2184,21 @@ class PawControlDashboardGenerator:
         batch_size = MAX_CONCURRENT_DASHBOARD_OPERATIONS
         for i in range(0, len(weather_dogs), batch_size):
             batch = weather_dogs[i : i + batch_size]
-            # Create batch tasks  # noqa: E114
+            # Create batch tasks
             batch_tasks = [
                 self._track_task(
                     self.async_create_weather_dashboard(
                         dog,
                         self._copy_dashboard_options(options_payload),
                     ),
-                    name=f"pawcontrol_dashboard_weather_{dog.get(DOG_ID_FIELD, 'unknown')}",
+                    name=f"pawcontrol_dashboard_weather_{dog.get(DOG_ID_FIELD, 'unknown')}",  # noqa: E501
                 )
                 for dog in batch
             ]
 
-            # Execute batch  # noqa: E114
+            # Execute batch
             batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
-            # Process results  # noqa: E114
+            # Process results
             for dog, result in zip(batch, batch_results, strict=False):
                 dog_id = dog.get(DOG_ID_FIELD)
                 if not dog_id:

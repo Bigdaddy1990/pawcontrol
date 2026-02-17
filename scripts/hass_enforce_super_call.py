@@ -11,57 +11,57 @@ METHODS = {
 
 
 class HassEnforceSuperCallChecker(BaseChecker):
-    """Checker for super calls."""  # noqa: E111
+    """Checker for super calls."""
 
-    name = "hass_enforce_super_call"  # noqa: E111
-    priority = -1  # noqa: E111
-    msgs = {  # noqa: E111
+    name = "hass_enforce_super_call"
+    priority = -1
+    msgs = {
         "W7441": (
             "Missing call to: super().%s",
             "hass-missing-super-call",
             "Used when method should call its parent implementation.",
         ),
     }
-    options = ()  # noqa: E111
+    options = ()
 
     def visit_functiondef(
         self, node: nodes.FunctionDef | nodes.AsyncFunctionDef
-    ) -> None:  # noqa: E111
+    ) -> None:
         """Check for super calls in method body."""
         if node.name not in METHODS:
-            return  # noqa: E111
+            return
 
         assert node.parent
         parent = node.parent.frame()
         if not isinstance(parent, nodes.ClassDef):
-            return  # noqa: E111
+            return
 
         # Check function body for super call
         for child_node in node.body:
-            while isinstance(child_node, (nodes.Expr, nodes.Await, nodes.Return)):  # noqa: E111
+            while isinstance(child_node, (nodes.Expr, nodes.Await, nodes.Return)):
                 child_node = child_node.value
-            match child_node:  # noqa: E111
+            match child_node:
                 case nodes.Call(
                     func=nodes.Attribute(
                         expr=nodes.Call(func=nodes.Name(name="super")),
                         attrname=node.name,
                     ),
                 ):
-                    return  # noqa: E111
+                    return
 
         # Check for non-empty base implementation
         found_base_implementation = False
         for base in parent.ancestors():
-            for method in base.mymethods():  # noqa: E111
+            for method in base.mymethods():
                 if method.name != node.name:
-                    continue  # noqa: E111
+                    continue
                 if method.body and not (
                     len(method.body) == 1 and isinstance(method.body[0], nodes.Pass)
                 ):
-                    found_base_implementation = True  # noqa: E111
+                    found_base_implementation = True
                 break
 
-            if found_base_implementation:  # noqa: E111
+            if found_base_implementation:
                 self.add_message(
                     "hass-missing-super-call",
                     node=node,
@@ -70,9 +70,9 @@ class HassEnforceSuperCallChecker(BaseChecker):
                 )
                 break
 
-    visit_asyncfunctiondef = visit_functiondef  # noqa: E111
+    visit_asyncfunctiondef = visit_functiondef
 
 
 def register(linter: PyLinter) -> None:
-    """Register the checker."""  # noqa: E111
-    linter.register_checker(HassEnforceSuperCallChecker(linter))  # noqa: E111
+    """Register the checker."""
+    linter.register_checker(HassEnforceSuperCallChecker(linter))

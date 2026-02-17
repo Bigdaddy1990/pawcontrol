@@ -30,10 +30,12 @@ class DataDiff:
         modified_keys: Keys present in both with different values
         unchanged_keys: Keys present in both with same values
     """
+
     added_keys: frozenset[str] = field(default_factory=frozenset)
     removed_keys: frozenset[str] = field(default_factory=frozenset)
     modified_keys: frozenset[str] = field(default_factory=frozenset)
     unchanged_keys: frozenset[str] = field(default_factory=frozenset)
+
     @property
     def has_changes(self) -> bool:
         """Return True if there are any changes."""
@@ -70,9 +72,11 @@ class DogDataDiff:
         module_diffs: Per-module change information
         overall_diff: Summary of top-level changes
     """
+
     dog_id: str
     module_diffs: Mapping[str, DataDiff] = field(default_factory=dict)
     overall_diff: DataDiff = field(default_factory=DataDiff)
+
     @property
     def has_changes(self) -> bool:
         """Return True if there are any changes."""
@@ -107,9 +111,11 @@ class CoordinatorDataDiff:
         added_dogs: Dog IDs added in new data
         removed_dogs: Dog IDs removed from old data
     """
+
     dog_diffs: Mapping[str, DogDataDiff] = field(default_factory=dict)
     added_dogs: frozenset[str] = field(default_factory=frozenset)
     removed_dogs: frozenset[str] = field(default_factory=frozenset)
+
     @property
     def has_changes(self) -> bool:
         """Return True if there are any changes."""
@@ -155,25 +161,25 @@ def _compare_values(old_value: Any, new_value: Any) -> bool:
     Returns:
         True if values are equal, False otherwise
     """
-    # Fast path for identical objects  # noqa: E114
+    # Fast path for identical objects
     if old_value is new_value:
         return True
 
-    # Handle None  # noqa: E114
+    # Handle None
     if old_value is None or new_value is None:
         return old_value == new_value
 
-    # Handle different types  # noqa: E114
+    # Handle different types
     if type(old_value) is not type(new_value):
         return False
 
-    # Handle mappings recursively  # noqa: E114
+    # Handle mappings recursively
     if isinstance(old_value, Mapping) and isinstance(new_value, Mapping):
         if old_value.keys() != new_value.keys():
             return False
         return all(_compare_values(old_value[k], new_value[k]) for k in old_value)
 
-    # Handle sequences recursively (but not strings)  # noqa: E114
+    # Handle sequences recursively (but not strings)
     if isinstance(old_value, (list, tuple)) and isinstance(new_value, (list, tuple)):
         if len(old_value) != len(new_value):
             return False
@@ -181,8 +187,10 @@ def _compare_values(old_value: Any, new_value: Any) -> bool:
             _compare_values(o, n) for o, n in zip(old_value, new_value, strict=False)
         )
 
-    # Default equality  # noqa: E114
+    # Default equality
     return old_value == new_value
+
+
 def compute_data_diff(
     old_data: Mapping[str, Any] | None,
     new_data: Mapping[str, Any] | None,
@@ -216,7 +224,7 @@ def compute_data_diff(
     new_keys = set(new_data.keys())
     added = frozenset(new_keys - old_keys)
     removed = frozenset(old_keys - new_keys)
-    # Check for modifications in common keys  # noqa: E114
+    # Check for modifications in common keys
     common_keys = old_keys & new_keys
     modified: set[str] = set()
     unchanged: set[str] = set()
@@ -260,9 +268,9 @@ def compute_dog_diff(
     if new_dog_data is None:
         new_dog_data = {}
 
-    # Compute overall diff at dog level  # noqa: E114
+    # Compute overall diff at dog level
     overall_diff = compute_data_diff(old_dog_data, new_dog_data)
-    # Compute per-module diffs  # noqa: E114
+    # Compute per-module diffs
     all_modules = set(old_dog_data.keys()) | set(new_dog_data.keys())
     module_diffs: dict[str, DataDiff] = {}
     for module in all_modules:
@@ -272,21 +280,21 @@ def compute_dog_diff(
         if isinstance(old_module, Mapping) and isinstance(new_module, Mapping):
             module_diffs[module] = compute_data_diff(old_module, new_module)
         elif old_module is None and new_module is not None:
-            # Module added  # noqa: E114
+            # Module added
             module_diffs[module] = DataDiff(
                 added_keys=frozenset(
                     new_module.keys() if isinstance(new_module, Mapping) else []
                 )
             )
         elif old_module is not None and new_module is None:
-            # Module removed  # noqa: E114
+            # Module removed
             module_diffs[module] = DataDiff(
                 removed_keys=frozenset(
                     old_module.keys() if isinstance(old_module, Mapping) else []
                 )
             )
         elif not _compare_values(old_module, new_module):
-            # Module changed but not a mapping (e.g., scalar value)  # noqa: E114
+            # Module changed but not a mapping (e.g., scalar value)
             module_diffs[module] = DataDiff(modified_keys=frozenset([module]))
     return DogDataDiff(
         dog_id=dog_id,
@@ -326,7 +334,7 @@ def compute_coordinator_diff(
     new_dogs = set(new_data.keys())
     added_dogs = frozenset(new_dogs - old_dogs)
     removed_dogs = frozenset(old_dogs - new_dogs)
-    # Compute per-dog diffs  # noqa: E114
+    # Compute per-dog diffs
     all_dogs = old_dogs | new_dogs
     dog_diffs: dict[str, DogDataDiff] = {}
     for dog_id in all_dogs:
@@ -365,11 +373,11 @@ def should_notify_entities(
     if not diff.has_changes:
         return False
 
-    # If no filters, notify if any changes exist  # noqa: E114
+    # If no filters, notify if any changes exist
     if dog_id is None and module is None:
         return True
 
-    # If dog_id filter specified  # noqa: E114
+    # If dog_id filter specified
     if dog_id is not None:
         if dog_id in diff.added_dogs or dog_id in diff.removed_dogs:
             return True
@@ -383,13 +391,15 @@ def should_notify_entities(
             return module in dog_diff.changed_modules
         return True
 
-    # If only module filter specified (check all dogs)  # noqa: E114
+    # If only module filter specified (check all dogs)
     if module is not None:
         return any(
             module in dog_diff.changed_modules for dog_diff in diff.dog_diffs.values()
         )
 
     return False
+
+
 class SmartDiffTracker:
     """Tracks data changes and provides smart diffing capabilities.
 
@@ -403,6 +413,7 @@ class SmartDiffTracker:
         >>> if should_notify_entities(diff, dog_id="buddy", module="gps"):
         ...     # Notify GPS entities for buddy
     """
+
     def __init__(self) -> None:
         """Initialize the diff tracker."""
         self._previous_data: CoordinatorDataPayload | None = None
@@ -498,7 +509,7 @@ class SmartDiffTracker:
             if dog_diff is None:
                 continue
 
-            # Filter by module if specified  # noqa: E114
+            # Filter by module if specified
             modules_to_check = (
                 [module] if module is not None else list(dog_diff.module_diffs.keys())
             )
@@ -546,6 +557,8 @@ def get_changed_fields(
         fields.update(diff.removed_keys)
 
     return frozenset(fields)
+
+
 def log_diff_summary(
     diff: CoordinatorDataDiff,
     logger: logging.Logger | None = None,
@@ -579,7 +592,7 @@ def log_diff_summary(
     if removed_count > 0:
         summary_parts.append(f"{removed_count} removed")
 
-    # Collect changed modules across all dogs  # noqa: E114
+    # Collect changed modules across all dogs
     all_changed_modules: set[str] = set()
     for dog_diff in diff.dog_diffs.values():
         all_changed_modules.update(dog_diff.changed_modules)

@@ -17,7 +17,7 @@ from custom_components.pawcontrol.types import WalkRoutePoint, WalkSessionSnapsh
 from custom_components.pawcontrol.walk_manager import dt_util as walk_dt_util
 
 if not hasattr(walk_dt_util, "UTC"):
-    walk_dt_util.UTC = UTC  # type: ignore[attr-defined]  # noqa: E111
+    walk_dt_util.UTC = UTC  # type: ignore[attr-defined]
 from custom_components.pawcontrol.walk_manager import (
     WalkManager,
     WalkSession,
@@ -28,9 +28,9 @@ from custom_components.pawcontrol.walk_manager import (
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestWalkManagerInitialization:
-    """Test walk manager initialization."""  # noqa: E111
+    """Test walk manager initialization."""
 
-    async def test_initialization_empty(self) -> None:  # noqa: E111
+    async def test_initialization_empty(self) -> None:
         """Test initialization with no dogs."""
         manager = WalkManager()
 
@@ -38,7 +38,7 @@ class TestWalkManagerInitialization:
 
         assert len(manager._dogs) == 0
 
-    async def test_initialization_single_dog(self) -> None:  # noqa: E111
+    async def test_initialization_single_dog(self) -> None:
         """Test initialization with single dog."""
         manager = WalkManager()
 
@@ -47,7 +47,7 @@ class TestWalkManagerInitialization:
         assert "test_dog" in manager._dogs
         assert manager._dogs["test_dog"]["active_walk"] is None
 
-    async def test_initialization_multiple_dogs(self) -> None:  # noqa: E111
+    async def test_initialization_multiple_dogs(self) -> None:
         """Test initialization with multiple dogs."""
         manager = WalkManager()
 
@@ -60,9 +60,9 @@ class TestWalkManagerInitialization:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestStartWalk:
-    """Test starting walk sessions."""  # noqa: E111
+    """Test starting walk sessions."""
 
-    async def test_start_walk_basic(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_start_walk_basic(self, mock_walk_manager) -> None:
         """Test starting basic walk."""
         session_id = await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -74,7 +74,7 @@ class TestStartWalk:
         dog_data = mock_walk_manager._dogs["test_dog"]
         assert dog_data["active_walk"] is not None
 
-    async def test_start_walk_with_walker(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_start_walk_with_walker(self, mock_walk_manager) -> None:
         """Test starting walk with walker name."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -87,7 +87,7 @@ class TestStartWalk:
 
         assert active_walk["walker"] == "John"
 
-    async def test_start_walk_with_weather(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_start_walk_with_weather(self, mock_walk_manager) -> None:
         """Test starting walk with weather condition."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -100,7 +100,7 @@ class TestStartWalk:
 
         assert active_walk["weather"] == WeatherCondition.SUNNY
 
-    async def test_start_walk_with_leash_info(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_start_walk_with_leash_info(self, mock_walk_manager) -> None:
         """Test starting walk with leash information."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -113,7 +113,7 @@ class TestStartWalk:
 
         assert active_walk["leash_used"] is True
 
-    async def test_start_walk_ends_previous_walk(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_start_walk_ends_previous_walk(self, mock_walk_manager) -> None:
         """Test that starting new walk ends previous walk."""
         # Start first walk
         session1 = await mock_walk_manager.async_start_walk(
@@ -133,10 +133,10 @@ class TestStartWalk:
         history = mock_walk_manager.get_walk_history("test_dog")
         assert len(history) >= 1  # First walk should be in history
 
-    async def test_start_walk_invalid_dog(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_start_walk_invalid_dog(self, mock_walk_manager) -> None:
         """Test starting walk for non-existent dog."""
         with pytest.raises(KeyError):
-            await mock_walk_manager.async_start_walk(  # noqa: E111
+            await mock_walk_manager.async_start_walk(
                 dog_id="nonexistent",
                 walk_type="manual",
             )
@@ -145,9 +145,9 @@ class TestStartWalk:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestEndWalk:
-    """Test ending walk sessions."""  # noqa: E111
+    """Test ending walk sessions."""
 
-    async def test_end_walk_basic(self, mock_walk_manager, create_walk_event) -> None:  # noqa: E111
+    async def test_end_walk_basic(self, mock_walk_manager, create_walk_event) -> None:
         """Test ending basic walk."""
         # Start walk
         await mock_walk_manager.async_start_walk(
@@ -164,7 +164,7 @@ class TestEndWalk:
         assert "duration" in walk_event
         assert "distance" in walk_event
 
-    async def test_end_walk_with_notes(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_end_walk_with_notes(self, mock_walk_manager) -> None:
         """Test ending walk with notes."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -178,7 +178,7 @@ class TestEndWalk:
 
         assert walk_event["notes"] == "Great walk, saw other dogs"
 
-    async def test_end_walk_with_weight(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_end_walk_with_weight(self, mock_walk_manager) -> None:
         """Test ending walk with dog weight."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -192,7 +192,7 @@ class TestEndWalk:
 
         assert walk_event["dog_weight_kg"] == 29.5
 
-    async def test_end_walk_no_active_walk(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_end_walk_no_active_walk(self, mock_walk_manager) -> None:
         """Test ending walk when no active walk."""
         walk_event = await mock_walk_manager.async_end_walk(
             dog_id="test_dog",
@@ -200,7 +200,7 @@ class TestEndWalk:
 
         assert walk_event is None
 
-    async def test_end_walk_saves_to_history(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_end_walk_saves_to_history(self, mock_walk_manager) -> None:
         """Test that ended walk is saved to history."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -215,7 +215,7 @@ class TestEndWalk:
 
         assert len(history) >= 1
 
-    async def test_end_walk_clears_active_walk(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_end_walk_clears_active_walk(self, mock_walk_manager) -> None:
         """Test that ending walk clears active walk."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -234,9 +234,9 @@ class TestEndWalk:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestWalkDuration:
-    """Test walk duration calculations."""  # noqa: E111
+    """Test walk duration calculations."""
 
-    async def test_walk_duration_short(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_walk_duration_short(self, mock_walk_manager) -> None:
         """Test walk duration for short walk."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -255,7 +255,7 @@ class TestWalkDuration:
         # Duration should be at least 1 second
         assert walk_event["duration"] >= 1.0
 
-    async def test_walk_duration_multiple_dogs(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_walk_duration_multiple_dogs(self, mock_walk_manager) -> None:
         """Test tracking duration for multiple dogs simultaneously."""
         # Initialize second dog
         await mock_walk_manager.async_initialize(["test_dog", "buddy"])
@@ -283,17 +283,17 @@ class TestWalkDuration:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestWalkStatistics:
-    """Test walk statistics and aggregation."""  # noqa: E111
+    """Test walk statistics and aggregation."""
 
-    async def test_get_daily_walk_stats(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_get_daily_walk_stats(self, mock_walk_manager) -> None:
         """Test getting daily walk statistics."""
         # Create multiple walks
         for _i in range(3):
-            await mock_walk_manager.async_start_walk(  # noqa: E111
+            await mock_walk_manager.async_start_walk(
                 dog_id="test_dog",
                 walk_type="manual",
             )
-            await mock_walk_manager.async_end_walk(  # noqa: E111
+            await mock_walk_manager.async_end_walk(
                 dog_id="test_dog",
             )
 
@@ -304,15 +304,15 @@ class TestWalkStatistics:
         assert "total_duration_today" in stats
         assert stats["total_walks_today"] >= 3
 
-    async def test_get_walk_history(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_get_walk_history(self, mock_walk_manager) -> None:
         """Test retrieving walk history."""
         # Create walks
         for _i in range(5):
-            await mock_walk_manager.async_start_walk(  # noqa: E111
+            await mock_walk_manager.async_start_walk(
                 dog_id="test_dog",
                 walk_type="manual",
             )
-            await mock_walk_manager.async_end_walk(  # noqa: E111
+            await mock_walk_manager.async_end_walk(
                 dog_id="test_dog",
             )
 
@@ -320,15 +320,15 @@ class TestWalkStatistics:
 
         assert len(history) >= 5
 
-    async def test_get_walk_history_with_limit(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_get_walk_history_with_limit(self, mock_walk_manager) -> None:
         """Test retrieving walk history with limit."""
         # Create many walks
         for _i in range(10):
-            await mock_walk_manager.async_start_walk(  # noqa: E111
+            await mock_walk_manager.async_start_walk(
                 dog_id="test_dog",
                 walk_type="manual",
             )
-            await mock_walk_manager.async_end_walk(  # noqa: E111
+            await mock_walk_manager.async_end_walk(
                 dog_id="test_dog",
             )
 
@@ -337,21 +337,21 @@ class TestWalkStatistics:
 
         assert len(history) <= 3
 
-    async def test_weekly_walk_statistics(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_weekly_walk_statistics(self, mock_walk_manager) -> None:
         """Test weekly walk statistics calculation."""
         # Create walks over several days
         for i in range(7):
-            await mock_walk_manager.async_start_walk(  # noqa: E111
+            await mock_walk_manager.async_start_walk(
                 dog_id="test_dog",
                 walk_type="manual",
             )
 
-            walk = await mock_walk_manager.async_end_walk(  # noqa: E111
+            walk = await mock_walk_manager.async_end_walk(
                 dog_id="test_dog",
             )
 
-            # Modify timestamp to simulate different days  # noqa: E114
-            if hasattr(walk, "start_time"):  # noqa: E111
+            # Modify timestamp to simulate different days
+            if hasattr(walk, "start_time"):
                 walk["start_time"] = datetime.now(UTC) - timedelta(days=i)
 
         stats = mock_walk_manager.get_weekly_walk_stats("test_dog")
@@ -365,9 +365,9 @@ class TestWalkStatistics:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestActiveWalkInfo:
-    """Test active walk information."""  # noqa: E111
+    """Test active walk information."""
 
-    async def test_get_active_walk_info(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_get_active_walk_info(self, mock_walk_manager) -> None:
         """Test getting active walk information."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -381,13 +381,13 @@ class TestActiveWalkInfo:
         assert "start_time" in active_walk
         assert active_walk["walker"] == "John"
 
-    async def test_get_active_walk_info_no_walk(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_get_active_walk_info_no_walk(self, mock_walk_manager) -> None:
         """Test getting active walk when no walk active."""
         active_walk = mock_walk_manager.get_active_walk_info("test_dog")
 
         assert active_walk is None
 
-    async def test_active_walk_duration_updates(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_active_walk_duration_updates(self, mock_walk_manager) -> None:
         """Test that active walk duration updates."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -407,9 +407,9 @@ class TestActiveWalkInfo:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestWalkTypes:
-    """Test different walk types."""  # noqa: E111
+    """Test different walk types."""
 
-    async def test_manual_walk_type(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_manual_walk_type(self, mock_walk_manager) -> None:
         """Test manual walk type."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -421,7 +421,7 @@ class TestWalkTypes:
 
         assert active_walk["walk_type"] == "manual"
 
-    async def test_scheduled_walk_type(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_scheduled_walk_type(self, mock_walk_manager) -> None:
         """Test scheduled walk type."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -433,7 +433,7 @@ class TestWalkTypes:
 
         assert active_walk["walk_type"] == "scheduled"
 
-    async def test_automatic_walk_type(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_automatic_walk_type(self, mock_walk_manager) -> None:
         """Test automatic walk type (door sensor triggered)."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -448,16 +448,16 @@ class TestWalkTypes:
 
 @pytest.mark.unit
 class TestWeatherConditions:
-    """Test weather condition enum."""  # noqa: E111
+    """Test weather condition enum."""
 
-    def test_weather_condition_enum_values(self) -> None:  # noqa: E111
+    def test_weather_condition_enum_values(self) -> None:
         """Test weather condition enum values."""
         assert WeatherCondition.SUNNY.value == "sunny"
         assert WeatherCondition.RAINY.value == "rainy"
         assert WeatherCondition.SNOWY.value == "snowy"
         assert WeatherCondition.CLOUDY.value == "cloudy"
 
-    def test_weather_condition_from_string(self) -> None:  # noqa: E111
+    def test_weather_condition_from_string(self) -> None:
         """Test creating weather condition from string."""
         condition = WeatherCondition("sunny")
 
@@ -467,9 +467,9 @@ class TestWeatherConditions:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestWalkDataRetrieval:
-    """Test walk data retrieval methods."""  # noqa: E111
+    """Test walk data retrieval methods."""
 
-    async def test_get_walk_data_existing_dog(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_get_walk_data_existing_dog(self, mock_walk_manager) -> None:
         """Test getting walk data for existing dog."""
         data = mock_walk_manager.get_walk_data("test_dog")
 
@@ -478,13 +478,13 @@ class TestWalkDataRetrieval:
         assert "history" in data
         assert "statistics" in data
 
-    async def test_get_walk_data_nonexistent_dog(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_get_walk_data_nonexistent_dog(self, mock_walk_manager) -> None:
         """Test getting walk data for non-existent dog."""
         data = mock_walk_manager.get_walk_data("nonexistent")
 
         assert data is None
 
-    async def test_get_last_walk_info(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_get_last_walk_info(self, mock_walk_manager) -> None:
         """Test getting last walk information."""
         # Create walk
         await mock_walk_manager.async_start_walk(
@@ -505,17 +505,17 @@ class TestWalkDataRetrieval:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestWalkHistoryManagement:
-    """Test walk history management and limits."""  # noqa: E111
+    """Test walk history management and limits."""
 
-    async def test_walk_history_limit(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_walk_history_limit(self, mock_walk_manager) -> None:
         """Test that walk history respects limit."""
         # Create many walks
         for _i in range(150):
-            await mock_walk_manager.async_start_walk(  # noqa: E111
+            await mock_walk_manager.async_start_walk(
                 dog_id="test_dog",
                 walk_type="manual",
             )
-            await mock_walk_manager.async_end_walk(  # noqa: E111
+            await mock_walk_manager.async_end_walk(
                 dog_id="test_dog",
             )
 
@@ -524,22 +524,20 @@ class TestWalkHistoryManagement:
         # Should be limited (e.g., to 100)
         assert len(history) <= 100
 
-    async def test_walk_history_ordered_newest_first(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_walk_history_ordered_newest_first(self, mock_walk_manager) -> None:
         """Test that walk history is ordered newest first."""
         # Create walks
         for _i in range(5):
-            await mock_walk_manager.async_start_walk(  # noqa: E111
+            await mock_walk_manager.async_start_walk(
                 dog_id="test_dog",
                 walk_type="manual",
             )
 
-            import asyncio  # noqa: E111
+            import asyncio
 
-            await asyncio.sleep(  # noqa: E111
-                0.1
-            )  # Small delay to ensure different timestamps
+            await asyncio.sleep(0.1)  # Small delay to ensure different timestamps
 
-            await mock_walk_manager.async_end_walk(  # noqa: E111
+            await mock_walk_manager.async_end_walk(
                 dog_id="test_dog",
             )
 
@@ -547,17 +545,17 @@ class TestWalkHistoryManagement:
 
         # Check ordering (newest first)
         if len(history) >= 2:
-            first_timestamp = history[0].get("start_time", datetime.now(UTC))  # noqa: E111
-            second_timestamp = history[1].get("start_time", datetime.now(UTC))  # noqa: E111
-            assert first_timestamp >= second_timestamp  # noqa: E111
+            first_timestamp = history[0].get("start_time", datetime.now(UTC))
+            second_timestamp = history[1].get("start_time", datetime.now(UTC))
+            assert first_timestamp >= second_timestamp
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestDataIsolation:
-    """Test that walk data is isolated between dogs."""  # noqa: E111
+    """Test that walk data is isolated between dogs."""
 
-    async def test_walk_data_isolated_between_dogs(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_walk_data_isolated_between_dogs(self, mock_walk_manager) -> None:
         """Test that each dog's walk data is isolated."""
         # Initialize multiple dogs
         await mock_walk_manager.async_initialize(["buddy", "max"])
@@ -573,7 +571,7 @@ class TestDataIsolation:
 
         assert max_active is None
 
-    async def test_walk_history_isolated(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_walk_history_isolated(self, mock_walk_manager) -> None:
         """Test that walk history is isolated between dogs."""
         await mock_walk_manager.async_initialize(["buddy", "max"])
 
@@ -592,9 +590,9 @@ class TestDataIsolation:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestEdgeCases:
-    """Test edge cases and error handling."""  # noqa: E111
+    """Test edge cases and error handling."""
 
-    async def test_end_walk_immediately_after_start(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_end_walk_immediately_after_start(self, mock_walk_manager) -> None:
         """Test ending walk immediately after starting."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -609,7 +607,7 @@ class TestEdgeCases:
         assert walk_event is not None
         assert walk_event["duration"] >= 0
 
-    async def test_multiple_start_walk_calls(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_multiple_start_walk_calls(self, mock_walk_manager) -> None:
         """Test multiple start walk calls without ending."""
         session1 = await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -629,7 +627,7 @@ class TestEdgeCases:
         # Each should get unique session ID
         assert session1 != session2 != session3
 
-    async def test_concurrent_walks_different_dogs(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_concurrent_walks_different_dogs(self, mock_walk_manager) -> None:
         """Test concurrent walks for different dogs."""
         await mock_walk_manager.async_initialize(["buddy", "max", "luna"])
 
@@ -643,7 +641,7 @@ class TestEdgeCases:
         assert mock_walk_manager.get_active_walk_info("max") is not None
         assert mock_walk_manager.get_active_walk_info("luna") is not None
 
-    async def test_walk_with_none_walker(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_walk_with_none_walker(self, mock_walk_manager) -> None:
         """Test walk with None as walker name."""
         session_id = await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -654,7 +652,7 @@ class TestEdgeCases:
         # Should handle None gracefully
         assert session_id is not None
 
-    async def test_walk_with_extreme_duration(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_walk_with_extreme_duration(self, mock_walk_manager) -> None:
         """Test walk with very long duration."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -666,7 +664,7 @@ class TestEdgeCases:
         if dog_data["active_walk"]:
             dog_data["active_walk"]["start_time"] = datetime.now(UTC) - timedelta(
                 hours=24
-            )  # noqa: E111
+            )
 
         walk_event = await mock_walk_manager.async_end_walk(
             dog_id="test_dog",
@@ -676,7 +674,7 @@ class TestEdgeCases:
         assert walk_event is not None
         assert walk_event["duration"] > 0
 
-    async def test_cleanup_clears_all_data(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_cleanup_clears_all_data(self, mock_walk_manager) -> None:
         """Test that cleanup clears all walk data."""
         await mock_walk_manager.async_start_walk(
             dog_id="test_dog",
@@ -697,12 +695,12 @@ def _build_export_snapshot(
     duration: float,
     include_invalid_point: bool = False,
 ) -> WalkSessionSnapshot:
-    """Create a typed walk snapshot for export regression tests."""  # noqa: E111
+    """Create a typed walk snapshot for export regression tests."""
 
-    start_ts = start.isoformat()  # noqa: E111
-    end_ts = (start + timedelta(seconds=duration)).isoformat()  # noqa: E111
+    start_ts = start.isoformat()
+    end_ts = (start + timedelta(seconds=duration)).isoformat()
 
-    path: list[WalkRoutePoint] = [  # noqa: E111
+    path: list[WalkRoutePoint] = [
         {
             "latitude": 52.5200,
             "longitude": 13.4050,
@@ -717,14 +715,14 @@ def _build_export_snapshot(
         },
     ]
 
-    if include_invalid_point:  # noqa: E111
+    if include_invalid_point:
         path.append({
             "latitude": 123.456,
             "longitude": 789.012,
             "timestamp": (start + timedelta(minutes=10)).isoformat(),
         })
 
-    snapshot: WalkSessionSnapshot = {  # noqa: E111
+    snapshot: WalkSessionSnapshot = {
         "walk_id": walk_id,
         "dog_id": "test_dog",
         "walk_type": "manual",
@@ -744,15 +742,15 @@ def _build_export_snapshot(
         },
     }
 
-    return snapshot  # noqa: E111
+    return snapshot
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestRouteExport:
-    """Validate typed walk route exports."""  # noqa: E111
+    """Validate typed walk route exports."""
 
-    async def test_export_routes_gpx_payload(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_export_routes_gpx_payload(self, mock_walk_manager) -> None:
         """GPX exports should include bounds, metadata, and sanitized paths."""
 
         mock_walk_manager._walk_history["test_dog"] = [
@@ -786,7 +784,7 @@ class TestRouteExport:
         assert walk["walk_id"] == "walk-1"
         assert len(walk["path"]) == 2
 
-    async def test_export_routes_json_payload(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_export_routes_json_payload(self, mock_walk_manager) -> None:
         """JSON exports should serialise walks and retain sanitized points."""
 
         mock_walk_manager._walk_history["test_dog"] = [
@@ -810,7 +808,7 @@ class TestRouteExport:
         assert decoded[0]["walk_id"] == "walk-json"
         assert len(decoded[0]["path"]) == 2
 
-    async def test_export_routes_csv_payload(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_export_routes_csv_payload(self, mock_walk_manager) -> None:
         """CSV exports should include headers and typed walk samples."""
 
         mock_walk_manager._walk_history["test_dog"] = [
@@ -835,7 +833,7 @@ class TestRouteExport:
         assert header_line.startswith("walk_id,walk_number,timestamp")
         assert any("walk-csv" in line for line in lines)
 
-    async def test_export_routes_without_history(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_export_routes_without_history(self, mock_walk_manager) -> None:
         """Return ``None`` when no completed walks exist."""
 
         mock_walk_manager._walk_history.pop("test_dog", None)
@@ -846,7 +844,7 @@ class TestRouteExport:
 
         assert payload is None
 
-    async def test_export_routes_limits_recent_walks(self, mock_walk_manager) -> None:  # noqa: E111
+    async def test_export_routes_limits_recent_walks(self, mock_walk_manager) -> None:
         """Only the requested number of walks should be exported."""
 
         base = datetime.now(UTC) - timedelta(hours=2)

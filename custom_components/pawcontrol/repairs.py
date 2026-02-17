@@ -69,9 +69,12 @@ type JSONType = JSONPrimitive | list["JSONType"] | dict[str, "JSONType"]
 
 class _NotificationDeliverySummary(TypedDict):
     """Aggregated delivery error counters for a classification."""
+
     services: list[str]
     total_failures: int
     consecutive_failures: int
+
+
 # Issue types
 ISSUE_MISSING_DOG_CONFIG = "missing_dog_configuration"
 ISSUE_DUPLICATE_DOG_IDS = "duplicate_dog_ids"
@@ -132,6 +135,8 @@ def _normalise_issue_severity(
         type(severity).__name__,
     )
     return ir.IssueSeverity.WARNING
+
+
 def _issue_registry_supports_kwarg(
     create_issue: object,
     key: str,
@@ -288,6 +293,8 @@ async def async_create_issue(
         return
 
     _LOGGER.info("Created repair issue: %s (%s)", issue_id, issue_type)
+
+
 def _normalize_feeding_summary_title(title: str) -> str:
     """Return backward-compatible feeding alert titles."""
     lowered = title.lower()
@@ -296,6 +303,8 @@ def _normalize_feeding_summary_title(title: str) -> str:
         if index > 0:
             return title[:index].strip()
     return title
+
+
 def _normalize_feeding_score_line(score_line: str | None) -> str | None:
     """Return a compact score line expected by repairs summaries."""
     if not score_line:
@@ -306,6 +315,8 @@ def _normalize_feeding_score_line(score_line: str | None) -> str | None:
         return score_line
     compact = score_line[: index + 1]
     return compact.replace(".0%", "%")
+
+
 async def async_publish_feeding_compliance_issue(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -567,11 +578,13 @@ async def async_schedule_repair_evaluation(
     entry: ConfigEntry,
 ) -> None:
     """Schedule an asynchronous evaluation of repair issues for ``entry``."""
+
     async def _async_run_checks() -> None:
         try:
             await async_check_for_issues(hass, entry)
         except Exception as err:  # pragma: no cover - defensive guard
             _LOGGER.debug("Repair evaluation skipped due to error: %s", err)
+
     hass.async_create_task(
         _async_run_checks(),
         name=f"{DOMAIN}-{entry.entry_id}-repair-evaluation",
@@ -601,7 +614,7 @@ async def _check_dog_configuration_issues(
         if isinstance(dog, Mapping)
     ]
 
-    # Check for empty dog configuration  # noqa: E114
+    # Check for empty dog configuration
     if not dogs:
         await async_create_issue(
             hass,
@@ -613,7 +626,7 @@ async def _check_dog_configuration_issues(
         )
         return
 
-    # Check for duplicate dog IDs  # noqa: E114
+    # Check for duplicate dog IDs
     dog_ids = [
         dog_id
         for dog_id in (dog.get(CONF_DOG_ID) for dog in dogs)
@@ -640,7 +653,7 @@ async def _check_dog_configuration_issues(
             severity="error",
         )
 
-    # Check for invalid dog data  # noqa: E114
+    # Check for invalid dog data
     invalid_dogs = []
     for dog in dogs:
         dog_id = dog.get(CONF_DOG_ID)
@@ -695,10 +708,10 @@ async def _check_gps_configuration_issues(
     if not gps_enabled_dogs:
         return  # No GPS configuration to check
 
-    # Check if GPS sources are properly configured  # noqa: E114
+    # Check if GPS sources are properly configured
     gps_config_raw = entry.options.get("gps", {})
     gps_config = gps_config_raw if isinstance(gps_config_raw, Mapping) else {}
-    # Check for missing GPS source configuration  # noqa: E114
+    # Check for missing GPS source configuration
     if not gps_config.get("gps_source"):
         await async_create_issue(
             hass,
@@ -712,7 +725,7 @@ async def _check_gps_configuration_issues(
             severity="warning",
         )
 
-    # Check for unrealistic GPS update intervals  # noqa: E114
+    # Check for unrealistic GPS update intervals
     update_interval_raw = gps_config.get("gps_update_interval", 60)
     update_interval = (
         int(update_interval_raw)
@@ -739,7 +752,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
     Issues created:
     - push_no_data: Push source selected but no accepted push seen after a grace period
     - push_rejections_high: High rejection counts (likely wrong dog_id/source, replay, rate limit)
-    """  # noqa: E111, E501
+    """  # noqa: E501
     if not isinstance(getattr(hass, "data", None), Mapping):
         return
 
@@ -772,7 +785,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
             gps_cfg.get(CONF_GPS_SOURCE) if isinstance(gps_cfg, Mapping) else None
         )
         if gps_source not in {"webhook", "mqtt"}:
-            # Ensure stale push issues are removed if source changed  # noqa: E114
+            # Ensure stale push issues are removed if source changed
             for issue_type in (ISSUE_PUSH_NO_DATA, ISSUE_PUSH_REJECTIONS_HIGH):
                 issue_id = f"{entry.entry_id}_{issue_type}_{dog_id}"
                 if callable(delete_issue):
@@ -878,7 +891,7 @@ async def _check_notification_configuration_issues(
     if not notification_enabled_dogs:
         return  # No notification configuration to check
 
-    # Check if notification services are available  # noqa: E114
+    # Check if notification services are available
     notification_config_raw = entry.options.get("notifications", {})
     notification_config = (
         notification_config_raw
@@ -889,7 +902,7 @@ async def _check_notification_configuration_issues(
         else {}
     )
 
-    # Check for mobile app availability  # noqa: E114
+    # Check for mobile app availability
     mobile_enabled_raw = notification_config.get("mobile_notifications", True)
     mobile_enabled = (
         mobile_enabled_raw if isinstance(mobile_enabled_raw, bool) else True
@@ -950,6 +963,8 @@ def _coerce_int(value: object) -> int | None:
         except ValueError:
             return None
     return None
+
+
 async def _check_notification_delivery_errors(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -962,7 +977,7 @@ async def _check_notification_delivery_errors(
     helper to map free-form errors into known categories. When an error class
     goes away, the corresponding issue is automatically cleared.
     """
-    # Definitions for each classification we care about  # noqa: E114
+    # Definitions for each classification we care about
     issue_definitions = {
         "auth_error": {
             "issue_id": f"{entry.entry_id}_notification_auth_error",
@@ -1091,7 +1106,7 @@ async def _check_notification_delivery_errors(
                 await delete_issue(hass, DOMAIN, issue_id)
         return
 
-    # We consider an error recurring if there are >=3 consecutive failures  # noqa: E114
+    # We consider an error recurring if there are >=3 consecutive failures
     recurring_threshold = 3
     classified_services: dict[str, _NotificationDeliverySummary] = {
         key: {"services": [], "total_failures": 0, "consecutive_failures": 0}
@@ -1137,7 +1152,7 @@ async def _check_notification_delivery_errors(
         )
         if reason_text:
             reasons_by_class[classification].add(reason_text)
-    # Create or clear issues based on classification results  # noqa: E114
+    # Create or clear issues based on classification results
     delete_issue = getattr(ir, "async_delete_issue", None)
     if summary_services:
         issue_data: JSONMutableMapping = {
@@ -1206,7 +1221,7 @@ async def _check_outdated_configuration(
         hass: Home Assistant instance
         entry: Configuration entry
     """
-    # Check config entry version  # noqa: E114
+    # Check config entry version
     if entry.version < CONFIG_ENTRY_VERSION:
         await async_create_issue(
             hass,
@@ -1242,6 +1257,7 @@ async def _check_reconfigure_telemetry_issues(
         return
 
     telemetry = cast(ReconfigureTelemetry, telemetry_raw)
+
     def _as_list(value: Any) -> list[str]:
         if isinstance(value, Sequence) and not isinstance(value, str | bytes):
             return [str(item) for item in value if item is not None]
@@ -1321,7 +1337,7 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
         if isinstance(dog, Mapping)
     ]
 
-    # Check for too many dogs (performance warning)  # noqa: E114
+    # Check for too many dogs (performance warning)
     if len(dogs) > 10:
         await async_create_issue(
             hass,
@@ -1336,7 +1352,7 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
             severity=ir.IssueSeverity.WARNING,
         )
 
-    # Check for conflicting module configurations  # noqa: E114
+    # Check for conflicting module configurations
     high_resource_modules = [MODULE_GPS, MODULE_HEALTH]
     dogs_with_all_modules = []
     for dog in dogs:
@@ -1366,7 +1382,7 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
         hass: Home Assistant instance
         entry: Configuration entry
     """
-    # Check data retention settings  # noqa: E114
+    # Check data retention settings
     retention_raw = entry.options.get("data_retention_days", 90)
     retention_days = (
         int(retention_raw)
@@ -1406,6 +1422,7 @@ async def _check_runtime_store_health(hass: HomeAssistant, entry: ConfigEntry) -
 
     entry_snapshot = snapshot.get("entry", {})
     store_snapshot = snapshot.get("store", {})
+
     def _string_or_unknown(value: Any) -> str:
         if value is None:
             return "n/a"
@@ -1478,6 +1495,8 @@ def _normalise_duration_alerts(
         }
         alerts.append(alert)
     return alerts
+
+
 def _resolve_duration_alert_severity(
     alerts: Sequence[RuntimeStoreLevelDurationAlert],
 ) -> str | ir.IssueSeverity:
@@ -1504,6 +1523,8 @@ def _resolve_duration_alert_severity(
     if warning_value is not None:
         return warning_value
     return getattr(severity_enum, "ERROR", severity_enum.WARNING)
+
+
 def _format_duration_summary(seconds: float) -> str:
     """Return a compact human-readable representation for ``seconds``."""
     hours = seconds / 3600.0
@@ -1513,6 +1534,8 @@ def _format_duration_summary(seconds: float) -> str:
     if minutes >= 1:
         return f"{minutes:.0f}m"
     return f"{seconds:.0f}s"
+
+
 async def _check_runtime_store_duration_alerts(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -1701,6 +1724,7 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
 
 class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
     """Handle repair flows for Paw Control integration."""
+
     def __init__(self) -> None:
         """Initialize the repair flow."""
         super().__init__()
@@ -1858,7 +1882,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
                         )
 
                         if entry:
-                            # Create new dog configuration  # noqa: E114
+                            # Create new dog configuration
                             dog_breed_raw = user_input.get("dog_breed", "")
                             dog_age_raw = user_input.get("dog_age", 3)
                             dog_weight_raw = user_input.get("dog_weight", 20.0)
@@ -2509,7 +2533,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
                                 "options": [
                                     {
                                         "value": "reduce_retention",
-                                        "label": "Reduce data retention to recommended value",
+                                        "label": "Reduce data retention to recommended value",  # noqa: E501
                                     },
                                     {
                                         "value": "configure",
@@ -2559,7 +2583,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
                                 "options": [
                                     {
                                         "value": "reduce_load",
-                                        "label": "Disable intensive modules for extra dogs",
+                                        "label": "Disable intensive modules for extra dogs",  # noqa: E501
                                     },
                                     {
                                         "value": "optimize",
@@ -2732,7 +2756,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         """
         return self.async_abort(reason="unknown_issue_type")
 
-    # Helper methods for repair actions  # noqa: E114
+    # Helper methods for repair actions
 
     async def _fix_duplicate_dog_ids(self) -> None:
         """Automatically fix duplicate dog IDs."""
@@ -2749,13 +2773,13 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
             original_id = dog.get(CONF_DOG_ID, "")
             dog_id = original_id
             counter = 1
-            # Generate unique ID  # noqa: E114
+            # Generate unique ID
             while dog_id in seen_ids:
                 dog_id = f"{original_id}_{counter}"
                 counter += 1
 
             seen_ids.add(dog_id)
-            # Update dog configuration  # noqa: E114
+            # Update dog configuration
             fixed_dog = dog.copy()
             fixed_dog[CONF_DOG_ID] = dog_id
             fixed_dogs.append(fixed_dog)
@@ -2995,10 +3019,12 @@ async def async_create_fix_flow(
         Repair flow instance bound to the Paw Control handler
     """
     return PawControlRepairsFlow()
+
+
 async def async_register_repairs(hass: HomeAssistant) -> None:
     """Register initial repair checks for Paw Control integration."""
     _LOGGER.debug("Registering Paw Control repair checks")
-    # Iterate over all loaded entries and run checks for those with runtime data  # noqa: E114, E501
+    # Iterate over all loaded entries and run checks for those with runtime data  # noqa: E501
     for entry in hass.config_entries.async_entries(DOMAIN):
         try:
             require_runtime_data(hass, entry)

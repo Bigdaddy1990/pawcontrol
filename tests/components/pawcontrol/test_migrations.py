@@ -21,9 +21,9 @@ from custom_components.pawcontrol.types import (
 
 @pytest.mark.asyncio
 async def test_async_migrate_entry_v1_to_v2(hass: HomeAssistant) -> None:
-    """Ensure legacy entry data is migrated into the latest schema."""  # noqa: E111
+    """Ensure legacy entry data is migrated into the latest schema."""
 
-    entry = ConfigEntry(  # noqa: E111
+    entry = ConfigEntry(
         domain=DOMAIN,
         version=1,
         data={
@@ -47,27 +47,27 @@ async def test_async_migrate_entry_v1_to_v2(hass: HomeAssistant) -> None:
         },
         options={},
     )
-    entry.add_to_hass(hass)  # noqa: E111
+    entry.add_to_hass(hass)
 
-    result = await async_migrate_entry(hass, entry)  # noqa: E111
+    result = await async_migrate_entry(hass, entry)
 
-    assert result is True  # noqa: E111
-    assert entry.version == CONFIG_ENTRY_VERSION  # noqa: E111
-    assert CONF_MODULES not in entry.data  # noqa: E111
-    assert CONF_DOG_OPTIONS not in entry.data  # noqa: E111
+    assert result is True
+    assert entry.version == CONFIG_ENTRY_VERSION
+    assert CONF_MODULES not in entry.data
+    assert CONF_DOG_OPTIONS not in entry.data
 
-    dogs = entry.data[CONF_DOGS]  # noqa: E111
-    assert isinstance(dogs, list)  # noqa: E111
-    dog_map = {dog[DOG_ID_FIELD]: dog for dog in dogs}  # noqa: E111
+    dogs = entry.data[CONF_DOGS]
+    assert isinstance(dogs, list)
+    dog_map = {dog[DOG_ID_FIELD]: dog for dog in dogs}
 
-    buddy = dog_map["buddy"]  # noqa: E111
-    assert buddy[DOG_NAME_FIELD] == "Buddy"  # noqa: E111
-    assert buddy[DOG_MODULES_FIELD]["gps"] is True  # noqa: E111
-    assert buddy[DOG_MODULES_FIELD]["feeding"] is True  # noqa: E111
+    buddy = dog_map["buddy"]
+    assert buddy[DOG_NAME_FIELD] == "Buddy"
+    assert buddy[DOG_MODULES_FIELD]["gps"] is True
+    assert buddy[DOG_MODULES_FIELD]["feeding"] is True
 
-    luna = dog_map["luna"]  # noqa: E111
-    assert luna[DOG_MODULES_FIELD]["gps"] is True  # noqa: E111
-    assert luna[DOG_MODULES_FIELD]["walk"] is False  # noqa: E111
+    luna = dog_map["luna"]
+    assert luna[DOG_MODULES_FIELD]["gps"] is True
+    assert luna[DOG_MODULES_FIELD]["walk"] is False
 
-    dog_options = entry.options[CONF_DOG_OPTIONS]  # noqa: E111
-    assert dog_options["buddy"]["gps_settings"]["gps_update_interval"] == 30  # noqa: E111
+    dog_options = entry.options[CONF_DOG_OPTIONS]
+    assert dog_options["buddy"]["gps_settings"]["gps_update_interval"] == 30

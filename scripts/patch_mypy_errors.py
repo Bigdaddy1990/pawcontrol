@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# ruff: noqa: E111, E114, E501
 """Automated patch script to fix 40 MyPy strict mode errors in PawControl.
 
 Usage:

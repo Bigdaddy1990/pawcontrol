@@ -38,11 +38,14 @@ _ENTITY_ID_VALIDATOR = cast(vol.Any, getattr(cv, "entity_id", cv.string))
 @dataclass(frozen=True, slots=True)
 class TriggerDefinition:
     """Definition for a device trigger tied to an entity."""
+
     type: str
     platform: str
     entity_suffix: str
     to_state: str | None = None
     from_state: str | None = None
+
+
 TRIGGER_DEFINITIONS: Final[tuple[TriggerDefinition, ...]] = (
     TriggerDefinition("hungry", "binary_sensor", "is_hungry", to_state="on"),
     TriggerDefinition("needs_walk", "binary_sensor", "needs_walk", to_state="on"),
@@ -126,6 +129,8 @@ async def async_get_triggers(
         triggers.append(trigger)
 
     return triggers
+
+
 async def async_get_trigger_capabilities(
     hass: HomeAssistant,
     config: dict[str, str],

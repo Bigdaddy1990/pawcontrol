@@ -37,6 +37,8 @@ def coerce_dog_config(dog_config: RawDogConfig) -> DogConfigData | None:
         return ensure_dog_config_data(cast(Mapping[str, JSONValue], dog_config))
 
     return None
+
+
 def coerce_dog_configs(dogs_config: Sequence[RawDogConfig]) -> list[DogConfigData]:
     """Return a typed ``DogConfigData`` list extracted from ``dogs_config``."""
     typed: list[DogConfigData] = []
@@ -45,6 +47,8 @@ def coerce_dog_configs(dogs_config: Sequence[RawDogConfig]) -> list[DogConfigDat
         if typed_dog is not None:
             typed.append(typed_dog)
     return typed
+
+
 T = TypeVar("T")
 
 

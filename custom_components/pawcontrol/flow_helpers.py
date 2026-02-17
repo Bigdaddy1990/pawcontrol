@@ -54,6 +54,8 @@ def coerce_bool(value: Any, *, default: bool = False) -> bool:
     if value is None:
         return default
     return bool(value)
+
+
 def coerce_str(value: Any, *, default: str = "") -> str:
     """Coerce arbitrary user input into a trimmed string.
 
@@ -78,6 +80,8 @@ def coerce_str(value: Any, *, default: str = "") -> str:
     if value is None:
         return default
     return str(value)
+
+
 def coerce_optional_str(value: Any) -> str | None:
     """Return a trimmed string when available, otherwise None.
 
@@ -99,6 +103,8 @@ def coerce_optional_str(value: Any) -> str | None:
         trimmed = value.strip()
         return trimmed or None
     return None
+
+
 def coerce_optional_float(value: Any) -> float | None:
     """Coerce arbitrary user input into a float when possible.
 
@@ -124,6 +130,8 @@ def coerce_optional_float(value: Any) -> float | None:
         except ValueError:
             return None
     return None
+
+
 def coerce_optional_int(value: Any) -> int | None:
     """Coerce arbitrary user input into an integer when possible.
 
@@ -151,6 +159,8 @@ def coerce_optional_int(value: Any) -> int | None:
         except ValueError:
             return None
     return None
+
+
 # Common form rendering helpers
 
 
@@ -386,6 +396,8 @@ def validate_required_field(
     if value is None or (isinstance(value, str) and not value.strip()):
         resolved_errors[field_name] = error_key
     return resolved_errors
+
+
 def validate_min_max(
     field_name: str,
     value: float | int,
@@ -402,6 +414,8 @@ def validate_min_max(
     if max_value is not None and value > max_value:
         resolved_errors[field_name] = error_key
     return resolved_errors
+
+
 def validate_entity_exists(
     *,
     hass: Any,  # HomeAssistant type
@@ -420,6 +434,8 @@ def validate_entity_exists(
     if state is None or state.state in {"unknown", "unavailable"}:
         resolved_errors[field] = error_key
     return resolved_errors
+
+
 # Schema building helpers
 
 
@@ -447,6 +463,7 @@ def build_select_schema(
         >>> schema = build_select_schema("size", ["small", "medium", "large"])
     """
     from .selector_shim import selector
+
     vol_key: vol.Optional | vol.Required
     if required:
         if default is not None:
@@ -472,6 +489,8 @@ def build_select_schema(
         )
 
     return {vol_key: selector.SelectSelector(config)}
+
+
 def build_number_schema(
     key: str,
     *,
@@ -502,6 +521,7 @@ def build_number_schema(
         ... )
     """
     from .selector_shim import selector
+
     vol_key: vol.Optional | vol.Required
     if required:
         if default is not None:
@@ -531,6 +551,8 @@ def build_number_schema(
         )
 
     return {vol_key: selector.NumberSelector(config)}
+
+
 def build_text_schema(
     key: str,
     *,
@@ -555,6 +577,7 @@ def build_text_schema(
         >>> schema = build_text_schema("name", required=True, autocomplete="name")
     """
     from .selector_shim import selector
+
     vol_key: vol.Optional | vol.Required
     if required:
         if default is not None:
@@ -580,6 +603,8 @@ def build_text_schema(
         )
 
     return {vol_key: selector.TextSelector(config)}
+
+
 def build_boolean_schema(
     key: str,
     *,
@@ -598,7 +623,10 @@ def build_boolean_schema(
         >>> schema = build_boolean_schema("enabled", default=True)
     """
     from .selector_shim import selector
+
     return {vol.Optional(key, default=default): selector.BooleanSelector()}
+
+
 # Common validation patterns
 
 
@@ -628,6 +656,8 @@ def merge_errors(
     for errors in error_maps:
         merged.update(errors)
     return merged
+
+
 def has_errors(errors: dict[str, str]) -> bool:
     """Check if there are any validation errors.
 
@@ -644,6 +674,8 @@ def has_errors(errors: dict[str, str]) -> bool:
         True
     """
     return len(errors) > 0
+
+
 # Flow state management
 
 
@@ -667,6 +699,8 @@ def store_flow_data(
         flow_data = {}
         flow._flow_data = flow_data
     flow_data[key] = value
+
+
 def get_flow_data(
     flow: ConfigFlow | OptionsFlow,
     key: str,
@@ -689,6 +723,8 @@ def get_flow_data(
     if not isinstance(flow_data, dict):
         return default
     return flow_data.get(key, default)
+
+
 def clear_flow_data(flow: ConfigFlow | OptionsFlow, key: str | None = None) -> None:
     """Clear all flow context data.
 

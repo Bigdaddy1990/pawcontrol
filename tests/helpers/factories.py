@@ -44,13 +44,13 @@ def create_mock_hass() -> HomeAssistant:
     Examples:
         >>> hass = create_mock_hass()
         >>> assert hass.data is not None
-    """  # noqa: E111
-    hass = MagicMock(spec=HomeAssistant)  # noqa: E111
-    hass.data = {}  # noqa: E111
-    hass.states = MagicMock()  # noqa: E111
-    hass.config_entries = MagicMock()  # noqa: E111
-    hass.services = MagicMock()  # noqa: E111
-    return hass  # noqa: E111
+    """
+    hass = MagicMock(spec=HomeAssistant)
+    hass.data = {}
+    hass.states = MagicMock()
+    hass.config_entries = MagicMock()
+    hass.services = MagicMock()
+    return hass
 
 
 def create_test_config_entry(
@@ -78,17 +78,17 @@ def create_test_config_entry(
     Examples:
         >>> entry = create_test_config_entry()
         >>> assert entry.domain == DOMAIN
-    """  # noqa: E111
-    if entry_id is None:  # noqa: E111
+    """
+    if entry_id is None:
         entry_id = str(uuid.uuid4())
 
-    if data is None:  # noqa: E111
+    if data is None:
         data = create_test_entry_data()
 
-    if options is None:  # noqa: E111
+    if options is None:
         options = create_test_entry_options()
 
-    entry = ConfigEntry(  # noqa: E111
+    entry = ConfigEntry(
         version=1,
         minor_version=1,
         domain=DOMAIN,
@@ -100,7 +100,7 @@ def create_test_config_entry(
         entry_id=entry_id,
     )
 
-    return entry  # noqa: E111
+    return entry
 
 
 def create_test_entry_data(
@@ -124,19 +124,19 @@ def create_test_entry_data(
     Examples:
         >>> data = create_test_entry_data()
         >>> assert CONF_API_ENDPOINT in data
-    """  # noqa: E111
-    data: dict[str, Any] = {  # noqa: E111
+    """
+    data: dict[str, Any] = {
         CONF_API_ENDPOINT: api_endpoint,
         CONF_API_TOKEN: api_token,
     }
 
-    if username is not None:  # noqa: E111
+    if username is not None:
         data[CONF_USERNAME] = username
 
-    if password is not None:  # noqa: E111
+    if password is not None:
         data[CONF_PASSWORD] = password
 
-    return data  # noqa: E111
+    return data
 
 
 def create_test_entry_options(
@@ -156,11 +156,11 @@ def create_test_entry_options(
     Examples:
         >>> options = create_test_entry_options()
         >>> assert CONF_UPDATE_INTERVAL in options
-    """  # noqa: E111
-    if dogs is None:  # noqa: E111
+    """
+    if dogs is None:
         dogs = create_test_dogs_config()
 
-    return {  # noqa: E111
+    return {
         CONF_UPDATE_INTERVAL: update_interval,
         CONF_DOGS: dogs,
     }
@@ -183,10 +183,10 @@ def create_test_dogs_config(
     Examples:
         >>> dogs = create_test_dogs_config(count=3)
         >>> assert len(dogs) == 3
-    """  # noqa: E111
-    dogs: dict[str, dict[str, Any]] = {}  # noqa: E111
+    """
+    dogs: dict[str, dict[str, Any]] = {}
 
-    for i in range(count):  # noqa: E111
+    for i in range(count):
         dog_id = f"{prefix}_{i + 1}"
         dogs[dog_id] = {
             "name": f"{prefix.title()} {i + 1}",
@@ -196,7 +196,7 @@ def create_test_dogs_config(
             "modules": [MODULE_GPS, MODULE_WALK, MODULE_FEEDING],
         }
 
-    return dogs  # noqa: E111
+    return dogs
 
 
 def create_test_dog_data(
@@ -224,11 +224,11 @@ def create_test_dog_data(
     Examples:
         >>> data = create_test_dog_data(dog_id="buddy")
         >>> assert data["name"] == "Test Dog"
-    """  # noqa: E111
-    if modules is None:  # noqa: E111
+    """
+    if modules is None:
         modules = [MODULE_GPS, MODULE_WALK, MODULE_FEEDING]
 
-    return {  # noqa: E111
+    return {
         "dog_id": dog_id,
         "name": name,
         "breed": breed,
@@ -260,27 +260,27 @@ def create_test_coordinator_data(
         >>> data = create_test_coordinator_data(dog_ids=["buddy", "max"])
         >>> assert "buddy" in data
         >>> assert "max" in data
-    """  # noqa: E111
-    if dog_ids is None:  # noqa: E111
+    """
+    if dog_ids is None:
         dog_ids = ["dog_1", "dog_2"]
 
-    data: dict[str, dict[str, Any]] = {}  # noqa: E111
+    data: dict[str, dict[str, Any]] = {}
 
-    for dog_id in dog_ids:  # noqa: E111
+    for dog_id in dog_ids:
         dog_data: dict[str, Any] = {}
 
         if include_gps:
-            dog_data[MODULE_GPS] = create_test_gps_data()  # noqa: E111
+            dog_data[MODULE_GPS] = create_test_gps_data()
 
         if include_walk:
-            dog_data[MODULE_WALK] = create_test_walk_data()  # noqa: E111
+            dog_data[MODULE_WALK] = create_test_walk_data()
 
         if include_feeding:
-            dog_data[MODULE_FEEDING] = create_test_feeding_data()  # noqa: E111
+            dog_data[MODULE_FEEDING] = create_test_feeding_data()
 
         data[dog_id] = dog_data
 
-    return data  # noqa: E111
+    return data
 
 
 def create_test_gps_data(
@@ -304,11 +304,11 @@ def create_test_gps_data(
     Examples:
         >>> data = create_test_gps_data(latitude=40.0, longitude=-120.0)
         >>> assert data["latitude"] == 40.0
-    """  # noqa: E111
-    if timestamp is None:  # noqa: E111
+    """
+    if timestamp is None:
         timestamp = datetime.now()
 
-    return {  # noqa: E111
+    return {
         "latitude": latitude,
         "longitude": longitude,
         "accuracy": accuracy,
@@ -338,11 +338,11 @@ def create_test_walk_data(
     Examples:
         >>> data = create_test_walk_data(active=True, distance=2.5)
         >>> assert data["walk_in_progress"] == True
-    """  # noqa: E111
-    if start_time is None and active:  # noqa: E111
+    """
+    if start_time is None and active:
         start_time = datetime.now() - timedelta(seconds=duration)
 
-    return {  # noqa: E111
+    return {
         "walk_in_progress": active,
         "distance": distance,
         "duration": duration,
@@ -369,11 +369,11 @@ def create_test_feeding_data(
     Examples:
         >>> data = create_test_feeding_data(meals_today=3)
         >>> assert data["meals_today"] == 3
-    """  # noqa: E111
-    if last_meal_time is None:  # noqa: E111
+    """
+    if last_meal_time is None:
         last_meal_time = datetime.now() - timedelta(hours=3)
 
-    return {  # noqa: E111
+    return {
         "last_meal_time": last_meal_time.isoformat(),
         "meals_today": meals_today,
         "total_calories": total_calories,
@@ -399,20 +399,20 @@ def create_mock_coordinator(
     Examples:
         >>> coordinator = create_mock_coordinator()
         >>> assert coordinator.last_update_success == True
-    """  # noqa: E111
-    if hass is None:  # noqa: E111
+    """
+    if hass is None:
         hass = create_mock_hass()
 
-    if data is None:  # noqa: E111
+    if data is None:
         data = create_test_coordinator_data()
 
-    coordinator = MagicMock(spec=DataUpdateCoordinator)  # noqa: E111
-    coordinator.hass = hass  # noqa: E111
-    coordinator.data = data  # noqa: E111
-    coordinator.last_update_success = last_update_success  # noqa: E111
-    coordinator.async_request_refresh = AsyncMock()  # noqa: E111
+    coordinator = MagicMock(spec=DataUpdateCoordinator)
+    coordinator.hass = hass
+    coordinator.data = data
+    coordinator.last_update_success = last_update_success
+    coordinator.async_request_refresh = AsyncMock()
 
-    return coordinator  # noqa: E111
+    return coordinator
 
 
 def create_mock_api_client(
@@ -432,12 +432,12 @@ def create_mock_api_client(
     Examples:
         >>> client = create_mock_api_client()
         >>> assert client.is_connected == True
-    """  # noqa: E111
-    client = MagicMock()  # noqa: E111
-    client.is_connected = connected  # noqa: E111
-    client.async_get_dog_data = AsyncMock(return_value=dog_data or {})  # noqa: E111
-    client.async_update_dog_data = AsyncMock()  # noqa: E111
-    return client  # noqa: E111
+    """
+    client = MagicMock()
+    client.is_connected = connected
+    client.async_get_dog_data = AsyncMock(return_value=dog_data or {})
+    client.async_update_dog_data = AsyncMock()
+    return client
 
 
 # Test data generators
@@ -464,12 +464,12 @@ def generate_test_gps_coordinates(
     Examples:
         >>> coords = generate_test_gps_coordinates(count=5)
         >>> assert len(coords) == 5
-    """  # noqa: E111
-    import random  # noqa: E111
+    """
+    import random
 
-    coords: list[tuple[float, float]] = []  # noqa: E111
+    coords: list[tuple[float, float]] = []
 
-    for _ in range(count):  # noqa: E111
+    for _ in range(count):
         # Simple random offset (not geographically accurate, but good for testing)
         lat_offset = random.uniform(-radius_km / 111, radius_km / 111)
         lon_offset = random.uniform(-radius_km / 111, radius_km / 111)
@@ -479,7 +479,7 @@ def generate_test_gps_coordinates(
 
         coords.append((lat, lon))
 
-    return coords  # noqa: E111
+    return coords
 
 
 def generate_test_timestamps(
@@ -501,18 +501,18 @@ def generate_test_timestamps(
     Examples:
         >>> timestamps = generate_test_timestamps(count=5)
         >>> assert len(timestamps) == 5
-    """  # noqa: E111
-    if start is None:  # noqa: E111
+    """
+    if start is None:
         start = datetime.now() - timedelta(seconds=interval_seconds * count)
 
-    timestamps: list[datetime] = []  # noqa: E111
-    current = start  # noqa: E111
+    timestamps: list[datetime] = []
+    current = start
 
-    for _ in range(count):  # noqa: E111
+    for _ in range(count):
         timestamps.append(current)
         current += timedelta(seconds=interval_seconds)
 
-    return timestamps  # noqa: E111
+    return timestamps
 
 
 # Assertion helpers
@@ -530,15 +530,15 @@ def assert_valid_gps_data(data: dict[str, Any]) -> None:
     Examples:
         >>> data = create_test_gps_data()
         >>> assert_valid_gps_data(data)
-    """  # noqa: E111
-    assert "latitude" in data  # noqa: E111
-    assert "longitude" in data  # noqa: E111
-    assert "accuracy" in data  # noqa: E111
-    assert "timestamp" in data  # noqa: E111
+    """
+    assert "latitude" in data
+    assert "longitude" in data
+    assert "accuracy" in data
+    assert "timestamp" in data
 
-    assert -90 <= data["latitude"] <= 90  # noqa: E111
-    assert -180 <= data["longitude"] <= 180  # noqa: E111
-    assert data["accuracy"] > 0  # noqa: E111
+    assert -90 <= data["latitude"] <= 90
+    assert -180 <= data["longitude"] <= 180
+    assert data["accuracy"] > 0
 
 
 def assert_valid_walk_data(data: dict[str, Any]) -> None:
@@ -553,14 +553,14 @@ def assert_valid_walk_data(data: dict[str, Any]) -> None:
     Examples:
         >>> data = create_test_walk_data()
         >>> assert_valid_walk_data(data)
-    """  # noqa: E111
-    assert "walk_in_progress" in data  # noqa: E111
-    assert "distance" in data  # noqa: E111
-    assert "duration" in data  # noqa: E111
+    """
+    assert "walk_in_progress" in data
+    assert "distance" in data
+    assert "duration" in data
 
-    assert isinstance(data["walk_in_progress"], bool)  # noqa: E111
-    assert data["distance"] >= 0  # noqa: E111
-    assert data["duration"] >= 0  # noqa: E111
+    assert isinstance(data["walk_in_progress"], bool)
+    assert data["distance"] >= 0
+    assert data["duration"] >= 0
 
 
 def assert_coordinator_data_valid(data: dict[str, dict[str, Any]]) -> None:
@@ -575,16 +575,16 @@ def assert_coordinator_data_valid(data: dict[str, dict[str, Any]]) -> None:
     Examples:
         >>> data = create_test_coordinator_data()
         >>> assert_coordinator_data_valid(data)
-    """  # noqa: E111
-    assert isinstance(data, dict)  # noqa: E111
+    """
+    assert isinstance(data, dict)
 
-    for dog_id, dog_data in data.items():  # noqa: E111
+    for dog_id, dog_data in data.items():
         assert isinstance(dog_id, str)
         assert isinstance(dog_data, dict)
 
         # Check module data if present
         if MODULE_GPS in dog_data:
-            assert_valid_gps_data(dog_data[MODULE_GPS])  # noqa: E111
+            assert_valid_gps_data(dog_data[MODULE_GPS])
 
         if MODULE_WALK in dog_data:
-            assert_valid_walk_data(dog_data[MODULE_WALK])  # noqa: E111
+            assert_valid_walk_data(dog_data[MODULE_WALK])

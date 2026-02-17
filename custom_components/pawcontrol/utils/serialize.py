@@ -7,8 +7,6 @@ Quality Scale: Platinum
 Python: 3.14+
 """
 
-# ruff: noqa: E111
-
 from collections.abc import Mapping
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta
@@ -38,6 +36,8 @@ def serialize_datetime(dt: datetime) -> str:
         '2026-02-15T10:30:00+00:00'
     """
     return dt.isoformat()
+
+
 def serialize_timedelta(td: timedelta) -> int:
     """Convert timedelta to total seconds.
 
@@ -54,6 +54,8 @@ def serialize_timedelta(td: timedelta) -> int:
         1800
     """
     return int(td.total_seconds())
+
+
 def serialize_dataclass(obj: Any) -> dict[str, Any]:
     """Convert dataclass instance to dictionary.
 
@@ -119,6 +121,8 @@ def serialize_entity_attributes(attrs: Mapping[str, Any]) -> dict[str, Any]:
         result[key] = _serialize_value(value)
 
     return result
+
+
 def _serialize_value(value: Any) -> Any:
     """Recursively serialize a value to JSON-safe format.
 
@@ -128,34 +132,34 @@ def _serialize_value(value: Any) -> Any:
     Returns:
         JSON-serializable value
     """
-    # Handle None  # noqa: E114
+    # Handle None
     if value is None:
         return None
 
-    # Handle datetime  # noqa: E114
+    # Handle datetime
     if isinstance(value, datetime):
         return serialize_datetime(value)
 
-    # Handle timedelta  # noqa: E114
+    # Handle timedelta
     if isinstance(value, timedelta):
         return serialize_timedelta(value)
 
-    # Handle dataclass  # noqa: E114
+    # Handle dataclass
     if is_dataclass(value) and not isinstance(value, type):
         # Recursively serialize dataclass fields
         return {k: _serialize_value(v) for k, v in asdict(value).items()}
 
-    # Handle dict (recursively)  # noqa: E114
+    # Handle dict (recursively)
     if isinstance(value, dict):
         return {k: _serialize_value(v) for k, v in value.items()}
 
-    # Handle list/tuple (recursively)  # noqa: E114
+    # Handle list/tuple (recursively)
     if isinstance(value, list | tuple):
         return [_serialize_value(item) for item in value]
 
-    # Handle primitives (str, int, float, bool)  # noqa: E114
+    # Handle primitives (str, int, float, bool)
     if isinstance(value, str | int | float | bool):
         return value
 
-    # Fallback: convert to string  # noqa: E114
+    # Fallback: convert to string
     return str(value)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# ruff: noqa: E111, E114
 """Autofix common MyPy issues in the PawControl codebase.
 
 This script focuses on deterministic, low-risk fixes:

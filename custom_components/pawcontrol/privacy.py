@@ -32,10 +32,13 @@ class RedactionRule:
         field_names: Specific field names to redact
         redactor: Custom redaction function
     """
+
     pattern: Pattern[str] | None = None
     replacement: str = "[REDACTED]"
     field_names: list[str] = field(default_factory=list)
     redactor: Callable[[str], str] | None = None
+
+
 class PIIRedactor:
     """Redacts personally identifiable information (PII).
 
@@ -47,6 +50,7 @@ class PIIRedactor:
         >>> clean = redactor.redact_text("My email is user@example.com")
         >>> # Result: "My email is [EMAIL]"
     """
+
     def __init__(self) -> None:
         """Initialize PII redactor."""
         self._rules: list[RedactionRule] = []
@@ -160,7 +164,7 @@ class PIIRedactor:
         redacted: dict[str, Any] = {}
 
         for key, value in data.items():
-            # Check if field should be redacted by name  # noqa: E114
+            # Check if field should be redacted by name
             should_redact_field = any(key in rule.field_names for rule in self._rules)
             if should_redact_field:
                 redacted[key] = "[REDACTED]"
@@ -192,6 +196,7 @@ class GPSAnonymizer:
         >>> anon_lat, anon_lon = anonymizer.anonymize(45.5231, -122.6765)
         >>> # Result: (45.523, -122.677)
     """
+
     def __init__(self, precision: int = 3) -> None:
         """Initialize GPS anonymizer.
 
@@ -261,6 +266,7 @@ class DataHasher:
         >>> hasher = DataHasher()
         >>> hashed = hasher.hash_string("user@example.com")
     """
+
     def __init__(self, algorithm: str = "sha256") -> None:
         """Initialize data hasher.
 
@@ -322,6 +328,7 @@ class PrivacyManager:
         >>> manager = PrivacyManager(hass)
         >>> clean_data = await manager.async_sanitize_data(user_data)
     """
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -449,6 +456,7 @@ def sanitize_return_value(
     """
     redactor = PIIRedactor()
     gps_anonymizer = GPSAnonymizer()
+
     def decorator(func: Any) -> Any:
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             result = await func(*args, **kwargs)
@@ -458,9 +466,12 @@ def sanitize_return_value(
                 if anonymize_gps and "latitude" in result and "longitude" in result:
                     result = gps_anonymizer.anonymize_dict(result)
             return result
+
         return wrapper
 
     return decorator
+
+
 # Utility functions
 
 
@@ -482,6 +493,8 @@ def mask_string(text: str, visible_chars: int = 4) -> str:
         return "*" * len(text)
 
     return text[:visible_chars] + "*" * (len(text) - visible_chars)
+
+
 def anonymize_user_id(user_id: str) -> str:
     """Anonymize user ID.
 

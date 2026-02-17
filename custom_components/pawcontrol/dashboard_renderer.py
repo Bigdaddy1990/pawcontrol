@@ -75,12 +75,15 @@ RenderJobType = Literal["main_dashboard", "dog_dashboard"]
 def _as_card_options(options: DashboardRendererOptions) -> DashboardCardOptions:
     """Return ``options`` as card generator payload."""
     return options
+
+
 ConfigT = TypeVar("ConfigT", bound=DashboardRenderJobConfig)
 OptionsT = TypeVar("OptionsT", bound=DashboardRendererOptions)
 
 
 class RenderJob[ConfigT: DashboardRenderJobConfig, OptionsT: DashboardRendererOptions]:
     """Represents a dashboard rendering job."""
+
     def __init__(
         self,
         job_id: str,
@@ -120,6 +123,7 @@ class DashboardRenderer:
     lazy loading, and efficient memory management. Supports concurrent
     rendering jobs with proper resource isolation.
     """
+
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize dashboard renderer.
 
@@ -496,7 +500,7 @@ class DashboardRenderer:
                 continue
 
             entity_id = f"sensor.{dog_id}_activity_level"
-            # Check if entity exists before adding  # noqa: E114
+            # Check if entity exists before adding
             if self.hass.states.get(entity_id):
                 activity_entities.append(entity_id)
 
@@ -523,7 +527,7 @@ class DashboardRenderer:
             List of dog view configurations
         """
         if not dogs_config:
-            # Nothing to render; avoid zero batch size that would break range.  # noqa: E114
+            # Nothing to render; avoid zero batch size that would break range.  # noqa: E501
             return []
         dogs_list = list(dogs_config)
         views: list[LovelaceViewConfig] = []
@@ -537,7 +541,7 @@ class DashboardRenderer:
 
         for i in range(0, len(dogs_list), batch_size):
             batch = dogs_list[i : i + batch_size]
-            # Process batch concurrently  # noqa: E114
+            # Process batch concurrently
             batch_jobs: list[
                 tuple[DogConfigData, Awaitable[LovelaceViewConfig | None]]
             ] = [
@@ -807,6 +811,7 @@ class DashboardRenderer:
                 err,
             )
             return None
+
     async def _render_statistics_view(
         self,
         dogs_config: Sequence[DogConfigData],
@@ -885,7 +890,7 @@ class DashboardRenderer:
                 continue
 
             dog_entities = [f"switch.{dog_id}_notifications_enabled"]
-            # Add module-specific settings  # noqa: E114
+            # Add module-specific settings
             modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
             if modules.get(MODULE_GPS):
                 dog_entities.append(f"switch.{dog_id}_gps_tracking_enabled")
@@ -928,7 +933,7 @@ class DashboardRenderer:
         """
         temp_path: Path | None = None
         try:
-            # Prepare dashboard data  # noqa: E114
+            # Prepare dashboard data
             metadata_payload: JSONMutableMapping
             if metadata is not None:
                 metadata_payload = metadata
@@ -948,7 +953,7 @@ class DashboardRenderer:
                 },
             )
 
-            # Ensure parent directory exists without blocking the event loop  # noqa: E114
+            # Ensure parent directory exists without blocking the event loop  # noqa: E501
             await self.hass.async_add_executor_job(
                 partial(file_path.parent.mkdir, parents=True, exist_ok=True),
             )
@@ -959,8 +964,9 @@ class DashboardRenderer:
                     dir=file_path.parent,
                 ) as temp_file:
                     return Path(temp_file.name)
+
             temp_path = await self.hass.async_add_executor_job(_create_temp_path)
-            # Write file asynchronously  # noqa: E114
+            # Write file asynchronously
             async with aiofiles.open(temp_path, "w", encoding="utf-8") as file:
                 content = json.dumps(
                     dashboard_data,

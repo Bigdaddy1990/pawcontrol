@@ -19,9 +19,9 @@ dt_util.now = lambda: datetime.now(UTC)
 
 
 def create_metrics(**overrides: object) -> HealthMetrics:
-    """Create a ``HealthMetrics`` instance with sensible defaults for tests."""  # noqa: E111
+    """Create a ``HealthMetrics`` instance with sensible defaults for tests."""
 
-    defaults: dict[str, object] = {  # noqa: E111
+    defaults: dict[str, object] = {
         "current_weight": 25.0,
         "ideal_weight": 22.0,
         "age_months": 36,
@@ -30,31 +30,31 @@ def create_metrics(**overrides: object) -> HealthMetrics:
         "health_conditions": [],
         "special_diet": [],
     }
-    defaults.update(overrides)  # noqa: E111
-    return HealthMetrics(**defaults)  # noqa: E111
+    defaults.update(overrides)
+    return HealthMetrics(**defaults)
 
 
 class TestHealthMetricsValidation:
-    """Validation-centric tests for :class:`HealthMetrics`."""  # noqa: E111
+    """Validation-centric tests for :class:`HealthMetrics`."""
 
-    def test_validate_breed_normalizes_whitespace(self) -> None:  # noqa: E111
+    def test_validate_breed_normalizes_whitespace(self) -> None:
         """Breed values are normalised and validated."""
 
         metrics = create_metrics(breed="  golden   retriever  ")
         assert metrics.breed == "golden retriever"
 
-    @pytest.mark.parametrize("invalid", ["", "x", "Poodle!", 123])  # noqa: E111
-    def test_validate_breed_rejects_invalid_values(self, invalid: object) -> None:  # noqa: E111
+    @pytest.mark.parametrize("invalid", ["", "x", "Poodle!", 123])
+    def test_validate_breed_rejects_invalid_values(self, invalid: object) -> None:
         """Invalid breed values raise a descriptive error."""
 
         with pytest.raises((TypeError, ValueError)):
-            create_metrics(breed=invalid)  # noqa: E111
+            create_metrics(breed=invalid)
 
 
 class TestLifeStageCalculation:
-    """Tests for ``calculate_life_stage`` thresholds and validation."""  # noqa: E111
+    """Tests for ``calculate_life_stage`` thresholds and validation."""
 
-    def test_life_stage_thresholds(self) -> None:  # noqa: E111
+    def test_life_stage_thresholds(self) -> None:
         """Life stage thresholds account for breed size."""
 
         assert HealthCalculator.calculate_life_stage(10, "medium") == LifeStage.PUPPY
@@ -67,17 +67,17 @@ class TestLifeStageCalculation:
             HealthCalculator.calculate_life_stage(130, "medium") == LifeStage.GERIATRIC
         )
 
-    def test_life_stage_negative_age_raises(self) -> None:  # noqa: E111
+    def test_life_stage_negative_age_raises(self) -> None:
         """Negative ages are rejected instead of silently classified."""
 
         with pytest.raises(ValueError):
-            HealthCalculator.calculate_life_stage(-1)  # noqa: E111
+            HealthCalculator.calculate_life_stage(-1)
 
 
 class TestPortionCalculations:
-    """Tests for the complex portion adjustment logic."""  # noqa: E111
+    """Tests for the complex portion adjustment logic."""
 
-    def test_portion_adjustment_factor_combines_all_modifiers(self) -> None:  # noqa: E111
+    def test_portion_adjustment_factor_combines_all_modifiers(self) -> None:
         """BCS, conditions and diets influence the portion multiplier."""
 
         metrics = create_metrics(
@@ -89,7 +89,7 @@ class TestPortionCalculations:
         factor = HealthCalculator.calculate_portion_adjustment_factor(metrics)
         assert factor == pytest.approx(0.69)
 
-    def test_portion_adjustment_respects_lower_bound(self) -> None:  # noqa: E111
+    def test_portion_adjustment_respects_lower_bound(self) -> None:
         """Extreme adjustments are clamped to the safe lower bound."""
 
         metrics = create_metrics(
@@ -103,7 +103,7 @@ class TestPortionCalculations:
         )
         assert factor == 0.5
 
-    def test_diet_validation_adjustment_applies_conflicts_and_warnings(self) -> None:  # noqa: E111
+    def test_diet_validation_adjustment_applies_conflicts_and_warnings(self) -> None:
         """Conflicts and warnings reduce the adjustment factor cumulatively."""
 
         validation: DietValidationResult = {
@@ -133,7 +133,7 @@ class TestPortionCalculations:
 
         assert adjustment == pytest.approx(0.855)
 
-    def test_diet_interactions_detects_risk_levels(self) -> None:  # noqa: E111
+    def test_diet_interactions_detects_risk_levels(self) -> None:
         """Diet interactions categorise combinations correctly."""
 
         interactions = HealthCalculator.get_diet_interaction_effects([
@@ -153,15 +153,15 @@ class TestPortionCalculations:
 
 
 class TestFeedingHistoryAnalysis:
-    """Behavioural tests for ``analyze_feeding_history``."""  # noqa: E111
+    """Behavioural tests for ``analyze_feeding_history``."""
 
-    def test_analyze_feeding_history_handles_no_events(self) -> None:  # noqa: E111
+    def test_analyze_feeding_history_handles_no_events(self) -> None:
         """No events returns a helpful guidance payload."""
 
         result = HealthCalculator.analyze_feeding_history([], 600.0)
         assert result["status"] == "no_data"
 
-    def test_analyze_feeding_history_requires_recent_data(self) -> None:  # noqa: E111
+    def test_analyze_feeding_history_requires_recent_data(self) -> None:
         """Only recent events are considered for analysis."""
 
         old_event_time = dt_util.now() - timedelta(days=10)
@@ -171,7 +171,7 @@ class TestFeedingHistoryAnalysis:
         )
         assert result["status"] == "insufficient_data"
 
-    def test_analyze_feeding_history_balanced_plan(self) -> None:  # noqa: E111
+    def test_analyze_feeding_history_balanced_plan(self) -> None:
         """Balanced meals surface a 'good' status and actionable tips."""
 
         now = dt_util.now()

@@ -34,6 +34,8 @@ def _domain_store(hass: HomeAssistant) -> dict[str, Any]:
         hass.data[DOMAIN] = {}
         store = hass.data[DOMAIN]
     return cast(dict[str, Any], store)
+
+
 def _any_dog_expects_mqtt(entry: ConfigEntry) -> bool:
     dogs = entry.data.get(CONF_DOGS, [])
     if not isinstance(dogs, list):
@@ -45,6 +47,8 @@ def _any_dog_expects_mqtt(entry: ConfigEntry) -> bool:
         if isinstance(gps_cfg, dict) and gps_cfg.get(CONF_GPS_SOURCE) == "mqtt":
             return True
     return False
+
+
 async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Subscribe to MQTT topic for this entry when enabled and needed."""
     enabled = bool(entry.options.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED))
@@ -72,8 +76,9 @@ async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> 
         store[_MQTT_STORE_KEY] = {}
         mqtt_store = store[_MQTT_STORE_KEY]
 
-    # Unsubscribe existing (idempotent)  # noqa: E114
+    # Unsubscribe existing (idempotent)
     await async_unregister_entry_mqtt(hass, entry)
+
     async def _callback(msg: Any) -> None:
         try:
             payload_bytes = msg.payload if hasattr(msg, "payload") else None
@@ -110,6 +115,8 @@ async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> 
 
     mqtt_store[entry.entry_id] = unsub
     _LOGGER.debug("Subscribed MQTT push topic %s for entry %s", topic, entry.entry_id)
+
+
 async def async_unregister_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Unsubscribe MQTT push topic for this entry."""
     store = _domain_store(hass)
@@ -120,7 +127,7 @@ async def async_unregister_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -
     if callable(unsub):
         try:
             result = unsub()
-            # Some HA versions return awaitable  # noqa: E114
+            # Some HA versions return awaitable
             if hasattr(result, "__await__"):
                 await result
         except Exception:  # pragma: no cover

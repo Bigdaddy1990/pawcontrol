@@ -29,11 +29,13 @@ class ComplianceIssue:
         manager_name: Name of the manager
         details: Additional details
     """
+
     severity: str
     category: str
     message: str
     manager_name: str
     details: dict[str, Any] = field(default_factory=dict)
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -55,10 +57,12 @@ class ComplianceReport:
         issues: List of compliance issues
         score: Compliance score (0-100)
     """
+
     manager_name: str
     is_compliant: bool = True
     issues: list[ComplianceIssue] = field(default_factory=list)
     score: int = 100
+
     def add_issue(
         self,
         severity: str,
@@ -91,6 +95,7 @@ class ComplianceReport:
             self.score = max(0, self.score - 10)
         elif severity == "info":
             self.score = max(0, self.score - 5)
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -209,7 +214,7 @@ def check_method_signatures(
         manager: Manager class to check
         report: Compliance report to update
     """
-    # Check async_setup signature  # noqa: E114
+    # Check async_setup signature
     if hasattr(manager, "async_setup"):
         sig = inspect.signature(manager.async_setup)
         params = list(sig.parameters.keys())
@@ -223,7 +228,7 @@ def check_method_signatures(
                 actual_params=params,
             )
 
-    # Check async_shutdown signature  # noqa: E114
+    # Check async_shutdown signature
     if hasattr(manager, "async_shutdown"):
         sig = inspect.signature(manager.async_shutdown)
         params = list(sig.parameters.keys())
@@ -237,7 +242,7 @@ def check_method_signatures(
                 actual_params=params,
             )
 
-    # Check get_diagnostics signature  # noqa: E114
+    # Check get_diagnostics signature
     if hasattr(manager, "get_diagnostics"):
         sig = inspect.signature(manager.get_diagnostics)
         params = list(sig.parameters.keys())
@@ -262,7 +267,7 @@ def check_documentation(
         manager: Manager class to check
         report: Compliance report to update
     """
-    # Check class docstring  # noqa: E114
+    # Check class docstring
     if not manager.__doc__:
         report.add_issue(
             "warning",
@@ -277,7 +282,7 @@ def check_documentation(
             length=len(manager.__doc__.strip()),
         )
 
-    # Check method docstrings  # noqa: E114
+    # Check method docstrings
     methods_to_check = ["async_setup", "async_shutdown", "get_diagnostics"]
     for method_name in methods_to_check:
         if hasattr(manager, method_name):
@@ -301,8 +306,9 @@ def check_inheritance(
         manager: Manager class to check
         report: Compliance report to update
     """
-    # Check if inherits from BaseManager  # noqa: E114
+    # Check if inherits from BaseManager
     from .base_manager import BaseManager
+
     if not issubclass(manager, BaseManager):
         report.add_issue(
             "error",
@@ -330,13 +336,13 @@ def validate_manager_compliance(
         >>> else:
         ...     print(f"Found {len(report.issues)} issues")
     """
-    # Get class if instance was passed  # noqa: E114
+    # Get class if instance was passed
     if not inspect.isclass(manager):
         manager = manager.__class__
 
     manager_name = getattr(manager, "MANAGER_NAME", manager.__name__)
     report = ComplianceReport(manager_name=manager_name)
-    # Run all checks  # noqa: E114
+    # Run all checks
     check_inheritance(manager, report)
     check_required_methods(manager, report)
     check_lifecycle_properties(manager, report)
@@ -344,6 +350,8 @@ def validate_manager_compliance(
     check_method_signatures(manager, report)
     check_documentation(manager, report)
     return report
+
+
 def validate_all_managers(
     *managers: type[Any] | Any,
 ) -> dict[str, ComplianceReport]:
@@ -366,6 +374,8 @@ def validate_all_managers(
         reports[report.manager_name] = report
 
     return reports
+
+
 def print_compliance_report(
     report: ComplianceReport,
     logger: logging.Logger | None = None,

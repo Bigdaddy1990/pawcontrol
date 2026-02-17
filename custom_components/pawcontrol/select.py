@@ -112,6 +112,8 @@ PARALLEL_UPDATES = 0
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for select entities."""
     return normalise_entity_attributes(attrs)
+
+
 # Additional option lists for selects
 WALK_MODES: list[WalkModeKey] = [
     "automatic",
@@ -435,6 +437,8 @@ def _merge_json_mappings(
     base_payload: dict[str, JSONValue] = dict(base) if base is not None else {}
     merged = deep_merge_dicts(base_payload, dict(updates))
     return merged
+
+
 async def _async_add_entities_in_batches(
     async_add_entities_func: AddEntitiesCallback,
     entities: Sequence[PawControlSelectBase],
@@ -460,7 +464,7 @@ async def _async_add_entities_in_batches(
         batch_size,
     )
 
-    # Process entities in batches  # noqa: E114
+    # Process entities in batches
     for i in range(0, total_entities, batch_size):
         batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
@@ -483,6 +487,8 @@ async def _async_add_entities_in_batches(
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch
             await asyncio.sleep(delay_between_batches)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
@@ -507,7 +513,7 @@ async def async_setup_entry(
     coordinator: PawControlCoordinator = runtime_data.coordinator
     dogs: list[DogConfigData] = runtime_data.dogs
     entities: list[PawControlSelectBase] = []
-    # Create select entities for each configured dog  # noqa: E114
+    # Create select entities for each configured dog
     for dog in dogs:
         dog_id = dog[DOG_ID_FIELD]
         dog_name = dog[DOG_NAME_FIELD]
@@ -559,8 +565,8 @@ async def async_setup_entry(
                 ),
             )
 
-    # Add entities in smaller batches to prevent Entity Registry overload  # noqa: E114
-    # With 32+ select entities (2 dogs), batching prevents Registry flooding  # noqa: E114
+    # Add entities in smaller batches to prevent Entity Registry overload
+    # With 32+ select entities (2 dogs), batching prevents Registry flooding  # noqa: E501
     await _async_add_entities_in_batches(async_add_entities, entities, batch_size=10)
     _LOGGER.info(
         "Created %d select entities for %d dogs using batched approach",
@@ -588,6 +594,8 @@ async def async_reproduce_state(
 
 def _preprocess_select_state(state: State) -> str:
     return state.state
+
+
 async def _async_reproduce_select_state(
     hass: HomeAssistant,
     state: State,
@@ -737,6 +745,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
     all select types. Includes proper device grouping, state persistence,
     validation, and error handling.
     """
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1036,6 +1045,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 # Base selects
 class PawControlDogSizeSelect(PawControlSelectBase):
     """Select entity for the dog's size category."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1093,6 +1103,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
 
 class PawControlPerformanceModeSelect(PawControlSelectBase):
     """Select entity for system performance mode."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1145,6 +1156,7 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
 
 class PawControlNotificationPrioritySelect(PawControlSelectBase):
     """Select entity for default notification priority."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1209,6 +1221,7 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
 # Feeding selects
 class PawControlFoodTypeSelect(PawControlSelectBase):
     """Select entity for primary food type."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1260,6 +1273,7 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
 
 class PawControlFeedingScheduleSelect(PawControlSelectBase):
     """Select entity for feeding schedule type."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1285,6 +1299,7 @@ class PawControlFeedingScheduleSelect(PawControlSelectBase):
 
 class PawControlDefaultMealTypeSelect(PawControlSelectBase):
     """Select entity for default meal type."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1316,6 +1331,7 @@ class PawControlDefaultMealTypeSelect(PawControlSelectBase):
 
 class PawControlFeedingModeSelect(PawControlSelectBase):
     """Select entity for feeding mode."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1363,6 +1379,7 @@ class PawControlFeedingModeSelect(PawControlSelectBase):
 # Walk selects
 class PawControlWalkModeSelect(PawControlSelectBase):
     """Select entity for walk tracking mode."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1420,6 +1437,7 @@ class PawControlWalkModeSelect(PawControlSelectBase):
 
 class PawControlWeatherPreferenceSelect(PawControlSelectBase):
     """Select entity for walk weather preference."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1445,6 +1463,7 @@ class PawControlWeatherPreferenceSelect(PawControlSelectBase):
 
 class PawControlWalkIntensitySelect(PawControlSelectBase):
     """Select entity for preferred walk intensity."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1471,6 +1490,7 @@ class PawControlWalkIntensitySelect(PawControlSelectBase):
 # GPS selects
 class PawControlGPSSourceSelect(PawControlSelectBase):
     """Select entity for GPS data source."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1529,6 +1549,7 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
 
 class PawControlTrackingModeSelect(PawControlSelectBase):
     """Select entity for GPS tracking mode."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1570,6 +1591,7 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
 
 class PawControlLocationAccuracySelect(PawControlSelectBase):
     """Select entity for location accuracy preference."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1610,6 +1632,7 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
 # Health selects
 class PawControlHealthStatusSelect(PawControlSelectBase):
     """Select entity for current health status."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1646,6 +1669,7 @@ class PawControlHealthStatusSelect(PawControlSelectBase):
 
 class PawControlActivityLevelSelect(PawControlSelectBase):
     """Select entity for current activity level."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1682,6 +1706,7 @@ class PawControlActivityLevelSelect(PawControlSelectBase):
 
 class PawControlMoodSelect(PawControlSelectBase):
     """Select entity for current mood."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1707,6 +1732,7 @@ class PawControlMoodSelect(PawControlSelectBase):
 
 class PawControlGroomingTypeSelect(PawControlSelectBase):
     """Select entity for selecting grooming type."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,

@@ -98,17 +98,25 @@ def _normalise_entry_slug(entry: ConfigEntry) -> str:
     """Return the slug used for integration-managed scripts."""
     raw_slug = slugify(getattr(entry, "title", "") or entry.entry_id or DOMAIN)
     return raw_slug or DOMAIN
+
+
 def _resolve_resilience_object_id(entry: ConfigEntry) -> str:
     """Return the script object id for the resilience escalation helper."""
     return f"pawcontrol_{_normalise_entry_slug(entry)}_resilience_escalation"
+
+
 def _resolve_resilience_entity_id(entry: ConfigEntry) -> str:
     """Return the script entity id for the resilience escalation helper."""
     return f"{SCRIPT_DOMAIN}.{_resolve_resilience_object_id(entry)}"
+
+
 def _serialize_datetime(value: datetime | None) -> str | None:
     """Return an ISO formatted timestamp for diagnostics payloads."""
     if value is None:
         return None
     return dt_util.as_utc(value).isoformat()
+
+
 def _classify_timestamp(value: datetime | None) -> tuple[str | None, int | None]:
     """Classify ``value`` against the cache timestamp thresholds."""
     if value is None:
@@ -121,6 +129,8 @@ def _classify_timestamp(value: datetime | None) -> tuple[str | None, int | None]
     if delta > CACHE_TIMESTAMP_STALE_THRESHOLD:
         return "stale", age_seconds
     return None, age_seconds
+
+
 MANUAL_EVENT_KEYS: tuple[ManualResiliencePreferenceKey, ...] = (
     "manual_check_event",
     "manual_guard_event",
@@ -130,7 +140,10 @@ MANUAL_EVENT_KEYS: tuple[ManualResiliencePreferenceKey, ...] = (
 
 class _FieldDefaultProvider(Protocol):
     """Protocol for script field objects exposing ``default`` attributes."""
+
     default: JSONValue
+
+
 type ScriptFieldEntry = Mapping[str, JSONValue] | _FieldDefaultProvider
 type ScriptFieldDefinitions = Mapping[str, ScriptFieldEntry]
 
@@ -154,6 +167,8 @@ def _coerce_optional_int(value: object) -> int | None:
         except ValueError:
             return None
     return None
+
+
 def _coerce_manual_history_size(value: object) -> int | None:
     """Validate manual history length candidates from config mappings."""
     candidate = _coerce_optional_int(value)
@@ -162,6 +177,8 @@ def _coerce_manual_history_size(value: object) -> int | None:
     if not (_MANUAL_EVENT_HISTORY_MIN <= candidate <= _MANUAL_EVENT_HISTORY_MAX):
         return None
     return candidate
+
+
 def _parse_manual_resilience_system_settings(
     value: object,
 ) -> ManualResilienceSystemSettingsSnapshot | None:
@@ -187,6 +204,8 @@ def _parse_manual_resilience_system_settings(
         settings["resilience_breaker_threshold"] = breaker_threshold
 
     return settings or None
+
+
 def _parse_manual_resilience_options(
     value: object,
 ) -> ManualResilienceOptionsSnapshot:
@@ -224,6 +243,8 @@ def _parse_manual_resilience_options(
         options["system_settings"] = system_settings
 
     return options
+
+
 def _parse_event_selection(
     value: Mapping[str, object] | None,
 ) -> ManualResilienceEventSelection:
@@ -237,6 +258,8 @@ def _parse_event_selection(
         if key in value:
             selection[key] = manual_event
     return selection
+
+
 def _coerce_threshold(
     value: object,
     *,
@@ -254,6 +277,8 @@ def _coerce_threshold(
     if candidate > maximum:
         return maximum
     return candidate
+
+
 def _extract_field_int(fields: ScriptFieldDefinitions | None, key: str) -> int | None:
     """Return the integer default stored under ``key`` in ``fields``."""
     if not isinstance(fields, Mapping):
@@ -270,6 +295,8 @@ def _extract_field_int(fields: ScriptFieldDefinitions | None, key: str) -> int |
         return None
 
     return _coerce_optional_int(candidate)
+
+
 def resolve_resilience_script_thresholds(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -302,6 +329,8 @@ def resolve_resilience_script_thresholds(
     skip = _extract_field_int(fields, "skip_threshold")
     breaker = _extract_field_int(fields, "breaker_threshold")
     return skip, breaker
+
+
 def _is_resilience_blueprint(use_blueprint: Mapping[str, object] | None) -> bool:
     """Return ``True`` when ``use_blueprint`` targets the resilience blueprint."""
     if not isinstance(use_blueprint, Mapping):
@@ -321,12 +350,16 @@ def _is_resilience_blueprint(use_blueprint: Mapping[str, object] | None) -> bool
         f"{_RESILIENCE_BLUEPRINT_DOMAIN}/{_RESILIENCE_BLUEPRINT_IDENTIFIER}.yaml"
     )
     return normalized.endswith(expected_suffix)
+
+
 def _normalise_manual_event(value: object) -> str | None:
     """Return a stripped event string when ``value`` contains text."""
     if not isinstance(value, str):
         return None
     candidate = value.strip()
     return candidate or None
+
+
 def _serialise_event_data(data: Mapping[str, object]) -> JSONMutableMapping:
     """Return a JSON-friendly copy of ``data``."""
     serialised: JSONMutableMapping = {}
@@ -351,9 +384,13 @@ def _serialise_event_data(data: Mapping[str, object]) -> JSONMutableMapping:
             continue
         serialised[key_text] = repr(value)
     return serialised
+
+
 class _ScriptManagerCacheMonitor:
     """Expose script manager state for diagnostics snapshots."""
+
     __slots__ = ("_manager",)
+
     def __init__(self, manager: PawControlScriptManager) -> None:
         self._manager = manager
 
@@ -452,6 +489,7 @@ _MANUAL_EVENT_HISTORY_MAX: Final[int] = 50
 
 class PawControlScriptManager:
     """Create and maintain Home Assistant scripts for PawControl dogs."""
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialise the script manager."""
 
@@ -850,6 +888,7 @@ class PawControlScriptManager:
             listener_sources.setdefault(event, set()).add(source)
             canonical = MANUAL_EVENT_SOURCE_CANONICAL.get(source, source)
             canonical_sources.setdefault(event, set()).add(canonical)
+
         try:
             automation_entries = entries_callable("automation")
         except AttributeError, TypeError, KeyError:
@@ -961,6 +1000,7 @@ class PawControlScriptManager:
             DEFAULT_MANUAL_BREAKER_EVENT,
         ):
             canonical_sources.setdefault(default_value, set()).add("default")
+
         def _primary_source(source_set: set[str]) -> str | None:
             for candidate in (
                 "system_settings",
@@ -976,6 +1016,7 @@ class PawControlScriptManager:
             if source_set:
                 return sorted(source_set)[0]
             return None
+
         return {
             "available": available,
             "automations": automations,
@@ -1053,6 +1094,7 @@ class PawControlScriptManager:
             if key == "manual_breaker_event":
                 return "breaker"
             return None
+
         for preference_key, event_type in preferences.items():
             if not event_type:
                 continue
@@ -1176,6 +1218,7 @@ class PawControlScriptManager:
                 continue
             self._manual_event_unsubscribes[event_type] = unsubscribe
             self._manual_event_sources[event_type] = sources[event_type]
+
     def _unsubscribe_manual_event_listeners(self) -> None:
         """Detach manual escalation event listeners."""
 
@@ -1235,6 +1278,7 @@ class PawControlScriptManager:
                 if parsed is not None:
                     return dt_util.as_utc(parsed)
             return None
+
         fired_at = _normalise_datetime(value.get("time_fired"))
         if fired_at is not None:
             record["time_fired"] = fired_at
@@ -1318,6 +1362,7 @@ class PawControlScriptManager:
         with suppress(AttributeError):
             runtime_any = cast(Any, runtime)
             runtime_any.manual_event_history = self._manual_event_history
+
     def _serialise_manual_event_record(
         self,
         record: ManualResilienceEventRecord | Mapping[str, object] | None,
@@ -1623,7 +1668,7 @@ class PawControlScriptManager:
         automation_entries = entries_callable("automation") or []
         if not automation_entries:
             _LOGGER.debug(
-                "Skipping manual resilience event sync; no automation entries discovered",
+                "Skipping manual resilience event sync; no automation entries discovered",  # noqa: E501
             )
             return
         desired_events: ManualResilienceEventSelection = {}
@@ -1725,8 +1770,8 @@ class PawControlScriptManager:
             return {}
         component = self._get_component()
         if component is None:
-            # ``_get_component`` raises when the script integration is missing, but keep  # noqa: E114, E501
-            # the guard so the type checker understands ``component`` is non-null.  # noqa: E114, E501
+            # ``_get_component`` raises when the script integration is missing, but keep  # noqa: E501
+            # the guard so the type checker understands ``component`` is non-null.  # noqa: E501
             return {}
         registry = er.async_get(self._hass)
         created: dict[str, list[str]] = {}
@@ -1798,7 +1843,7 @@ class PawControlScriptManager:
                         config_entry_id=self._entry.entry_id,
                     )
 
-            # Remove scripts that are no longer needed for this dog (e.g. module disabled)  # noqa: E114, E501
+            # Remove scripts that are no longer needed for this dog (e.g. module disabled)  # noqa: E501
             obsolete = existing_for_dog - set(new_for_dog)
             for entity_id in obsolete:
                 await self._async_remove_script_entity(entity_id)
@@ -1956,7 +2001,7 @@ class PawControlScriptManager:
 
         guard_default_title = f"{self._entry_title} guard escalation"
         guard_default_message = (
-            "Guard skipped {{ skip_count }} call(s) while executing {{ executed_count }} "
+            "Guard skipped {{ skip_count }} call(s) while executing {{ executed_count }} "  # noqa: E501
             "request(s). Skip reasons: {{ guard_reason_text }}."
         )
         guard_default_notification_id = (
@@ -1965,7 +2010,7 @@ class PawControlScriptManager:
 
         breaker_default_title = f"{self._entry_title} breaker escalation"
         breaker_default_message = (
-            "Circuit breakers report {{ breaker_count }} open and {{ half_open_count }} "
+            "Circuit breakers report {{ breaker_count }} open and {{ half_open_count }} "  # noqa: E501
             "half-open guard(s). Open breakers: {{ open_breakers_text }}. "
             "Half-open breakers: {{ half_open_breakers_text }}."
         )
@@ -1975,18 +2020,18 @@ class PawControlScriptManager:
 
         variables: ConfigType = {
             "statistics_entity": (
-                f"{{{{ statistics_entity_id | default('{default_statistics_entity}') }}}}"
+                f"{{{{ statistics_entity_id | default('{default_statistics_entity}') }}}}"  # noqa: E501
             ),
             "service_execution": (
                 "{{ state_attr(statistics_entity, 'service_execution') or {} }}"
             ),
             "guard": (
-                "{% set data = state_attr(statistics_entity, 'service_execution') or {} %}"
+                "{% set data = state_attr(statistics_entity, 'service_execution') or {} %}"  # noqa: E501
                 "{% set metrics = data.get('guard_metrics') %}"
                 "{% if metrics is mapping %}{{ metrics }}{% else %}{{ {} }}{% endif %}"
             ),
             "rejection": (
-                "{% set data = state_attr(statistics_entity, 'service_execution') or {} %}"
+                "{% set data = state_attr(statistics_entity, 'service_execution') or {} %}"  # noqa: E501
                 "{% set metrics = data.get('rejection_metrics') %}"
                 "{% if metrics is mapping %}{{ metrics }}{% else %}{{ {} }}{% endif %}"
             ),
@@ -2066,8 +2111,8 @@ class PawControlScriptManager:
                                     "trigger_reason": "breaker",
                                     "breaker_count": "{{ breaker_count }}",
                                     "half_open_count": "{{ half_open_count }}",
-                                    "open_breakers": "{{ rejection.get('open_breakers', []) }}",
-                                    "half_open_breakers": "{{ rejection.get('half_open_breakers', []) }}",
+                                    "open_breakers": "{{ rejection.get('open_breakers', []) }}",  # noqa: E501
+                                    "half_open_breakers": "{{ rejection.get('half_open_breakers', []) }}",  # noqa: E501
                                     "skip_count": "{{ skip_count }}",
                                     "executed_count": "{{ executed_count }}",
                                 },
@@ -2096,14 +2141,14 @@ class PawControlScriptManager:
                         "sequence": [
                             {
                                 "action": (
-                                    "{{ escalation_service | default('persistent_notification.create') }}"
+                                    "{{ escalation_service | default('persistent_notification.create') }}"  # noqa: E501
                                 ),
                                 "data": {
                                     "title": (
-                                        f"{{{{ guard_title | default('{guard_default_title}') }}}}"
+                                        f"{{{{ guard_title | default('{guard_default_title}') }}}}"  # noqa: E501
                                     ),
                                     "message": (
-                                        f"{{{{ guard_message | default('{guard_default_message}') }}}}"
+                                        f"{{{{ guard_message | default('{guard_default_message}') }}}}"  # noqa: E501
                                     ),
                                     "notification_id": (
                                         f"{{{{ guard_notification_id | default('{guard_default_notification_id}') }}}}"  # noqa: E501
@@ -2120,21 +2165,21 @@ class PawControlScriptManager:
                                 "value_template": (
                                     "{{ (breaker_threshold | int(0)) > 0 and ("
                                     "breaker_count >= (breaker_threshold | int(0)) or "
-                                    "half_open_count >= (breaker_threshold | int(0))) }}"
+                                    "half_open_count >= (breaker_threshold | int(0))) }}"  # noqa: E501
                                 ),
                             },
                         ],
                         "sequence": [
                             {
                                 "action": (
-                                    "{{ escalation_service | default('persistent_notification.create') }}"
+                                    "{{ escalation_service | default('persistent_notification.create') }}"  # noqa: E501
                                 ),
                                 "data": {
                                     "title": (
-                                        f"{{{{ breaker_title | default('{breaker_default_title}') }}}}"
+                                        f"{{{{ breaker_title | default('{breaker_default_title}') }}}}"  # noqa: E501
                                     ),
                                     "message": (
-                                        f"{{{{ breaker_message | default('{breaker_default_message}') }}}}"
+                                        f"{{{{ breaker_message | default('{breaker_default_message}') }}}}"  # noqa: E501
                                     ),
                                     "notification_id": (
                                         f"{{{{ breaker_notification_id | default('{breaker_default_notification_id}') }}}}"  # noqa: E501
@@ -2212,7 +2257,7 @@ class PawControlScriptManager:
             },
             "breaker_title": {
                 CONF_NAME: "Breaker alert title",
-                CONF_DESCRIPTION: "Title used when breaker counts trigger the escalation.",
+                CONF_DESCRIPTION: "Title used when breaker counts trigger the escalation.",  # noqa: E501
                 CONF_DEFAULT: breaker_default_title,
                 "selector": {"text": {}},
             },
@@ -2228,7 +2273,7 @@ class PawControlScriptManager:
             "breaker_notification_id": {
                 CONF_NAME: "Breaker notification ID",
                 CONF_DESCRIPTION: (
-                    "Notification identifier for breaker alerts, keeping updates idempotent."
+                    "Notification identifier for breaker alerts, keeping updates idempotent."  # noqa: E501
                 ),
                 CONF_DEFAULT: breaker_default_notification_id,
                 "selector": {"text": {}},
@@ -2368,6 +2413,7 @@ class PawControlScriptManager:
             if key in active_field_defaults:
                 return active_field_defaults[key]
             return field_defaults.get(key)
+
         thresholds: ResilienceEscalationThresholds = {
             "skip_threshold": {
                 "default": field_defaults.get("skip_threshold"),
@@ -2537,12 +2583,12 @@ class PawControlScriptManager:
                             "notification_id": notification_id,
                             "actions": [
                                 {
-                                    "action": "{{ confirm_action | default('PAWCONTROL_CONFIRM') }}",
-                                    "title": "{{ confirm_title | default('✅ All good') }}",
+                                    "action": "{{ confirm_action | default('PAWCONTROL_CONFIRM') }}",  # noqa: E501
+                                    "title": "{{ confirm_title | default('✅ All good') }}",  # noqa: E501
                                 },
                                 {
-                                    "action": "{{ remind_action | default('PAWCONTROL_REMIND') }}",
-                                    "title": "{{ remind_title | default('🔁 Remind me later') }}",
+                                    "action": "{{ remind_action | default('PAWCONTROL_REMIND') }}",  # noqa: E501
+                                    "title": "{{ remind_title | default('🔁 Remind me later') }}",  # noqa: E501
                                 },
                             ],
                         },
@@ -2554,7 +2600,7 @@ class PawControlScriptManager:
                             "conditions": [
                                 {
                                     "condition": "template",
-                                    "value_template": "{{ auto_acknowledge | default(false) }}",
+                                    "value_template": "{{ auto_acknowledge | default(false) }}",  # noqa: E501
                                 },
                             ],
                             "sequence": [
@@ -2571,7 +2617,7 @@ class PawControlScriptManager:
             CONF_FIELDS: {
                 "notify_service": {
                     CONF_NAME: "Notification service",
-                    CONF_DESCRIPTION: "Service used to deliver the confirmation question.",
+                    CONF_DESCRIPTION: "Service used to deliver the confirmation question.",  # noqa: E501
                     CONF_DEFAULT: "notify.notify",
                     "selector": {"text": {}},
                 },
@@ -2590,7 +2636,7 @@ class PawControlScriptManager:
                 "auto_acknowledge": {
                     CONF_NAME: "Auto acknowledge",
                     CONF_DESCRIPTION: (
-                        "Automatically clear the notification after sending the question."
+                        "Automatically clear the notification after sending the question."  # noqa: E501
                     ),
                     CONF_DEFAULT: False,
                     "selector": {"boolean": {}},
@@ -2630,7 +2676,7 @@ class PawControlScriptManager:
                             "conditions": [
                                 {
                                     "condition": "template",
-                                    "value_template": "{{ summary | default('') != '' }}",
+                                    "value_template": "{{ summary | default('') != '' }}",  # noqa: E501
                                 },
                             ],
                             "sequence": [
@@ -2657,7 +2703,7 @@ class PawControlScriptManager:
                 "summary": {
                     CONF_NAME: "Log summary",
                     CONF_DESCRIPTION: (
-                        "Optional summary that will be written to the logbook after the reset."
+                        "Optional summary that will be written to the logbook after the reset."  # noqa: E501
                     ),
                     CONF_DEFAULT: "",
                     "selector": {"text": {"multiline": True}},
@@ -2704,7 +2750,7 @@ class PawControlScriptManager:
                 },
                 "priority": {
                     CONF_NAME: "Priority",
-                    CONF_DESCRIPTION: "Notification priority used for the test message.",
+                    CONF_DESCRIPTION: "Notification priority used for the test message.",  # noqa: E501
                     CONF_DEFAULT: "normal",
                     "selector": {
                         "select": {
@@ -2747,7 +2793,7 @@ class PawControlScriptManager:
                             "conditions": [
                                 {
                                     "condition": "template",
-                                    "value_template": "{{ send_notification | default(true) }}",
+                                    "value_template": "{{ send_notification | default(true) }}",  # noqa: E501
                                 },
                             ],
                             "sequence": [
@@ -2755,8 +2801,8 @@ class PawControlScriptManager:
                                     "action": "pawcontrol.notify_test",
                                     "data": {
                                         "dog_id": dog_id,
-                                        "message": f"{{ message | default('{default_message}') }}",
-                                        "priority": "{{ priority | default('normal') }}",
+                                        "message": f"{{ message | default('{default_message}') }}",  # noqa: E501
+                                        "priority": "{{ priority | default('normal') }}",  # noqa: E501
                                     },
                                 },
                             ],
@@ -2768,13 +2814,13 @@ class PawControlScriptManager:
 
             fields["send_notification"] = {
                 CONF_NAME: "Send verification",
-                CONF_DESCRIPTION: "Send a PawControl notification after resetting counters.",
+                CONF_DESCRIPTION: "Send a PawControl notification after resetting counters.",  # noqa: E501
                 CONF_DEFAULT: True,
                 "selector": {"boolean": {}},
             }
             fields["message"] = {
                 CONF_NAME: "Verification message",
-                CONF_DESCRIPTION: "Message used when the verification notification is sent.",
+                CONF_DESCRIPTION: "Message used when the verification notification is sent.",  # noqa: E501
                 CONF_DEFAULT: default_message,
                 "selector": {"text": {"multiline": True}},
             }
@@ -2805,6 +2851,7 @@ class PawControlScriptManager:
 
 class ManualEventSourceList(list[str]):
     """List-like container that compares equal to listener and canonical sources."""
+
     def __eq__(
         self,
         other: object,

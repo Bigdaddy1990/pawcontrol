@@ -254,6 +254,8 @@ def _translated_health_label(language: str | None, label: str) -> str:
         return translations[normalized_language]
 
     return translations.get("en", label)
+
+
 def _translated_health_template(
     language: str | None,
     template: str,
@@ -270,6 +272,8 @@ def _translated_health_template(
         template_value = translations.get("en", template)
 
     return template_value.format(**values)
+
+
 def _translated_visitor_label(language: str | None, label: str) -> str:
     """Return a localized visitor dashboard label."""
     translations = _VISITOR_LABEL_TRANSLATIONS.get(label)
@@ -281,6 +285,8 @@ def _translated_visitor_label(language: str | None, label: str) -> str:
         return translations[normalized_language]
 
     return translations.get("en", label)
+
+
 def _translated_visitor_template(
     language: str | None,
     template: str,
@@ -297,6 +303,8 @@ def _translated_visitor_template(
         template_value = translations.get("en", template)
 
     return template_value.format(**values)
+
+
 def _translated_visitor_value(language: str | None, value: str) -> str:
     """Return a localized value string for visitor dashboards."""
     translations = _VISITOR_VALUE_TRANSLATIONS.get(value)
@@ -308,6 +316,8 @@ def _translated_visitor_value(language: str | None, value: str) -> str:
         return translations[normalized_language]
 
     return translations.get("en", value)
+
+
 def _translated_quick_action_label(language: str | None, label: str) -> str:
     """Return a localized quick action label."""
     translations = _QUICK_ACTION_TRANSLATIONS.get(label)
@@ -319,6 +329,8 @@ def _translated_quick_action_label(language: str | None, label: str) -> str:
         return translations[normalized_language]
 
     return translations.get("en", label)
+
+
 def _translated_walk_label(language: str | None, label: str) -> str:
     """Return a localized label for walk dashboards."""
     translations = _WALK_LABEL_TRANSLATIONS.get(label)
@@ -330,6 +342,8 @@ def _translated_walk_label(language: str | None, label: str) -> str:
         return translations[normalized_language]
 
     return translations.get("en", label)
+
+
 def _translated_walk_template(
     language: str | None,
     template: str,
@@ -346,6 +360,8 @@ def _translated_walk_template(
         template_value = translations.get("en", template)
 
     return template_value.format(**values)
+
+
 def _coerce_map_options(options: MapOptionsInput) -> MapCardOptions:
     """Extract typed map options from the generic options payload."""
     if not isinstance(options, Mapping):
@@ -362,7 +378,7 @@ def _coerce_map_options(options: MapOptionsInput) -> MapCardOptions:
             )
             continue
         if isinstance(nested, Iterable) and not isinstance(nested, str | bytes):
-            # validation occurs in the normaliser  # noqa: E114
+            # validation occurs in the normaliser
             nested_entries.extend(nested)
             continue
         _TEMPLATE_LOGGER.debug(
@@ -398,6 +414,8 @@ def _coerce_map_options(options: MapOptionsInput) -> MapCardOptions:
         return DashboardTemplates._normalise_map_options(top_level_entries)
 
     return DashboardTemplates._normalise_map_options(options)
+
+
 def _resolve_dashboard_theme_option(options: OptionsConfigType) -> str:
     """Return the sanitized theme identifier from ``options``."""
     theme_value = options.get("theme")
@@ -406,12 +424,15 @@ def _resolve_dashboard_theme_option(options: OptionsConfigType) -> str:
         if normalised_theme:
             return normalised_theme
     return "modern"
+
+
 class BaseCardGenerator:
     """Base class for card generators with enhanced performance optimization.
 
     OPTIMIZED: Enhanced with batch processing, async caching, memory management,
     and comprehensive error isolation for maximum performance.
     """
+
     def __init__(self, hass: HomeAssistant, templates: DashboardTemplates) -> None:
         """Initialize optimized card generator.
 
@@ -472,7 +493,7 @@ class BaseCardGenerator:
 
         Returns:
             List of valid entity IDs
-        """
+        """  # noqa: E501
         if not entities:
             return []
         loop = asyncio.get_running_loop()
@@ -507,7 +528,7 @@ class BaseCardGenerator:
             batch = uncached_entities[i : i + batch_size]
             async with self._validation_semaphore:
                 try:
-                    # OPTIMIZED: Parallel validation with timeout  # noqa: E114
+                    # OPTIMIZED: Parallel validation with timeout
                     batch_tasks = [
                         asyncio.create_task(
                             self._validate_single_entity(entity_id),
@@ -520,7 +541,7 @@ class BaseCardGenerator:
                         timeout=ENTITY_VALIDATION_TIMEOUT,
                     )
 
-                    # Process batch results  # noqa: E114
+                    # Process batch results
                     for entity_id, result in zip(batch, batch_results, strict=False):
                         validation_result = _unwrap_async_result(
                             result,
@@ -588,6 +609,7 @@ class BaseCardGenerator:
         except Exception as err:
             _LOGGER.debug("Entity validation error for %s: %s", entity_id, err)
             return False
+
     async def _entity_exists_cached(self, entity_id: str) -> bool:
         """Check if entity exists with caching for performance.
 
@@ -635,6 +657,7 @@ class BaseCardGenerator:
 
 class OverviewCardGenerator(BaseCardGenerator):
     """Generator for overview dashboard cards with enhanced performance."""
+
     async def generate_welcome_card(
         self,
         dogs_config: Sequence[RawDogConfig],
@@ -801,7 +824,7 @@ class OverviewCardGenerator(BaseCardGenerator):
                 has_feeding = True
             if not has_walking and modules.get(MODULE_WALK):
                 has_walking = True
-            # Early exit if both found  # noqa: E114
+            # Early exit if both found
             if has_feeding and has_walking:
                 break
 
@@ -864,6 +887,7 @@ class OverviewCardGenerator(BaseCardGenerator):
 
 class DogCardGenerator(BaseCardGenerator):
     """Generator for individual dog dashboard cards with performance optimization."""
+
     async def generate_dog_overview_cards(
         self,
         dog_config: RawDogConfig,
@@ -971,7 +995,7 @@ class DogCardGenerator(BaseCardGenerator):
                 timeout=CARD_GENERATION_TIMEOUT,
             )
 
-            # Process results in order  # noqa: E114
+            # Process results in order
             for (card_type, _), result in zip(card_tasks, results, strict=False):
                 card_payloads = _unwrap_async_result(
                     result,
@@ -991,7 +1015,7 @@ class DogCardGenerator(BaseCardGenerator):
                 dog_name,
             )
             self._performance_stats["errors_handled"] += 1
-            # Return minimal cards on timeout  # noqa: E114
+            # Return minimal cards on timeout
             return [
                 {
                     "type": "markdown",
@@ -1155,6 +1179,7 @@ class DogCardGenerator(BaseCardGenerator):
 
 class HealthAwareFeedingCardGenerator(BaseCardGenerator):
     """Generator for health-integrated feeding dashboard cards with optimization."""
+
     async def generate_health_feeding_overview(
         self,
         dog_config: RawDogConfig,
@@ -1261,6 +1286,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             )
             self._performance_stats["errors_handled"] += 1
             return []
+
     async def _generate_health_feeding_status_card(
         self,
         dog_id: str,
@@ -1513,6 +1539,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
 class ModuleCardGenerator(BaseCardGenerator):
     """Generator for module-specific dashboard cards with performance optimization."""
+
     async def generate_feeding_cards(
         self,
         dog_config: RawDogConfig,
@@ -1537,13 +1564,13 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Check if health-aware feeding is enabled
         if modules.get(MODULE_HEALTH) and modules.get(MODULE_FEEDING):
-            # Use health-aware feeding card generator  # noqa: E114
+            # Use health-aware feeding card generator
             health_generator = HealthAwareFeedingCardGenerator(
                 self.hass,
                 self.templates,
             )
 
-            # OPTIMIZED: Generate health cards concurrently  # noqa: E114
+            # OPTIMIZED: Generate health cards concurrently
             health_overview_task = asyncio.create_task(
                 health_generator.generate_health_feeding_overview(
                     dog_config,
@@ -1591,7 +1618,7 @@ class ModuleCardGenerator(BaseCardGenerator):
                 # Fallback to standard feeding cards
                 cards.extend(await self._generate_standard_feeding_cards(dog_id))
         else:
-            # Standard feeding cards  # noqa: E114
+            # Standard feeding cards
             cards.extend(await self._generate_standard_feeding_cards(dog_id))
         # OPTIMIZED: Add feeding history graph (concurrent with other operations)
         try:
@@ -2217,7 +2244,8 @@ class WeatherCardGenerator(BaseCardGenerator):
 
     Quality Scale: Platinum target
     Weather Integration: v1.0.0
-    """
+    """  # noqa: E501
+
     @staticmethod
     def _normalise_recommendations(source: object) -> list[str]:
         """Return a flat list of recommendation strings from arbitrary payloads."""
@@ -2393,7 +2421,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                 timeout=CARD_GENERATION_TIMEOUT,
             )
 
-            # Process results with error handling  # noqa: E114
+            # Process results with error handling
             for (card_type, _), result in zip(
                 weather_card_tasks,
                 results,
@@ -2401,7 +2429,7 @@ class WeatherCardGenerator(BaseCardGenerator):
             ):
                 card_payload = _unwrap_async_result(
                     result,
-                    context=f"Weather card {card_type} generation failed for {dog_name}",
+                    context=f"Weather card {card_type} generation failed for {dog_name}",  # noqa: E501
                     logger=_LOGGER,
                 )
                 if card_payload is None:
@@ -2412,7 +2440,7 @@ class WeatherCardGenerator(BaseCardGenerator):
         except TimeoutError:
             _LOGGER.error("Weather cards generation timeout for %s", dog_name)
             self._performance_stats["errors_handled"] += 1
-            # Return minimal weather card on timeout  # noqa: E114
+            # Return minimal weather card on timeout
             return [
                 {
                     "type": "markdown",
@@ -2640,7 +2668,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "custom:mushroom-title-card",
                     "title": f"💡 {dog_name} Weather Advice",
-                    "subtitle": "Personalized recommendations based on current conditions",
+                    "subtitle": "Personalized recommendations based on current conditions",  # noqa: E501
                 },
                 markdown_card,
                 actions_card,
@@ -2930,6 +2958,7 @@ class WeatherCardGenerator(BaseCardGenerator):
 
 class StatisticsCardGenerator(BaseCardGenerator):
     """Generator for statistics dashboard cards with performance optimization."""
+
     async def generate_statistics_cards(
         self,
         dogs_config: Sequence[RawDogConfig],
@@ -2980,7 +3009,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
                 timeout=CARD_GENERATION_TIMEOUT,
             )
 
-            # Process results with error handling  # noqa: E114
+            # Process results with error handling
             for (stats_type, _), result in zip(stats_generators, results, strict=False):
                 card_payload = _unwrap_async_result(
                     result,
@@ -3171,6 +3200,8 @@ def get_global_performance_stats() -> DashboardCardGlobalPerformanceStats:
         "card_generation_timeout": CARD_GENERATION_TIMEOUT,
     }
     return stats
+
+
 ResultT = TypeVar("ResultT")
 
 

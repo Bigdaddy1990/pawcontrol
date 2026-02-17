@@ -32,7 +32,10 @@ CONF_SAVE_ROUTE = "save_route"
 @dataclass(frozen=True, slots=True)
 class ActionDefinition:
     """Definition for a device action."""
+
     type: str
+
+
 ACTION_DEFINITIONS: Final[tuple[ActionDefinition, ...]] = (
     ActionDefinition("log_feeding"),
     ActionDefinition("start_walk"),
@@ -113,6 +116,8 @@ async def async_get_action_capabilities(
         }
 
     return {}
+
+
 async def async_call_action(
     hass: HomeAssistant,
     config: dict[str, str],

@@ -38,7 +38,9 @@ _LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
+
     from .entity_factory import EntityFactory
+
     class ProfileOptionsHost(Protocol):
         @property
         def _entry(self) -> ConfigEntry: ...
@@ -51,10 +53,13 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     ProfileOptionsHost = object
+
+
 class ProfileOptionsMixin(ProfileOptionsHost):
     _entry: ConfigEntry
     _profile_cache: dict[str, ConfigFlowPlaceholders]
     _entity_estimates_cache: dict[str, JSONMutableMapping]
+
     async def async_step_entity_profiles(
         self,
         user_input: EntityProfileOptionsInput | None = None,
@@ -72,7 +77,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
                 preview_estimate = user_input.get("preview_estimate", False)
 
                 if preview_estimate:
-                    # Show entity count preview  # noqa: E114
+                    # Show entity count preview
                     return await self.async_step_profile_preview(
                         {"profile": current_profile},
                     )
@@ -315,7 +320,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
                     current_dogs.append(normalised)
         dog_entries = cast(list[Mapping[str, JSONValue]], current_dogs)
 
-        cache_key = f"{profile}_{len(current_dogs)}_{hash(json.dumps(current_dogs, sort_keys=True))}"
+        cache_key = f"{profile}_{len(current_dogs)}_{hash(json.dumps(current_dogs, sort_keys=True))}"  # noqa: E501
 
         cached_preview = self._entity_estimates_cache.get(cache_key)
         if cached_preview is not None:
@@ -479,8 +484,10 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
         def as_float(value: object) -> float:
             return float(value) if isinstance(value, int | float) else 0.0
+
         def as_int(value: object) -> int:
             return int(value) if isinstance(value, int | float) else 0
+
         entity_breakdown = cast(
             list[JSONMutableMapping],
             preview_data.get("entity_breakdown", []),
@@ -664,7 +671,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
             profile_options.append(
                 {
                     "value": profile_name,
-                    "label": f"{profile_name.title()} ({max_entities}/dog) - {description}",
+                    "label": f"{profile_name.title()} ({max_entities}/dog) - {description}",  # noqa: E501
                 },
             )
 

@@ -12,22 +12,22 @@ from custom_components.pawcontrol.types import ServiceData
 
 
 class ServiceCallTargetPayload(TypedDict, total=False):
-    """Subset of Home Assistant service target structure used in tests."""  # noqa: E111
+    """Subset of Home Assistant service target structure used in tests."""
 
-    entity_id: NotRequired[str | list[str]]  # noqa: E111
-    device_id: NotRequired[str | list[str]]  # noqa: E111
-    area_id: NotRequired[str | list[str]]  # noqa: E111
+    entity_id: NotRequired[str | list[str]]
+    device_id: NotRequired[str | list[str]]
+    area_id: NotRequired[str | list[str]]
 
 
 class CapturedServiceCall(TypedDict):
-    """Captured service invocation emitted by the helper manager."""  # noqa: E111
+    """Captured service invocation emitted by the helper manager."""
 
-    domain: str  # noqa: E111
-    service: str  # noqa: E111
-    service_data: ServiceData  # noqa: E111
-    target: ServiceCallTargetPayload  # noqa: E111
-    blocking: bool  # noqa: E111
-    description: str | None  # noqa: E111
+    domain: str
+    service: str
+    service_data: ServiceData
+    target: ServiceCallTargetPayload
+    blocking: bool
+    description: str | None
 
 
 @pytest.mark.unit
@@ -35,24 +35,24 @@ class CapturedServiceCall(TypedDict):
 async def test_helper_manager_creates_typed_helper_services(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Helper creation should emit strictly typed service payloads."""  # noqa: E111
+    """Helper creation should emit strictly typed service payloads."""
 
-    hass = SimpleNamespace()  # noqa: E111
-    entry = SimpleNamespace(entry_id="entry", data={}, options={})  # noqa: E111
-    manager = PawControlHelperManager(hass, entry)  # noqa: E111
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={})
+    manager = PawControlHelperManager(hass, entry)
 
-    class _DummyRegistry:  # noqa: E111
+    class _DummyRegistry:
         def async_get(self, entity_id: str) -> None:
-            return None  # noqa: E111
+            return None
 
-    monkeypatch.setattr(  # noqa: E111
+    monkeypatch.setattr(
         "custom_components.pawcontrol.helper_manager.er.async_get",
         lambda hass_instance: _DummyRegistry(),
     )
 
-    captured: list[CapturedServiceCall] = []  # noqa: E111
+    captured: list[CapturedServiceCall] = []
 
-    async def _capture_service_call(  # noqa: E111
+    async def _capture_service_call(
         hass_instance: Any,
         domain: str,
         service: str,
@@ -79,32 +79,32 @@ async def test_helper_manager_creates_typed_helper_services(
             description=description,
         )
 
-    monkeypatch.setattr(  # noqa: E111
+    monkeypatch.setattr(
         "custom_components.pawcontrol.helper_manager.async_call_hass_service_if_available",
         _capture_service_call,
     )
 
-    entity_sequence = [  # noqa: E111
+    entity_sequence = [
         "input_boolean.pawcontrol_demo_flag",
         "input_datetime.pawcontrol_demo_time",
         "input_number.pawcontrol_demo_weight",
         "input_select.pawcontrol_demo_status",
     ]
 
-    await manager._async_create_input_boolean(  # noqa: E111
+    await manager._async_create_input_boolean(
         entity_sequence[0],
         "Demo Flag",
         icon="mdi:check",
         initial=True,
     )
-    await manager._async_create_input_datetime(  # noqa: E111
+    await manager._async_create_input_datetime(
         entity_sequence[1],
         "Demo Time",
         has_date=False,
         has_time=True,
         initial=None,
     )
-    await manager._async_create_input_number(  # noqa: E111
+    await manager._async_create_input_number(
         entity_sequence[2],
         "Demo Weight",
         min=0.5,
@@ -115,7 +115,7 @@ async def test_helper_manager_creates_typed_helper_services(
         mode="box",
         initial=10.0,
     )
-    await manager._async_create_input_select(  # noqa: E111
+    await manager._async_create_input_select(
         entity_sequence[3],
         "Demo Status",
         options=["good", "ok"],
@@ -123,31 +123,31 @@ async def test_helper_manager_creates_typed_helper_services(
         icon="mdi:list-status",
     )
 
-    assert [call["domain"] for call in captured] == [  # noqa: E111
+    assert [call["domain"] for call in captured] == [
         "input_boolean",
         "input_datetime",
         "input_number",
         "input_select",
     ]
-    assert all(call["service"] == "create" for call in captured)  # noqa: E111
-    assert all(call["blocking"] is True for call in captured)  # noqa: E111
+    assert all(call["service"] == "create" for call in captured)
+    assert all(call["blocking"] is True for call in captured)
 
-    boolean_payload = captured[0]["service_data"]  # noqa: E111
-    assert boolean_payload == {  # noqa: E111
+    boolean_payload = captured[0]["service_data"]
+    assert boolean_payload == {
         "name": "Demo Flag",
         "initial": True,
         "icon": "mdi:check",
     }
 
-    datetime_payload = captured[1]["service_data"]  # noqa: E111
-    assert datetime_payload == {  # noqa: E111
+    datetime_payload = captured[1]["service_data"]
+    assert datetime_payload == {
         "name": "Demo Time",
         "has_date": False,
         "has_time": True,
     }
 
-    number_payload = captured[2]["service_data"]  # noqa: E111
-    assert number_payload == {  # noqa: E111
+    number_payload = captured[2]["service_data"]
+    assert number_payload == {
         "name": "Demo Weight",
         "min": 0.5,
         "max": 80.0,
@@ -158,18 +158,18 @@ async def test_helper_manager_creates_typed_helper_services(
         "initial": 10.0,
     }
 
-    select_payload = captured[3]["service_data"]  # noqa: E111
-    assert select_payload == {  # noqa: E111
+    select_payload = captured[3]["service_data"]
+    assert select_payload == {
         "name": "Demo Status",
         "options": ["good", "ok"],
         "initial": "good",
         "icon": "mdi:list-status",
     }
 
-    for expected_entity, call in zip(entity_sequence, captured, strict=True):  # noqa: E111
+    for expected_entity, call in zip(entity_sequence, captured, strict=True):
         assert call["target"] == {"entity_id": expected_entity}
         assert call["description"] == f"creating helper {expected_entity}"
 
-    metrics = manager.guard_metrics  # noqa: E111
-    assert metrics["executed"] == 4  # noqa: E111
-    assert metrics["skipped"] == 0  # noqa: E111
+    metrics = manager.guard_metrics
+    assert metrics["executed"] == 4
+    assert metrics["skipped"] == 0

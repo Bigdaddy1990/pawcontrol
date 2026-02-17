@@ -17,6 +17,7 @@ from typing import Any, Protocol, TypeVar, cast
 
 class _SelectorNamespace(SimpleNamespace):
     """Namespace exposing selector helpers and callable schema factory."""
+
     def __call__(self, config: Any) -> Any:
         selector_factory = getattr(self, "selector", None)
         if callable(selector_factory):
@@ -26,6 +27,7 @@ class _SelectorNamespace(SimpleNamespace):
 
 class _SelectorNamespaceProtocol(Protocol):
     """Typing contract for the exported selector namespace."""
+
     Selector: Any
     BooleanSelector: Any
     BooleanSelectorConfig: Any
@@ -43,6 +45,7 @@ class _SelectorNamespaceProtocol(Protocol):
     TextSelectorType: Any
     TimeSelector: Any
     TimeSelectorConfig: Any
+
     def __call__(self, config: Any) -> Any:
         """Return normalized selector config payload."""
 
@@ -53,6 +56,8 @@ try:  # pragma: no cover - exercised when Home Assistant is installed
     from homeassistant.helpers import selector as ha_selector
 except ImportError:  # pragma: no cover - used in tests
     ha_selector = None
+
+
 def _supports_selector_callables(module: object) -> bool:
     """Return ``True`` when selector instances behave like validators."""
     text_selector = getattr(module, "TextSelector", None)
@@ -66,13 +71,16 @@ def _supports_selector_callables(module: object) -> bool:
         return False
 
     return callable(selector_instance)
+
+
 if ha_selector is not None and _supports_selector_callables(ha_selector):
-    # pragma: no cover - passthrough when available  # noqa: E114
+    # pragma: no cover - passthrough when available
     selector = cast(
         _SelectorNamespaceProtocol, _SelectorNamespace(**ha_selector.__dict__)
     )
 else:
     from typing import Literal, Required, TypedDict
+
     class BaseSelectorConfig(TypedDict, total=False):
         """Common selector configuration shared across helpers."""
 
@@ -153,6 +161,7 @@ else:
         """Date selector configuration shim."""
 
     ConfigT = TypeVar("ConfigT", bound=BaseSelectorConfig)
+
     class _BaseSelector[ConfigT: BaseSelectorConfig]:
         """Typed selector stub that mirrors Home Assistant's runtime helpers.
 
@@ -163,10 +172,10 @@ else:
         """
 
         def __init__(self, config: ConfigT | None = None) -> None:
-            # Normalise ``None`` to an empty mapping while preserving the specific  # noqa: E114, E501
-            # TypedDict type advertised by ``ConfigT``. The cast is safe because  # noqa: E114
-            # TypedDicts accept missing keys when ``total=False`` and the runtime  # noqa: E114, E501
-            # helpers perform the same normalisation before storing configs.  # noqa: E114
+            # Normalise ``None`` to an empty mapping while preserving the specific  # noqa: E501
+            # TypedDict type advertised by ``ConfigT``. The cast is safe because  # noqa: E501
+            # TypedDicts accept missing keys when ``total=False`` and the runtime  # noqa: E501
+            # helpers perform the same normalisation before storing configs.  # noqa: E501
             default_config: ConfigT = (
                 cast(
                     ConfigT,
@@ -176,11 +185,14 @@ else:
                 else config
             )
             self.config = default_config
+
         def __call__(self, value: Any) -> Any:
             """Return the provided value without validation."""
             return value
+
         def __repr__(self) -> str:  # pragma: no cover - debug helper
             return f"{self.__class__.__name__}(config={self.config!r})"
+
     class BooleanSelector(_BaseSelector[BooleanSelectorConfig]):
         """Boolean selector shim."""
 

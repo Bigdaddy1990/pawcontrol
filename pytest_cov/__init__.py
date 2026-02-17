@@ -4,30 +4,30 @@ import pytest
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    """Register coverage-related options so pytest can parse addopts."""  # noqa: E111
+    """Register coverage-related options so pytest can parse addopts."""
 
-    group = parser.getgroup("cov")  # noqa: E111
-    group.addoption(  # noqa: E111
+    group = parser.getgroup("cov")
+    group.addoption(
         "--cov",
         action="append",
         default=[],
         metavar="SOURCE",
         help="(shim) Measure coverage for file or package.",
     )
-    group.addoption(  # noqa: E111
+    group.addoption(
         "--cov-report",
         action="append",
         default=[],
         metavar="TYPE",
         help="(shim) Type of coverage report to generate.",
     )
-    group.addoption(  # noqa: E111
+    group.addoption(
         "--cov-branch",
         action="store_true",
         default=False,
         help="(shim) Enable branch coverage.",
     )
-    group.addoption(  # noqa: E111
+    group.addoption(
         "--no-cov-on-fail",
         action="store_true",
         default=False,
@@ -36,6 +36,6 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Register a marker placeholder when coverage plugin is absent."""  # noqa: E111
+    """Register a marker placeholder when coverage plugin is absent."""
 
-    config.addinivalue_line("markers", "cov: dummy marker for pytest-cov shim")  # noqa: E111
+    config.addinivalue_line("markers", "cov: dummy marker for pytest-cov shim")

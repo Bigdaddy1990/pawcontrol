@@ -7,9 +7,9 @@ import homeassistant.components.weather as weather_module
 import homeassistant.const as ha_const
 
 if TYPE_CHECKING:
-    UnitOfTemperatureType = type[ha_const.UnitOfTemperature]  # noqa: E111
+    UnitOfTemperatureType = type[ha_const.UnitOfTemperature]
 else:
-    UnitOfTemperatureType = type  # noqa: E111
+    UnitOfTemperatureType = type
 
 _MISSING_WEATHER_ATTRS: dict[str, str] = {
     "DOMAIN": "weather",
@@ -36,23 +36,23 @@ _WEATHER_COMPAT_READY = False
 
 
 def ensure_weather_module_compat() -> UnitOfTemperatureType:
-    """Ensure weather modules have the expected constants for tests."""  # noqa: E111
+    """Ensure weather modules have the expected constants for tests."""
 
-    global _WEATHER_COMPAT_READY  # noqa: E111
-    if not _WEATHER_COMPAT_READY:  # noqa: E111
+    global _WEATHER_COMPAT_READY
+    if not _WEATHER_COMPAT_READY:
         for attr, value in _MISSING_WEATHER_ATTRS.items():
-            if not hasattr(weather_module, attr):  # noqa: E111
+            if not hasattr(weather_module, attr):
                 setattr(weather_module, attr, value)
 
         if not hasattr(ha_const, "UnitOfTemperature"):
 
-            class UnitOfTemperature(StrEnum):  # noqa: E111
+            class UnitOfTemperature(StrEnum):
                 CELSIUS = "°C"
                 FAHRENHEIT = "°F"
                 KELVIN = "K"
 
-            ha_const.UnitOfTemperature = UnitOfTemperature  # noqa: E111
+            ha_const.UnitOfTemperature = UnitOfTemperature
 
         _WEATHER_COMPAT_READY = True
 
-    return ha_const.UnitOfTemperature  # noqa: E111
+    return ha_const.UnitOfTemperature
