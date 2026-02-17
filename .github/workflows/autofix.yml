@@ -53,11 +53,11 @@ jobs:
           ruff check . --output-format=github || true
           ruff format
           python scripts/enforce_docstring_baseline.py --update
-          
+
       - name: pre-commit-ci-lite
         uses: pre-commit-ci/lite-action@v1.1.0
         if: always()
-        
+
       - name: Verify contributor guides
         run: |
           python -m scripts.sync_contributor_guides --check
@@ -74,7 +74,7 @@ jobs:
           prek install
           prek run --all-files
           prek run --hook-stage manual python-typing-update --all-files
-          
+
       - name: pre-commit-ci-lite
         uses: pre-commit-ci/lite-action@v1.1.0
         if: always()

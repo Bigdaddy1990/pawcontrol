@@ -13,1125 +13,1127 @@ from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, cast
 import voluptuous as vol
 
 from .const import (
-  CONF_ADVANCED_SETTINGS,
-  CONF_API_ENDPOINT,
-  CONF_API_TOKEN,
-  CONF_DOG_ID,
-  CONF_DOG_NAME,
-  CONF_DOG_OPTIONS,
-  CONF_DOGS,
-  CONF_MODULES,
-  CONF_WEATHER_ENTITY,
-  DASHBOARD_MODE_SELECTOR_OPTIONS,
-  DEFAULT_MANUAL_CHECK_EVENT,
-  DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
-  DEFAULT_RESILIENCE_SKIP_THRESHOLD,
-  DEFAULT_WEATHER_ALERTS,
-  DEFAULT_WEATHER_HEALTH_MONITORING,
-  RESILIENCE_BREAKER_THRESHOLD_MAX,
-  RESILIENCE_BREAKER_THRESHOLD_MIN,
-  RESILIENCE_SKIP_THRESHOLD_MAX,
-  RESILIENCE_SKIP_THRESHOLD_MIN,
+    CONF_ADVANCED_SETTINGS,
+    CONF_API_ENDPOINT,
+    CONF_API_TOKEN,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_OPTIONS,
+    CONF_DOGS,
+    CONF_MODULES,
+    CONF_WEATHER_ENTITY,
+    DASHBOARD_MODE_SELECTOR_OPTIONS,
+    DEFAULT_MANUAL_CHECK_EVENT,
+    DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+    DEFAULT_RESILIENCE_SKIP_THRESHOLD,
+    DEFAULT_WEATHER_ALERTS,
+    DEFAULT_WEATHER_HEALTH_MONITORING,
+    RESILIENCE_BREAKER_THRESHOLD_MAX,
+    RESILIENCE_BREAKER_THRESHOLD_MIN,
+    RESILIENCE_SKIP_THRESHOLD_MAX,
+    RESILIENCE_SKIP_THRESHOLD_MIN,
 )
 from .exceptions import FlowValidationError
 from .flow_validation import validate_dog_config_payload
 from .script_manager import resolve_resilience_script_thresholds
 from .selector_shim import selector
 from .types import (
-  DOG_ID_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_NAME_FIELD,
-  RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
-  AdvancedOptions,
-  ConfigEntryOptionsPayload,
-  ConfigFlowPlaceholders,
-  DashboardOptions,
-  DogConfigData,
-  DogModulesConfig,
-  DogOptionsMap,
-  JSONLikeMapping,
-  JSONMutableMapping,
-  JSONValue,
-  NotificationThreshold,
-  OptionsAdvancedSettingsInput,
-  OptionsDashboardSettingsInput,
-  OptionsExportPayload,
-  OptionsSystemSettingsInput,
-  OptionsWeatherSettingsInput,
-  PawControlOptionsData,
-  SystemOptions,
-  WeatherOptions,
-  clone_placeholders,
-  ensure_advanced_options,
-  ensure_dog_modules_mapping,
-  ensure_dog_options_entry,
-  freeze_placeholders,
-  normalize_performance_mode,
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
+    AdvancedOptions,
+    ConfigEntryOptionsPayload,
+    ConfigFlowPlaceholders,
+    DashboardOptions,
+    DogConfigData,
+    DogModulesConfig,
+    DogOptionsMap,
+    JSONLikeMapping,
+    JSONMutableMapping,
+    JSONValue,
+    NotificationThreshold,
+    OptionsAdvancedSettingsInput,
+    OptionsDashboardSettingsInput,
+    OptionsExportPayload,
+    OptionsSystemSettingsInput,
+    OptionsWeatherSettingsInput,
+    PawControlOptionsData,
+    SystemOptions,
+    WeatherOptions,
+    clone_placeholders,
+    ensure_advanced_options,
+    ensure_dog_modules_mapping,
+    ensure_dog_options_entry,
+    freeze_placeholders,
+    normalize_performance_mode,
 )
 from .utils import normalize_value
 from .validation import (
-  InputCoercionError,
-  clamp_float_range,
-  clamp_int_range,
-  coerce_float,
-  coerce_int,
+    InputCoercionError,
+    clamp_float_range,
+    clamp_int_range,
+    coerce_float,
+    coerce_int,
 )
 
 if TYPE_CHECKING:
-  from homeassistant.config_entries import ConfigEntry  # noqa: E111
+    from homeassistant.config_entries import ConfigEntry  # noqa: E111
 
 _LOGGER = logging.getLogger(__name__)
 
 SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal["enable_analytics"]] = "enable_analytics"
 SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: Final[Literal["enable_cloud_backup"]] = (
-  "enable_cloud_backup"
+    "enable_cloud_backup"
 )
 WEATHER_ENTITY_FIELD: Final[Literal["weather_entity"]] = cast(
-  Literal["weather_entity"],
-  CONF_WEATHER_ENTITY,
+    Literal["weather_entity"],
+    CONF_WEATHER_ENTITY,
 )
 DOG_OPTIONS_FIELD: Final[Literal["dog_options"]] = cast(
-  Literal["dog_options"],
-  CONF_DOG_OPTIONS,
+    Literal["dog_options"],
+    CONF_DOG_OPTIONS,
 )
 ADVANCED_SETTINGS_FIELD: Final[Literal["advanced_settings"]] = cast(
-  Literal["advanced_settings"],
-  CONF_ADVANCED_SETTINGS,
+    Literal["advanced_settings"],
+    CONF_ADVANCED_SETTINGS,
 )
 
 
 if TYPE_CHECKING:
 
-  class OptionsFlowSharedHost(Protocol):  # noqa: E111
-    _EXPORT_VERSION: int
-    _current_dog: DogConfigData | None
-    _dogs: list[DogConfigData]
+    class OptionsFlowSharedHost(Protocol):  # noqa: E111
+        _EXPORT_VERSION: int
+        _current_dog: DogConfigData | None
+        _dogs: list[DogConfigData]
 
-    @property
-    def _entry(self) -> ConfigEntry: ...
+        @property
+        def _entry(self) -> ConfigEntry: ...
 
-    def __getattr__(self, name: str) -> Any: ...
+        def __getattr__(self, name: str) -> Any: ...
 
 else:  # pragma: no cover
-  OptionsFlowSharedHost = object  # noqa: E111
+    OptionsFlowSharedHost = object  # noqa: E111
 
 
 class OptionsFlowSharedMixin(OptionsFlowSharedHost):
-  _current_dog: DogConfigData | None  # noqa: E111
-  _dogs: list[DogConfigData]  # noqa: E111
+    _current_dog: DogConfigData | None  # noqa: E111
+    _dogs: list[DogConfigData]  # noqa: E111
 
-  @staticmethod  # noqa: E111
-  def _string_sequence(value: Any) -> list[str]:  # noqa: E111
-    """Return ``value`` as a list of non-empty strings.
+    @staticmethod  # noqa: E111
+    def _string_sequence(value: Any) -> list[str]:  # noqa: E111
+        """Return ``value`` as a list of non-empty strings.
 
-    Home Assistant flows frequently persist legacy payloads where a field can be
-    a scalar string, a list, or an arbitrary serialisable value. Normalise those
-    variants to a stable ``list[str]`` for placeholder rendering.
-    """
+        Home Assistant flows frequently persist legacy payloads where a field can be
+        a scalar string, a list, or an arbitrary serialisable value. Normalise those
+        variants to a stable ``list[str]`` for placeholder rendering.
+        """
 
-    if value is None:
-      return []  # noqa: E111
+        if value is None:
+            return []  # noqa: E111
 
-    if isinstance(value, str):
-      candidate = value.strip()  # noqa: E111
-      return [candidate] if candidate else []  # noqa: E111
+        if isinstance(value, str):
+            candidate = value.strip()  # noqa: E111
+            return [candidate] if candidate else []  # noqa: E111
 
-    if isinstance(value, Sequence) and not isinstance(value, bytes | bytearray):
-      values: list[str] = []  # noqa: E111
-      for item in value:  # noqa: E111
-        candidate = item.strip() if isinstance(item, str) else str(item).strip()
-        if candidate:
-          values.append(candidate)  # noqa: E111
-      return values  # noqa: E111
+        if isinstance(value, Sequence) and not isinstance(value, bytes | bytearray):
+            values: list[str] = []  # noqa: E111
+            for item in value:  # noqa: E111
+                candidate = item.strip() if isinstance(item, str) else str(item).strip()
+                if candidate:
+                    values.append(candidate)  # noqa: E111
+            return values  # noqa: E111
 
-    candidate = str(value).strip()
-    return [candidate] if candidate else []
+        candidate = str(value).strip()
+        return [candidate] if candidate else []
 
-  def _manual_event_description_placeholders(self) -> ConfigFlowPlaceholders:  # noqa: E111
-    """Return description placeholders enumerating known manual events."""
+    def _manual_event_description_placeholders(self) -> ConfigFlowPlaceholders:  # noqa: E111
+        """Return description placeholders enumerating known manual events."""
 
-    choices = self._resolve_manual_event_choices()
-    placeholders: dict[str, bool | int | float | str] = {}
-    for field, values in choices.items():
-      placeholder_key = f"{field}_options"  # noqa: E111
-      placeholders[placeholder_key] = (  # noqa: E111
-        ", ".join(
-          values,
+        choices = self._resolve_manual_event_choices()
+        placeholders: dict[str, bool | int | float | str] = {}
+        for field, values in choices.items():
+            placeholder_key = f"{field}_options"  # noqa: E111
+            placeholders[placeholder_key] = (  # noqa: E111
+                ", ".join(
+                    values,
+                )
+                if values
+                else "—"
+            )
+        return freeze_placeholders(placeholders)
+
+    @staticmethod  # noqa: E111
+    def _coerce_manual_event_with_default(  # noqa: E111
+        value: Any,
+        default: str | None,
+    ) -> str | None:
+        """Return a normalised manual event or fallback to the provided default."""
+
+        if isinstance(value, str):
+            candidate = value.strip()  # noqa: E111
+            return candidate or None  # noqa: E111
+        return default
+
+    def _get_reconfigure_description_placeholders(self) -> ConfigFlowPlaceholders:  # noqa: E111
+        """Return placeholders describing the latest reconfigure telemetry."""
+
+        telemetry = self._reconfigure_telemetry()
+        timestamp = self._format_local_timestamp(
+            (telemetry or {}).get("timestamp") if telemetry else None,
         )
-        if values
-        else "—"
-      )
-    return freeze_placeholders(placeholders)
+        placeholders = clone_placeholders(RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE)
+        placeholders["last_reconfigure"] = timestamp
+        if not telemetry:
+            placeholders["reconfigure_requested_profile"] = "Not recorded"  # noqa: E111
+            placeholders["reconfigure_previous_profile"] = "Not recorded"  # noqa: E111
+            placeholders["reconfigure_entities"] = "0"  # noqa: E111
+            placeholders["reconfigure_dogs"] = "0"  # noqa: E111
+            placeholders["reconfigure_health"] = "No recent health summary"  # noqa: E111
+            placeholders["reconfigure_warnings"] = "None"  # noqa: E111
+            placeholders["reconfigure_merge_notes"] = "No merge adjustments recorded"  # noqa: E111
+            return freeze_placeholders(placeholders)  # noqa: E111
 
-  @staticmethod  # noqa: E111
-  def _coerce_manual_event_with_default(  # noqa: E111
-    value: Any,
-    default: str | None,
-  ) -> str | None:
-    """Return a normalised manual event or fallback to the provided default."""
-
-    if isinstance(value, str):
-      candidate = value.strip()  # noqa: E111
-      return candidate or None  # noqa: E111
-    return default
-
-  def _get_reconfigure_description_placeholders(self) -> ConfigFlowPlaceholders:  # noqa: E111
-    """Return placeholders describing the latest reconfigure telemetry."""
-
-    telemetry = self._reconfigure_telemetry()
-    timestamp = self._format_local_timestamp(
-      (telemetry or {}).get("timestamp") if telemetry else None,
-    )
-    placeholders = clone_placeholders(RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE)
-    placeholders["last_reconfigure"] = timestamp
-    if not telemetry:
-      placeholders["reconfigure_requested_profile"] = "Not recorded"  # noqa: E111
-      placeholders["reconfigure_previous_profile"] = "Not recorded"  # noqa: E111
-      placeholders["reconfigure_entities"] = "0"  # noqa: E111
-      placeholders["reconfigure_dogs"] = "0"  # noqa: E111
-      placeholders["reconfigure_health"] = "No recent health summary"  # noqa: E111
-      placeholders["reconfigure_warnings"] = "None"  # noqa: E111
-      placeholders["reconfigure_merge_notes"] = "No merge adjustments recorded"  # noqa: E111
-      return freeze_placeholders(placeholders)  # noqa: E111
-
-    requested_profile = (
-      str(
-        telemetry.get(
-          "requested_profile",
-          "",
-        ),
-      )
-      or "Unknown"
-    )
-    previous_profile = (
-      str(
-        telemetry.get(
-          "previous_profile",
-          "",
-        ),
-      )
-      or "Unknown"
-    )
-    dogs_count = telemetry.get("dogs_count")
-    estimated_entities = telemetry.get("estimated_entities")
-    warnings = self._string_sequence(
-      telemetry.get("compatibility_warnings"),
-    )
-    merge_notes = self._string_sequence(telemetry.get("merge_notes"))
-    health_summary = telemetry.get("health_summary")
-
-    last_recorded = (
-      telemetry.get(
-        "timestamp",
-      )
-      or self._last_reconfigure_timestamp()
-    )
-
-    placeholders["last_reconfigure"] = self._format_local_timestamp(
-      str(last_recorded) if last_recorded else None,
-    )
-    placeholders["reconfigure_requested_profile"] = requested_profile
-    placeholders["reconfigure_previous_profile"] = previous_profile
-    placeholders["reconfigure_entities"] = (
-      str(int(estimated_entities))
-      if isinstance(estimated_entities, int | float)
-      else "0"
-    )
-    placeholders["reconfigure_dogs"] = (
-      str(int(dogs_count))
-      if isinstance(
-        dogs_count,
-        int | float,
-      )
-      else "0"
-    )
-    placeholders["reconfigure_health"] = self._summarise_health_summary(
-      health_summary,
-    )
-    placeholders["reconfigure_warnings"] = ", ".join(warnings) if warnings else "None"
-    placeholders["reconfigure_merge_notes"] = (
-      "\n".join(
-        merge_notes,
-      )
-      if merge_notes
-      else "No merge adjustments recorded"
-    )
-    return freeze_placeholders(placeholders)
-
-  def _normalise_export_value(self, value: Any) -> JSONValue:  # noqa: E111
-    """Convert complex values into JSON-serialisable primitives."""
-
-    return cast(JSONValue, normalize_value(value))
-
-  def _map_import_payload_error(self, error: FlowValidationError) -> str:  # noqa: E111
-    """Map dog validation errors to import payload error codes."""
-
-    if error.base_errors:
-      return "dog_invalid"  # noqa: E111
-
-    field_errors = error.field_errors
-    if field_errors.get(CONF_MODULES) == "dog_invalid_modules":
-      return "dog_invalid_modules"  # noqa: E111
-    if CONF_DOG_ID in field_errors:
-      if field_errors[CONF_DOG_ID] == "dog_id_already_exists":  # noqa: E111
-        return "dog_duplicate"
-      return "dog_missing_id"  # noqa: E111
-    if CONF_DOG_NAME in field_errors:
-      return "dog_invalid"  # noqa: E111
-    return "dog_invalid"
-
-  def _build_export_payload(self) -> OptionsExportPayload:  # noqa: E111
-    """Serialise the current configuration into an export payload."""
-
-    typed_options = self._normalise_options_snapshot(self._clone_options())
-    options = cast(
-      PawControlOptionsData,
-      self._normalise_export_value(typed_options),
-    )
-
-    dogs_payload: list[DogConfigData] = []
-    dogs_raw = self._entry.data.get(CONF_DOGS, [])
-    dogs_iterable: Sequence[object] = (
-      dogs_raw
-      if isinstance(dogs_raw, Sequence) and not isinstance(dogs_raw, bytes | str)
-      else ()
-    )
-    for raw in dogs_iterable:
-      if not isinstance(raw, Mapping):  # noqa: E111
-        continue
-      normalised = cast(  # noqa: E111
-        DogConfigData,
-        self._normalise_export_value(dict(raw)),
-      )
-      dog_id = normalised.get(CONF_DOG_ID)  # noqa: E111
-      if not isinstance(dog_id, str) or not dog_id.strip():  # noqa: E111
-        continue
-      modules_mapping = ensure_dog_modules_mapping(normalised)  # noqa: E111
-      if modules_mapping:  # noqa: E111
-        normalised[DOG_MODULES_FIELD] = cast(
-          DogModulesConfig,
-          dict(modules_mapping),
+        requested_profile = (
+            str(
+                telemetry.get(
+                    "requested_profile",
+                    "",
+                ),
+            )
+            or "Unknown"
         )
-      elif DOG_MODULES_FIELD in normalised:  # noqa: E111
-        normalised.pop(DOG_MODULES_FIELD, None)
-      dogs_payload.append(normalised)  # noqa: E111
-
-    payload: OptionsExportPayload = {
-      "version": cast(Literal[1], self._EXPORT_VERSION),
-      "options": options,
-      "dogs": dogs_payload,
-      "created_at": datetime.now(UTC).isoformat(),
-    }
-    return payload
-
-  def _validate_import_payload(self, payload: Any) -> OptionsExportPayload:  # noqa: E111
-    """Validate and normalise an imported payload."""
-
-    if not isinstance(payload, Mapping):
-      raise FlowValidationError(field_errors={"payload": "payload_not_mapping"})  # noqa: E111
-
-    version = payload.get("version")
-    if version != self._EXPORT_VERSION:
-      raise FlowValidationError(field_errors={"payload": "unsupported_version"})  # noqa: E111
-
-    options_raw = payload.get("options")
-    if not isinstance(options_raw, Mapping):
-      raise FlowValidationError(field_errors={"payload": "options_missing"})  # noqa: E111
-
-    sanitised_options = cast(
-      PawControlOptionsData,
-      self._normalise_export_value(dict(options_raw)),
-    )
-
-    merged_candidate = cast(ConfigEntryOptionsPayload, dict(self._clone_options()))
-    merged_candidate.update(sanitised_options)  # type: ignore[typeddict-item]
-    merged_options = self._normalise_options_snapshot(merged_candidate)
-
-    dogs_raw = payload.get("dogs", [])
-    if not isinstance(dogs_raw, list):
-      raise FlowValidationError(field_errors={"payload": "dogs_invalid"})  # noqa: E111
-
-    dogs_payload: list[DogConfigData] = []
-    seen_ids: set[str] = set()
-    for raw in dogs_raw:
-      if not isinstance(raw, Mapping):  # noqa: E111
-        raise FlowValidationError(field_errors={"payload": "dog_invalid"})
-      normalised = cast(  # noqa: E111
-        DogConfigData,
-        self._normalise_export_value(dict(raw)),
-      )
-      try:  # noqa: E111
-        validated = validate_dog_config_payload(
-          cast(Mapping[str, object], normalised),  # type: ignore[arg-type]
-          existing_ids=seen_ids,
-          existing_names=None,
+        previous_profile = (
+            str(
+                telemetry.get(
+                    "previous_profile",
+                    "",
+                ),
+            )
+            or "Unknown"
         )
-      except FlowValidationError as err:  # noqa: E111
-        raise FlowValidationError(
-          field_errors={"payload": self._map_import_payload_error(err)},
-        ) from err
-      dog_id = validated[CONF_DOG_ID]  # type: ignore[literal-required]    # noqa: E111
-      seen_ids.add(dog_id)  # noqa: E111
-      dogs_payload.append(validated)  # noqa: E111
+        dogs_count = telemetry.get("dogs_count")
+        estimated_entities = telemetry.get("estimated_entities")
+        warnings = self._string_sequence(
+            telemetry.get("compatibility_warnings"),
+        )
+        merge_notes = self._string_sequence(telemetry.get("merge_notes"))
+        health_summary = telemetry.get("health_summary")
 
-    created_at = payload.get("created_at")
-    if not isinstance(created_at, str) or not created_at:
-      created_at = datetime.now(UTC).isoformat()  # noqa: E111
-
-    result: OptionsExportPayload = {
-      "version": cast(Literal[1], self._EXPORT_VERSION),
-      "options": merged_options,
-      "dogs": dogs_payload,
-      "created_at": created_at,
-    }
-    return result
-
-  def _current_weather_options(self) -> WeatherOptions:  # noqa: E111
-    """Return the stored weather configuration with root fallbacks."""
-
-    options = self._current_options()
-    raw = options.get("weather_settings", {})
-    if isinstance(raw, Mapping):
-      current = cast(WeatherOptions, dict(raw))  # noqa: E111
-    else:
-      current = cast(WeatherOptions, {})  # noqa: E111
-
-    if (
-      WEATHER_ENTITY_FIELD not in current
-      and (entity := options.get(CONF_WEATHER_ENTITY))
-      and isinstance(entity, str)
-    ):
-      candidate = entity.strip()  # noqa: E111
-      if candidate:  # noqa: E111
-        current[WEATHER_ENTITY_FIELD] = candidate
-
-    return current
-
-  def _current_dog_options(self) -> DogOptionsMap:  # noqa: E111
-    """Return the stored per-dog overrides keyed by dog ID."""
-
-    raw = self._current_options().get(DOG_OPTIONS_FIELD, {})
-    if not isinstance(raw, Mapping):
-      return {}  # noqa: E111
-
-    dog_options: DogOptionsMap = {}
-    for dog_id, value in raw.items():
-      if not isinstance(value, Mapping):  # noqa: E111
-        continue
-      entry = ensure_dog_options_entry(  # noqa: E111
-        cast(JSONLikeMapping, dict(value)),
-        dog_id=str(dog_id),
-      )
-      if entry:  # noqa: E111
-        dog_options[str(dog_id)] = entry
-
-    return dog_options
-
-  def _require_current_dog(self) -> DogConfigData | None:  # noqa: E111
-    """Return the current dog, defaulting when only one is configured."""
-
-    if self._current_dog is not None:
-      return self._current_dog  # noqa: E111
-
-    if len(self._dogs) == 1:
-      self._current_dog = self._dogs[0]  # noqa: E111
-      return self._current_dog  # noqa: E111
-
-    return None
-
-  def _select_dog_by_id(self, dog_id: str | None) -> DogConfigData | None:  # noqa: E111
-    """Select and store the current dog based on the provided identifier."""
-
-    if not isinstance(dog_id, str):
-      self._current_dog = None  # noqa: E111
-      return None  # noqa: E111
-
-    self._current_dog = next(
-      (dog for dog in self._dogs if dog.get(DOG_ID_FIELD) == dog_id),
-      None,
-    )
-    return self._current_dog
-
-  def _build_dog_selector_schema(self) -> vol.Schema:  # noqa: E111
-    """Return a schema for selecting a dog from the current list."""
-    dog_options = [
-      {
-        "value": dog.get(DOG_ID_FIELD),
-        "label": f"{dog.get(DOG_NAME_FIELD)} ({dog.get(DOG_ID_FIELD)})",
-      }
-      for dog in self._dogs
-    ]
-
-    return vol.Schema(
-      {
-        vol.Required("dog_id"): selector.SelectSelector(
-          selector.SelectSelectorConfig(
-            options=dog_options,
-            mode=selector.SelectSelectorMode.DROPDOWN,
-          ),
-        ),
-      },
-    )
-
-  def _current_system_options(self) -> SystemOptions:  # noqa: E111
-    """Return persisted system settings metadata."""
-
-    options = self._current_options()
-    raw = options.get("system_settings", {})
-    if isinstance(raw, Mapping):
-      system = cast(SystemOptions, dict(raw))  # noqa: E111
-    else:
-      system = cast(SystemOptions, {})  # noqa: E111
-
-    enable_analytics = options.get("enable_analytics")
-    enable_cloud_backup = options.get("enable_cloud_backup")
-
-    if SYSTEM_ENABLE_ANALYTICS_FIELD not in system:
-      system[SYSTEM_ENABLE_ANALYTICS_FIELD] = bool(enable_analytics)  # noqa: E111
-    if SYSTEM_ENABLE_CLOUD_BACKUP_FIELD not in system:
-      system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(  # noqa: E111
-        enable_cloud_backup,
-      )
-
-    has_skip = "resilience_skip_threshold" in system
-    has_breaker = "resilience_breaker_threshold" in system
-
-    skip_default = self._resolve_resilience_threshold_default(
-      system,
-      options,
-      field="resilience_skip_threshold",
-      fallback=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
-    )
-    breaker_default = self._resolve_resilience_threshold_default(
-      system,
-      options,
-      field="resilience_breaker_threshold",
-      fallback=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
-    )
-
-    script_skip, script_breaker = self._resolve_script_threshold_fallbacks(
-      has_skip=has_skip,
-      has_breaker=has_breaker,
-    )
-
-    skip_candidate = system.get("resilience_skip_threshold")
-    breaker_candidate = system.get("resilience_breaker_threshold")
-
-    system["resilience_skip_threshold"] = self._finalise_resilience_threshold(
-      candidate=skip_candidate,
-      default=skip_default,
-      script_value=script_skip,
-      include_script=not has_skip,
-      minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
-      maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
-      fallback=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
-    )
-    system["resilience_breaker_threshold"] = self._finalise_resilience_threshold(
-      candidate=breaker_candidate,
-      default=breaker_default,
-      script_value=script_breaker,
-      include_script=not has_breaker,
-      minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
-      maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
-      fallback=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
-    )
-
-    return system
-
-  def _resolve_manual_event_context(  # noqa: E111
-    self,
-    current_system: SystemOptions,
-    *,
-    manual_snapshot: Mapping[str, JSONValue] | None = None,
-  ) -> JSONMutableMapping:
-    """Return manual event suggestions sourced from runtime and defaults."""
-
-    check_suggestions: set[str] = {
-      DEFAULT_MANUAL_CHECK_EVENT,
-    }
-    guard_suggestions: set[str] = {
-      "pawcontrol_manual_guard",
-    }
-    breaker_suggestions: set[str] = {
-      "pawcontrol_manual_breaker",
-    }
-
-    check_default: str | None = self._coerce_manual_event(
-      current_system.get("manual_check_event"),
-    )
-    guard_default: str | None = self._coerce_manual_event(
-      current_system.get("manual_guard_event"),
-    )
-    breaker_default: str | None = self._coerce_manual_event(
-      current_system.get("manual_breaker_event"),
-    )
-
-    if manual_snapshot is None:
-      manual_snapshot = self._manual_events_snapshot()  # noqa: E111
-
-    if manual_snapshot is not None:
-      system_guard = self._coerce_manual_event(  # noqa: E111
-        manual_snapshot.get("system_guard_event"),
-      )
-      system_breaker = self._coerce_manual_event(  # noqa: E111
-        manual_snapshot.get("system_breaker_event"),
-      )
-
-      if guard_default is None:  # noqa: E111
-        guard_default = system_guard
-      if breaker_default is None:  # noqa: E111
-        breaker_default = system_breaker
-
-      for event in self._string_sequence(  # noqa: E111
-        manual_snapshot.get("configured_check_events"),
-      ):
-        normalised = self._coerce_manual_event(event)
-        if normalised is not None:
-          check_suggestions.add(normalised)  # noqa: E111
-          if check_default is None:  # noqa: E111
-            check_default = normalised
-
-      for event in self._string_sequence(  # noqa: E111
-        manual_snapshot.get("configured_guard_events"),
-      ):
-        normalised = self._coerce_manual_event(event)
-        if normalised is not None:
-          guard_suggestions.add(normalised)  # noqa: E111
-      for event in self._string_sequence(  # noqa: E111
-        manual_snapshot.get("configured_breaker_events"),
-      ):
-        normalised = self._coerce_manual_event(event)
-        if normalised is not None:
-          breaker_suggestions.add(normalised)  # noqa: E111
-
-      if check_default is None:  # noqa: E111
-        preferred = manual_snapshot.get("preferred_events")
-        if isinstance(preferred, Mapping):
-          check_default = self._coerce_manual_event(  # noqa: E111
-            preferred.get("manual_check_event"),
-          )
-      if check_default is None:  # noqa: E111
-        check_default = self._coerce_manual_event(
-          manual_snapshot.get("preferred_check_event"),
+        last_recorded = (
+            telemetry.get(
+                "timestamp",
+            )
+            or self._last_reconfigure_timestamp()
         )
 
-    if guard_default is not None:
-      guard_suggestions.add(guard_default)  # noqa: E111
-    if breaker_default is not None:
-      breaker_suggestions.add(breaker_default)  # noqa: E111
-    if check_default is not None:
-      check_suggestions.add(check_default)  # noqa: E111
+        placeholders["last_reconfigure"] = self._format_local_timestamp(
+            str(last_recorded) if last_recorded else None,
+        )
+        placeholders["reconfigure_requested_profile"] = requested_profile
+        placeholders["reconfigure_previous_profile"] = previous_profile
+        placeholders["reconfigure_entities"] = (
+            str(int(estimated_entities))
+            if isinstance(estimated_entities, int | float)
+            else "0"
+        )
+        placeholders["reconfigure_dogs"] = (
+            str(int(dogs_count))
+            if isinstance(
+                dogs_count,
+                int | float,
+            )
+            else "0"
+        )
+        placeholders["reconfigure_health"] = self._summarise_health_summary(
+            health_summary,
+        )
+        placeholders["reconfigure_warnings"] = (
+            ", ".join(warnings) if warnings else "None"
+        )
+        placeholders["reconfigure_merge_notes"] = (
+            "\n".join(
+                merge_notes,
+            )
+            if merge_notes
+            else "No merge adjustments recorded"
+        )
+        return freeze_placeholders(placeholders)
 
-    result: JSONMutableMapping = {
-      "check_suggestions": sorted(check_suggestions),
-      "guard_suggestions": sorted(guard_suggestions),
-      "breaker_suggestions": sorted(breaker_suggestions),
-      "check_default": check_default,
-      "guard_default": guard_default,
-      "breaker_default": breaker_default,
-    }
-    return result
+    def _normalise_export_value(self, value: Any) -> JSONValue:  # noqa: E111
+        """Convert complex values into JSON-serialisable primitives."""
 
-  @staticmethod  # noqa: E111
-  def _resolve_resilience_threshold_default(  # noqa: E111
-    system: SystemOptions,
-    options: Mapping[str, JSONValue],
-    *,
-    field: str,
-    fallback: int,
-  ) -> int:
-    """Return the default threshold from system options or legacy storage."""
+        return cast(JSONValue, normalize_value(value))
 
-    candidate = system.get(field)
-    if isinstance(candidate, int):
-      return candidate  # noqa: E111
+    def _map_import_payload_error(self, error: FlowValidationError) -> str:  # noqa: E111
+        """Map dog validation errors to import payload error codes."""
 
-    legacy_value = options.get(field)
-    if isinstance(legacy_value, int):
-      return legacy_value  # noqa: E111
+        if error.base_errors:
+            return "dog_invalid"  # noqa: E111
 
-    return fallback
+        field_errors = error.field_errors
+        if field_errors.get(CONF_MODULES) == "dog_invalid_modules":
+            return "dog_invalid_modules"  # noqa: E111
+        if CONF_DOG_ID in field_errors:
+            if field_errors[CONF_DOG_ID] == "dog_id_already_exists":  # noqa: E111
+                return "dog_duplicate"
+            return "dog_missing_id"  # noqa: E111
+        if CONF_DOG_NAME in field_errors:
+            return "dog_invalid"  # noqa: E111
+        return "dog_invalid"
 
-  def _resolve_script_threshold_fallbacks(  # noqa: E111
-    self,
-    *,
-    has_skip: bool,
-    has_breaker: bool,
-  ) -> tuple[int | None, int | None]:
-    """Return script thresholds when options are missing values."""
+    def _build_export_payload(self) -> OptionsExportPayload:  # noqa: E111
+        """Serialise the current configuration into an export payload."""
 
-    if has_skip and has_breaker:
-      return None, None  # noqa: E111
+        typed_options = self._normalise_options_snapshot(self._clone_options())
+        options = cast(
+            PawControlOptionsData,
+            self._normalise_export_value(typed_options),
+        )
 
-    hass = getattr(self, "hass", None)
-    if hass is None:
-      return None, None  # noqa: E111
+        dogs_payload: list[DogConfigData] = []
+        dogs_raw = self._entry.data.get(CONF_DOGS, [])
+        dogs_iterable: Sequence[object] = (
+            dogs_raw
+            if isinstance(dogs_raw, Sequence) and not isinstance(dogs_raw, bytes | str)
+            else ()
+        )
+        for raw in dogs_iterable:
+            if not isinstance(raw, Mapping):  # noqa: E111
+                continue
+            normalised = cast(  # noqa: E111
+                DogConfigData,
+                self._normalise_export_value(dict(raw)),
+            )
+            dog_id = normalised.get(CONF_DOG_ID)  # noqa: E111
+            if not isinstance(dog_id, str) or not dog_id.strip():  # noqa: E111
+                continue
+            modules_mapping = ensure_dog_modules_mapping(normalised)  # noqa: E111
+            if modules_mapping:  # noqa: E111
+                normalised[DOG_MODULES_FIELD] = cast(
+                    DogModulesConfig,
+                    dict(modules_mapping),
+                )
+            elif DOG_MODULES_FIELD in normalised:  # noqa: E111
+                normalised.pop(DOG_MODULES_FIELD, None)
+            dogs_payload.append(normalised)  # noqa: E111
 
-    return resolve_resilience_script_thresholds(hass, self._entry)
+        payload: OptionsExportPayload = {
+            "version": cast(Literal[1], self._EXPORT_VERSION),
+            "options": options,
+            "dogs": dogs_payload,
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+        return payload
 
-  def _finalise_resilience_threshold(  # noqa: E111
-    self,
-    *,
-    candidate: Any,
-    default: int,
-    script_value: int | None,
-    include_script: bool,
-    minimum: int,
-    maximum: int,
-    fallback: int,
-  ) -> int:
-    """Return the stored threshold, falling back to script defaults when needed."""
+    def _validate_import_payload(self, payload: Any) -> OptionsExportPayload:  # noqa: E111
+        """Validate and normalise an imported payload."""
 
-    if include_script and script_value is not None:
-      return self._coerce_clamped_int(  # noqa: E111
-        script_value,
-        fallback,
-        minimum=minimum,
-        maximum=maximum,
-      )
+        if not isinstance(payload, Mapping):
+            raise FlowValidationError(field_errors={"payload": "payload_not_mapping"})  # noqa: E111
 
-    return self._coerce_clamped_int(
-      candidate,
-      default,
-      minimum=minimum,
-      maximum=maximum,
-    )
+        version = payload.get("version")
+        if version != self._EXPORT_VERSION:
+            raise FlowValidationError(field_errors={"payload": "unsupported_version"})  # noqa: E111
 
-  def _current_dashboard_options(self) -> DashboardOptions:  # noqa: E111
-    """Return the stored dashboard configuration."""
+        options_raw = payload.get("options")
+        if not isinstance(options_raw, Mapping):
+            raise FlowValidationError(field_errors={"payload": "options_missing"})  # noqa: E111
 
-    raw = self._current_options().get("dashboard_settings", {})
-    if isinstance(raw, Mapping):
-      return cast(DashboardOptions, dict(raw))  # noqa: E111
-    return cast(DashboardOptions, {})
+        sanitised_options = cast(
+            PawControlOptionsData,
+            self._normalise_export_value(dict(options_raw)),
+        )
 
-  def _current_advanced_options(self) -> AdvancedOptions:  # noqa: E111
-    """Return advanced configuration merged with root fallbacks."""
+        merged_candidate = cast(ConfigEntryOptionsPayload, dict(self._clone_options()))
+        merged_candidate.update(sanitised_options)  # type: ignore[typeddict-item]
+        merged_options = self._normalise_options_snapshot(merged_candidate)
 
-    options = self._current_options()
-    raw = options.get(ADVANCED_SETTINGS_FIELD)
-    source = (
-      cast(
-        JSONLikeMapping,
-        dict(
-          raw,
-        ),
-      )
-      if isinstance(raw, Mapping)
-      else {}
-    )
-    defaults = cast(JSONMutableMapping, dict(options))
-    return ensure_advanced_options(source, defaults=defaults)
+        dogs_raw = payload.get("dogs", [])
+        if not isinstance(dogs_raw, list):
+            raise FlowValidationError(field_errors={"payload": "dogs_invalid"})  # noqa: E111
 
-  @staticmethod  # noqa: E111
-  def _coerce_bool(value: Any, default: bool) -> bool:  # noqa: E111
-    """Return a boolean value using Home Assistant style truthiness rules."""
+        dogs_payload: list[DogConfigData] = []
+        seen_ids: set[str] = set()
+        for raw in dogs_raw:
+            if not isinstance(raw, Mapping):  # noqa: E111
+                raise FlowValidationError(field_errors={"payload": "dog_invalid"})
+            normalised = cast(  # noqa: E111
+                DogConfigData,
+                self._normalise_export_value(dict(raw)),
+            )
+            try:  # noqa: E111
+                validated = validate_dog_config_payload(
+                    cast(Mapping[str, object], normalised),  # type: ignore[arg-type]
+                    existing_ids=seen_ids,
+                    existing_names=None,
+                )
+            except FlowValidationError as err:  # noqa: E111
+                raise FlowValidationError(
+                    field_errors={"payload": self._map_import_payload_error(err)},
+                ) from err
+            dog_id = validated[CONF_DOG_ID]  # type: ignore[literal-required]    # noqa: E111
+            seen_ids.add(dog_id)  # noqa: E111
+            dogs_payload.append(validated)  # noqa: E111
 
-    if value is None:
-      return default  # noqa: E111
-    if isinstance(value, bool):
-      return value  # noqa: E111
-    if isinstance(value, str):
-      return value.strip().lower() in {"1", "true", "on", "yes"}  # noqa: E111
-    return bool(value)
+        created_at = payload.get("created_at")
+        if not isinstance(created_at, str) or not created_at:
+            created_at = datetime.now(UTC).isoformat()  # noqa: E111
 
-  @staticmethod  # noqa: E111
-  def _coerce_manual_event(value: Any) -> str | None:  # noqa: E111
-    """Normalise manual event identifiers, returning ``None`` when disabled."""
+        result: OptionsExportPayload = {
+            "version": cast(Literal[1], self._EXPORT_VERSION),
+            "options": merged_options,
+            "dogs": dogs_payload,
+            "created_at": created_at,
+        }
+        return result
 
-    if isinstance(value, str):
-      candidate = value.strip()  # noqa: E111
-      if candidate:  # noqa: E111
-        return candidate
-    return None
+    def _current_weather_options(self) -> WeatherOptions:  # noqa: E111
+        """Return the stored weather configuration with root fallbacks."""
 
-  @staticmethod  # noqa: E111
-  def _coerce_int(value: Any, default: int) -> int:  # noqa: E111
-    """Return an integer, falling back to the provided default on error."""
+        options = self._current_options()
+        raw = options.get("weather_settings", {})
+        if isinstance(raw, Mapping):
+            current = cast(WeatherOptions, dict(raw))  # noqa: E111
+        else:
+            current = cast(WeatherOptions, {})  # noqa: E111
 
-    if value is None:
-      return default  # noqa: E111
-    try:
-      return coerce_int("options_flow", value)  # noqa: E111
-    except InputCoercionError:
-      return default  # noqa: E111
+        if (
+            WEATHER_ENTITY_FIELD not in current
+            and (entity := options.get(CONF_WEATHER_ENTITY))
+            and isinstance(entity, str)
+        ):
+            candidate = entity.strip()  # noqa: E111
+            if candidate:  # noqa: E111
+                current[WEATHER_ENTITY_FIELD] = candidate
 
-  @staticmethod  # noqa: E111
-  def _coerce_time_string(value: Any, default: str) -> str:  # noqa: E111
-    """Normalise selector values into Home Assistant time strings."""
+        return current
 
-    if value is None:
-      return default  # noqa: E111
-    if isinstance(value, str):
-      return value  # noqa: E111
-    iso_format = getattr(value, "isoformat", None)
-    if callable(iso_format):
-      return str(iso_format())  # noqa: E111
-    return default
+    def _current_dog_options(self) -> DogOptionsMap:  # noqa: E111
+        """Return the stored per-dog overrides keyed by dog ID."""
 
-  @staticmethod  # noqa: E111
-  def _coerce_optional_float(value: Any, default: float | None) -> float | None:  # noqa: E111
-    """Return a float or ``None`` when conversion fails."""
+        raw = self._current_options().get(DOG_OPTIONS_FIELD, {})
+        if not isinstance(raw, Mapping):
+            return {}  # noqa: E111
 
-    if value is None:
-      return default  # noqa: E111
-    try:
-      return coerce_float("options_flow", value)  # noqa: E111
-    except InputCoercionError:
-      return default  # noqa: E111
+        dog_options: DogOptionsMap = {}
+        for dog_id, value in raw.items():
+            if not isinstance(value, Mapping):  # noqa: E111
+                continue
+            entry = ensure_dog_options_entry(  # noqa: E111
+                cast(JSONLikeMapping, dict(value)),
+                dog_id=str(dog_id),
+            )
+            if entry:  # noqa: E111
+                dog_options[str(dog_id)] = entry
 
-  def _coerce_clamped_float(  # noqa: E111
-    self,
-    value: Any,
-    default: float,
-    *,
-    minimum: float,
-    maximum: float,
-  ) -> float:
-    """Normalise numeric input and clamp it to an allowed range."""
+        return dog_options
 
-    return clamp_float_range(
-      value,
-      field="options_float_range",
-      minimum=minimum,
-      maximum=maximum,
-      default=default,
-    )
+    def _require_current_dog(self) -> DogConfigData | None:  # noqa: E111
+        """Return the current dog, defaulting when only one is configured."""
 
-  def _coerce_clamped_int(  # noqa: E111
-    self,
-    value: Any,
-    default: int,
-    *,
-    minimum: int,
-    maximum: int,
-  ) -> int:
-    """Normalise numeric selector input and clamp to an allowed range."""
+        if self._current_dog is not None:
+            return self._current_dog  # noqa: E111
 
-    return clamp_int_range(
-      value,
-      field="options_int_range",
-      minimum=minimum,
-      maximum=maximum,
-      default=default,
-    )
+        if len(self._dogs) == 1:
+            self._current_dog = self._dogs[0]  # noqa: E111
+            return self._current_dog  # noqa: E111
 
-  @staticmethod  # noqa: E111
-  def _normalize_choice(value: Any, *, valid: set[str], default: str) -> str:  # noqa: E111
-    """Return a validated selector choice, falling back to ``default``."""
+        return None
 
-    if isinstance(value, str):
-      candidate = value.strip().lower()  # noqa: E111
-      if candidate in valid:  # noqa: E111
-        return candidate
+    def _select_dog_by_id(self, dog_id: str | None) -> DogConfigData | None:  # noqa: E111
+        """Select and store the current dog based on the provided identifier."""
 
-    if isinstance(default, str):
-      fallback = default.strip().lower()  # noqa: E111
-      if fallback in valid:  # noqa: E111
+        if not isinstance(dog_id, str):
+            self._current_dog = None  # noqa: E111
+            return None  # noqa: E111
+
+        self._current_dog = next(
+            (dog for dog in self._dogs if dog.get(DOG_ID_FIELD) == dog_id),
+            None,
+        )
+        return self._current_dog
+
+    def _build_dog_selector_schema(self) -> vol.Schema:  # noqa: E111
+        """Return a schema for selecting a dog from the current list."""
+        dog_options = [
+            {
+                "value": dog.get(DOG_ID_FIELD),
+                "label": f"{dog.get(DOG_NAME_FIELD)} ({dog.get(DOG_ID_FIELD)})",
+            }
+            for dog in self._dogs
+        ]
+
+        return vol.Schema(
+            {
+                vol.Required("dog_id"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=dog_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
+            },
+        )
+
+    def _current_system_options(self) -> SystemOptions:  # noqa: E111
+        """Return persisted system settings metadata."""
+
+        options = self._current_options()
+        raw = options.get("system_settings", {})
+        if isinstance(raw, Mapping):
+            system = cast(SystemOptions, dict(raw))  # noqa: E111
+        else:
+            system = cast(SystemOptions, {})  # noqa: E111
+
+        enable_analytics = options.get("enable_analytics")
+        enable_cloud_backup = options.get("enable_cloud_backup")
+
+        if SYSTEM_ENABLE_ANALYTICS_FIELD not in system:
+            system[SYSTEM_ENABLE_ANALYTICS_FIELD] = bool(enable_analytics)  # noqa: E111
+        if SYSTEM_ENABLE_CLOUD_BACKUP_FIELD not in system:
+            system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(  # noqa: E111
+                enable_cloud_backup,
+            )
+
+        has_skip = "resilience_skip_threshold" in system
+        has_breaker = "resilience_breaker_threshold" in system
+
+        skip_default = self._resolve_resilience_threshold_default(
+            system,
+            options,
+            field="resilience_skip_threshold",
+            fallback=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
+        )
+        breaker_default = self._resolve_resilience_threshold_default(
+            system,
+            options,
+            field="resilience_breaker_threshold",
+            fallback=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+        )
+
+        script_skip, script_breaker = self._resolve_script_threshold_fallbacks(
+            has_skip=has_skip,
+            has_breaker=has_breaker,
+        )
+
+        skip_candidate = system.get("resilience_skip_threshold")
+        breaker_candidate = system.get("resilience_breaker_threshold")
+
+        system["resilience_skip_threshold"] = self._finalise_resilience_threshold(
+            candidate=skip_candidate,
+            default=skip_default,
+            script_value=script_skip,
+            include_script=not has_skip,
+            minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+            maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+            fallback=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
+        )
+        system["resilience_breaker_threshold"] = self._finalise_resilience_threshold(
+            candidate=breaker_candidate,
+            default=breaker_default,
+            script_value=script_breaker,
+            include_script=not has_breaker,
+            minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+            maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+            fallback=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+        )
+
+        return system
+
+    def _resolve_manual_event_context(  # noqa: E111
+        self,
+        current_system: SystemOptions,
+        *,
+        manual_snapshot: Mapping[str, JSONValue] | None = None,
+    ) -> JSONMutableMapping:
+        """Return manual event suggestions sourced from runtime and defaults."""
+
+        check_suggestions: set[str] = {
+            DEFAULT_MANUAL_CHECK_EVENT,
+        }
+        guard_suggestions: set[str] = {
+            "pawcontrol_manual_guard",
+        }
+        breaker_suggestions: set[str] = {
+            "pawcontrol_manual_breaker",
+        }
+
+        check_default: str | None = self._coerce_manual_event(
+            current_system.get("manual_check_event"),
+        )
+        guard_default: str | None = self._coerce_manual_event(
+            current_system.get("manual_guard_event"),
+        )
+        breaker_default: str | None = self._coerce_manual_event(
+            current_system.get("manual_breaker_event"),
+        )
+
+        if manual_snapshot is None:
+            manual_snapshot = self._manual_events_snapshot()  # noqa: E111
+
+        if manual_snapshot is not None:
+            system_guard = self._coerce_manual_event(  # noqa: E111
+                manual_snapshot.get("system_guard_event"),
+            )
+            system_breaker = self._coerce_manual_event(  # noqa: E111
+                manual_snapshot.get("system_breaker_event"),
+            )
+
+            if guard_default is None:  # noqa: E111
+                guard_default = system_guard
+            if breaker_default is None:  # noqa: E111
+                breaker_default = system_breaker
+
+            for event in self._string_sequence(  # noqa: E111
+                manual_snapshot.get("configured_check_events"),
+            ):
+                normalised = self._coerce_manual_event(event)
+                if normalised is not None:
+                    check_suggestions.add(normalised)  # noqa: E111
+                    if check_default is None:  # noqa: E111
+                        check_default = normalised
+
+            for event in self._string_sequence(  # noqa: E111
+                manual_snapshot.get("configured_guard_events"),
+            ):
+                normalised = self._coerce_manual_event(event)
+                if normalised is not None:
+                    guard_suggestions.add(normalised)  # noqa: E111
+            for event in self._string_sequence(  # noqa: E111
+                manual_snapshot.get("configured_breaker_events"),
+            ):
+                normalised = self._coerce_manual_event(event)
+                if normalised is not None:
+                    breaker_suggestions.add(normalised)  # noqa: E111
+
+            if check_default is None:  # noqa: E111
+                preferred = manual_snapshot.get("preferred_events")
+                if isinstance(preferred, Mapping):
+                    check_default = self._coerce_manual_event(  # noqa: E111
+                        preferred.get("manual_check_event"),
+                    )
+            if check_default is None:  # noqa: E111
+                check_default = self._coerce_manual_event(
+                    manual_snapshot.get("preferred_check_event"),
+                )
+
+        if guard_default is not None:
+            guard_suggestions.add(guard_default)  # noqa: E111
+        if breaker_default is not None:
+            breaker_suggestions.add(breaker_default)  # noqa: E111
+        if check_default is not None:
+            check_suggestions.add(check_default)  # noqa: E111
+
+        result: JSONMutableMapping = {
+            "check_suggestions": sorted(check_suggestions),
+            "guard_suggestions": sorted(guard_suggestions),
+            "breaker_suggestions": sorted(breaker_suggestions),
+            "check_default": check_default,
+            "guard_default": guard_default,
+            "breaker_default": breaker_default,
+        }
+        return result
+
+    @staticmethod  # noqa: E111
+    def _resolve_resilience_threshold_default(  # noqa: E111
+        system: SystemOptions,
+        options: Mapping[str, JSONValue],
+        *,
+        field: str,
+        fallback: int,
+    ) -> int:
+        """Return the default threshold from system options or legacy storage."""
+
+        candidate = system.get(field)
+        if isinstance(candidate, int):
+            return candidate  # noqa: E111
+
+        legacy_value = options.get(field)
+        if isinstance(legacy_value, int):
+            return legacy_value  # noqa: E111
+
         return fallback
 
-    return sorted(valid)[0]
+    def _resolve_script_threshold_fallbacks(  # noqa: E111
+        self,
+        *,
+        has_skip: bool,
+        has_breaker: bool,
+    ) -> tuple[int | None, int | None]:
+        """Return script thresholds when options are missing values."""
 
-  def _build_weather_settings(  # noqa: E111
-    self,
-    user_input: OptionsWeatherSettingsInput,
-    current: WeatherOptions,
-  ) -> WeatherOptions:
-    """Create a typed weather configuration payload from submitted data."""
+        if has_skip and has_breaker:
+            return None, None  # noqa: E111
 
-    raw_entity = user_input.get("weather_entity")
-    entity: str | None
-    if isinstance(raw_entity, str):
-      candidate = raw_entity.strip()  # noqa: E111
-      entity = None if not candidate or candidate.lower() == "none" else candidate  # noqa: E111
-    else:
-      entity = cast(str | None, current.get(CONF_WEATHER_ENTITY))  # noqa: E111
+        hass = getattr(self, "hass", None)
+        if hass is None:
+            return None, None  # noqa: E111
 
-    raw_interval_default = current.get("weather_update_interval")
-    interval_default = (
-      raw_interval_default
-      if isinstance(
-        raw_interval_default,
-        int,
-      )
-      else 60
-    )
-    interval = self._coerce_clamped_int(
-      user_input.get("weather_update_interval"),
-      interval_default,
-      minimum=15,
-      maximum=1440,
-    )
-    threshold_value = self._normalize_choice(
-      user_input.get("notification_threshold"),
-      valid={"low", "moderate", "high"},
-      default=current.get("notification_threshold", "moderate"),
-    )
-    notification_threshold = cast(NotificationThreshold, threshold_value)
+        return resolve_resilience_script_thresholds(hass, self._entry)
 
-    weather: WeatherOptions = {
-      WEATHER_ENTITY_FIELD: entity,
-      "weather_health_monitoring": self._coerce_bool(
-        user_input.get("weather_health_monitoring"),
-        current.get(
-          "weather_health_monitoring",
-          DEFAULT_WEATHER_HEALTH_MONITORING,
-        ),
-      ),
-      "weather_alerts": self._coerce_bool(
-        user_input.get("weather_alerts"),
-        current.get("weather_alerts", DEFAULT_WEATHER_ALERTS),
-      ),
-      "weather_update_interval": interval,
-      "temperature_alerts": self._coerce_bool(
-        user_input.get("temperature_alerts"),
-        current.get("temperature_alerts", True),
-      ),
-      "uv_alerts": self._coerce_bool(
-        user_input.get("uv_alerts"),
-        current.get("uv_alerts", True),
-      ),
-      "humidity_alerts": self._coerce_bool(
-        user_input.get("humidity_alerts"),
-        current.get("humidity_alerts", True),
-      ),
-      "wind_alerts": self._coerce_bool(
-        user_input.get("wind_alerts"),
-        current.get("wind_alerts", False),
-      ),
-      "storm_alerts": self._coerce_bool(
-        user_input.get("storm_alerts"),
-        current.get("storm_alerts", True),
-      ),
-      "breed_specific_recommendations": self._coerce_bool(
-        user_input.get("breed_specific_recommendations"),
-        current.get("breed_specific_recommendations", True),
-      ),
-      "health_condition_adjustments": self._coerce_bool(
-        user_input.get("health_condition_adjustments"),
-        current.get("health_condition_adjustments", True),
-      ),
-      "auto_activity_adjustments": self._coerce_bool(
-        user_input.get("auto_activity_adjustments"),
-        current.get("auto_activity_adjustments", False),
-      ),
-      "notification_threshold": notification_threshold,
-    }
+    def _finalise_resilience_threshold(  # noqa: E111
+        self,
+        *,
+        candidate: Any,
+        default: int,
+        script_value: int | None,
+        include_script: bool,
+        minimum: int,
+        maximum: int,
+        fallback: int,
+    ) -> int:
+        """Return the stored threshold, falling back to script defaults when needed."""
 
-    return weather
+        if include_script and script_value is not None:
+            return self._coerce_clamped_int(  # noqa: E111
+                script_value,
+                fallback,
+                minimum=minimum,
+                maximum=maximum,
+            )
 
-  def _build_system_settings(  # noqa: E111
-    self,
-    user_input: OptionsSystemSettingsInput,
-    current: SystemOptions,
-    *,
-    reset_default: str,
-  ) -> tuple[SystemOptions, str]:
-    """Create typed system settings and the reset time string."""
-
-    retention = self._coerce_clamped_int(
-      user_input.get("data_retention_days"),
-      current.get("data_retention_days", 90),
-      minimum=30,
-      maximum=365,
-    )
-    performance_mode = normalize_performance_mode(
-      user_input.get("performance_mode"),
-      current=current.get("performance_mode"),
-    )
-
-    manual_defaults = self._manual_event_defaults(current)
-
-    analytics_enabled = self._coerce_bool(
-      user_input.get("enable_analytics"),
-      current.get(SYSTEM_ENABLE_ANALYTICS_FIELD, False),
-    )
-    cloud_backup_enabled = self._coerce_bool(
-      user_input.get("enable_cloud_backup"),
-      current.get(SYSTEM_ENABLE_CLOUD_BACKUP_FIELD, False),
-    )
-
-    current_skip_threshold = current.get("resilience_skip_threshold")
-    skip_default = (
-      current_skip_threshold
-      if isinstance(current_skip_threshold, int)
-      else DEFAULT_RESILIENCE_SKIP_THRESHOLD
-    )
-    skip_threshold = self._coerce_clamped_int(
-      user_input.get("resilience_skip_threshold"),
-      skip_default,
-      minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
-      maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
-    )
-
-    current_breaker_threshold = current.get("resilience_breaker_threshold")
-    breaker_default = (
-      current_breaker_threshold
-      if isinstance(current_breaker_threshold, int)
-      else DEFAULT_RESILIENCE_BREAKER_THRESHOLD
-    )
-    breaker_threshold = self._coerce_clamped_int(
-      user_input.get("resilience_breaker_threshold"),
-      breaker_default,
-      minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
-      maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
-    )
-
-    system: SystemOptions = {
-      "data_retention_days": retention,
-      "auto_backup": self._coerce_bool(
-        user_input.get("auto_backup"),
-        current.get("auto_backup", False),
-      ),
-      "performance_mode": performance_mode,
-      SYSTEM_ENABLE_ANALYTICS_FIELD: analytics_enabled,
-      SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: cloud_backup_enabled,
-      "resilience_skip_threshold": skip_threshold,
-      "resilience_breaker_threshold": breaker_threshold,
-      "manual_check_event": self._coerce_manual_event_with_default(
-        user_input.get("manual_check_event"),
-        manual_defaults.get("manual_check_event"),
-      ),
-      "manual_guard_event": self._coerce_manual_event_with_default(
-        user_input.get("manual_guard_event"),
-        manual_defaults.get("manual_guard_event"),
-      ),
-      "manual_breaker_event": self._coerce_manual_event_with_default(
-        user_input.get("manual_breaker_event"),
-        manual_defaults.get("manual_breaker_event"),
-      ),
-    }
-
-    if "manual_guard_event" in user_input:
-      guard_event = self._coerce_manual_event(  # noqa: E111
-        user_input.get("manual_guard_event"),
-      )
-      if guard_event is None:  # noqa: E111
-        system["manual_guard_event"] = None
-      else:  # noqa: E111
-        system["manual_guard_event"] = guard_event
-    elif "manual_guard_event" in current:
-      guard_event = self._coerce_manual_event(  # noqa: E111
-        current.get("manual_guard_event"),
-      )
-      if guard_event is not None:  # noqa: E111
-        system["manual_guard_event"] = guard_event
-
-    if "manual_breaker_event" in user_input:
-      breaker_event = self._coerce_manual_event(  # noqa: E111
-        user_input.get("manual_breaker_event"),
-      )
-      if breaker_event is None:  # noqa: E111
-        system["manual_breaker_event"] = None
-      else:  # noqa: E111
-        system["manual_breaker_event"] = breaker_event
-    elif "manual_breaker_event" in current:
-      breaker_event = self._coerce_manual_event(  # noqa: E111
-        current.get("manual_breaker_event"),
-      )
-      if breaker_event is not None:  # noqa: E111
-        system["manual_breaker_event"] = breaker_event
-
-    reset_time = self._coerce_time_string(
-      user_input.get("reset_time"),
-      reset_default,
-    )
-    return system, reset_time
-
-  def _build_dashboard_settings(  # noqa: E111
-    self,
-    user_input: OptionsDashboardSettingsInput,
-    current: DashboardOptions,
-    *,
-    default_mode: str,
-  ) -> tuple[DashboardOptions, str]:
-    """Create typed dashboard configuration and selected mode."""
-
-    valid_modes = {option["value"] for option in DASHBOARD_MODE_SELECTOR_OPTIONS}
-    mode = self._normalize_choice(
-      user_input.get("dashboard_mode"),
-      valid=valid_modes,
-      default=default_mode,
-    )
-
-    dashboard: DashboardOptions = {
-      "show_statistics": self._coerce_bool(
-        user_input.get("show_statistics"),
-        current.get("show_statistics", True),
-      ),
-      "show_alerts": self._coerce_bool(
-        user_input.get("show_alerts"),
-        current.get("show_alerts", True),
-      ),
-      "compact_mode": self._coerce_bool(
-        user_input.get("compact_mode"),
-        current.get("compact_mode", False),
-      ),
-      "show_maps": self._coerce_bool(
-        user_input.get("show_maps"),
-        current.get("show_maps", True),
-      ),
-    }
-
-    return dashboard, mode
-
-  def _build_advanced_settings(  # noqa: E111
-    self,
-    user_input: OptionsAdvancedSettingsInput,
-    current: AdvancedOptions,
-  ) -> AdvancedOptions:
-    """Create typed advanced configuration metadata."""
-
-    endpoint_raw = user_input.get(
-      CONF_API_ENDPOINT,
-      current.get(CONF_API_ENDPOINT, ""),
-    )
-    endpoint = (
-      endpoint_raw.strip()
-      if isinstance(endpoint_raw, str)
-      else str(current.get(CONF_API_ENDPOINT, ""))
-    )
-    token_raw = user_input.get(CONF_API_TOKEN, current.get(CONF_API_TOKEN, ""))
-    token = (
-      token_raw.strip()
-      if isinstance(token_raw, str)
-      else str(current.get(CONF_API_TOKEN, ""))
-    )
-    sanitized_input: JSONMutableMapping = {}
-    for key, value in user_input.items():
-      if isinstance(value, bool | int | float | str) or value is None:  # noqa: E111
-        sanitized_input[str(key)] = value
-      elif isinstance(value, Mapping):  # noqa: E111
-        sanitized_input[str(key)] = cast(JSONValue, dict(value))
-      elif isinstance(value, Sequence) and not isinstance(  # noqa: E111
-        value,
-        str | bytes | bytearray,
-      ):
-        sanitized_input[str(key)] = cast(
-          JSONValue,
-          [cast(JSONValue, item) for item in value],
+        return self._coerce_clamped_int(
+            candidate,
+            default,
+            minimum=minimum,
+            maximum=maximum,
         )
-      else:  # noqa: E111
-        _LOGGER.warning(
-          "Advanced options received non-JSON-serializable value for %s; "
-          "storing repr (%s)",
-          key,
-          type(value).__name__,
-        )
-        sanitized_input[str(key)] = repr(value)
-    if CONF_API_ENDPOINT in user_input:
-      sanitized_input[CONF_API_ENDPOINT] = endpoint  # noqa: E111
-    if CONF_API_TOKEN in user_input:
-      sanitized_input[CONF_API_TOKEN] = token  # noqa: E111
 
-    current_advanced = self._current_options().get(ADVANCED_SETTINGS_FIELD, {})
-    advanced_defaults = cast(
-      JSONMutableMapping,
-      dict(current_advanced)
-      if isinstance(
-        current_advanced,
-        Mapping,
-      )
-      else {},
-    )
-    return ensure_advanced_options(sanitized_input, defaults=advanced_defaults)
+    def _current_dashboard_options(self) -> DashboardOptions:  # noqa: E111
+        """Return the stored dashboard configuration."""
+
+        raw = self._current_options().get("dashboard_settings", {})
+        if isinstance(raw, Mapping):
+            return cast(DashboardOptions, dict(raw))  # noqa: E111
+        return cast(DashboardOptions, {})
+
+    def _current_advanced_options(self) -> AdvancedOptions:  # noqa: E111
+        """Return advanced configuration merged with root fallbacks."""
+
+        options = self._current_options()
+        raw = options.get(ADVANCED_SETTINGS_FIELD)
+        source = (
+            cast(
+                JSONLikeMapping,
+                dict(
+                    raw,
+                ),
+            )
+            if isinstance(raw, Mapping)
+            else {}
+        )
+        defaults = cast(JSONMutableMapping, dict(options))
+        return ensure_advanced_options(source, defaults=defaults)
+
+    @staticmethod  # noqa: E111
+    def _coerce_bool(value: Any, default: bool) -> bool:  # noqa: E111
+        """Return a boolean value using Home Assistant style truthiness rules."""
+
+        if value is None:
+            return default  # noqa: E111
+        if isinstance(value, bool):
+            return value  # noqa: E111
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "on", "yes"}  # noqa: E111
+        return bool(value)
+
+    @staticmethod  # noqa: E111
+    def _coerce_manual_event(value: Any) -> str | None:  # noqa: E111
+        """Normalise manual event identifiers, returning ``None`` when disabled."""
+
+        if isinstance(value, str):
+            candidate = value.strip()  # noqa: E111
+            if candidate:  # noqa: E111
+                return candidate
+        return None
+
+    @staticmethod  # noqa: E111
+    def _coerce_int(value: Any, default: int) -> int:  # noqa: E111
+        """Return an integer, falling back to the provided default on error."""
+
+        if value is None:
+            return default  # noqa: E111
+        try:
+            return coerce_int("options_flow", value)  # noqa: E111
+        except InputCoercionError:
+            return default  # noqa: E111
+
+    @staticmethod  # noqa: E111
+    def _coerce_time_string(value: Any, default: str) -> str:  # noqa: E111
+        """Normalise selector values into Home Assistant time strings."""
+
+        if value is None:
+            return default  # noqa: E111
+        if isinstance(value, str):
+            return value  # noqa: E111
+        iso_format = getattr(value, "isoformat", None)
+        if callable(iso_format):
+            return str(iso_format())  # noqa: E111
+        return default
+
+    @staticmethod  # noqa: E111
+    def _coerce_optional_float(value: Any, default: float | None) -> float | None:  # noqa: E111
+        """Return a float or ``None`` when conversion fails."""
+
+        if value is None:
+            return default  # noqa: E111
+        try:
+            return coerce_float("options_flow", value)  # noqa: E111
+        except InputCoercionError:
+            return default  # noqa: E111
+
+    def _coerce_clamped_float(  # noqa: E111
+        self,
+        value: Any,
+        default: float,
+        *,
+        minimum: float,
+        maximum: float,
+    ) -> float:
+        """Normalise numeric input and clamp it to an allowed range."""
+
+        return clamp_float_range(
+            value,
+            field="options_float_range",
+            minimum=minimum,
+            maximum=maximum,
+            default=default,
+        )
+
+    def _coerce_clamped_int(  # noqa: E111
+        self,
+        value: Any,
+        default: int,
+        *,
+        minimum: int,
+        maximum: int,
+    ) -> int:
+        """Normalise numeric selector input and clamp to an allowed range."""
+
+        return clamp_int_range(
+            value,
+            field="options_int_range",
+            minimum=minimum,
+            maximum=maximum,
+            default=default,
+        )
+
+    @staticmethod  # noqa: E111
+    def _normalize_choice(value: Any, *, valid: set[str], default: str) -> str:  # noqa: E111
+        """Return a validated selector choice, falling back to ``default``."""
+
+        if isinstance(value, str):
+            candidate = value.strip().lower()  # noqa: E111
+            if candidate in valid:  # noqa: E111
+                return candidate
+
+        if isinstance(default, str):
+            fallback = default.strip().lower()  # noqa: E111
+            if fallback in valid:  # noqa: E111
+                return fallback
+
+        return sorted(valid)[0]
+
+    def _build_weather_settings(  # noqa: E111
+        self,
+        user_input: OptionsWeatherSettingsInput,
+        current: WeatherOptions,
+    ) -> WeatherOptions:
+        """Create a typed weather configuration payload from submitted data."""
+
+        raw_entity = user_input.get("weather_entity")
+        entity: str | None
+        if isinstance(raw_entity, str):
+            candidate = raw_entity.strip()  # noqa: E111
+            entity = None if not candidate or candidate.lower() == "none" else candidate  # noqa: E111
+        else:
+            entity = cast(str | None, current.get(CONF_WEATHER_ENTITY))  # noqa: E111
+
+        raw_interval_default = current.get("weather_update_interval")
+        interval_default = (
+            raw_interval_default
+            if isinstance(
+                raw_interval_default,
+                int,
+            )
+            else 60
+        )
+        interval = self._coerce_clamped_int(
+            user_input.get("weather_update_interval"),
+            interval_default,
+            minimum=15,
+            maximum=1440,
+        )
+        threshold_value = self._normalize_choice(
+            user_input.get("notification_threshold"),
+            valid={"low", "moderate", "high"},
+            default=current.get("notification_threshold", "moderate"),
+        )
+        notification_threshold = cast(NotificationThreshold, threshold_value)
+
+        weather: WeatherOptions = {
+            WEATHER_ENTITY_FIELD: entity,
+            "weather_health_monitoring": self._coerce_bool(
+                user_input.get("weather_health_monitoring"),
+                current.get(
+                    "weather_health_monitoring",
+                    DEFAULT_WEATHER_HEALTH_MONITORING,
+                ),
+            ),
+            "weather_alerts": self._coerce_bool(
+                user_input.get("weather_alerts"),
+                current.get("weather_alerts", DEFAULT_WEATHER_ALERTS),
+            ),
+            "weather_update_interval": interval,
+            "temperature_alerts": self._coerce_bool(
+                user_input.get("temperature_alerts"),
+                current.get("temperature_alerts", True),
+            ),
+            "uv_alerts": self._coerce_bool(
+                user_input.get("uv_alerts"),
+                current.get("uv_alerts", True),
+            ),
+            "humidity_alerts": self._coerce_bool(
+                user_input.get("humidity_alerts"),
+                current.get("humidity_alerts", True),
+            ),
+            "wind_alerts": self._coerce_bool(
+                user_input.get("wind_alerts"),
+                current.get("wind_alerts", False),
+            ),
+            "storm_alerts": self._coerce_bool(
+                user_input.get("storm_alerts"),
+                current.get("storm_alerts", True),
+            ),
+            "breed_specific_recommendations": self._coerce_bool(
+                user_input.get("breed_specific_recommendations"),
+                current.get("breed_specific_recommendations", True),
+            ),
+            "health_condition_adjustments": self._coerce_bool(
+                user_input.get("health_condition_adjustments"),
+                current.get("health_condition_adjustments", True),
+            ),
+            "auto_activity_adjustments": self._coerce_bool(
+                user_input.get("auto_activity_adjustments"),
+                current.get("auto_activity_adjustments", False),
+            ),
+            "notification_threshold": notification_threshold,
+        }
+
+        return weather
+
+    def _build_system_settings(  # noqa: E111
+        self,
+        user_input: OptionsSystemSettingsInput,
+        current: SystemOptions,
+        *,
+        reset_default: str,
+    ) -> tuple[SystemOptions, str]:
+        """Create typed system settings and the reset time string."""
+
+        retention = self._coerce_clamped_int(
+            user_input.get("data_retention_days"),
+            current.get("data_retention_days", 90),
+            minimum=30,
+            maximum=365,
+        )
+        performance_mode = normalize_performance_mode(
+            user_input.get("performance_mode"),
+            current=current.get("performance_mode"),
+        )
+
+        manual_defaults = self._manual_event_defaults(current)
+
+        analytics_enabled = self._coerce_bool(
+            user_input.get("enable_analytics"),
+            current.get(SYSTEM_ENABLE_ANALYTICS_FIELD, False),
+        )
+        cloud_backup_enabled = self._coerce_bool(
+            user_input.get("enable_cloud_backup"),
+            current.get(SYSTEM_ENABLE_CLOUD_BACKUP_FIELD, False),
+        )
+
+        current_skip_threshold = current.get("resilience_skip_threshold")
+        skip_default = (
+            current_skip_threshold
+            if isinstance(current_skip_threshold, int)
+            else DEFAULT_RESILIENCE_SKIP_THRESHOLD
+        )
+        skip_threshold = self._coerce_clamped_int(
+            user_input.get("resilience_skip_threshold"),
+            skip_default,
+            minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+            maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+        )
+
+        current_breaker_threshold = current.get("resilience_breaker_threshold")
+        breaker_default = (
+            current_breaker_threshold
+            if isinstance(current_breaker_threshold, int)
+            else DEFAULT_RESILIENCE_BREAKER_THRESHOLD
+        )
+        breaker_threshold = self._coerce_clamped_int(
+            user_input.get("resilience_breaker_threshold"),
+            breaker_default,
+            minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+            maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+        )
+
+        system: SystemOptions = {
+            "data_retention_days": retention,
+            "auto_backup": self._coerce_bool(
+                user_input.get("auto_backup"),
+                current.get("auto_backup", False),
+            ),
+            "performance_mode": performance_mode,
+            SYSTEM_ENABLE_ANALYTICS_FIELD: analytics_enabled,
+            SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: cloud_backup_enabled,
+            "resilience_skip_threshold": skip_threshold,
+            "resilience_breaker_threshold": breaker_threshold,
+            "manual_check_event": self._coerce_manual_event_with_default(
+                user_input.get("manual_check_event"),
+                manual_defaults.get("manual_check_event"),
+            ),
+            "manual_guard_event": self._coerce_manual_event_with_default(
+                user_input.get("manual_guard_event"),
+                manual_defaults.get("manual_guard_event"),
+            ),
+            "manual_breaker_event": self._coerce_manual_event_with_default(
+                user_input.get("manual_breaker_event"),
+                manual_defaults.get("manual_breaker_event"),
+            ),
+        }
+
+        if "manual_guard_event" in user_input:
+            guard_event = self._coerce_manual_event(  # noqa: E111
+                user_input.get("manual_guard_event"),
+            )
+            if guard_event is None:  # noqa: E111
+                system["manual_guard_event"] = None
+            else:  # noqa: E111
+                system["manual_guard_event"] = guard_event
+        elif "manual_guard_event" in current:
+            guard_event = self._coerce_manual_event(  # noqa: E111
+                current.get("manual_guard_event"),
+            )
+            if guard_event is not None:  # noqa: E111
+                system["manual_guard_event"] = guard_event
+
+        if "manual_breaker_event" in user_input:
+            breaker_event = self._coerce_manual_event(  # noqa: E111
+                user_input.get("manual_breaker_event"),
+            )
+            if breaker_event is None:  # noqa: E111
+                system["manual_breaker_event"] = None
+            else:  # noqa: E111
+                system["manual_breaker_event"] = breaker_event
+        elif "manual_breaker_event" in current:
+            breaker_event = self._coerce_manual_event(  # noqa: E111
+                current.get("manual_breaker_event"),
+            )
+            if breaker_event is not None:  # noqa: E111
+                system["manual_breaker_event"] = breaker_event
+
+        reset_time = self._coerce_time_string(
+            user_input.get("reset_time"),
+            reset_default,
+        )
+        return system, reset_time
+
+    def _build_dashboard_settings(  # noqa: E111
+        self,
+        user_input: OptionsDashboardSettingsInput,
+        current: DashboardOptions,
+        *,
+        default_mode: str,
+    ) -> tuple[DashboardOptions, str]:
+        """Create typed dashboard configuration and selected mode."""
+
+        valid_modes = {option["value"] for option in DASHBOARD_MODE_SELECTOR_OPTIONS}
+        mode = self._normalize_choice(
+            user_input.get("dashboard_mode"),
+            valid=valid_modes,
+            default=default_mode,
+        )
+
+        dashboard: DashboardOptions = {
+            "show_statistics": self._coerce_bool(
+                user_input.get("show_statistics"),
+                current.get("show_statistics", True),
+            ),
+            "show_alerts": self._coerce_bool(
+                user_input.get("show_alerts"),
+                current.get("show_alerts", True),
+            ),
+            "compact_mode": self._coerce_bool(
+                user_input.get("compact_mode"),
+                current.get("compact_mode", False),
+            ),
+            "show_maps": self._coerce_bool(
+                user_input.get("show_maps"),
+                current.get("show_maps", True),
+            ),
+        }
+
+        return dashboard, mode
+
+    def _build_advanced_settings(  # noqa: E111
+        self,
+        user_input: OptionsAdvancedSettingsInput,
+        current: AdvancedOptions,
+    ) -> AdvancedOptions:
+        """Create typed advanced configuration metadata."""
+
+        endpoint_raw = user_input.get(
+            CONF_API_ENDPOINT,
+            current.get(CONF_API_ENDPOINT, ""),
+        )
+        endpoint = (
+            endpoint_raw.strip()
+            if isinstance(endpoint_raw, str)
+            else str(current.get(CONF_API_ENDPOINT, ""))
+        )
+        token_raw = user_input.get(CONF_API_TOKEN, current.get(CONF_API_TOKEN, ""))
+        token = (
+            token_raw.strip()
+            if isinstance(token_raw, str)
+            else str(current.get(CONF_API_TOKEN, ""))
+        )
+        sanitized_input: JSONMutableMapping = {}
+        for key, value in user_input.items():
+            if isinstance(value, bool | int | float | str) or value is None:  # noqa: E111
+                sanitized_input[str(key)] = value
+            elif isinstance(value, Mapping):  # noqa: E111
+                sanitized_input[str(key)] = cast(JSONValue, dict(value))
+            elif isinstance(value, Sequence) and not isinstance(  # noqa: E111
+                value,
+                str | bytes | bytearray,
+            ):
+                sanitized_input[str(key)] = cast(
+                    JSONValue,
+                    [cast(JSONValue, item) for item in value],
+                )
+            else:  # noqa: E111
+                _LOGGER.warning(
+                    "Advanced options received non-JSON-serializable value for %s; "
+                    "storing repr (%s)",
+                    key,
+                    type(value).__name__,
+                )
+                sanitized_input[str(key)] = repr(value)
+        if CONF_API_ENDPOINT in user_input:
+            sanitized_input[CONF_API_ENDPOINT] = endpoint  # noqa: E111
+        if CONF_API_TOKEN in user_input:
+            sanitized_input[CONF_API_TOKEN] = token  # noqa: E111
+
+        current_advanced = self._current_options().get(ADVANCED_SETTINGS_FIELD, {})
+        advanced_defaults = cast(
+            JSONMutableMapping,
+            dict(current_advanced)
+            if isinstance(
+                current_advanced,
+                Mapping,
+            )
+            else {},
+        )
+        return ensure_advanced_options(sanitized_input, defaults=advanced_defaults)

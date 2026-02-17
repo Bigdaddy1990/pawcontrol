@@ -16,344 +16,349 @@ PAWCONTROL_ROOT = PROJECT_ROOT / "custom_components" / "pawcontrol"
 
 
 def _assert_json_serialisable(value: Any) -> None:
-  if isinstance(value, dict):  # noqa: E111
-    for item in value.values():
-      _assert_json_serialisable(item)  # noqa: E111
-    return
-  if isinstance(value, list):  # noqa: E111
-    for item in value:
-      _assert_json_serialisable(item)  # noqa: E111
-    return
+    if isinstance(value, dict):  # noqa: E111
+        for item in value.values():
+            _assert_json_serialisable(item)  # noqa: E111
+        return
+    if isinstance(value, list):  # noqa: E111
+        for item in value:
+            _assert_json_serialisable(item)  # noqa: E111
+        return
 
-  assert not isinstance(value, (datetime, date, time, timedelta, set))  # noqa: E111
-  assert not is_dataclass(value)  # noqa: E111
+    assert not isinstance(value, (datetime, date, time, timedelta, set))  # noqa: E111
+    assert not is_dataclass(value)  # noqa: E111
 
 
 def _load_module(name: str, path: Path) -> ModuleType:
-  spec = importlib.util.spec_from_file_location(name, path)  # noqa: E111
-  if spec is None or spec.loader is None:  # noqa: E111
-    raise RuntimeError(f"Cannot load module {name} from {path}")
-  module = importlib.util.module_from_spec(spec)  # noqa: E111
-  sys.modules[name] = module  # noqa: E111
-  spec.loader.exec_module(module)  # noqa: E111
-  return module  # noqa: E111
+    spec = importlib.util.spec_from_file_location(name, path)  # noqa: E111
+    if spec is None or spec.loader is None:  # noqa: E111
+        raise RuntimeError(f"Cannot load module {name} from {path}")
+    module = importlib.util.module_from_spec(spec)  # noqa: E111
+    sys.modules[name] = module  # noqa: E111
+    spec.loader.exec_module(module)  # noqa: E111
+    return module  # noqa: E111
 
 
 def _load_redaction_helpers() -> ModuleType:
-  return _load_module(  # noqa: E111
-    "pawcontrol_diagnostics_redaction",
-    PROJECT_ROOT / "custom_components" / "pawcontrol" / "diagnostics_redaction.py",
-  )
+    return _load_module(  # noqa: E111
+        "pawcontrol_diagnostics_redaction",
+        PROJECT_ROOT / "custom_components" / "pawcontrol" / "diagnostics_redaction.py",
+    )
 
 
 def _load_diagnostics() -> ModuleType:
-  return importlib.import_module("custom_components.pawcontrol.diagnostics")  # noqa: E111
+    return importlib.import_module("custom_components.pawcontrol.diagnostics")  # noqa: E111
 
 
 def test_redact_sensitive_keys_respects_word_boundaries() -> None:
-  """Ensure redaction matches keys at boundaries without over-redacting."""  # noqa: E111
+    """Ensure redaction matches keys at boundaries without over-redacting."""  # noqa: E111
 
-  module = _load_redaction_helpers()  # noqa: E111
-  patterns = module.compile_redaction_patterns({"location", "api_key"})  # noqa: E111
-  payload = {  # noqa: E111
-    "allocation": "keep",
-    "home_location": "secret",
-    "stats": {"gps_location": "secret", "api_key": "token"},
-  }
+    module = _load_redaction_helpers()  # noqa: E111
+    patterns = module.compile_redaction_patterns({"location", "api_key"})  # noqa: E111
+    payload = {  # noqa: E111
+        "allocation": "keep",
+        "home_location": "secret",
+        "stats": {"gps_location": "secret", "api_key": "token"},
+    }
 
-  redacted = module.redact_sensitive_data(payload, patterns=patterns)  # noqa: E111
+    redacted = module.redact_sensitive_data(payload, patterns=patterns)  # noqa: E111
 
-  assert redacted["allocation"] == "keep"  # noqa: E111
-  assert redacted["home_location"] == "**REDACTED**"  # noqa: E111
-  assert redacted["stats"]["gps_location"] == "**REDACTED**"  # noqa: E111
-  assert redacted["stats"]["api_key"] == "**REDACTED**"  # noqa: E111
+    assert redacted["allocation"] == "keep"  # noqa: E111
+    assert redacted["home_location"] == "**REDACTED**"  # noqa: E111
+    assert redacted["stats"]["gps_location"] == "**REDACTED**"  # noqa: E111
+    assert redacted["stats"]["api_key"] == "**REDACTED**"  # noqa: E111
 
 
 def test_notification_rejection_metrics_defaults() -> None:
-  """Notification rejection metrics should include full defaults."""  # noqa: E111
+    """Notification rejection metrics should include full defaults."""  # noqa: E111
 
-  diagnostics = _load_diagnostics()  # noqa: E111
-  payload = diagnostics._build_notification_rejection_metrics(None)  # noqa: E111
+    diagnostics = _load_diagnostics()  # noqa: E111
+    payload = diagnostics._build_notification_rejection_metrics(None)  # noqa: E111
 
-  assert payload["schema_version"] == 1  # noqa: E111
-  assert payload["total_services"] == 0  # noqa: E111
-  assert payload["total_failures"] == 0  # noqa: E111
-  assert payload["services_with_failures"] == []  # noqa: E111
-  assert payload["service_failures"] == {}  # noqa: E111
-  assert payload["service_consecutive_failures"] == {}  # noqa: E111
-  assert payload["service_last_error_reasons"] == {}  # noqa: E111
-  assert payload["service_last_errors"] == {}  # noqa: E111
+    assert payload["schema_version"] == 1  # noqa: E111
+    assert payload["total_services"] == 0  # noqa: E111
+    assert payload["total_failures"] == 0  # noqa: E111
+    assert payload["services_with_failures"] == []  # noqa: E111
+    assert payload["service_failures"] == {}  # noqa: E111
+    assert payload["service_consecutive_failures"] == {}  # noqa: E111
+    assert payload["service_last_error_reasons"] == {}  # noqa: E111
+    assert payload["service_last_errors"] == {}  # noqa: E111
 
 
 def test_notification_rejection_metrics_summarises_services() -> None:
-  """Service-level failures should be summarised for notification diagnostics."""  # noqa: E111
+    """Service-level failures should be summarised for notification diagnostics."""  # noqa: E111
 
-  diagnostics = _load_diagnostics()  # noqa: E111
-  delivery = {  # noqa: E111
-    "services": {
-      "notify.mobile_app_pixel": {
-        "total_failures": 3,
-        "consecutive_failures": 2,
-        "last_error_reason": "missing_notify_service",
-        "last_error": "missing_notify_service",
-      },
-      "notify.webhook": {
-        "total_failures": 0,
-        "consecutive_failures": 0,
-        "last_error_reason": None,
-        "last_error": None,
-      },
-    },
-  }
+    diagnostics = _load_diagnostics()  # noqa: E111
+    delivery = {  # noqa: E111
+        "services": {
+            "notify.mobile_app_pixel": {
+                "total_failures": 3,
+                "consecutive_failures": 2,
+                "last_error_reason": "missing_notify_service",
+                "last_error": "missing_notify_service",
+            },
+            "notify.webhook": {
+                "total_failures": 0,
+                "consecutive_failures": 0,
+                "last_error_reason": None,
+                "last_error": None,
+            },
+        },
+    }
 
-  payload = diagnostics._build_notification_rejection_metrics(delivery)  # noqa: E111
+    payload = diagnostics._build_notification_rejection_metrics(delivery)  # noqa: E111
 
-  assert payload["total_services"] == 2  # noqa: E111
-  assert payload["total_failures"] == 3  # noqa: E111
-  assert payload["services_with_failures"] == ["notify.mobile_app_pixel"]  # noqa: E111
-  assert payload["service_failures"]["notify.mobile_app_pixel"] == 3  # noqa: E111
-  assert payload["service_consecutive_failures"]["notify.mobile_app_pixel"] == 2  # noqa: E111
-  assert payload["service_last_error_reasons"]["notify.mobile_app_pixel"] == (  # noqa: E111
-    "missing_notify_service"
-  )
+    assert payload["total_services"] == 2  # noqa: E111
+    assert payload["total_failures"] == 3  # noqa: E111
+    assert payload["services_with_failures"] == ["notify.mobile_app_pixel"]  # noqa: E111
+    assert payload["service_failures"]["notify.mobile_app_pixel"] == 3  # noqa: E111
+    assert payload["service_consecutive_failures"]["notify.mobile_app_pixel"] == 2  # noqa: E111
+    assert payload["service_last_error_reasons"]["notify.mobile_app_pixel"] == (  # noqa: E111
+        "missing_notify_service"
+    )
 
 
 def test_rejection_metrics_capture_failure_reasons() -> None:
-  """Rejection metrics should surface aggregated failure reasons."""  # noqa: E111
+    """Rejection metrics should surface aggregated failure reasons."""  # noqa: E111
 
-  from custom_components.pawcontrol.coordinator_tasks import (  # noqa: E111
-    derive_rejection_metrics,  # noqa: E111
-  )
+    from custom_components.pawcontrol.coordinator_tasks import (  # noqa: E111
+        derive_rejection_metrics,  # noqa: E111
+    )
 
-  summary = {  # noqa: E111
-    "failure_reasons": {"auth_error": 2, "device_unreachable": 1},
-    "last_failure_reason": "auth_error",
-  }
+    summary = {  # noqa: E111
+        "failure_reasons": {"auth_error": 2, "device_unreachable": 1},
+        "last_failure_reason": "auth_error",
+    }
 
-  metrics = derive_rejection_metrics(summary)  # noqa: E111
+    metrics = derive_rejection_metrics(summary)  # noqa: E111
 
-  assert metrics["failure_reasons"] == {"auth_error": 2, "device_unreachable": 1}  # noqa: E111
-  assert metrics["last_failure_reason"] == "auth_error"  # noqa: E111
+    assert metrics["failure_reasons"] == {"auth_error": 2, "device_unreachable": 1}  # noqa: E111
+    assert metrics["last_failure_reason"] == "auth_error"  # noqa: E111
 
 
 def test_fallback_coordinator_statistics_include_rejection_metrics() -> None:
-  """Fallback coordinator stats should export rejection metrics defaults."""  # noqa: E111
+    """Fallback coordinator stats should export rejection metrics defaults."""  # noqa: E111
 
-  diagnostics = _load_diagnostics()  # noqa: E111
-  stats = diagnostics._fallback_coordinator_statistics()  # noqa: E111
+    diagnostics = _load_diagnostics()  # noqa: E111
+    stats = diagnostics._fallback_coordinator_statistics()  # noqa: E111
 
-  assert "rejection_metrics" in stats  # noqa: E111
-  metrics = stats["rejection_metrics"]  # noqa: E111
-  assert metrics["schema_version"] == 4  # noqa: E111
-  assert metrics["rejected_call_count"] == 0  # noqa: E111
-  assert metrics["open_breakers"] == []  # noqa: E111
+    assert "rejection_metrics" in stats  # noqa: E111
+    metrics = stats["rejection_metrics"]  # noqa: E111
+    assert metrics["schema_version"] == 4  # noqa: E111
+    assert metrics["rejected_call_count"] == 0  # noqa: E111
+    assert metrics["open_breakers"] == []  # noqa: E111
 
 
 def test_guard_notification_error_metrics_aggregate_counts() -> None:
-  """Guard and notification errors should aggregate into a shared snapshot."""  # noqa: E111
+    """Guard and notification errors should aggregate into a shared snapshot."""  # noqa: E111
 
-  diagnostics = _load_diagnostics()  # noqa: E111
-  guard_metrics = {  # noqa: E111
-    "executed": 4,
-    "skipped": 3,
-    "reasons": {
-      "missing_instance": 2,
-      "missing_services_api": 1,
-    },
-  }
-  delivery = {  # noqa: E111
-    "services": {
-      "notify.mobile_app_pixel": {
-        "total_failures": 4,
-        "consecutive_failures": 3,
-        "last_error_reason": "exception",
-        "last_error": "Unauthorized",
-      },
-      "notify.webhook": {
-        "total_failures": 2,
-        "consecutive_failures": 1,
-        "last_error_reason": "exception",
-        "last_error": "Device unreachable",
-      },
-    },
-  }
+    diagnostics = _load_diagnostics()  # noqa: E111
+    guard_metrics = {  # noqa: E111
+        "executed": 4,
+        "skipped": 3,
+        "reasons": {
+            "missing_instance": 2,
+            "missing_services_api": 1,
+        },
+    }
+    delivery = {  # noqa: E111
+        "services": {
+            "notify.mobile_app_pixel": {
+                "total_failures": 4,
+                "consecutive_failures": 3,
+                "last_error_reason": "exception",
+                "last_error": "Unauthorized",
+            },
+            "notify.webhook": {
+                "total_failures": 2,
+                "consecutive_failures": 1,
+                "last_error_reason": "exception",
+                "last_error": "Device unreachable",
+            },
+        },
+    }
 
-  payload = diagnostics._build_guard_notification_error_metrics(  # noqa: E111
-    guard_metrics,
-    delivery,
-  )
+    payload = diagnostics._build_guard_notification_error_metrics(  # noqa: E111
+        guard_metrics,
+        delivery,
+    )
 
-  assert payload["available"] is True  # noqa: E111
-  assert payload["total_errors"] == 9  # noqa: E111
-  assert payload["guard"]["skipped"] == 3  # noqa: E111
-  assert payload["guard"]["reasons"]["missing_instance"] == 2  # noqa: E111
-  assert payload["notifications"]["total_failures"] == 6  # noqa: E111
-  assert payload["notifications"]["services_with_failures"] == [  # noqa: E111
-    "notify.mobile_app_pixel",
-    "notify.webhook",
-  ]
-  assert payload["classified_errors"]["missing_service"] == 3  # noqa: E111
-  assert payload["classified_errors"]["auth_error"] == 4  # noqa: E111
-  assert payload["classified_errors"]["device_unreachable"] == 2  # noqa: E111
+    assert payload["available"] is True  # noqa: E111
+    assert payload["total_errors"] == 9  # noqa: E111
+    assert payload["guard"]["skipped"] == 3  # noqa: E111
+    assert payload["guard"]["reasons"]["missing_instance"] == 2  # noqa: E111
+    assert payload["notifications"]["total_failures"] == 6  # noqa: E111
+    assert payload["notifications"]["services_with_failures"] == [  # noqa: E111
+        "notify.mobile_app_pixel",
+        "notify.webhook",
+    ]
+    assert payload["classified_errors"]["missing_service"] == 3  # noqa: E111
+    assert payload["classified_errors"]["auth_error"] == 4  # noqa: E111
+    assert payload["classified_errors"]["device_unreachable"] == 2  # noqa: E111
 
 
 def test_service_guard_metrics_defaults_to_zero_payload() -> None:
-  """Service guard metrics should always export default-zero payloads."""  # noqa: E111
+    """Service guard metrics should always export default-zero payloads."""  # noqa: E111
 
-  diagnostics = _load_diagnostics()  # noqa: E111
-  runtime_data = type("RuntimeData", (), {"performance_stats": {}})()  # noqa: E111
+    diagnostics = _load_diagnostics()  # noqa: E111
+    runtime_data = type("RuntimeData", (), {"performance_stats": {}})()  # noqa: E111
 
-  payload = asyncio.run(diagnostics._get_service_execution_diagnostics(runtime_data))  # noqa: E111
+    payload = asyncio.run(diagnostics._get_service_execution_diagnostics(runtime_data))  # noqa: E111
 
-  assert payload["guard_metrics"] == {  # noqa: E111
-    "executed": 0,
-    "skipped": 0,
-    "reasons": {},
-    "last_results": [],
-  }
+    assert payload["guard_metrics"] == {  # noqa: E111
+        "executed": 0,
+        "skipped": 0,
+        "reasons": {},
+        "last_results": [],
+    }
 
 
 def test_configuration_url_redacted_in_diagnostics() -> None:
-  """Ensure configuration_url fields are redacted in diagnostics payloads."""  # noqa: E111
+    """Ensure configuration_url fields are redacted in diagnostics payloads."""  # noqa: E111
 
-  diagnostics = _load_diagnostics()  # noqa: E111
-  payload = {  # noqa: E111
-    "devices": [
-      {
-        "id": "device-1",
-        "configuration_url": (
-          "https://example.com/config?token=supersecrettoken&ip=192.168.1.12"
-        ),
-      }
-    ]
-  }
+    diagnostics = _load_diagnostics()  # noqa: E111
+    payload = {  # noqa: E111
+        "devices": [
+            {
+                "id": "device-1",
+                "configuration_url": (
+                    "https://example.com/config?token=supersecrettoken&ip=192.168.1.12"
+                ),
+            }
+        ]
+    }
 
-  redacted = diagnostics._redact_sensitive_data(payload)  # noqa: E111
+    redacted = diagnostics._redact_sensitive_data(payload)  # noqa: E111
 
-  assert redacted["devices"][0]["configuration_url"] == "**REDACTED**"  # noqa: E111
+    assert redacted["devices"][0]["configuration_url"] == "**REDACTED**"  # noqa: E111
 
 
 def test_redacts_mac_strings_and_serial_numbers_in_nested_payloads() -> None:
-  """MAC addresses and serial numbers must be redacted in nested structures."""  # noqa: E111
+    """MAC addresses and serial numbers must be redacted in nested structures."""  # noqa: E111
 
-  diagnostics = _load_diagnostics()  # noqa: E111
-  redaction = _load_redaction_helpers()  # noqa: E111
-  patterns = redaction.compile_redaction_patterns(diagnostics.REDACTED_KEYS)  # noqa: E111
-  payload = {  # noqa: E111
-    "device": {
-      "name": "PawControl Hub",
-      "serial_number": "SN-12345",
-      "hardware_id": "HW-9999",
-      "nested": {
-        "unique_id": "hub-001",
-        "radio": {"macaddress": "aa:bb:cc:dd:ee:ff"},
-      },
-    },
-    "network": {
-      "gateway_mac": "11:22:33:44:55:66",
-      "connection": ["ethernet", "AA:BB:CC:DD:EE:FF"],
-    },
-  }
+    diagnostics = _load_diagnostics()  # noqa: E111
+    redaction = _load_redaction_helpers()  # noqa: E111
+    patterns = redaction.compile_redaction_patterns(diagnostics.REDACTED_KEYS)  # noqa: E111
+    payload = {  # noqa: E111
+        "device": {
+            "name": "PawControl Hub",
+            "serial_number": "SN-12345",
+            "hardware_id": "HW-9999",
+            "nested": {
+                "unique_id": "hub-001",
+                "radio": {"macaddress": "aa:bb:cc:dd:ee:ff"},
+            },
+        },
+        "network": {
+            "gateway_mac": "11:22:33:44:55:66",
+            "connection": ["ethernet", "AA:BB:CC:DD:EE:FF"],
+        },
+    }
 
-  redacted = redaction.redact_sensitive_data(payload, patterns=patterns)  # noqa: E111
+    redacted = redaction.redact_sensitive_data(payload, patterns=patterns)  # noqa: E111
 
-  assert redacted["device"]["serial_number"] == "**REDACTED**"  # noqa: E111
-  assert redacted["device"]["hardware_id"] == "**REDACTED**"  # noqa: E111
-  assert redacted["device"]["nested"]["unique_id"] == "**REDACTED**"  # noqa: E111
-  assert redacted["device"]["nested"]["radio"]["macaddress"] == "**REDACTED**"  # noqa: E111
-  assert redacted["network"]["gateway_mac"] == "**REDACTED**"  # noqa: E111
-  assert redacted["network"]["connection"][1] == "**REDACTED**"  # noqa: E111
+    assert redacted["device"]["serial_number"] == "**REDACTED**"  # noqa: E111
+    assert redacted["device"]["hardware_id"] == "**REDACTED**"  # noqa: E111
+    assert redacted["device"]["nested"]["unique_id"] == "**REDACTED**"  # noqa: E111
+    assert redacted["device"]["nested"]["radio"]["macaddress"] == "**REDACTED**"  # noqa: E111
+    assert redacted["network"]["gateway_mac"] == "**REDACTED**"  # noqa: E111
+    assert redacted["network"]["connection"][1] == "**REDACTED**"  # noqa: E111
 
 
 def test_redacts_connections_and_identifiers_payloads() -> None:
-  """Connections and identifiers lists should redact MAC addresses."""  # noqa: E111
+    """Connections and identifiers lists should redact MAC addresses."""  # noqa: E111
 
-  diagnostics = _load_diagnostics()  # noqa: E111
-  redaction = _load_redaction_helpers()  # noqa: E111
-  patterns = redaction.compile_redaction_patterns(diagnostics.REDACTED_KEYS)  # noqa: E111
-  payload = {  # noqa: E111
-    "connections": [["mac", "12:34:56:78:9A:BC"], ["ip", "192.168.1.100"]],
-    "identifiers": [["pawcontrol", "device-123"], ["mac", "AA:BB:CC:DD:EE:FF"]],
-  }
+    diagnostics = _load_diagnostics()  # noqa: E111
+    redaction = _load_redaction_helpers()  # noqa: E111
+    patterns = redaction.compile_redaction_patterns(diagnostics.REDACTED_KEYS)  # noqa: E111
+    payload = {  # noqa: E111
+        "connections": [["mac", "12:34:56:78:9A:BC"], ["ip", "192.168.1.100"]],
+        "identifiers": [["pawcontrol", "device-123"], ["mac", "AA:BB:CC:DD:EE:FF"]],
+    }
 
-  redacted = redaction.redact_sensitive_data(payload, patterns=patterns)  # noqa: E111
+    redacted = redaction.redact_sensitive_data(payload, patterns=patterns)  # noqa: E111
 
-  assert redacted["connections"][0][1] == "**REDACTED**"  # noqa: E111
-  assert redacted["connections"][1][1] == "**REDACTED**"  # noqa: E111
-  assert redacted["identifiers"][0][1] == "device-123"  # noqa: E111
-  assert redacted["identifiers"][1][1] == "**REDACTED**"  # noqa: E111
+    assert redacted["connections"][0][1] == "**REDACTED**"  # noqa: E111
+    assert redacted["connections"][1][1] == "**REDACTED**"  # noqa: E111
+    assert redacted["identifiers"][0][1] == "device-123"  # noqa: E111
+    assert redacted["identifiers"][1][1] == "**REDACTED**"  # noqa: E111
 
 
 def test_entity_attribute_normalisation_is_json_serialisable() -> None:
-  """Entity attribute normalization must yield JSON-serialisable values."""  # noqa: E111
+    """Entity attribute normalization must yield JSON-serialisable values."""  # noqa: E111
 
-  from custom_components.pawcontrol.utils import (  # noqa: E111
-    normalise_entity_attributes,
-    normalize_value,
-  )
+    from custom_components.pawcontrol.utils import (  # noqa: E111
+        normalise_entity_attributes,
+        normalize_value,
+    )
 
-  @dataclass  # noqa: E111
-  class SamplePayload:  # noqa: E111
-    """Dataclass payload used to validate JSON normalization."""
+    @dataclass  # noqa: E111
+    class SamplePayload:  # noqa: E111
+        """Dataclass payload used to validate JSON normalization."""
 
-    label: str
-    created_at: datetime
-    window: timedelta
+        label: str
+        created_at: datetime
+        window: timedelta
 
-  sample = SamplePayload(  # noqa: E111
-    label="demo",
-    created_at=datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC),
-    window=timedelta(minutes=15),
-  )
+    sample = SamplePayload(  # noqa: E111
+        label="demo",
+        created_at=datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC),
+        window=timedelta(minutes=15),
+    )
 
-  attributes = {  # noqa: E111
-    "timestamp": datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC),
-    "duration": timedelta(seconds=90),
-    "tags": {"alpha", "beta"},
-    "payload": sample,
-    "nested": {
-      "dates": [date(2024, 1, 2), time(3, 4, 5)],
-      "samples": [
-        SamplePayload(
-          "nested",
-          datetime(2024, 1, 2, tzinfo=UTC),
-          timedelta(minutes=2),
-        )
-      ],
-    },
-  }
+    attributes = {  # noqa: E111
+        "timestamp": datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC),
+        "duration": timedelta(seconds=90),
+        "tags": {"alpha", "beta"},
+        "payload": sample,
+        "nested": {
+            "dates": [date(2024, 1, 2), time(3, 4, 5)],
+            "samples": [
+                SamplePayload(
+                    "nested",
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    timedelta(minutes=2),
+                )
+            ],
+        },
+    }
 
-  normalised = normalise_entity_attributes(attributes)  # noqa: E111
-  expected = normalize_value(attributes)  # noqa: E111
+    normalised = normalise_entity_attributes(attributes)  # noqa: E111
+    expected = normalize_value(attributes)  # noqa: E111
 
-  _assert_json_serialisable(normalised)  # noqa: E111
-  json.dumps(normalised)  # noqa: E111
-  assert normalised == expected  # noqa: E111
+    _assert_json_serialisable(normalised)  # noqa: E111
+    json.dumps(normalised)  # noqa: E111
+    assert normalised == expected  # noqa: E111
 
 
 def test_extra_state_attributes_use_normalisation_helpers() -> None:
-  """extra_state_attributes implementations must normalise payloads."""  # noqa: E111
+    """extra_state_attributes implementations must normalise payloads."""  # noqa: E111
 
-  missing = []  # noqa: E111
-  for path in PAWCONTROL_ROOT.rglob("*.py"):  # noqa: E111
-    source = path.read_text(encoding="utf-8")
-    module = ast.parse(source)
-    for node in ast.walk(module):
-      if isinstance(node, ast.FunctionDef) and node.name == "extra_state_attributes":  # noqa: E111
-        calls = {
-          call.func.attr if isinstance(call.func, ast.Attribute) else call.func.id
-          for call in ast.walk(node)
-          if isinstance(call, ast.Call)
-          and isinstance(call.func, (ast.Attribute, ast.Name))
-        }
-        if not {
-          "normalise_entity_attributes",
-          "ensure_json_mapping",
-          "_finalize_entity_attributes",
-          "_normalise_attributes",
-        }.intersection(calls):
-          missing.append(f"{path}:{node.lineno}")  # noqa: E111
+    missing = []  # noqa: E111
+    for path in PAWCONTROL_ROOT.rglob("*.py"):  # noqa: E111
+        source = path.read_text(encoding="utf-8")
+        module = ast.parse(source)
+        for node in ast.walk(module):
+            if (
+                isinstance(node, ast.FunctionDef)
+                and node.name == "extra_state_attributes"
+            ):  # noqa: E111
+                calls = {
+                    call.func.attr
+                    if isinstance(call.func, ast.Attribute)
+                    else call.func.id
+                    for call in ast.walk(node)
+                    if isinstance(call, ast.Call)
+                    and isinstance(call.func, (ast.Attribute, ast.Name))
+                }
+                if not {
+                    "normalise_entity_attributes",
+                    "ensure_json_mapping",
+                    "_finalize_entity_attributes",
+                    "_normalise_attributes",
+                }.intersection(calls):
+                    missing.append(f"{path}:{node.lineno}")  # noqa: E111
 
-  assert not missing, "Missing attribute normalization helpers:\n" + "\n".join(  # noqa: E111
-    sorted(missing),
-  )
+    assert not missing, "Missing attribute normalization helpers:\n" + "\n".join(  # noqa: E111
+        sorted(missing),
+    )
