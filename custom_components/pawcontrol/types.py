@@ -17,6 +17,8 @@ P26.1.1++
 Python: 3.13+
 """  # noqa: E501
 
+from __future__ import annotations
+
 from asyncio import Task
 from collections import deque
 from collections.abc import (
@@ -626,6 +628,22 @@ if TYPE_CHECKING:
     from .script_manager import PawControlScriptManager
     from .walk_manager import WalkManager
     from .weather_manager import WeatherHealthManager
+else:
+    PawControlCoordinator = Any
+    PawControlDataManager = Any
+    PawControlDeviceClient = Any
+    DoorSensorManager = Any
+    EntityFactory = Any
+    FeedingComplianceResult = Any
+    FeedingManager = Any
+    GardenManager = Any
+    GPSGeofenceManager = Any
+    PawControlGeofencing = Any
+    PawControlHelperManager = Any
+    PawControlNotificationManager = Any
+    PawControlScriptManager = Any
+    WalkManager = Any
+    WeatherHealthManager = Any
 # OPTIMIZE: Use literal constants for performance - frozensets provide O(1) lookups
 # and are immutable, preventing accidental modification while ensuring fast validation
 
