@@ -401,7 +401,9 @@ async def _async_monitor_background_tasks(runtime_data: PawControlRuntimeData) -
                     _LOGGER.warning(
                         "Garden manager cleanup task has stopped; attempting restart",
                     )
-                    restart_fn = getattr(garden_manager, "async_start_cleanup_task", None)
+                    restart_fn = getattr(
+                        garden_manager, "async_start_cleanup_task", None
+                    )
                     if callable(restart_fn):
                         try:
                             await restart_fn()

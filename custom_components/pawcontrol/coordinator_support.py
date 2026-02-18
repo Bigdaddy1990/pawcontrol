@@ -241,9 +241,7 @@ class DogConfigRegistry:
     # OPT B7: Cache enabled-module lookups — coerce_dog_modules_config() is
     # called per-entity per-update-cycle; a frozenset per dog_id eliminates the
     # repeated iteration over config data on every coordinator refresh.
-    _modules_cache: dict[str, frozenset[str]] = field(
-        init=False, default_factory=dict
-    )
+    _modules_cache: dict[str, frozenset[str]] = field(init=False, default_factory=dict)
 
     def __post_init__(self) -> None:
         """Normalise the provided dog configuration list."""
