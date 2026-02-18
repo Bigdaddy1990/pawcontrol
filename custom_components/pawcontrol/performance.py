@@ -618,6 +618,13 @@ def record_maintenance_result(
         history = []
         store["maintenance_results"] = history
 
+    legacy_history = store.get("maintenance_history")
+    if isinstance(legacy_history, list):
+        history = legacy_history
+        store["maintenance_results"] = history
+    else:
+        store["maintenance_history"] = history
+
     entry: dict[str, Any] = {
         "task": task,
         "status": status,
@@ -629,11 +636,15 @@ def record_maintenance_result(
 
     diagnostics_payload: dict[str, Any] = {}
     if diagnostics is not None:
-        diagnostics_payload["cache"] = diagnostics
-    if metadata is not None:
-        diagnostics_payload["metadata"] = dict(metadata)
+        if isinstance(diagnostics, Mapping):
+            diagnostics_payload.update(dict(diagnostics))
+        else:
+            diagnostics_payload["cache"] = diagnostics
     if diagnostics_payload:
         entry["diagnostics"] = diagnostics_payload
+
+    if metadata is not None:
+        entry["metadata"] = dict(metadata)
 
     if details is not None:
         entry["details"] = dict(details)
