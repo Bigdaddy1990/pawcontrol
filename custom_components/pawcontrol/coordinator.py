@@ -69,11 +69,7 @@ __all__ = ["EntityBudgetSnapshot", "PawControlCoordinator", "RuntimeCycleInfo"]
 
 
 # Backwards-compatible re-export for tests and diagnostics monkeypatching.
-def collect_resilience_diagnostics(
-    coordinator: PawControlCoordinator,
-) -> paw_types.CoordinatorResilienceDiagnostics:
-    """Compatibility wrapper for resilience diagnostics collection."""
-    return coordinator_tasks.collect_resilience_diagnostics(coordinator)
+collect_resilience_diagnostics = coordinator_tasks.collect_resilience_diagnostics
 
 
 class PawControlCoordinator(
