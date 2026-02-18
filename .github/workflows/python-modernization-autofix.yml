@@ -46,7 +46,7 @@ jobs:
         run: |
           if git diff --quiet; then
             echo "No auto-fix changes generated."
-            exit 1
+            exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
