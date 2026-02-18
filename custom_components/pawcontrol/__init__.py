@@ -131,9 +131,7 @@ def _cleanup_platform_cache() -> None:
         return reference - timestamp > _CACHE_TTL_SECONDS
 
     expired_keys = [
-        key
-        for key, (_, timestamp) in _PLATFORM_CACHE.items()
-        if _is_expired(timestamp)
+        key for key, (_, timestamp) in _PLATFORM_CACHE.items() if _is_expired(timestamp)
     ]
     for key in expired_keys:
         _PLATFORM_CACHE.pop(key, None)
