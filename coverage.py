@@ -18,7 +18,9 @@ class TraceFunc(Protocol):
 
     def __call__(
         self, frame: FrameType, event: str, arg: object
-    ) -> TraceFunc | None: ...
+    ) -> TraceFunc | None:
+        """Invoke the trace callback for the given frame and event."""
+        ...
 
 
 @lru_cache(maxsize=128)
@@ -35,6 +37,11 @@ class Coverage:
     """Minimal coverage shim to satisfy the PawControl test suite."""
 
     def __init__(self, *, source: Iterable[str] | None = None) -> None:
+        """Initialize the coverage shim.
+
+        Args:
+            source: Optional iterable of source root paths to restrict tracing.
+        """
         self._source_roots = tuple(
             Path(root).resolve() for root in (source or ()) if root
         )
