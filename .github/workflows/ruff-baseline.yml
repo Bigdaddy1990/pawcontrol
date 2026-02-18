@@ -31,7 +31,6 @@ jobs:
         run: ruff check . --output-format=github
 
       - name: Apply baseline fixes when needed
-        if: steps.baseline_check.outcome == 'failure'
         run: |
           ruff check . --fix
           ruff check . --fix --unsafe-fixes
@@ -40,7 +39,6 @@ jobs:
           ruff format
 
       - name: Re-run baseline check
-        if: steps.baseline_check.outcome == 'failure'
         run: ruff check . --output-format=github
 
       - name: Skip PR when baseline already clean
@@ -53,7 +51,6 @@ jobs:
           fi
 
       - uses: peter-evans/create-pull-request@v8
-        if: steps.skip_pr.outputs.create_pr == 'true'
         with:
           branch: chore/ruff-baseline
           title: "chore: ruff baseline (format+fix+noqa)"
