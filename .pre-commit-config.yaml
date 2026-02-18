@@ -14,19 +14,19 @@ default_install_hook_types:
 
 repos:
 
-
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
     hooks:
-    - id: pyupgrade
-    - --py36-plus
-    - --py37-plus
-    - --py38-plus
-    - --py39-plus
-    - --py310-plus
-    - --py311-plus
-    - --py313-plus
-    - --py314-plus
+      - id: pyupgrade
+        args:
+          - --py36-plus
+          - --py37-plus
+          - --py38-plus
+          - --py39-plus
+          - --py310-plus
+          - --py311-plus
+          - --py313-plus
+          - --py314-plus
     
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.8.1
