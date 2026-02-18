@@ -25,13 +25,7 @@ repos:
           - --check
           - --force
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
-    hooks:
-      - id: mypy
-        additional_dependencies:
-          - types-pyyaml
-        types: [python]
+
 
   - repo: https://github.com/JelleZijlstra/autotyping
     rev: 24.9.0
@@ -50,7 +44,7 @@ repos:
           - --show-fixes
           - --unsafe-fixes
           - --exit-non-zero-on-fix
-          - --ALL
+          - --output-format=github .
         types_or:
           - python
           - pyi
@@ -86,7 +80,15 @@ repos:
         exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|scripts/)
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
-
+      
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-pyyaml
+        types: [python]
+        
   - repo: local
     hooks:
       - id: shared-session-guard
