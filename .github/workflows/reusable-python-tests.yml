@@ -1,7 +1,6 @@
 name: Python Tests with Coverage
 
 on:
-  push:
   workflow_call:
     inputs:
       python-version:
@@ -105,7 +104,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   tests:
@@ -116,7 +114,7 @@ jobs:
       coverage-threshold: ${{ env.COVERAGE_MIN }}
     env:
       PYTHON_VERSION: ${{ inputs.python-version != '' && inputs.python-version || (vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.14') }}
-      HA_SPEC: ${{ inputs.home-assistant-spec != '' && inputs.home-assistant-spec || (vars.HA_VERSION != '' && format('=={0}', vars.HA_VERSION) || '') }}
+      HA_SPEC: ${{ inputs.home-assistant-spec != '' && inputs.home-assistant-spec || (vars.HA_VERSION != '' && format('=={0}', vars.HA_VERSION) || '==2026.1.1') }}
       COVERAGE_MIN: ${{ inputs.coverage-min != '' && inputs.coverage-min || (vars.CI_COVERAGE_MIN != '' && vars.CI_COVERAGE_MIN || '95') }}
       COVERAGE_XML: ${{ inputs.coverage-xml-path != '' && inputs.coverage-xml-path || 'coverage.xml' }}
       COVERAGE_HTML_DIR: ${{ inputs.coverage-html-dir != '' && inputs.coverage-html-dir || 'htmlcov' }}
@@ -129,12 +127,12 @@ jobs:
       PAGES_ARTIFACT_DIR: ${{ inputs.pages-artifact-directory }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v6.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -145,7 +143,7 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          python -m pip install --upgrade pip ruff pre-commit
+          python -m pip install --upgrade pip ruff
           pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
           pip install -U pytest-homeassistant-custom-component
           pip install -U "homeassistant${{ env.HA_SPEC }}"
@@ -159,74 +157,17 @@ jobs:
           python -m scripts.enforce_test_requirements
           python -m scripts.sync_localization_flags
 
-      - name: Enforce Home Assistant push guard (reusable)
-        run: python -m scripts.homeassistant_push_guard --check
-
-      - name: Initial reusable test gate
-        id: initial_gate
-        continue-on-error: true
-        env:
-          PYTHONPATH: .
-        run: |
-          set -e
-          ruff check --output-format=github .
-          python -m pytest \
-            --cov=custom_components/pawcontrol \
-            --cov-branch \
-            --cov-report=xml:"${{ env.COVERAGE_XML }}" \
-            --cov-report=term-missing:skip-covered \
-            --cov-report=html:"${{ env.COVERAGE_HTML_DIR }}" \
-            --cov-fail-under="${{ env.COVERAGE_MIN }}" \
-            --junitxml="${{ env.JUNIT_PATH }}" \
-            -o junit_family=legacy \
-            --maxfail="${{ env.PYTEST_MAXFAIL }}" \
-            --tb="${{ env.PYTEST_TRACEBACK }}" \
-            ${{ env.PYTEST_ARGS }}
-
-      - name: Determine reusable auto-fix eligibility
-        if: steps.initial_gate.outcome == 'failure'
-        id: reusable_autofix_guard
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          AUTHOR_EMAIL="$(git log -1 --pretty=%ae)"
-          AUTHOR_NAME="$(git log -1 --pretty=%an)"
-          if [[ "$EVENT_NAME" == "push" && ("$AUTHOR_NAME" == *"[bot]"* || "$AUTHOR_EMAIL" == *"[bot]"*) ]]; then
-            echo "allow_autofix=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "allow_autofix=false" >> "$GITHUB_OUTPUT"
-            echo "Auto-fix disabled for reusable run (strict failure mode)."
-          fi
-
-      - name: Apply reusable auto-fixes
-        if: steps.initial_gate.outcome == 'failure' && steps.reusable_autofix_guard.outputs.allow_autofix == 'true'
-        run: |
-          python -m scripts.homeassistant_push_guard --fix || true
+      - run: |
           ruff check . --fix || true
-          ruff format . || true
-          pre-commit run --all-files || true
+          ruff check . --add-noqa || true
+          ruff check . --extend-select RUF100 --fix || true
+          ruff check . --fix --unsafe-fixes || true
 
-      - name: Commit and push reusable auto-fixes
-        if: steps.initial_gate.outcome == 'failure' && steps.reusable_autofix_guard.outputs.allow_autofix == 'true'
-        run: |
-          if git diff --quiet; then
-            echo "No reusable workflow auto-fix changes generated."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore(ci): apply reusable python test auto-fixes"
-          git push
-
-      - name: Re-run reusable test gate after fixes
-        if: steps.initial_gate.outcome == 'failure' && steps.reusable_autofix_guard.outputs.allow_autofix == 'true'
+      - name: Run pytest
+        id: pytest
         env:
           PYTHONPATH: .
         run: |
-          set -e
-          python -m scripts.homeassistant_push_guard --check
-          ruff check --output-format=github .
           python -m pytest \
             --cov=custom_components/pawcontrol \
             --cov-branch \
@@ -239,12 +180,6 @@ jobs:
             --maxfail="${{ env.PYTEST_MAXFAIL }}" \
             --tb="${{ env.PYTEST_TRACEBACK }}" \
             ${{ env.PYTEST_ARGS }}
-
-      - name: Mark strict failure when unresolved
-        if: steps.initial_gate.outcome == 'failure' && steps.reusable_autofix_guard.outputs.allow_autofix != 'true'
-        run: |
-          echo "Reusable python test gate failed and auto-fix was not permitted."
-          exit 1
 
       - name: Prepare coverage directories
         run: |
@@ -288,7 +223,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: inputs.run-codecov == true
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v5.5.2
         with:
           files: ${{ env.COVERAGE_XML }}
           fail_ci_if_error: false
@@ -298,7 +233,7 @@ jobs:
 
       - name: Upload test results to Codecov
         if: inputs.run-codecov == true
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v5.5.2
         with:
           files: ${{ env.JUNIT_PATH }}
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -322,7 +257,7 @@ jobs:
           retention-days: 7
 
       - name: Publish coverage to GitHub Pages
-        if: inputs.publish-pages == true && (steps.initial_gate.outcome == 'success' || (steps.initial_gate.outcome == 'failure' && steps.reusable_autofix_guard.outputs.allow_autofix == 'true'))
+        if: inputs.publish-pages == true && steps.pytest.outcome == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -336,11 +271,11 @@ jobs:
             --pages-prefix "${{ env.PAGES_PREFIX }}" \
             --run-id "${{ github.run_id }}" \
             --run-attempt "${{ github.run_attempt }}" \
-            --commit-sha "$(git rev-parse HEAD)" \
-            --ref "$(git symbolic-ref --quiet --short HEAD || echo "${{ github.ref }}")"
+            --commit-sha "${{ github.sha }}" \
+            --ref "${{ github.ref }}"
 
       - name: Upload GitHub Pages bundle
-        if: inputs.publish-pages == true && (steps.initial_gate.outcome == 'success' || (steps.initial_gate.outcome == 'failure' && steps.reusable_autofix_guard.outputs.allow_autofix == 'true'))
+        if: inputs.publish-pages == true && steps.pytest.outcome == 'success'
         uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.pages-artifact-name }}

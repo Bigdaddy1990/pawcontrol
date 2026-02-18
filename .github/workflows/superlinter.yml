@@ -4,9 +4,7 @@ name: Lint
 on: # yamllint disable-line rule:truthy
   push: null
   pull_request: null
-concurrency:
-  group: superlinter-${{ github.ref }}
-  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
@@ -28,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
         with:
           # super-linter needs the full git history to get the
           # list of files that changed across commits

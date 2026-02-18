@@ -1,0 +1,21 @@
+name: Pre-commit Lite
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - uses: pre-commit/action@v3.0.1
+      - name: pre-commit-ci-lite
+        if: always()
+        uses: pre-commit-ci/lite-action@v1.1.0
