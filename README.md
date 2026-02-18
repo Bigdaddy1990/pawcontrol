@@ -1289,29 +1289,37 @@ pytest --cov=custom_components.pawcontrol --cov-report=html
 
 ### Required repository Actions workflow (CI)
 
-All repository quality workflows follow one sequence: run checks first, then (only for push events on bot-authored commits) apply automated fixes, commit, and re-run the full gate. Pull requests remain strict and fail without any automatic write-back.
+All repository quality workflows follow the same sequencing rule: run checks first, and only when a run is both push-triggered and bot-authored may CI apply fixes, commit, and re-run the full gate. Pull requests remain strict failing checks with no write-back.
 
-This orchestration applies to the main workflow (`ci.yml`), the modernization workflow (`python-modernization.yml`), the reusable pytest workflow (`reusable-python-tests.yml`), and the manual `ruff-baseline.yml` run.
+This policy applies to `.github/workflows/ci.yml`,
+`.github/workflows/python-modernization.yml`,
+`.github/workflows/reusable-python-tests.yml`, and the manual
+`.github/workflows/ruff-baseline.yml` fixer flow.
 
-Duplicate responsibilities were removed: coverage uploads run through the central test workflows, and release packaging/changelog publication run through `release.yml` as the single tag-release workflow.
+Avoid duplicate workflow responsibilities. Coverage uploads are handled by CI
+and reusable test workflows, and release packaging/changelog publication are
+handled by `release.yml` as the single tag-release flow.
 
-For Home Assistant compatibility, test and smoke workflows default to the latest available Home Assistant version unless a temporary override variable is set.
+When possible, prefer the latest Home Assistant package in CI by leaving
+`home-assistant-spec` empty unless a temporary pinned override is required via
+repository variables.
 
 ### Required Python modernization path (CI)
 
-For typing upgrades and Python modernization updates, `.github/workflows/python-modernization.yml` is required. It runs on `pull_request` and can also be started manually with `workflow_dispatch`.
+When touching typing upgrades, syntax migrations, or hook configuration, keep
+`.github/workflows/python-modernization.yml` green. This is the single required
+modernization gate and runs these commands in order:
 
-Required sequential flow:
+```bash
+pre-commit run --all-files
+pre-commit run --hook-stage manual python-typing-update --all-files
+python -m mypy custom_components/pawcontrol
+```
 
-1. Checkout + Python setup 3.14
-2. Install `pre-commit` and project dependencies
-3. `pre-commit run --all-files`
-4. `pre-commit run --hook-stage manual python-typing-update --all-files`
-5. `python -m mypy custom_components/pawcontrol`
-
-If the initial run fails, the same workflow may auto-remediate only on push events with a bot-authored head commit: fixes are applied, committed, and then the same checks are run again.
-
-On pull requests, checks stay strict: no auto-commits, and failures remain blocking in line with Home Assistant CI expectations.
+The workflow is intentionally sequential: if the initial checks fail, it may
+apply modernization fixes, commit, and re-run the same checks. Auto-commit is
+restricted to push events whose branch head commit is bot-authored; pull
+requests remain strict failing checks without write-back.
 
 #### Adding new PawControl languages
 
