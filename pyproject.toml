@@ -48,7 +48,6 @@ show-fixes = true
 fix = true
 unsafe-fixes = true
 force-exclude = true
-exit-non-zero-on-fix= true
 output-format= "github"
 
 [tool.ruff.analyze]
