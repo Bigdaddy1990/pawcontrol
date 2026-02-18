@@ -1,6 +1,7 @@
 name: Python Tests with Coverage
 
 on:
+  push:
   workflow_call:
     inputs:
       python-version:
@@ -104,6 +105,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   tests:
