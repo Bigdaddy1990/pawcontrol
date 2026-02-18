@@ -45,6 +45,8 @@ _MAX_REASONS: Final[int] = 25
 
 
 class PushResult(TypedDict, total=False):
+    """Result payload returned by :func:`async_process_gps_push`."""
+
     ok: bool
     status: int
     error: str

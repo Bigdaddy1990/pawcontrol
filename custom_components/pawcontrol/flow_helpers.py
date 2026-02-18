@@ -177,9 +177,10 @@ def create_form_result(
     """Create a standardized form result for config/options flows.
 
     Args:
-        flow: The config or options flow instance
         step_id: Step identifier
         data_schema: Voluptuous schema for the form
+        flow: The config or options flow instance
+        schema: Alias for data_schema (deprecated, prefer data_schema)
         errors: Optional error dictionary
         description_placeholders: Optional description placeholders
         last_step: Whether this is the last step
@@ -638,6 +639,7 @@ def merge_errors(
     """Merge two error dictionaries.
 
     Args:
+        *error_maps: Positional error dicts to merge in order
         base_errors: Base error dictionary
         new_errors: New errors to merge
 
@@ -730,6 +732,7 @@ def clear_flow_data(flow: ConfigFlow | OptionsFlow, key: str | None = None) -> N
 
     Args:
         flow: Flow instance
+        key: Optional specific key to clear; clears all data when omitted
 
     Examples:
         >>> clear_flow_data(self)

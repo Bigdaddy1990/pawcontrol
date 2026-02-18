@@ -299,6 +299,12 @@ class ReauthRequiredError(PawControlError):
         *,
         context: Mapping[str, object] | None = None,
     ) -> None:
+        """Initialize reauthentication required error.
+
+        Args:
+            message: Error message.
+            context: Optional context mapping for diagnostics.
+        """
         super().__init__(
             message,
             error_code="reauth_required",
@@ -321,6 +327,12 @@ class ReconfigureRequiredError(PawControlError):
         *,
         context: Mapping[str, object] | None = None,
     ) -> None:
+        """Initialize reconfigure required error.
+
+        Args:
+            message: Error message.
+            context: Optional context mapping for diagnostics.
+        """
         super().__init__(
             message,
             error_code="reconfigure_required",
@@ -341,6 +353,12 @@ class RepairRequiredError(PawControlError):
         *,
         context: Mapping[str, object] | None = None,
     ) -> None:
+        """Initialize repair required error.
+
+        Args:
+            message: Error message.
+            context: Optional context mapping for diagnostics.
+        """
         super().__init__(
             message,
             error_code="repair_required",
@@ -405,6 +423,8 @@ class GPSError(PawControlError):
             message: Error message
             dog_id: Dog ID associated with GPS error
             location: GPS location data if available
+            error_code: Optional error code for classification
+            context: Optional context mapping for diagnostics
             **kwargs: Additional arguments for parent class
         """
         location_context: ErrorContext | None = (
@@ -541,6 +561,8 @@ class WalkError(PawControlError):
             message: Error message
             dog_id: Dog ID
             walk_id: Walk ID if applicable
+            error_code: Optional error code for classification
+            context: Optional context mapping for diagnostics
             **kwargs: Additional arguments for parent class
         """
         base_context: dict[str, object] = {
@@ -1181,6 +1203,8 @@ def raise_from_error_code(
     Args:
         error_code: The error code to raise
         message: The error message
+        context: Optional context mapping for diagnostics
+        category: Optional error category override
         **kwargs: Additional arguments for the exception
 
     Raises:

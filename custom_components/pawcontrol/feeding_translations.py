@@ -581,7 +581,7 @@ def _load_static_common_translations(language: str | None) -> Mapping[str, str]:
             return {}
         try:
             data = json.loads(file_path.read_text(encoding="utf-8"))
-        except OSError, ValueError:
+        except (OSError, ValueError):
             return {}
         common = data.get("common", {})
         return common if isinstance(common, dict) else {}
@@ -673,16 +673,14 @@ class _BoundedSequenceSnapshot(Sequence[T]):
         return len(self._cache)
 
     @overload
-    def __getitem__(self, index: int, /) -> T:  # pragma: no cover - defensive
-        """Return the cached item at ``index``."""
+    def __getitem__(self, index: int, /) -> T: ...  # pragma: no cover - defensive
 
     @overload
     def __getitem__(
         self,
         index: slice,
         /,
-    ) -> Sequence[T]:  # pragma: no cover - defensive
-        """Return a sliced view of the cached items."""
+    ) -> Sequence[T]: ...  # pragma: no cover - defensive
 
     def __getitem__(self, index: int | slice, /) -> T | Sequence[T]:
         """Return cached values, supporting both index and slice access."""

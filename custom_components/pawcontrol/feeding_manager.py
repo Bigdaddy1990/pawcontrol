@@ -1633,7 +1633,9 @@ class FeedingManager:
                 return time(int(parts[0]), int(parts[1]))
             if len(parts) == 3:
                 return time(int(parts[0]), int(parts[1]), int(parts[2]))
-        except ValueError, AttributeError:
+        except (ValueError, AttributeError):
+            # BUG FIX: Python 2 `except A, B:` is a SyntaxError in Python 3.
+            # The correct multi-exception form is `except (A, B):`.
             _LOGGER.warning("Failed to parse time: %s", time_str)
         return None
 
@@ -2113,13 +2115,19 @@ class FeedingManager:
         """
         events = []
 
-        async with self._lock:
-            for raw_data in feedings:
-                batch_payload = dict(raw_data)
-                dog_id = cast(str, batch_payload.pop("dog_id"))
-                params = cast(FeedingAddParams, batch_payload)
-                event = await self.async_add_feeding(dog_id, **params)
-                events.append(event)
+        # BUG FIX: Do NOT acquire self._lock here.  async_add_feeding() already
+        # acquires it internally, and asyncio.Lock is not reentrant.  Holding the
+        # outer lock while awaiting async_add_feeding() would deadlock permanently
+        # because the inner await would block forever waiting for a lock that is
+        # already held by the same coroutine.
+        # Sequential individual locking is safe: each call is atomic, and between
+        # awaits only other tasks at the event-loop level can interleave.
+        for raw_data in feedings:
+            batch_payload = dict(raw_data)
+            dog_id = cast(str, batch_payload.pop("dog_id"))
+            params = cast(FeedingAddParams, batch_payload)
+            event = await self.async_add_feeding(dog_id, **params)
+            events.append(event)
 
         return events
 
@@ -2367,7 +2375,8 @@ class FeedingManager:
             if daily_calorie_target:
                 try:
                     progress = (total_calories_today / daily_calorie_target) * 100
-                except TypeError, ZeroDivisionError:
+                except (TypeError, ZeroDivisionError):
+                    # BUG FIX: Python 2 `except A, B:` → Python 3 `except (A, B):`
                     calorie_goal_progress = 0.0
                 else:
                     calorie_goal_progress = round(min(progress, 150.0), 1)
@@ -2442,7 +2451,8 @@ class FeedingManager:
                             0.0,
                             min(100.0, 100.0 - (diff / max(ideal, 1.0)) * 100.0),
                         )
-                except TypeError, ZeroDivisionError:
+                except (TypeError, ZeroDivisionError):
+                    # BUG FIX: Python 2 `except A, B:` → Python 3 `except (A, B):`
                     weight_goal_progress = None
         emergency_mode: FeedingEmergencyState | None = None
         health_emergency = False
@@ -2494,7 +2504,8 @@ class FeedingManager:
         elif total_calories_today is not None and daily_calorie_target:
             try:
                 ratio = total_calories_today / daily_calorie_target
-            except TypeError, ZeroDivisionError:
+            except (TypeError, ZeroDivisionError):
+                # BUG FIX: Python 2 `except A, B:` → Python 3 `except (A, B):`
                 health_status = "unknown"
             else:
                 if ratio < 0.85:

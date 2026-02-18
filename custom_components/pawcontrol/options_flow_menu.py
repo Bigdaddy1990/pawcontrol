@@ -13,18 +13,23 @@ from .types import (
 if TYPE_CHECKING:
 
     class MenuOptionsHost(Protocol):
+        """Protocol describing host requirements for MenuOptionsMixin."""
+
         def async_show_menu(
             self,
             *,
             step_id: str,
             menu_options: list[OptionsMainMenuAction],
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Show the options menu to the user."""
+            ...
 
 else:  # pragma: no cover
     MenuOptionsHost = object
 
 
 class MenuOptionsMixin(MenuOptionsHost):
+    """Mixin that provides the main options menu step."""
     async def async_step_init(
         self,
         user_input: OptionsMainMenuInput | None = None,

@@ -1702,13 +1702,11 @@ def format_relative_time(dt: datetime) -> str:
 
 
 @overload
-def ensure_utc_datetime(value: None) -> None:  # pragma: no cover - typing helper
-    """Return ``None`` when no value is provided."""
+def ensure_utc_datetime(value: None) -> None: ...  # pragma: no cover - typing helper
 
 
 @overload
-def ensure_utc_datetime(value: DateTimeConvertible) -> datetime | None:
-    """Convert supported input types to aware UTC datetimes."""
+def ensure_utc_datetime(value: DateTimeConvertible) -> datetime | None: ...
 
 
 def ensure_utc_datetime(value: DateTimeConvertible | None) -> datetime | None:

@@ -45,23 +45,33 @@ _VALID_PROFILES: Final[frozenset[str]] = frozenset(ENTITY_PROFILES.keys())
 if TYPE_CHECKING:
 
     class ReauthFlowHost:
+        """Protocol describing host requirements for ReauthFlowMixin."""
+
         reauth_entry: ConfigEntry | None
         hass: Any
         context: dict[str, object]
 
-        def _normalise_string_list(self, values: Any) -> list[str]: ...
+        def _normalise_string_list(self, values: Any) -> list[str]:
+            """Normalise an arbitrary value into a list of strings."""
+            ...
 
         def _normalise_entry_dogs(
             self,
             entry: ConfigEntry,
-        ) -> list[DogConfigData]: ...
+        ) -> list[DogConfigData]:
+            """Return the stored dog payloads from a config entry."""
+            ...
 
-        def _abort_if_unique_id_mismatch(self, *, reason: str) -> None: ...
+        def _abort_if_unique_id_mismatch(self, *, reason: str) -> None:
+            """Abort the flow if the unique ID does not match the entry."""
+            ...
 
         async def async_set_unique_id(
             self,
             unique_id: str | None = None,
-        ) -> None: ...
+        ) -> None:
+            """Set the unique ID for the config flow entry."""
+            ...
 
         async def async_update_reload_and_abort(
             self,
@@ -70,7 +80,9 @@ if TYPE_CHECKING:
             data_updates: Mapping[str, object] | None = None,
             options_updates: Mapping[str, object] | None = None,
             reason: str,
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Update entry data/options, reload, and abort the flow."""
+            ...
 
         def async_show_form(
             self,
@@ -79,7 +91,9 @@ if TYPE_CHECKING:
             data_schema: vol.Schema,
             errors: dict[str, str] | None = None,
             description_placeholders: Mapping[str, str] | None = None,
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Show a form step to the user."""
+            ...
 
 else:  # pragma: no cover
     ReauthFlowHost = object

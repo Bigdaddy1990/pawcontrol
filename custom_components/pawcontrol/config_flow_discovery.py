@@ -31,29 +31,39 @@ _LOGGER = logging.getLogger(__name__)
 if TYPE_CHECKING:
 
     class DiscoveryFlowHost(Protocol):
+        """Protocol describing host requirements for DiscoveryFlowMixin."""
+
         def _is_supported_device(
             self,
             hostname: str,
             properties: ConfigFlowDiscoveryProperties,
-        ) -> bool: ...
+        ) -> bool:
+            """Return True if the discovered device is supported."""
+            ...
 
         def _prepare_discovery_updates(
             self,
             payload: Mapping[str, object],
             *,
             source: ConfigFlowDiscoverySource,
-        ) -> tuple[DiscoveryUpdatePayload, ConfigFlowDiscoveryData]: ...
+        ) -> tuple[DiscoveryUpdatePayload, ConfigFlowDiscoveryData]:
+            """Build update and comparison payloads for a discovery event."""
+            ...
 
         def _extract_device_id(
             self, properties: ConfigFlowDiscoveryProperties
-        ) -> str | None: ...
+        ) -> str | None:
+            """Extract a unique device identifier from discovery properties."""
+            ...
 
         def _abort_if_unique_id_configured(
             self,
             *,
             updates: Mapping[str, object] | None = None,
             reload_on_update: bool = False,
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Abort flow if a matching unique ID is already configured."""
+            ...
 
         async def _handle_existing_discovery_entry(
             self,
@@ -61,26 +71,44 @@ if TYPE_CHECKING:
             updates: DiscoveryUpdatePayload,
             comparison: ConfigFlowDiscoveryData,
             reload_on_update: bool,
-        ) -> ConfigFlowResult | None: ...
+        ) -> ConfigFlowResult | None:
+            """Handle an already-configured entry found during discovery."""
+            ...
 
-        def _format_discovery_info(self) -> str: ...
+        def _format_discovery_info(self) -> str:
+            """Return a human-readable description of the discovered device."""
+            ...
 
-        async def async_set_unique_id(self, unique_id: str | None = None) -> None: ...
+        async def async_set_unique_id(self, unique_id: str | None = None) -> None:
+            """Set the unique ID for the config flow entry."""
+            ...
 
-        def async_abort(self, *, reason: str) -> ConfigFlowResult: ...
+        def async_abort(self, *, reason: str) -> ConfigFlowResult:
+            """Abort the config flow with the given reason."""
+            ...
 
-        def async_show_form(self, **kwargs: Any) -> ConfigFlowResult: ...
+        def async_show_form(self, **kwargs: Any) -> ConfigFlowResult:
+            """Show a form step to the user."""
+            ...
 
-        async def async_step_add_dog(self) -> ConfigFlowResult: ...
+        async def async_step_add_dog(self) -> ConfigFlowResult:
+            """Start the dog-addition sub-step."""
+            ...
 
-        def __getattr__(self, name: str) -> Any: ...
+        def __getattr__(self, name: str) -> Any:
+            """Allow attribute access for dynamic host methods."""
+            ...
 
 else:  # pragma: no cover
     DiscoveryFlowHost = object
 
 
 class DiscoveryFlowMixin(DiscoveryFlowHost):
-    """Mixin that provides HA discovery steps for the config flow."""
+    """Mixin that provides HA discovery steps for the config flow.
+
+    Handles all HA discovery protocols (Zeroconf, DHCP, USB, Bluetooth) and
+    routes confirmed discoveries to the primary config-flow setup steps.
+    """
 
     async def async_step_zeroconf(
         self,

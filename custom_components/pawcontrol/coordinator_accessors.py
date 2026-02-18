@@ -62,16 +62,14 @@ class CoordinatorDataAccessMixin:
             "walk",
             "weather",
         ],
-    ) -> CoordinatorModuleState:
-        """Return coordinator data for a typed module."""
+    ) -> CoordinatorModuleState: ...
 
     @overload
     def get_module_data(
         self,
         dog_id: str,
         module: str,
-    ) -> CoordinatorModuleLookupResult:
-        """Return cached data for a module without strict typing."""
+    ) -> CoordinatorModuleLookupResult: ...
 
     def get_module_data(
         self,

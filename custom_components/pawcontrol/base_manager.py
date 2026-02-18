@@ -9,6 +9,7 @@ Python: 3.14+
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import suppress  # noqa: F401
 import logging
 import time
@@ -321,3 +322,194 @@ class BaseManager(ABC):
             f"(ready={self.is_ready}, "
             f"has_coordinator={self._coordinator is not None})>"
         )
+
+
+
+# ---------------------------------------------------------------------------
+# Concrete manager subclasses
+# ---------------------------------------------------------------------------
+
+
+class DataManager(BaseManager):
+    """Manager for data operations with integrated caching support.
+
+    Provides a lightweight in-memory cache that concrete subclasses can
+    populate from coordinator data or external API calls.  Cache entries
+    are arbitrary JSON-compatible values keyed by string identifiers.
+
+    Subclasses must still implement :meth:`async_setup`,
+    :meth:`async_shutdown`, and :meth:`get_diagnostics`.
+    """
+
+    MANAGER_NAME: str = "DataManager"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator | None = None,
+    ) -> None:
+        """Initialize the data manager with an empty cache.
+
+        Args:
+            hass: Home Assistant instance.
+            coordinator: Optional PawControl coordinator.
+        """
+        super().__init__(hass, coordinator)
+        self._cache: dict[str, Any] = {}
+
+    def get_cache_size(self) -> int:
+        """Return the number of entries currently held in the cache.
+
+        Returns:
+            Integer count of cached keys.
+        """
+        return len(self._cache)
+
+    def clear_cache(self) -> None:
+        """Remove all entries from the in-memory cache."""
+        self._cache.clear()
+
+
+class EventManager(BaseManager):
+    """Manager for event handling with listener registration.
+
+    Maintains a mapping of event names to ordered lists of callables.
+    Concrete subclasses use :meth:`_register_listener` and
+    :meth:`_unregister_listener` to manage their own event subscriptions.
+    """
+
+    MANAGER_NAME: str = "EventManager"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator | None = None,
+    ) -> None:
+        """Initialize the event manager with an empty listener registry.
+
+        Args:
+            hass: Home Assistant instance.
+            coordinator: Optional PawControl coordinator.
+        """
+        super().__init__(hass, coordinator)
+        self._listeners: dict[str, list[Callable[..., Any]]] = {}
+
+    def _register_listener(self, event: str, callback: Callable[..., Any]) -> None:
+        """Append *callback* to the listener list for *event*.
+
+        Args:
+            event: Event name string to subscribe to.
+            callback: Callable invoked when the event fires.
+        """
+        self._listeners.setdefault(event, []).append(callback)
+
+    def _unregister_listener(self, event: str, callback: Callable[..., Any]) -> None:
+        """Remove *callback* from the listener list for *event*.
+
+        Silently ignores the call when the callback is not registered.
+
+        Args:
+            event: Event name string to unsubscribe from.
+            callback: Callable to remove from the listener list.
+        """
+        if event in self._listeners:
+            with suppress(ValueError):
+                self._listeners[event].remove(callback)
+
+
+# ---------------------------------------------------------------------------
+# Manager registration system
+# ---------------------------------------------------------------------------
+
+_REGISTERED_MANAGERS: dict[str, type[BaseManager]] = {}
+
+
+def register_manager(cls: type[BaseManager]) -> type[BaseManager]:
+    """Class decorator that registers *cls* in the global manager registry.
+
+    The class is keyed under ``cls.MANAGER_NAME``.  Applying the decorator
+    twice with the same name overwrites the previous registration.
+
+    Args:
+        cls: Manager class to register.
+
+    Returns:
+        The unchanged *cls* so the decorator is transparent.
+    """
+    _REGISTERED_MANAGERS[cls.MANAGER_NAME] = cls
+    return cls
+
+
+def get_registered_managers() -> dict[str, type[BaseManager]]:
+    """Return a snapshot copy of the global manager registry.
+
+    Returns:
+        Mapping of manager name → manager class for all registered managers.
+    """
+    return dict(_REGISTERED_MANAGERS)
+
+
+# ---------------------------------------------------------------------------
+# Batch lifecycle helpers
+# ---------------------------------------------------------------------------
+
+
+async def setup_managers(
+    *managers: BaseManager,
+    stop_on_error: bool = False,
+) -> list[BaseManager]:
+    """Initialize multiple managers, collecting the successful ones.
+
+    When *stop_on_error* is ``False`` (the default) each manager is attempted
+    independently and only successfully initialized managers are returned.
+    When *stop_on_error* is ``True`` the first failure tears down all
+    previously successful managers and re-raises the error.
+
+    Args:
+        *managers: Manager instances to initialize in order.
+        stop_on_error: If ``True``, abort and roll back on the first failure.
+
+    Returns:
+        List of managers that completed :meth:`~BaseManager.async_initialize`
+        without error.
+
+    Raises:
+        ManagerLifecycleError: Only when *stop_on_error* is ``True`` and a
+            manager fails to initialize.
+    """
+    successful: list[BaseManager] = []
+    for manager in managers:
+        try:
+            await manager.async_initialize()
+            successful.append(manager)
+        except Exception:  # noqa: BLE001
+            if stop_on_error:
+                for m in reversed(successful):
+                    with suppress(Exception):
+                        await m.async_teardown()
+                raise
+    return successful
+
+
+async def shutdown_managers(
+    *managers: BaseManager,
+    ignore_errors: bool = True,
+) -> None:
+    """Tear down multiple managers in order.
+
+    Args:
+        *managers: Manager instances to tear down.
+        ignore_errors: When ``True`` (default) errors from individual managers
+            are suppressed so that all managers receive their teardown call.
+            When ``False`` the first error is re-raised immediately.
+
+    Raises:
+        ManagerLifecycleError: Only when *ignore_errors* is ``False`` and a
+            manager's :meth:`~BaseManager.async_teardown` raises.
+    """
+    for manager in managers:
+        try:
+            await manager.async_teardown()
+        except Exception:  # noqa: BLE001
+            if not ignore_errors:
+                raise

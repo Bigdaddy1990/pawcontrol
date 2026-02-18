@@ -9,8 +9,7 @@ Refactored: ~300 lines (80% reduction)
 
 import asyncio
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
-import importlib
-import logging
+import logging  # BUG FIX: removed unused `import importlib` (ruff F401)
 import time
 from typing import Any, Final, cast
 
