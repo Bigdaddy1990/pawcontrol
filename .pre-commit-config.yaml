@@ -80,7 +80,7 @@ repos:
         exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|scripts/)
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
-      
+
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.19.1
     hooks:
@@ -88,7 +88,7 @@ repos:
         additional_dependencies:
           - types-pyyaml
         types: [python]
-        
+
   - repo: local
     hooks:
       - id: shared-session-guard
