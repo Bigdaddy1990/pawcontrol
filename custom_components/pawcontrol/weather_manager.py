@@ -564,7 +564,7 @@ class WeatherHealthManager:
             return original_key
         try:
             return resolved.format(**kwargs) if kwargs else resolved
-        except KeyError, ValueError:
+        except (KeyError, ValueError):
             return resolved
 
     @staticmethod

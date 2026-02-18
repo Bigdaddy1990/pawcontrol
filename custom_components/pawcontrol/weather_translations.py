@@ -161,7 +161,7 @@ def _load_static_common_translations(language: str) -> dict[str, str]:
             return {}
         try:
             data = json.loads(file_path.read_text(encoding="utf-8"))
-        except OSError, ValueError:
+        except (OSError, ValueError):
             return {}
         common = data.get("common", {})
         return common if isinstance(common, dict) else {}
