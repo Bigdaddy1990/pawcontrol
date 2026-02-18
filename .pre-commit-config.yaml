@@ -57,7 +57,7 @@ repos:
           - --show-fixes
           - --unsafe-fixes
           - --exit-non-zero-on-fix
-          - --output-format=github .
+          - --output-format=github
         types_or:
           - python
           - pyi
