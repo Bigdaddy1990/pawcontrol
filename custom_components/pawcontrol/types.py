@@ -6391,6 +6391,7 @@ class SystemHealthBreakerOverview(TypedDict):
     open_breaker_count: int
     half_open_breaker_count: int
     unknown_breaker_count: int
+    rejection_breaker_count: int
     rejection_rate: float
     last_rejection_breaker_id: str | None
     last_rejection_breaker_name: str | None
