@@ -102,6 +102,8 @@ repos:
           - custom_components/pawcontrol
         additional_dependencies:
           - types-pyyaml
+        types: [python]
+        files: ^custom_components/pawcontrol/
         pass_filenames: false
 
   - repo: local
