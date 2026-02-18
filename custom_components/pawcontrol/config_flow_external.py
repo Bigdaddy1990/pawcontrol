@@ -313,7 +313,6 @@ class ExternalEntityConfigurationMixin:
         new_config: ExternalEntityConfig,
     ) -> None:
         """Merge external entity selections into the target mapping."""
-
         if GPS_SOURCE_KEY in new_config:
             target[GPS_SOURCE_KEY] = new_config[GPS_SOURCE_KEY]
         if DOOR_SENSOR_KEY in new_config:

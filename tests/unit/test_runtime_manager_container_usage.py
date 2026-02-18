@@ -109,7 +109,6 @@ def test_garden_binary_sensors_use_runtime_manager_container(
     hass: HomeAssistant,
 ) -> None:
     """Garden binary sensors should resolve helpers through the runtime container."""
-
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
 
@@ -171,7 +170,6 @@ async def test_birthdate_date_uses_runtime_data_manager_container(
     hass: HomeAssistant,
 ) -> None:
     """Birthdate date entity should persist updates through the runtime container."""
-
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
 
@@ -211,7 +209,6 @@ async def test_emergency_datetime_uses_runtime_notification_manager(
     hass: HomeAssistant,
 ) -> None:
     """Emergency datetime entity should dispatch notifications via the container."""
-
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
 
@@ -256,7 +253,6 @@ async def test_custom_message_text_prefers_notification_manager(
     hass: HomeAssistant,
 ) -> None:
     """Custom message text should route notifications through the runtime container."""
-
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
 
@@ -307,7 +303,6 @@ async def test_date_entity_skips_service_call_when_hass_missing(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Date entities should skip service calls when Home Assistant is unavailable."""
-
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     runtime_managers = CoordinatorRuntimeManagers()
     coordinator = _CoordinatorStub(entry, runtime_managers)
@@ -328,7 +323,6 @@ async def test_emergency_datetime_skips_services_without_hass(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Emergency datetime should guard hass-dependent service calls."""
-
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     runtime_managers = CoordinatorRuntimeManagers()
     coordinator = _CoordinatorStub(entry, runtime_managers)
@@ -349,7 +343,6 @@ async def test_custom_message_text_skips_notify_when_hass_missing(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Custom message text should guard hass-based notifications."""
-
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     runtime_managers = CoordinatorRuntimeManagers()
     coordinator = _CoordinatorStub(entry, runtime_managers)
@@ -371,7 +364,6 @@ async def test_visitor_mode_switch_skips_service_without_hass(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Visitor mode switch should guard Home Assistant service usage."""
-
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     runtime_managers = CoordinatorRuntimeManagers()
     coordinator = _CoordinatorStub(entry, runtime_managers)
@@ -392,7 +384,6 @@ async def test_confirm_poop_button_skips_service_without_hass(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Garden confirmation button should guard Home Assistant service usage."""
-
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     runtime_managers = CoordinatorRuntimeManagers()
     coordinator = _CoordinatorStub(entry, runtime_managers)

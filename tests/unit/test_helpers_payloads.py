@@ -16,7 +16,6 @@ class _ExamplePayload(TypedDict):
 @pytest.mark.unit
 def test_typed_deepcopy_returns_fully_detached_clone() -> None:
     """Ensure ``typed_deepcopy`` returns a deep copy that preserves typing."""
-
     original: _ExamplePayload = {
         "dog_id": "buddy",
         "modules": {"feeding": True, "walk": True},

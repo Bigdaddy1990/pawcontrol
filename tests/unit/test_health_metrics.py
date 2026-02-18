@@ -12,7 +12,6 @@ import pytest
 
 def _load_health_calculator_module() -> types.ModuleType:
     """Load the health_calculator module with lightweight stubs."""
-
     project_root = pathlib.Path(__file__).resolve().parents[2]
     module_path = (
         project_root / "custom_components" / "pawcontrol" / "health_calculator.py"

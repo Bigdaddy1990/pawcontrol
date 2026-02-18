@@ -16,7 +16,6 @@ from custom_components.pawcontrol.types import GPSLocation
 
 def test_paw_control_error_context_serialization() -> None:
     """PawControlError should serialise complex context payloads to JSON-safe data."""
-
     timestamp = datetime(2024, 1, 1, tzinfo=UTC)
     error = PawControlError(
         "failure",
@@ -36,7 +35,6 @@ def test_paw_control_error_context_serialization() -> None:
 
 def test_gps_error_context_serialization() -> None:
     """GPSError should serialise GPSLocation dataclasses into JSON payloads."""
-
     location = GPSLocation(
         latitude=1.0, longitude=2.0, timestamp=datetime(2024, 5, 1, tzinfo=UTC)
     )
@@ -49,7 +47,6 @@ def test_gps_error_context_serialization() -> None:
 
 def test_create_error_context_filters_none_and_serialises_values() -> None:
     """create_error_context should drop ``None`` entries and serialise datetimes."""
-
     payload = create_error_context(
         dog_id="spot",
         operation="sync",
@@ -65,7 +62,6 @@ def test_create_error_context_filters_none_and_serialises_values() -> None:
 
 def test_handle_exception_gracefully_returns_default_for_non_critical() -> None:
     """Non-critical PawControlError instances should return the provided default."""
-
     error = PawControlError("boom", severity=ErrorSeverity.LOW)
 
     wrapped = handle_exception_gracefully(
@@ -78,7 +74,6 @@ def test_handle_exception_gracefully_returns_default_for_non_critical() -> None:
 
 def test_handle_exception_gracefully_reraises_critical() -> None:
     """Critical errors should bubble up when reraise_critical is enabled."""
-
     error = PawControlError("boom", severity=ErrorSeverity.CRITICAL)
 
     wrapped = handle_exception_gracefully(

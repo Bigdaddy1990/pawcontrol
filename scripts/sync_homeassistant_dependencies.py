@@ -86,7 +86,6 @@ class DependencySynchroniser:
 
     def load_reference_requirements(self) -> dict[str, ReferenceRequirement]:
         """Return a mapping of canonical package names to reference specs."""
-
         mapping: dict[str, ReferenceRequirement] = {}
         for relative in (
             HA_REQUIREMENTS,
@@ -109,7 +108,6 @@ class DependencySynchroniser:
         reference: Mapping[str, ReferenceRequirement],
     ) -> bool:
         """Update manifest requirements to match Home Assistant versions."""
-
         data = json.loads(self._manifest_path.read_text(encoding="utf-8"))
         requirements: list[str] = data.get("requirements", [])
         updated = False
@@ -139,7 +137,6 @@ class DependencySynchroniser:
         reference: Mapping[str, ReferenceRequirement],
     ) -> bool:
         """Update local requirement files in place."""
-
         changed = False
         for path in self._requirements_files:
             file_changed = update_requirement_file(path, reference)
@@ -154,7 +151,6 @@ class DependencySynchroniser:
         archive: Path | None,
     ) -> bool:
         """Synchronise the vendored PyYAML package with the reference version."""
-
         if skip:
             return False
 
@@ -177,7 +173,6 @@ class DependencySynchroniser:
 
     def update_vendor_metadata(self) -> None:
         """Regenerate the vendored PyYAML metadata snapshot."""
-
         result, _ = vendor_monitor.evaluate(
             fail_on_outdated=False,
             fail_severity="HIGH",
@@ -195,7 +190,6 @@ def update_mapping(
     mapping: dict[str, ReferenceRequirement], requirement: Requirement
 ) -> None:
     """Insert or replace a requirement in the mapping based on specificity."""
-
     canonical = canonicalize_name(requirement.name)
     existing = mapping.get(canonical)
     candidate = ReferenceRequirement(requirement=requirement)
@@ -225,7 +219,6 @@ def update_mapping_from_lines(
     mapping: dict[str, ReferenceRequirement], lines: Iterable[str]
 ) -> None:
     """Update the mapping with requirement lines from a text file."""
-
     for raw_line in lines:
         line = raw_line.strip()
         if not line or line.startswith("#"):
@@ -241,7 +234,6 @@ def update_mapping_from_lines(
 
 def highest_version(specifier_set: Iterable[Specifier]) -> Version | None:
     """Return the highest version referenced by the specifier set."""
-
     highest: Version | None = None
     for specifier in specifier_set:
         try:
@@ -255,7 +247,6 @@ def highest_version(specifier_set: Iterable[Specifier]) -> Version | None:
 
 def requirement_priority(requirement: Requirement) -> int:
     """Return a numeric priority score for a requirement specifier."""
-
     if not requirement.specifier:
         return 0
     priority = 0
@@ -275,7 +266,6 @@ def compose_requirement(
     requirement: Requirement, reference: ReferenceRequirement
 ) -> str:
     """Compose a requirement string using the reference specifier."""
-
     extras = sorted(requirement.extras)
     pieces: list[str] = [requirement.name]
     if extras:
@@ -291,7 +281,6 @@ def compose_requirement(
 
 def split_comment(line: str) -> tuple[str, str]:
     """Split a requirement line into requirement text and trailing comment."""
-
     hash_index = line.find("#")
     if hash_index == -1:
         return line.rstrip(), ""
@@ -302,7 +291,6 @@ def update_requirement_file(
     path: Path, reference: Mapping[str, ReferenceRequirement]
 ) -> bool:
     """Rewrite a requirements file based on the reference mapping."""
-
     lines = path.read_text(encoding="utf-8").splitlines()
     new_lines: list[str] = []
     changed = False
@@ -335,7 +323,6 @@ def update_requirement_file(
 
 def download_pyyaml_source(version: Version) -> Path:
     """Download the PyYAML source distribution for the given version."""
-
     metadata = vendor_monitor.fetch_pypi_metadata()
     release_files = metadata.get("releases", {}).get(str(version), [])
     for entry in release_files:
@@ -356,7 +343,6 @@ def download_pyyaml_source(version: Version) -> Path:
 
 def _safe_tar_members(handle: tarfile.TarFile) -> Iterable[tarfile.TarInfo]:
     """Yield safe tar members, rejecting traversal and special file entries."""
-
     for member in handle.getmembers():
         member_path = PurePosixPath(member.name)
         if member_path.is_absolute() or any(part == ".." for part in member_path.parts):
@@ -370,7 +356,6 @@ def _safe_tar_members(handle: tarfile.TarFile) -> Iterable[tarfile.TarInfo]:
 
 def extract_pyyaml_archive(archive: Path, version: Version) -> None:
     """Extract a PyYAML archive into the vendored directory."""
-
     with tempfile.TemporaryDirectory() as temp_dir:
         with tarfile.open(archive, "r:gz") as handle:
             handle.extractall(
@@ -400,7 +385,6 @@ def extract_pyyaml_archive(archive: Path, version: Version) -> None:
 
 def parse_arguments() -> argparse.Namespace:
     """Parse CLI arguments for the synchronisation routine."""
-
     parser = argparse.ArgumentParser(
         description="Synchronise local dependency versions with Home Assistant core",
     )
@@ -455,7 +439,6 @@ def parse_arguments() -> argparse.Namespace:
 
 def main() -> int:
     """CLI entry point for the dependency synchroniser."""
-
     args = parse_arguments()
     requirements_files = args.requirements_file or [
         Path("requirements.txt"),

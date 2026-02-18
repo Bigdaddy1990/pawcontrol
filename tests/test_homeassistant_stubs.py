@@ -53,7 +53,6 @@ def _assert_support_helpers_follow_handler_hooks(
 
 def test_repairs_flow_stub_matches_home_assistant_contract() -> None:
     """Ensure the repairs flow stub mirrors Home Assistant's base API."""
-
     install_homeassistant_stubs()
 
     from homeassistant.components import repairs
@@ -137,7 +136,6 @@ def test_repairs_flow_stub_matches_home_assistant_contract() -> None:
 
 def test_repairs_flow_stub_populates_default_placeholders() -> None:
     """Ensure optional placeholders default to empty mappings."""
-
     install_homeassistant_stubs()
 
     from homeassistant.components import repairs
@@ -173,7 +171,6 @@ def test_repairs_flow_stub_populates_default_placeholders() -> None:
 
 def test_options_flow_stub_supports_create_entry_and_form_helpers() -> None:
     """Exercise OptionsFlow helpers to mirror Home Assistant behaviour."""
-
     install_homeassistant_stubs()
 
     from homeassistant.config_entries import FlowResult, OptionsFlow
@@ -260,7 +257,6 @@ def test_options_flow_stub_supports_create_entry_and_form_helpers() -> None:
 
 def test_options_flow_stub_handles_external_and_progress_results() -> None:
     """Verify OptionsFlow covers external steps and default placeholders."""
-
     install_homeassistant_stubs()
 
     from homeassistant.config_entries import OptionsFlow
@@ -310,7 +306,6 @@ def test_options_flow_stub_handles_external_and_progress_results() -> None:
 
 def test_flow_result_aliases_stay_consistent_with_home_assistant() -> None:
     """Ensure FlowResult exports remain aligned across HA modules."""
-
     install_homeassistant_stubs()
 
     from homeassistant.components import repairs
@@ -333,7 +328,6 @@ def test_flow_result_aliases_stay_consistent_with_home_assistant() -> None:
 
 def test_config_entry_states_track_home_assistant_flags() -> None:
     """ConfigEntryState should mirror Home Assistant values and recoverability."""
-
     install_homeassistant_stubs()
 
     from homeassistant.config_entries import ConfigEntry, ConfigEntryState
@@ -371,7 +365,6 @@ def test_config_entry_states_track_home_assistant_flags() -> None:
 
 def test_config_entry_support_metadata_defaults() -> None:
     """ConfigEntry stub should expose Home Assistant support flags and timestamps."""
-
     install_homeassistant_stubs()
 
     from homeassistant.config_entries import ConfigEntry
@@ -401,7 +394,6 @@ def test_config_entry_support_metadata_defaults() -> None:
 
 def test_config_entry_support_metadata_can_be_overridden() -> None:
     """ConfigEntry stub should accept Home Assistant support metadata overrides."""
-
     install_homeassistant_stubs()
 
     from homeassistant.config_entries import ConfigEntry
@@ -460,7 +452,6 @@ def test_config_entry_support_metadata_can_be_overridden() -> None:
 
 def test_config_entry_support_properties_follow_home_assistant_defaults() -> None:
     """ConfigEntry support helpers should mimic Home Assistant defaults."""
-
     install_homeassistant_stubs()
 
     from homeassistant.config_entries import HANDLERS, ConfigEntry
@@ -541,7 +532,6 @@ def test_config_entry_support_properties_follow_home_assistant_defaults() -> Non
 
 def test_support_helpers_follow_handler_hooks() -> None:
     """Handler-based support helpers should mirror Home Assistant defaults."""
-
     install_homeassistant_stubs()
 
     from homeassistant.config_entries import (
@@ -561,7 +551,6 @@ def test_support_helpers_follow_handler_hooks() -> None:
 
 def test_compat_config_entry_states_include_unload_progress() -> None:
     """Compat ConfigEntryState should expose all Home Assistant enum members."""
-
     from custom_components.pawcontrol.compat import ConfigEntryState
 
     expected_recoverable = {
@@ -592,7 +581,6 @@ def test_compat_config_entry_states_include_unload_progress() -> None:
 
 def test_compat_config_entry_defaults_match_home_assistant() -> None:
     """Compat ConfigEntry should mirror Home Assistant default metadata."""
-
     from custom_components.pawcontrol.compat import ConfigEntry
 
     entry = ConfigEntry()
@@ -622,7 +610,6 @@ def test_compat_config_entry_defaults_match_home_assistant() -> None:
 
 def test_compat_config_entry_preference_overrides() -> None:
     """Compat ConfigEntry should accept preference overrides like Home Assistant."""
-
     from custom_components.pawcontrol.compat import ConfigEntry
 
     entry = ConfigEntry(
@@ -638,7 +625,6 @@ def test_compat_config_entry_preference_overrides() -> None:
 
 def test_compat_config_entry_support_flags_follow_handler_defaults() -> None:
     """Compat ConfigEntry should derive support flags from handler hooks."""
-
     from custom_components.pawcontrol.compat import ConfigEntry
 
     entry = ConfigEntry()
@@ -696,7 +682,6 @@ def test_compat_config_entry_support_flags_follow_handler_defaults() -> None:
 
 def test_compat_support_helpers_follow_handler_hooks() -> None:
     """Compat support helpers should mirror Home Assistant handler checks."""
-
     from custom_components.pawcontrol.compat import (
         HANDLERS,
         ConfigEntry,
@@ -714,7 +699,6 @@ def test_compat_support_helpers_follow_handler_hooks() -> None:
 
 def test_compat_config_entry_metadata_can_be_overridden() -> None:
     """Compat ConfigEntry should honor support metadata overrides."""
-
     from custom_components.pawcontrol.compat import ConfigEntry
 
     created_at = datetime(2024, 1, 1, tzinfo=UTC)
@@ -770,7 +754,6 @@ def test_compat_config_entry_metadata_can_be_overridden() -> None:
 
 def test_registry_singletons_are_shared_between_helpers() -> None:
     """Device and entity registry helpers should return shared instances."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import device_registry, entity_registry
@@ -802,7 +785,6 @@ def test_registry_singletons_are_shared_between_helpers() -> None:
 
 def test_entity_and_device_registry_factories_track_entries() -> None:
     """Validate registry stubs used by entity factory helpers."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import device_registry, entity_registry
@@ -947,7 +929,6 @@ def test_entity_and_device_registry_factories_track_entries() -> None:
 
 def test_device_registry_lookup_matches_identifiers_and_connections() -> None:
     """Device registry lookups should mirror Home Assistant helper behaviour."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import device_registry
@@ -995,7 +976,6 @@ def test_device_registry_lookup_matches_identifiers_and_connections() -> None:
 
 def test_device_registry_merges_existing_devices_by_hints() -> None:
     """Device registry should reuse entries matching identifiers or connections."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import device_registry
@@ -1027,7 +1007,6 @@ def test_device_registry_merges_existing_devices_by_hints() -> None:
 
 def test_device_registry_generates_unique_ids_without_hints() -> None:
     """Device registry should mint unique IDs when none are provided."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import device_registry
@@ -1047,7 +1026,6 @@ def test_device_registry_generates_unique_ids_without_hints() -> None:
 
 def test_device_registry_tracks_prefix_ids_when_minting_new_devices() -> None:
     """Device registry should avoid colliding with explicit device-* IDs."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import device_registry
@@ -1066,7 +1044,6 @@ def test_device_registry_tracks_prefix_ids_when_minting_new_devices() -> None:
 
 def test_device_registry_fetches_devices_by_id() -> None:
     """Device registry should resolve devices by ID like Home Assistant."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import device_registry
@@ -1094,7 +1071,6 @@ def test_device_registry_fetches_devices_by_id() -> None:
 
 def test_device_registry_accumulates_identifiers_and_connections() -> None:
     """Device registry should merge new hints into existing entries."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import device_registry
@@ -1139,7 +1115,6 @@ def test_device_registry_accumulates_identifiers_and_connections() -> None:
 
 def test_entity_registry_entries_filter_by_device_id() -> None:
     """Entity registry should support device-specific filtering like HA."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import entity_registry
@@ -1166,7 +1141,6 @@ def test_entity_registry_entries_filter_by_device_id() -> None:
 
 def test_entity_registry_merges_entries_by_unique_id_and_platform() -> None:
     """Entity registry should reuse entities sharing unique IDs and platforms."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import entity_registry
@@ -1196,7 +1170,6 @@ def test_entity_registry_merges_entries_by_unique_id_and_platform() -> None:
 
 def test_device_registry_remove_follows_home_assistant_helper() -> None:
     """Device removal should be exposed via registry and module helpers."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import device_registry
@@ -1226,7 +1199,6 @@ def test_device_registry_remove_follows_home_assistant_helper() -> None:
 
 def test_entity_registry_remove_follows_home_assistant_helper() -> None:
     """Entity removal should be exposed via registry and module helpers."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import entity_registry
@@ -1256,7 +1228,6 @@ def test_entity_registry_remove_follows_home_assistant_helper() -> None:
 
 def test_issue_registry_helpers_store_and_remove_issues() -> None:
     """Issue registry stubs should mirror Home Assistant helpers."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import issue_registry
@@ -1449,7 +1420,6 @@ def test_issue_registry_helpers_store_and_remove_issues() -> None:
 
 def test_issue_registry_preserves_optional_metadata() -> None:
     """Issue registry stubs should retain optional metadata when not provided."""
-
     install_homeassistant_stubs()
 
     from homeassistant.helpers import issue_registry

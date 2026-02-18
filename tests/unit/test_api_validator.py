@@ -94,7 +94,6 @@ async def test_async_validate_api_connection_filters_capabilities(
     hass: HomeAssistant,
 ) -> None:
     """Only string capabilities from the JSON payload should be exposed."""
-
     session = DummySession([
         DummyResponse(200),
         DummyResponse(
@@ -117,7 +116,6 @@ async def test_async_validate_api_connection_accepts_tuple_capabilities(
     hass: HomeAssistant,
 ) -> None:
     """Tuple-based capability payloads should normalise to list[str]."""
-
     session = DummySession([
         DummyResponse(200),
         DummyResponse(
@@ -143,7 +141,6 @@ async def test_async_validate_api_connection_handles_json_failure(
     hass: HomeAssistant,
 ) -> None:
     """Successful authentication without JSON keeps optional fields ``None``."""
-
     session = DummySession([
         DummyResponse(200),
         DummyResponse(200, json_error=ValueError("boom")),
@@ -164,7 +161,6 @@ async def test_async_validate_api_connection_supports_empty_capabilities(
     hass: HomeAssistant,
 ) -> None:
     """An empty capabilities array should normalise to an empty list."""
-
     session = DummySession([
         DummyResponse(200),
         DummyResponse(200, {"version": "2.0.0", "capabilities": []}),
@@ -184,7 +180,6 @@ async def test_async_test_api_health_authentication_failure(
     hass: HomeAssistant,
 ) -> None:
     """Authentication errors should surface a dedicated health status."""
-
     session = DummySession([
         DummyResponse(200),
         DummyResponse(401),

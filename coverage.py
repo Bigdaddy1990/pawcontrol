@@ -24,7 +24,6 @@ class TraceFunc(Protocol):
 @lru_cache(maxsize=128)
 def _compile_cached(filename: str, source: str) -> CodeType | None:
     """Compile source while caching failures and successes."""
-
     try:
         return compile(source, filename, "exec")
     except SyntaxError:
@@ -171,7 +170,6 @@ class Coverage:
 
     def start(self) -> None:
         """Start tracing execution."""
-
         self._previous_trace = sys.gettrace()
         if not self._start_monitoring():
             self._using_monitoring = False
@@ -179,7 +177,6 @@ class Coverage:
 
     def stop(self) -> None:
         """Stop tracing execution and restore previous hooks."""
-
         if self._using_monitoring:
             self._stop_monitoring()
             return
@@ -187,7 +184,6 @@ class Coverage:
 
     def report(self, *, file: Any | None = None, skip_empty: bool = True) -> float:
         """Emit a minimal report and runtime metrics."""
-
         if file is not None:
             file.write("PawControl coverage shim\n")
 

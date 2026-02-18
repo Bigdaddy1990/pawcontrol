@@ -92,7 +92,6 @@ class TestGPSTrackingTasks:
         self, mock_gps_manager: GPSGeofenceManager
     ) -> None:
         """Ensure fallback scheduling engages when hass returns AsyncMock."""
-
         manager = mock_gps_manager
         tracking_config: GPSTrackingConfigInput = {
             "enabled": True,

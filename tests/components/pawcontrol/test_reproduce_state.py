@@ -44,7 +44,6 @@ def _capture_service_calls(
 @pytest.mark.asyncio
 async def test_switch_reproduce_state_calls_service(hass: HomeAssistant) -> None:
     """Reproduce switch state via turn_on service."""
-
     entity_id = "switch.pawcontrol_main_power"
     hass.states.async_set(entity_id, STATE_OFF)
 
@@ -70,7 +69,6 @@ async def test_switch_reproduce_state_invalid_state(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Ignore invalid switch states."""
-
     entity_id = "switch.pawcontrol_main_power"
     hass.states.async_set(entity_id, STATE_OFF)
 
@@ -93,7 +91,6 @@ async def test_switch_reproduce_state_invalid_state(
 @pytest.mark.asyncio
 async def test_select_reproduce_state_calls_service(hass: HomeAssistant) -> None:
     """Reproduce select state via select_option service."""
-
     entity_id = "select.pawcontrol_notification_priority"
     hass.states.async_set(entity_id, "low", {ATTR_OPTIONS: ["low", "high"]})
 
@@ -120,7 +117,6 @@ async def test_select_reproduce_state_invalid_state(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Ignore invalid select options."""
-
     entity_id = "select.pawcontrol_notification_priority"
     hass.states.async_set(entity_id, "low", {ATTR_OPTIONS: ["low", "high"]})
 
@@ -143,7 +139,6 @@ async def test_select_reproduce_state_invalid_state(
 @pytest.mark.asyncio
 async def test_number_reproduce_state_calls_service(hass: HomeAssistant) -> None:
     """Reproduce number state via set_value service."""
-
     entity_id = "number.pawcontrol_daily_walk_target"
     hass.states.async_set(entity_id, "5")
 
@@ -170,7 +165,6 @@ async def test_number_reproduce_state_invalid_state(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Ignore invalid number states."""
-
     entity_id = "number.pawcontrol_daily_walk_target"
     hass.states.async_set(entity_id, "5")
 
@@ -193,7 +187,6 @@ async def test_number_reproduce_state_invalid_state(
 @pytest.mark.asyncio
 async def test_text_reproduce_state_calls_service(hass: HomeAssistant) -> None:
     """Reproduce text state via set_value service."""
-
     entity_id = "text.pawcontrol_dog_notes"
     hass.states.async_set(entity_id, "hello")
 
@@ -220,7 +213,6 @@ async def test_text_reproduce_state_invalid_state(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Ignore invalid text states."""
-
     entity_id = "text.pawcontrol_dog_notes"
     hass.states.async_set(entity_id, "hello")
 

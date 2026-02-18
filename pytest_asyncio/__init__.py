@@ -15,7 +15,6 @@ import pytest
 
 def pytest_addoption(parser) -> None:
     """Register asyncio configuration defaults used by pytest-asyncio."""
-
     with contextlib.suppress(ValueError):
         parser.addoption(
             "--asyncio-mode",
@@ -118,7 +117,6 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
 
 def pytest_unconfigure(config: pytest.Config) -> None:
     """Close the shared event loop after the test session."""
-
     _ = config
     global _shared_loop
     loop = _shared_loop

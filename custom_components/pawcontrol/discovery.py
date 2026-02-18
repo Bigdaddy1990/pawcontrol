@@ -266,7 +266,6 @@ class PawControlDiscovery:
         categories: list[DiscoveryCategory],
     ) -> list[DiscoveredDevice]:
         """Discover USB-connected dog devices (placeholder)."""
-
         _LOGGER.debug("USB discovery currently relies on registry data only")
         return []
 
@@ -275,7 +274,6 @@ class PawControlDiscovery:
         categories: list[DiscoveryCategory],
     ) -> list[DiscoveredDevice]:
         """Discover devices by inspecting Home Assistant registries."""
-
         device_registry = self._device_registry or dr.async_get(self.hass)
         entity_registry = self._entity_registry or er.async_get(self.hass)
 
@@ -463,7 +461,6 @@ class PawControlDiscovery:
 
     async def _register_discovery_listeners(self) -> None:
         """Register real-time discovery listeners."""
-
         try:
             device_registry = self._device_registry or dr.async_get(self.hass)
             entity_registry = self._entity_registry or er.async_get(self.hass)
@@ -508,7 +505,6 @@ class PawControlDiscovery:
 
     async def _wait_for_scan_completion(self) -> None:
         """Wait for active discovery scan to complete."""
-
         max_wait = 30  # Maximum wait time in seconds
         waited = 0.0
 
@@ -523,7 +519,6 @@ class PawControlDiscovery:
 
     async def async_shutdown(self) -> None:
         """Shutdown discovery and cleanup resources."""
-
         _LOGGER.debug("Shutting down Paw Control discovery")
 
         # Remove listeners
@@ -547,7 +542,6 @@ class PawControlDiscovery:
         confidence score so diagnostics and UI copy reflect the best evidence we
         have without leaking duplicates.
         """
-
         deduplicated: dict[str, DiscoveredDevice] = {}
         for device in devices:
             existing = deduplicated.get(device.device_id)
@@ -562,7 +556,6 @@ class PawControlDiscovery:
         category: str | None = None,
     ) -> list[DiscoveredDevice]:
         """Get all discovered devices, optionally filtered by category."""
-
         if category:
             return [
                 device
@@ -574,13 +567,11 @@ class PawControlDiscovery:
     @callback
     def get_device_by_id(self, device_id: str) -> DiscoveredDevice | None:
         """Get a specific device by ID."""
-
         return self._discovered_devices.get(device_id)
 
     @callback
     def is_scanning(self) -> bool:
         """Check if a discovery scan is currently active."""
-
         return self._scan_active
 
 

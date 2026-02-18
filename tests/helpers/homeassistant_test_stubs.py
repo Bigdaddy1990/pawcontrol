@@ -50,19 +50,16 @@ HOME_ASSISTANT_VERSION = "2025.9.0"
 
 def _utcnow() -> datetime:
     """Return a timezone-aware UTC timestamp."""
-
     return datetime.now(UTC)
 
 
 def _now() -> datetime:
     """Return a timezone-aware current timestamp."""
-
     return datetime.now(UTC)
 
 
 def _parse_datetime(value: str | None) -> datetime | None:
     """Parse ISO formatted datetimes used by telemetry helpers."""
-
     if not value:
         return None
     try:
@@ -73,7 +70,6 @@ def _parse_datetime(value: str | None) -> datetime | None:
 
 def _as_utc(value: datetime) -> datetime:
     """Return the datetime converted to UTC."""
-
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
@@ -81,7 +77,6 @@ def _as_utc(value: datetime) -> datetime:
 
 def _as_local(value: datetime) -> datetime:
     """Return the datetime converted to local time (UTC fallback)."""
-
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value
@@ -89,7 +84,6 @@ def _as_local(value: datetime) -> datetime:
 
 def _start_of_local_day(value: datetime) -> datetime:
     """Return the start of the local day for the provided datetime."""
-
     if isinstance(value, date) and not isinstance(value, datetime):
         return datetime.combine(value, datetime.min.time(), tzinfo=UTC)
     local = _as_local(value)
@@ -132,7 +126,6 @@ class ConfigEntryState(Enum):
 
     def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:
         """Store the string value and recoverability flag."""
-
         obj = object.__new__(cls)
         obj._value_ = value
         obj._recoverable = recoverable
@@ -141,13 +134,11 @@ class ConfigEntryState(Enum):
     @property
     def recoverable(self) -> bool:
         """Return whether the state can be auto-recovered."""
-
         return self._recoverable
 
     @classmethod
     def from_value(cls, value: str | ConfigEntryState) -> ConfigEntryState:
         """Return the enum member matching ``value`` regardless of casing."""
-
         if isinstance(value, cls):
             return value
 
@@ -177,7 +168,6 @@ class IssueSeverity(StrEnum):
     @classmethod
     def from_value(cls, value: str | IssueSeverity | None) -> IssueSeverity:
         """Return the severity matching ``value`` with graceful fallback."""
-
         if isinstance(value, cls):
             return value
         if isinstance(value, str):
@@ -290,12 +280,10 @@ class HomeAssistant:
         *args: Any,
     ) -> Any:
         """Run a synchronous function in the default executor."""
-
         return await asyncio.to_thread(func, *args)
 
     async def async_block_till_done(self) -> None:
         """Yield to the event loop until scheduled callbacks can run."""
-
         await asyncio.sleep(0)
 
 
@@ -340,7 +328,6 @@ class StateMachine:
 
     def async_entity_ids(self, domain: str | None = None) -> list[str]:
         """Return entity ids, optionally filtered by domain."""
-
         if domain is None:
             return list(self._states)
         prefix = f"{domain}."
@@ -421,14 +408,12 @@ HANDLERS: dict[str, object] = {}
 
 async def support_entry_unload(hass: object, domain: str) -> bool:
     """Return ``True`` if the handler exposes an unload hook."""
-
     handler = HANDLERS.get(domain)
     return bool(handler and hasattr(handler, "async_unload_entry"))
 
 
 async def support_remove_from_device(hass: object, domain: str) -> bool:
     """Return ``True`` if the handler exposes a remove-device hook."""
-
     handler = HANDLERS.get(domain)
     return bool(handler and hasattr(handler, "async_remove_config_entry_device"))
 
@@ -456,7 +441,6 @@ def _build_subentries(
     subentries_data: Iterable[dict[str, Any]] | None,
 ) -> dict[str, ConfigSubentry]:
     """Construct deterministic subentries from the provided data."""
-
     subentries: dict[str, ConfigSubentry] = {}
     for index, subentry_data in enumerate(subentries_data or (), start=1):
         subentry_id = (
@@ -544,7 +528,6 @@ class ConfigEntry:
     @property
     def supports_options(self) -> bool:
         """Return whether the entry exposes an options flow."""
-
         if self._supports_options is None:
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, "async_supports_options_flow"):
@@ -557,7 +540,6 @@ class ConfigEntry:
     @property
     def supports_unload(self) -> bool:
         """Return whether the entry exposes an unload hook."""
-
         if self._supports_unload is None:
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, "async_unload_entry"):
@@ -568,7 +550,6 @@ class ConfigEntry:
     @property
     def supports_remove_device(self) -> bool:
         """Return whether the entry exposes a remove-device hook."""
-
         if self._supports_remove_device is None:
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, "async_remove_config_entry_device"):
@@ -579,7 +560,6 @@ class ConfigEntry:
     @property
     def supports_reconfigure(self) -> bool:
         """Return whether the entry exposes a reconfigure flow."""
-
         if self._supports_reconfigure is None:
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, "async_supports_reconfigure_flow"):
@@ -592,7 +572,6 @@ class ConfigEntry:
     @property
     def supported_subentry_types(self) -> dict[str, dict[str, bool]]:
         """Return the supported subentry types mapping."""
-
         if self._supported_subentry_types is None:
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, "async_get_supported_subentry_types"):
@@ -613,7 +592,6 @@ class ConfigEntry:
 
     def add_to_hass(self, hass: HomeAssistant) -> None:
         """Attach this config entry to the Home Assistant test instance."""
-
         hass.config_entries._entries[self.entry_id] = self
 
 
@@ -736,7 +714,6 @@ class ConfigFlow(_FlowBase):
         **kwargs: Any,
     ) -> None:
         """Register handlers using Home Assistant's ``domain=`` class keyword."""
-
         super().__init_subclass__(**kwargs)
         if domain is not None:
             cls.domain = domain
@@ -752,7 +729,6 @@ class ConfigFlow(_FlowBase):
 
     async def async_set_unique_id(self, unique_id: str | None) -> None:
         """Store the active flow unique id."""
-
         self._unique_id = unique_id
 
     def _abort_if_unique_id_configured(
@@ -761,7 +737,6 @@ class ConfigFlow(_FlowBase):
         reload_on_update: bool = True,
     ) -> None:
         """Abort when another entry already uses this unique id."""
-
         _ = updates, reload_on_update
         if self.hass is None or self._unique_id is None:
             return
@@ -942,7 +917,6 @@ class DeviceRegistry:
 
     def async_remove_device(self, device_id: str) -> bool:
         """Remove a device by ID, mirroring Home Assistant's registry helper."""
-
         return self.devices.pop(device_id, None) is not None
 
     def async_get(self, device_id: str) -> DeviceEntry | None:
@@ -1394,7 +1368,6 @@ class EntityRegistry:
 
     def async_remove(self, entity_id: str) -> bool:
         """Remove an entity by ID, mirroring Home Assistant's registry helper."""
-
         return self.entities.pop(entity_id, None) is not None
 
     def async_listen(self, callback):  # type: ignore[no-untyped-def]
@@ -1517,7 +1490,6 @@ def async_dispatcher_connect(
     hass: HomeAssistant, signal: str, target: Callable
 ) -> Callable:
     """Minimal dispatcher connect helper used by service wiring."""
-
     dispatcher = hass.data.setdefault("_dispatcher", {})
     listeners = dispatcher.setdefault(signal, [])
     listeners.append(target)
@@ -1750,7 +1722,6 @@ def _config_entry_only_config_schema(domain: str):
 
 def _cv_string(value: Any) -> str:
     """Coerce values to strings for config validation."""
-
     if isinstance(value, str):
         return value
     return str(value)
@@ -1758,7 +1729,6 @@ def _cv_string(value: Any) -> str:
 
 def _cv_boolean(value: Any) -> bool:
     """Coerce values to booleans for config validation."""
-
     if isinstance(value, bool):
         return value
     if isinstance(value, str):
@@ -1774,7 +1744,6 @@ def _cv_boolean(value: Any) -> bool:
 
 def _cv_date(value: Any) -> date:
     """Coerce values to dates for config validation."""
-
     if isinstance(value, date) and not isinstance(value, datetime):
         return value
     if isinstance(value, datetime):
@@ -1786,7 +1755,6 @@ def _cv_date(value: Any) -> date:
 
 def _cv_datetime(value: Any) -> datetime:
     """Coerce values to datetimes for config validation."""
-
     if isinstance(value, datetime):
         return value
     if isinstance(value, str):
@@ -1836,13 +1804,11 @@ class _AsyncFile:
 
 def _async_file_handle(handle: Any) -> _AsyncFile:
     """Return an async-compatible file handle wrapper."""
-
     return _AsyncFile(handle)
 
 
 async def _async_get_clientsession(hass: object) -> object:
     """Return a stub clientsession for aiohttp helper tests."""
-
     return object()
 
 
@@ -1857,7 +1823,6 @@ def _async_make_resolver(hass: object) -> Callable[[str], object]:
 
 def _log_exception(format_err: Callable[..., str], *args: object) -> None:
     """Mimic the logging helper Home Assistant exposes."""
-
     format_err(*args)
 
 
@@ -1991,7 +1956,6 @@ class DateSelector(_SelectorBase):
 
 def selector(config: object) -> object:
     """Return selector configuration unchanged for schema validation tests."""
-
     return config
 
 
@@ -2028,7 +1992,6 @@ def _register_custom_component_packages() -> None:
 
 def install_homeassistant_stubs() -> None:
     """Register lightweight Home Assistant modules required by the tests."""
-
     for module_name in [
         "aiofiles",
         "homeassistant",

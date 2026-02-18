@@ -8,7 +8,6 @@ from custom_components.pawcontrol.coordinator_runtime import AdaptivePollingCont
 @pytest.mark.parametrize("cycles", [8, 10])
 def test_adaptive_polling_reaches_idle_interval(cycles: int) -> None:
     """Low-activity cycles should expand towards the idle interval."""
-
     controller = AdaptivePollingController(
         initial_interval_seconds=60.0,
         min_interval_seconds=30.0,
@@ -31,7 +30,6 @@ def test_adaptive_polling_reaches_idle_interval(cycles: int) -> None:
 
 def test_adaptive_polling_reduces_when_system_busy() -> None:
     """High utilisation should shrink the polling window."""
-
     controller = AdaptivePollingController(
         initial_interval_seconds=600.0,
         min_interval_seconds=60.0,
@@ -53,7 +51,6 @@ def test_adaptive_polling_reduces_when_system_busy() -> None:
 
 def test_adaptive_polling_backs_off_after_errors() -> None:
     """Consecutive failures should quickly expand the interval."""
-
     controller = AdaptivePollingController(
         initial_interval_seconds=120.0,
         min_interval_seconds=60.0,

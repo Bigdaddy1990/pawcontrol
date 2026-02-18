@@ -45,7 +45,6 @@ from custom_components.pawcontrol.types import (
 
 def test_coerce_module_global_settings_defaults() -> None:
     """Default module settings payload normalises to balanced analytics off."""
-
     payload = _coerce_module_global_settings(ModuleConfigurationStepInput())
 
     assert payload == {
@@ -59,7 +58,6 @@ def test_coerce_module_global_settings_defaults() -> None:
 
 def test_coerce_module_global_settings_normalises_alias() -> None:
     """Performance mode aliases are normalised via the shared helper."""
-
     payload = _coerce_module_global_settings(
         ModuleConfigurationStepInput(performance_mode="Full ")
     )
@@ -69,7 +67,6 @@ def test_coerce_module_global_settings_normalises_alias() -> None:
 
 def test_coerce_dashboard_configuration_defaults() -> None:
     """Dashboard defaults honour context flags for maps and layout."""
-
     payload = _coerce_dashboard_configuration(
         DashboardConfigurationStepInput(),
         has_gps=True,
@@ -88,7 +85,6 @@ def test_coerce_dashboard_configuration_defaults() -> None:
 
 def test_coerce_dashboard_configuration_overrides() -> None:
     """Explicit dashboard form values are preserved."""
-
     payload = _coerce_dashboard_configuration(
         DashboardConfigurationStepInput(
             dashboard_theme="minimal",
@@ -116,7 +112,6 @@ def test_coerce_dashboard_configuration_overrides() -> None:
 
 def test_coerce_feeding_configuration_defaults() -> None:
     """Feeding configuration defaults to flexible scheduling with reminders."""
-
     payload = _coerce_feeding_configuration(FeedingConfigurationStepInput())
 
     assert payload["default_daily_food_amount"] == 500.0
@@ -128,7 +123,6 @@ def test_coerce_feeding_configuration_defaults() -> None:
 
 def test_build_module_placeholders() -> None:
     """Module placeholders expose summary metrics for the UI."""
-
     summary: ModuleConfigurationSummary = {
         "gps_dogs": 2,
         "health_dogs": 1,
@@ -151,7 +145,6 @@ def test_build_module_placeholders() -> None:
 
 def test_build_dashboard_and_feeding_placeholders() -> None:
     """Dashboard and feeding placeholders render typed values."""
-
     dashboard = _build_dashboard_placeholders(
         dog_count=2,
         dashboard_info="Standard setup",
@@ -169,7 +162,6 @@ def test_build_dashboard_and_feeding_placeholders() -> None:
 
 def test_gps_config_schema_accepts_payload() -> None:
     """GPS schema should accept typed configuration payloads."""
-
     payload = {
         "gps_source": "manual",
         "gps_update_interval": 120,
@@ -183,7 +175,6 @@ def test_gps_config_schema_accepts_payload() -> None:
 
 def test_dog_modules_from_flow_input_flags() -> None:
     """Config-flow flag payloads normalise into module configs."""
-
     selection = DogModuleSelectionInput(enable_feeding=True, enable_gps=False)
 
     modules = dog_modules_from_flow_input(selection)
@@ -196,7 +187,6 @@ def test_dog_modules_from_flow_input_flags() -> None:
 
 def test_dog_modules_from_flow_input_merges_existing_defaults() -> None:
     """Existing module toggles persist when flow payload omits them."""
-
     existing: DogModulesConfig = {
         "walk": True,
         "notifications": True,
@@ -271,7 +261,6 @@ class _ModuleFlowHarness(ModuleConfigurationMixin):
 @pytest.mark.asyncio
 async def test_async_step_configure_modules_routes_to_dashboard_form() -> None:
     """Module configuration stores typed settings and exposes dashboard form."""
-
     dogs = [
         cast(
             DogConfigData,
@@ -347,7 +336,6 @@ async def test_async_step_configure_modules_routes_to_dashboard_form() -> None:
 @pytest.mark.asyncio
 async def test_async_step_configure_dashboard_handles_payload() -> None:
     """Dashboard step exposes localized placeholders and persists settings."""
-
     dogs = [
         cast(
             DogConfigData,
@@ -437,7 +425,6 @@ async def test_async_step_configure_dashboard_handles_payload() -> None:
 @pytest.mark.asyncio
 async def test_async_step_configure_feeding_details_roundtrip() -> None:
     """Feeding configuration captures typed payloads and reaches final step."""
-
     dogs = [
         cast(
             DogConfigData,

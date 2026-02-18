@@ -86,21 +86,18 @@ class _DogGPSFlow(DogGPSFlowMixin):
 
 def test_should_enable_gps_when_discovered() -> None:
     """Discovery info should enable GPS defaults."""
-
     flow = _GPSDefaultsFlow({"source": "zeroconf"})
     assert flow._should_enable_gps(cast(DogConfigData, {})) is True
 
 
 def test_should_enable_gps_for_large_dog() -> None:
     """Large dogs should enable GPS defaults."""
-
     flow = _GPSDefaultsFlow({})
     assert flow._should_enable_gps({"dog_size": "large"}) is True
 
 
 def test_enhanced_modules_schema_sets_gps_default() -> None:
     """Schema defaults should reflect GPS enablement."""
-
     flow = _GPSDefaultsFlow({})
     schema = flow._get_enhanced_modules_schema({"dog_size": "giant"})
     result = schema({})
@@ -110,7 +107,6 @@ def test_enhanced_modules_schema_sets_gps_default() -> None:
 @pytest.mark.asyncio
 async def test_dog_gps_rejects_invalid_accuracy_type() -> None:
     """GPS config should flag invalid accuracy inputs."""
-
     flow = _DogGPSFlow()
 
     result = await flow.async_step_dog_gps({
@@ -128,7 +124,6 @@ async def test_dog_gps_rejects_invalid_accuracy_type() -> None:
 @pytest.mark.asyncio
 async def test_dog_gps_rejects_invalid_update_interval_type() -> None:
     """GPS config should flag invalid update interval inputs."""
-
     flow = _DogGPSFlow()
 
     result = await flow.async_step_dog_gps({
@@ -146,7 +141,6 @@ async def test_dog_gps_rejects_invalid_update_interval_type() -> None:
 @pytest.mark.asyncio
 async def test_dog_gps_rejects_update_interval_out_of_range() -> None:
     """GPS config should flag update interval range violations."""
-
     flow = _DogGPSFlow()
 
     result = await flow.async_step_dog_gps({
@@ -164,7 +158,6 @@ async def test_dog_gps_rejects_update_interval_out_of_range() -> None:
 @pytest.mark.asyncio
 async def test_dog_gps_requires_home_zone_radius() -> None:
     """GPS config should require a geofence radius."""
-
     flow = _DogGPSFlow()
 
     result = await flow.async_step_dog_gps({
@@ -182,7 +175,6 @@ async def test_dog_gps_requires_home_zone_radius() -> None:
 @pytest.mark.asyncio
 async def test_dog_gps_rejects_home_zone_radius_out_of_range() -> None:
     """GPS config should flag geofence radius range violations."""
-
     flow = _DogGPSFlow()
 
     result = await flow.async_step_dog_gps({
@@ -200,7 +192,6 @@ async def test_dog_gps_rejects_home_zone_radius_out_of_range() -> None:
 @pytest.mark.asyncio
 async def test_dog_gps_accepts_boundary_values() -> None:
     """GPS config should accept min/max boundaries."""
-
     flow = _DogGPSFlow()
 
     result = await flow.async_step_dog_gps({

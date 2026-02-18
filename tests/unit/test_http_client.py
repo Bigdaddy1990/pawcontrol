@@ -12,7 +12,6 @@ import pytest
 @pytest.fixture(scope="module")
 def http_client_module() -> ModuleType:
     """Load the http_client helper without importing the integration package."""
-
     module_path = (
         Path(__file__).resolve().parents[2]
         / "custom_components"
@@ -33,7 +32,6 @@ def test_ensure_shared_client_session_rejects_none(
     http_client_module: ModuleType,
 ) -> None:
     """Passing ``None`` should raise a descriptive ``ValueError``."""
-
     ensure_shared = http_client_module.ensure_shared_client_session
 
     with pytest.raises(ValueError) as excinfo:
@@ -49,7 +47,6 @@ def test_ensure_shared_client_session_rejects_closed_pool(
     http_client_module: ModuleType, session_factory
 ) -> None:
     """A closed session must not be accepted by the helper."""
-
     ensure_shared = http_client_module.ensure_shared_client_session
 
     session = session_factory(closed=True)
@@ -66,7 +63,6 @@ def test_ensure_shared_client_session_requires_coroutine_request(
     http_client_module: ModuleType, session_factory
 ) -> None:
     """A synchronous request attribute should be rejected."""
-
     ensure_shared = http_client_module.ensure_shared_client_session
 
     session = session_factory()
@@ -83,7 +79,6 @@ def test_ensure_shared_client_session_returns_session(
     http_client_module: ModuleType, session_factory
 ) -> None:
     """A valid, open session should be returned unchanged."""
-
     ensure_shared = http_client_module.ensure_shared_client_session
 
     session = session_factory()
@@ -112,7 +107,6 @@ def test_ensure_shared_client_session_accepts_wrapped_request(
     http_client_module: ModuleType,
 ) -> None:
     """Sessions that wrap a private coroutine should be accepted."""
-
     ensure_shared = http_client_module.ensure_shared_client_session
 
     session = _WrapperSession()

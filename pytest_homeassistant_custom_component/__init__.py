@@ -24,7 +24,6 @@ class MockConfigEntry:
 
     def add_to_hass(self, hass) -> None:
         """Attach the config entry to the stub Home Assistant instance."""
-
         if self.title is None:
             self.title = self.domain
         hass.data.setdefault("config_entries", {})[self.entry_id] = self
@@ -35,7 +34,6 @@ class MockConfigEntry:
 
 def pytest_configure(config: pytest.Config) -> None:
     """Register a marker placeholder used by the upstream plugin."""
-
     config.addinivalue_line(
         "markers", "hacc: compatibility marker for pytest-homeassistant stubs"
     )

@@ -150,7 +150,6 @@ class NotificationOptionsMixin(NotificationOptionsHost):
         dog_id: str | None = None,
     ) -> NotificationOptions:
         """Fetch per-dog notification configuration with legacy fallbacks."""
-
         raw = None
         if dog_id is not None:
             dog_options = self._current_dog_options()
@@ -181,7 +180,6 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
         mutable: JSONMutableMapping,
     ) -> NotificationOptions | None:
         """Normalise notification payloads in the options snapshot."""
-
         if CONF_NOTIFICATIONS not in mutable:
             return None
         raw_notifications = mutable.get(CONF_NOTIFICATIONS)
@@ -223,7 +221,6 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
         current: NotificationOptions,
     ) -> NotificationOptions:
         """Create a typed notification payload from submitted form data."""
-
         return build_notification_settings_payload(
             user_input,
             current,
@@ -237,7 +234,6 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
         current: NotificationOptions,
     ) -> NotificationOptions:
         """Create a typed notification payload from submitted form data."""
-
         return self._build_notification_settings_payload(user_input, current)
 
     async def async_step_select_dog_for_notifications(
@@ -245,7 +241,6 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure notifications for."""
-
         if not self._dogs:
             return await self.async_step_init()
         if user_input is not None:
@@ -266,7 +261,6 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
         user_input: NotificationSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure notification settings."""
-
         current_dog = self._require_current_dog()
         if current_dog is None:
             return await self.async_step_select_dog_for_notifications()
@@ -328,6 +322,5 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
         user_input: NotificationSettingsInput | None = None,
     ) -> vol.Schema:
         """Get notifications schema."""
-
         current_notifications = self._current_notification_options(dog_id)
         return build_notifications_schema(current_notifications, user_input)

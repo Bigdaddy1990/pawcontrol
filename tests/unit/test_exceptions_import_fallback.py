@@ -7,7 +7,6 @@ from tests.helpers import ensure_package, install_homeassistant_stubs, load_modu
 
 def test_exceptions_module_uses_homeassistant_service_validation_error() -> None:
     """Exceptions should reuse Home Assistant's ServiceValidationError."""
-
     repo_root = Path(__file__).resolve().parents[2]
     package_root = repo_root / "custom_components"
     integration_root = package_root / "pawcontrol"

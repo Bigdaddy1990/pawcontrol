@@ -684,7 +684,6 @@ class _BoundedSequenceSnapshot(Sequence[T]):
 
     def __getitem__(self, index: int | slice, /) -> T | Sequence[T]:
         """Return cached values, supporting both index and slice access."""
-
         if isinstance(index, slice):
             self._consume_to(self._limit)
             return self._cache[index]

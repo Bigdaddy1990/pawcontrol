@@ -68,7 +68,6 @@ def _run_async(coro):
 @pytest.fixture
 def hass() -> StubHomeAssistant:
     """Return a minimal Home Assistant test instance."""
-
     return StubHomeAssistant()
 
 
@@ -216,7 +215,6 @@ class _MockClientSession(Mock):
 
         def _context_response(*args: Any, **kwargs: Any) -> AsyncMock:
             """Return an async context manager for ``session.post`` usage."""
-
             response = Mock()
             response.status = kwargs.get("status", 200)
             response.text = AsyncMock(return_value=kwargs.get("text", ""))
@@ -234,7 +232,6 @@ class _MockClientSession(Mock):
 
         async def _ws_connect(*args: Any, **kwargs: Any) -> AsyncMock:
             """Return an async context manager for websocket usage."""
-
             websocket = AsyncMock()
             websocket.closed = False
             websocket.close = AsyncMock(name="close")
@@ -280,7 +277,6 @@ def mock_session(
     session_factory: Callable[..., _MockClientSession],
 ) -> _MockClientSession:
     """Return a reusable aiohttp session double for HTTP entry points."""
-
     return session_factory()
 
 

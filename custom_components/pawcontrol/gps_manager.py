@@ -430,7 +430,6 @@ class GPSGeofenceManager:
         manager: PawControlNotificationManager | None,
     ) -> None:
         """Attach or detach the notification manager used for alerts."""
-
         self._notification_manager = manager
 
     async def async_configure_dog_gps(
@@ -945,7 +944,6 @@ class GPSGeofenceManager:
 
     def _enforce_route_history_limit(self, dog_id: str) -> None:
         """Clamp the stored route history to the most recent 100 entries."""
-
         history = self._route_history.get(dog_id)
         if not history:
             return

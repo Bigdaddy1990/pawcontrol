@@ -389,7 +389,6 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
     def _clamp_value(self, value: str) -> str:
         """Clamp ``value`` to the configured maximum length when necessary."""
-
         max_length = getattr(
             self,
             "native_max",
@@ -403,7 +402,6 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         self,
     ) -> tuple[str | None, DogTextMetadataEntry | None, bool]:
         """Return stored text data and whether it originated from runtime state."""
-
         runtime_value: str | None = None
         runtime_metadata: DogTextMetadataEntry | None = None
 
@@ -459,7 +457,6 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         metadata: DogTextMetadataEntry | None,
     ) -> None:
         """Persist updated text values and metadata to runtime caches and storage."""
-
         should_remove = value == ""
         update_payload: JSONMutableMapping = cast(
             JSONMutableMapping,
@@ -642,7 +639,6 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
     def _build_metadata_entry(self, timestamp: str) -> DogTextMetadataEntry:
         """Return metadata describing an update at ``timestamp`` with context."""
-
         metadata: DogTextMetadataEntry = cast(
             DogTextMetadataEntry,
             {"last_updated": timestamp},
@@ -663,7 +659,6 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
     def _set_metadata_fields(self, metadata: DogTextMetadataEntry | None) -> None:
         """Update cached metadata fields for ``self`` from ``metadata``."""
-
         timestamp = (
             metadata.get(
                 "last_updated",

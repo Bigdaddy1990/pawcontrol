@@ -32,13 +32,11 @@ T = TypeVar("T")
 
 def typed_deepcopy[T](value: T) -> T:
     """Return a type-preserving deep copy for complex fixtures."""
-
     return deepcopy(value)
 
 
 def ensure_package(name: str, path: Path) -> None:
     """Create a placeholder package in ``sys.modules`` for dynamic imports."""
-
     if name not in sys.modules:
         module = importlib.util.module_from_spec(
             importlib.util.spec_from_loader(name, loader=None),
@@ -49,7 +47,6 @@ def ensure_package(name: str, path: Path) -> None:
 
 def load_module(name: str, path: Path) -> ModuleType:
     """Load a module from ``path`` under the provided module name."""
-
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Cannot load module {name} from {path}")

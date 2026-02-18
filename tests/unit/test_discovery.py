@@ -25,7 +25,6 @@ async def test_async_get_discovered_devices_exports_typed_payload(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Ensure the legacy discovery wrapper emits typed payloads."""
-
     connection_info: DiscoveryConnectionInfo = {
         "address": "192.168.1.25",
         "mac": "AA:BB:CC:DD:EE:FF",
@@ -189,7 +188,6 @@ def test_classify_device_covers_extended_categories(
     expected_category: DiscoveryCategory,
 ) -> None:
     """Ensure the extended discovery categories are classified correctly."""
-
     device_entry = _StubDeviceEntry(
         id="device-1",
         manufacturer=manufacturer,

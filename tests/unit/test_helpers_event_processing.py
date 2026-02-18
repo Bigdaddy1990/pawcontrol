@@ -36,7 +36,6 @@ async def test_process_feeding_batch_limits_history_and_emits_events(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """`_process_feeding_batch` should persist JSON payloads and emit events."""
-
     hass = MagicMock(spec=HomeAssistant)
     hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
 
@@ -108,7 +107,6 @@ async def test_process_health_batch_serializes_structured_events(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """`_process_health_batch` should normalize history and fire events."""
-
     hass = MagicMock(spec=HomeAssistant)
     hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
 
@@ -189,7 +187,6 @@ async def test_process_walk_batch_normalizes_storage(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """`_process_walk_batch` should persist JSON payloads and merge sessions."""
-
     hass = MagicMock(spec=HomeAssistant)
     hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
 
@@ -305,7 +302,6 @@ async def test_process_walk_batch_sorts_history_descending(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Walk history should be sorted newest first and trimmed to the limit."""
-
     hass = MagicMock(spec=HomeAssistant)
     hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
 
@@ -422,7 +418,6 @@ async def test_async_process_notifications_prioritizes_high_priority(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """High-priority notifications should be delivered ahead of normal ones."""
-
     hass = MagicMock(spec=HomeAssistant)
     hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
 

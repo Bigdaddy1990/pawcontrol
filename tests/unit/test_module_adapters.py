@@ -31,7 +31,6 @@ class _DtUtilStub(ModuleType):
 @pytest.fixture
 def module_adapters(monkeypatch: pytest.MonkeyPatch):
     """Import module_adapters with a stubbed Home Assistant dt helper."""
-
     dt_stub = _DtUtilStub()
     package_path = (
         Path(__file__).resolve().parents[2] / "custom_components" / "pawcontrol"
@@ -110,7 +109,6 @@ def test_feeding_adapter_rejects_missing_or_closed_session(
     session_factory,
 ) -> None:
     """The adapter must enforce Home Assistant's shared session lifecycle."""
-
     module, _ = module_adapters
 
     with pytest.raises(ValueError):
@@ -136,7 +134,6 @@ def test_expiring_cache_handles_hits_and_expiration(
     module_adapters: tuple[Any, _DtUtilStub],
 ) -> None:
     """_ExpiringCache should track hits, misses and cleanup correctly."""
-
     module, dt_stub = module_adapters
     cache = module._ExpiringCache(ttl=timedelta(seconds=30))
 
@@ -167,7 +164,6 @@ def test_feeding_adapter_uses_manager_and_cache(
     session_factory,
 ) -> None:
     """FeedingModuleAdapter should use the manager and cache results."""
-
     module, dt_stub = module_adapters
     adapter = module.FeedingModuleAdapter(
         session=session_factory(),
@@ -202,7 +198,6 @@ def test_feeding_adapter_external_api_fallback(
     session_factory,
 ) -> None:
     """External API is used when the manager is unavailable."""
-
     module, _ = module_adapters
     api_client = AsyncMock()
     api_client.async_get_feeding_payload = AsyncMock(
@@ -229,7 +224,6 @@ def test_feeding_adapter_default_payload(
     session_factory,
 ) -> None:
     """A deterministic default payload is returned when no sources are available."""
-
     module, _ = module_adapters
     adapter = module.FeedingModuleAdapter(
         session=session_factory(),

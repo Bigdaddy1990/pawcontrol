@@ -35,7 +35,6 @@ def _mutable_feeding_config(
     config: FeedingManagerDogSetupPayload,
 ) -> JSONMutableMapping:
     """Return the mutable feeding config mapping for ``config``."""
-
     feeding_config = config.get("feeding_config")
     assert isinstance(feeding_config, dict), (
         "Feeding fixture must supply a mutable feeding_config mapping"
@@ -511,7 +510,6 @@ class TestFeedingModeScheduling:
         self, mock_feeding_manager: FeedingManager, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Ensure temporary activity adjustments schedule a reversion task."""
-
         created_tasks: list[asyncio.Task[object]] = []
         original_create_task = asyncio.create_task
 
@@ -558,7 +556,6 @@ class TestFeedingModeScheduling:
         self, mock_feeding_manager: FeedingManager, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Ensure emergency mode schedules restoration and resets configuration."""
-
         created_tasks: list[asyncio.Task[object]] = []
         original_create_task = asyncio.create_task
 
@@ -624,7 +621,6 @@ class TestHealthDataUpdates:
         self, mock_feeding_manager: FeedingManager
     ) -> None:
         """Ensure float payload values are coerced to integers."""
-
         payload: FeedingHealthUpdatePayload = {
             "age_months": 42.7,
             "body_condition_score": 5.9,
@@ -646,7 +642,6 @@ class TestHealthDataUpdates:
         self, mock_feeding_manager: FeedingManager
     ) -> None:
         """Ensure ``None`` resets optional health metrics."""
-
         # Prime config with non-null values to ensure they are cleared.
         priming_payload: FeedingHealthUpdatePayload = {
             "age_months": 36,

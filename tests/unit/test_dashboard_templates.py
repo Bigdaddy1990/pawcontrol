@@ -36,7 +36,6 @@ from custom_components.pawcontrol.types import DogConfigData, ensure_dog_modules
 @pytest.mark.asyncio
 async def test_statistics_graph_template_returns_card(hass: HomeAssistant) -> None:
     """The statistics graph helper should return a typed card."""
-
     templates = DashboardTemplates(hass)
     card = await templates.get_statistics_graph_template(
         "Activity",
@@ -62,7 +61,6 @@ async def test_dog_status_template_accepts_typed_modules(
     hass: HomeAssistant,
 ) -> None:
     """Dog status template should accept ``DogModulesConfig`` payloads."""
-
     templates = DashboardTemplates(hass)
     modules = ensure_dog_modules_config({
         MODULE_FEEDING: True,
@@ -85,7 +83,6 @@ async def test_dog_status_template_accepts_typed_modules(
 
 def test_statistics_summary_template_counts_modules(hass: HomeAssistant) -> None:
     """Summary card should count enabled modules across dogs."""
-
     templates = DashboardTemplates(hass)
     raw_dogs = [
         {
@@ -124,7 +121,6 @@ def test_statistics_summary_template_localises_general_sections(
     hass: HomeAssistant,
 ) -> None:
     """Summary card should localise header, counts, and title."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
     raw_dogs = [
@@ -159,7 +155,6 @@ def test_statistics_summary_template_localises_general_sections(
 @pytest.mark.asyncio
 async def test_map_card_template_normalises_options(hass: HomeAssistant) -> None:
     """Map card helper should coerce raw option payloads."""
-
     templates = DashboardTemplates(hass)
     card = await templates.get_map_card_template(
         "alpha",
@@ -178,7 +173,6 @@ async def test_map_card_template_clamps_and_accepts_default_zoom(
     hass: HomeAssistant,
 ) -> None:
     """Legacy ``default_zoom`` keys should be recognised and values clamped."""
-
     templates = DashboardTemplates(hass)
     card = await templates.get_map_card_template(
         "alpha",
@@ -197,7 +191,6 @@ async def test_map_card_template_applies_default_zoom_when_missing(
     hass: HomeAssistant,
 ) -> None:
     """Missing zoom options should fall back to ``DEFAULT_MAP_ZOOM``."""
-
     templates = DashboardTemplates(hass)
     card = await templates.get_map_card_template(
         "alpha",
@@ -213,7 +206,6 @@ async def test_map_card_template_applies_default_zoom_when_missing(
 
 def test_coerce_map_options_reuses_normaliser() -> None:
     """The card generator should rely on the shared map option normaliser."""
-
     options = {"default_zoom": "1", "hours_to_show": 200, "dark_mode": "yes"}
 
     result = _coerce_map_options(options)
@@ -228,7 +220,6 @@ def test_coerce_map_options_reuses_normaliser() -> None:
 
 def test_coerce_map_options_applies_defaults_when_not_provided() -> None:
     """Map option normaliser should emit defaults when values are missing."""
-
     result = _coerce_map_options({"dark_mode": False})
 
     assert result is not None
@@ -239,7 +230,6 @@ def test_coerce_map_options_applies_defaults_when_not_provided() -> None:
 
 def test_coerce_map_options_defaults_when_no_payload() -> None:
     """Passing an empty payload should still include typed defaults."""
-
     result = _coerce_map_options({})
 
     assert result is not None
@@ -250,7 +240,6 @@ def test_coerce_map_options_defaults_when_no_payload() -> None:
 
 def test_coerce_map_options_defaults_when_none() -> None:
     """None payloads should be normalised to typed defaults."""
-
     result = _coerce_map_options(None)
 
     assert result["zoom"] == DEFAULT_MAP_ZOOM
@@ -260,7 +249,6 @@ def test_coerce_map_options_defaults_when_none() -> None:
 
 def test_coerce_map_options_iterable_pairs() -> None:
     """Iterable payloads of string-keyed pairs should be supported."""
-
     result = _coerce_map_options([
         ("zoom", "6"),
         ("hours_to_show", 12.7),
@@ -275,7 +263,6 @@ def test_coerce_map_options_iterable_pairs() -> None:
 
 def test_coerce_map_options_nested_mapping_payload() -> None:
     """Nested map option payloads should be unwrapped before normalisation."""
-
     result = _coerce_map_options({
         "map_options": {"zoom": 5, "dark_mode": "off"},
         "show_activity_graph": False,
@@ -288,7 +275,6 @@ def test_coerce_map_options_nested_mapping_payload() -> None:
 
 def test_coerce_map_options_map_key_alias() -> None:
     """`map` aliases should be treated as map options input."""
-
     result = _coerce_map_options({"map": {"default_zoom": 8}})
 
     assert result["zoom"] == 8
@@ -297,7 +283,6 @@ def test_coerce_map_options_map_key_alias() -> None:
 
 def test_coerce_map_options_merges_nested_and_top_level() -> None:
     """Nested payloads should augment top-level overrides instead of replacing them."""
-
     result = _coerce_map_options({
         "zoom": 9,
         "map_options": {"hours_to_show": 48, "dark_mode": True},
@@ -311,7 +296,6 @@ def test_coerce_map_options_merges_nested_and_top_level() -> None:
 
 def test_coerce_map_options_prefers_top_level_over_nested() -> None:
     """Top-level overrides should take precedence over nested aliases."""
-
     result = _coerce_map_options({
         "zoom": 12,
         "map_options": {"zoom": 3, "default_zoom": 4},
@@ -325,7 +309,6 @@ def test_coerce_map_options_ignores_invalid_iterables(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Unsupported iterable entries should be skipped with defaults preserved."""
-
     caplog.set_level(
         logging.DEBUG, logger="custom_components.pawcontrol.dashboard_templates"
     )
@@ -347,7 +330,6 @@ def test_coerce_map_options_ignores_unsupported_mapping_entries(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Mappings with unsupported keys should be filtered while keeping defaults."""
-
     caplog.set_level(
         logging.DEBUG, logger="custom_components.pawcontrol.dashboard_templates"
     )
@@ -366,7 +348,6 @@ def test_coerce_map_options_ignores_unsupported_mapping_entries(
 
 def test_coerce_map_options_rejects_bool_numeric_values() -> None:
     """Boolean values should not coerce into zoom or history integers."""
-
     result = _coerce_map_options({"zoom": True, "hours_to_show": False})
 
     assert result["zoom"] == DEFAULT_MAP_ZOOM
@@ -376,7 +357,6 @@ def test_coerce_map_options_rejects_bool_numeric_values() -> None:
 
 def test_coerce_map_options_respects_separate_zoom_and_default() -> None:
     """Explicit zoom and default zoom values should remain distinct when valid."""
-
     result = _coerce_map_options({"zoom": 14, "default_zoom": 9})
 
     assert result["zoom"] == 14
@@ -385,7 +365,6 @@ def test_coerce_map_options_respects_separate_zoom_and_default() -> None:
 
 def test_coerce_map_options_mirrors_default_when_zoom_missing() -> None:
     """Providing only default zoom should update both zoom fields."""
-
     result = _coerce_map_options({"default_zoom": 11})
 
     assert result["zoom"] == 11
@@ -397,7 +376,6 @@ async def test_map_card_template_respects_dark_mode_override(
     hass: HomeAssistant,
 ) -> None:
     """Explicit dark-mode overrides should take precedence over theme defaults."""
-
     templates = DashboardTemplates(hass)
 
     card = await templates.get_map_card_template(
@@ -414,7 +392,6 @@ async def test_map_card_template_accepts_dark_mode_enable_override(
     hass: HomeAssistant,
 ) -> None:
     """Explicitly enabling dark mode should apply even when theme is light."""
-
     templates = DashboardTemplates(hass)
 
     card = await templates.get_map_card_template(
@@ -431,7 +408,6 @@ async def test_statistics_generator_normalises_raw_dog_configs(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Statistics generator should normalise raw payloads before rendering."""
-
     templates = DashboardTemplates(hass)
     generator = StatisticsCardGenerator(hass, templates)
 
@@ -509,7 +485,6 @@ def test_statistics_summary_template_includes_rejection_metrics(
     hass: HomeAssistant,
 ) -> None:
     """The summary markdown should embed rejection metrics when provided."""
-
     templates = DashboardTemplates(hass)
     last_rejection = 1_700_000_000.0
     coordinator_metrics = {
@@ -620,7 +595,6 @@ def test_statistics_summary_template_localizes_breaker_labels(
     hass: HomeAssistant,
 ) -> None:
     """Localisation should translate breaker labels based on the HA language."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
     card = templates.get_statistics_summary_template(
@@ -691,7 +665,6 @@ def test_statistics_summary_template_localizes_breaker_labels(
 
 def test_statistics_summary_template_localizes_empty_lists(hass: HomeAssistant) -> None:
     """Empty breaker lists should localize using the configured language."""
-
     hass.config.language = "fr"
     templates = DashboardTemplates(hass)
     card = templates.get_statistics_summary_template(
@@ -732,7 +705,6 @@ def test_statistics_summary_template_localizes_resilience_fallbacks(
     hass: HomeAssistant,
 ) -> None:
     """Rejection rate and time fallbacks should honor the active language."""
-
     templates = DashboardTemplates(hass)
     card = templates.get_statistics_summary_template(
         [
@@ -802,7 +774,6 @@ async def test_statistics_generator_ignores_untyped_dogs(
     hass: HomeAssistant,
 ) -> None:
     """Statistics generator should skip payloads without typed configs."""
-
     templates = DashboardTemplates(hass)
     generator = StatisticsCardGenerator(hass, templates)
 
@@ -819,7 +790,6 @@ async def test_notification_templates_handle_missing_metrics(
     hass: HomeAssistant,
 ) -> None:
     """Notification overview should degrade gracefully without sensor data."""
-
     templates = DashboardTemplates(hass)
     overview = await templates.get_notifications_overview_card_template(
         "alpha", "Alpha", theme="modern"
@@ -836,7 +806,6 @@ async def test_notification_templates_handle_missing_metrics(
 @pytest.mark.asyncio
 async def test_notification_templates_localize_labels(hass: HomeAssistant) -> None:
     """Notification dashboards should use translated labels for German locales."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
 
@@ -926,7 +895,6 @@ async def test_notification_templates_localize_labels(hass: HomeAssistant) -> No
 @pytest.mark.asyncio
 async def test_feeding_templates_localize_labels(hass: HomeAssistant) -> None:
     """Feeding dashboards should translate titles and meal labels."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
 
@@ -952,7 +920,6 @@ async def test_weather_recommendations_card_parses_structured_data(
     hass: HomeAssistant,
 ) -> None:
     """Weather recommendations card should flatten structured data safely."""
-
     templates = DashboardTemplates(hass)
     generator = WeatherCardGenerator(hass, templates)
 
@@ -981,7 +948,6 @@ async def test_weather_recommendations_template_includes_overflow(
     hass: HomeAssistant,
 ) -> None:
     """Weather recommendations template should embed overflow notes."""
-
     templates = DashboardTemplates(hass)
 
     card = await templates.get_weather_recommendations_card_template(
@@ -1002,7 +968,6 @@ async def test_generate_notification_cards_uses_templates(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Notification cards should be composed through the typed templates."""
-
     templates = DashboardTemplates(hass)
     generator = ModuleCardGenerator(hass, templates)
 
@@ -1029,7 +994,6 @@ async def test_generate_walk_cards_localizes_german(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Walk cards should honor the Home Assistant language."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
     generator = ModuleCardGenerator(hass, templates)
@@ -1087,7 +1051,6 @@ async def test_generate_quick_actions_localizes_walk_button(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Quick actions should localize the walk status button."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
     generator = OverviewCardGenerator(hass, templates)
@@ -1116,7 +1079,6 @@ async def test_generate_quick_actions_localizes_feed_all_and_reset(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Quick actions should localize feed-all and reset buttons."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
     generator = OverviewCardGenerator(hass, templates)
@@ -1152,7 +1114,6 @@ async def test_generate_visitor_cards_requires_enabled_module(
     hass: HomeAssistant,
 ) -> None:
     """Visitor cards should be skipped when the module is disabled."""
-
     templates = DashboardTemplates(hass)
     generator = ModuleCardGenerator(hass, templates)
 
@@ -1172,7 +1133,6 @@ async def test_generate_visitor_cards_includes_entities_and_markdown(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Visitor cards should render an entities card and markdown summary."""
-
     templates = DashboardTemplates(hass)
     generator = ModuleCardGenerator(hass, templates)
 
@@ -1213,7 +1173,6 @@ async def test_generate_visitor_cards_only_outputs_markdown_when_entities_missin
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Visitor cards should fall back to markdown when no entities validate."""
-
     templates = DashboardTemplates(hass)
     generator = ModuleCardGenerator(hass, templates)
 
@@ -1245,7 +1204,6 @@ async def test_generate_visitor_cards_localizes_german(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Visitor cards should localize titles and fallback strings."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
     generator = ModuleCardGenerator(hass, templates)
@@ -1285,7 +1243,6 @@ async def test_health_feeding_overview_localizes_german(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Health-aware feeding overview should render localized German strings."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
     generator = HealthAwareFeedingCardGenerator(hass, templates)
@@ -1339,7 +1296,6 @@ async def test_module_health_cards_localize_titles(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Health module cards should emit localized German titles and buttons."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
     generator = ModuleCardGenerator(hass, templates)
@@ -1387,7 +1343,6 @@ async def test_module_health_cards_localize_titles(
 @pytest.mark.asyncio
 async def test_weather_health_cards_localize_german(hass: HomeAssistant) -> None:
     """Weather health dashboards should localize titles and entity names."""
-
     hass.config.language = "de"
     templates = DashboardTemplates(hass)
 

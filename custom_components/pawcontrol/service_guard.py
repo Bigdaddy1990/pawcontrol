@@ -19,7 +19,6 @@ class ServiceGuardResult:
 
     def to_mapping(self) -> ServiceGuardResultPayload:
         """Return a serialisable mapping for diagnostics exports."""
-
         payload: ServiceGuardResultPayload = {
             "domain": self.domain,
             "service": self.service,
@@ -36,7 +35,6 @@ class ServiceGuardResult:
         self,
     ) -> bool:  # pragma: no cover - bool protocol passthrough
         """Allow guard results to be treated as booleans in guard checks."""
-
         return self.executed
 
 
@@ -90,7 +88,6 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         results: Sequence[TGuardResult],
     ) -> ServiceGuardSnapshot[TGuardResult]:
         """Create a snapshot from an ordered guard result sequence."""
-
         ordered = tuple(results)
         executed = sum(1 for entry in ordered if entry.executed)
         skipped = len(ordered) - executed
@@ -105,7 +102,6 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
     @staticmethod
     def zero_metrics() -> ServiceGuardMetricsSnapshot:
         """Return an empty metrics payload for service guard aggregation."""
-
         return {
             "executed": 0,
             "skipped": 0,
@@ -115,12 +111,10 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
 
     def history(self) -> ServiceGuardResultHistory:
         """Serialise the guard result history for diagnostics exports."""
-
         return [entry.to_mapping() for entry in self.results]
 
     def to_summary(self) -> ServiceGuardSummary:
         """Return a diagnostics summary payload for the aggregated guard data."""
-
         return {
             "executed": self.executed,
             "skipped": self.skipped,
@@ -130,7 +124,6 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
 
     def to_metrics(self) -> ServiceGuardMetricsSnapshot:
         """Return a metrics snapshot representing the aggregated guard data."""
-
         metrics = self.zero_metrics()
         metrics["executed"] = self.executed
         metrics["skipped"] = self.skipped
@@ -143,7 +136,6 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         metrics: MutableMapping[str, JSONValue],
     ) -> ServiceGuardMetricsSnapshot:
         """Accumulate snapshot counts into ``metrics`` and return the payload."""
-
         executed_value = metrics.get("executed", 0)
         executed = _coerce_int(executed_value)
         metrics["executed"] = executed + self.executed

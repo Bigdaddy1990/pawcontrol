@@ -29,7 +29,6 @@ def _create_pyyaml_archive(root: Path, version: str) -> Path:
 
 def test_sync_updates_dependency_files(tmp_path, monkeypatch) -> None:
     """The synchroniser aligns requirements, manifest, and vendor copies."""
-
     workdir = tmp_path / "workspace"
     manifest_path = workdir / "custom_components/pawcontrol/manifest.json"
     manifest_path.parent.mkdir(parents=True)

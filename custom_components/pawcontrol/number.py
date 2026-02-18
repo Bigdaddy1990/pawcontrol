@@ -669,7 +669,6 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
     def _get_dog_config_section(self, section: str) -> JSONMutableMapping:
         """Return a copy of the stored configuration section."""
-
         config = (
             self.coordinator.get_dog_config(self._dog_id)
             if hasattr(self.coordinator, "get_dog_config")
@@ -689,7 +688,6 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
         section: str | None = None,
     ) -> None:
         """Persist configuration updates via the data manager when available."""
-
         data_manager = self._get_data_manager()
         if data_manager is None:
             return
@@ -711,7 +709,6 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
         updates: DogConfigUpdatePayload,
     ) -> None:
         """Push feeding configuration updates into the feeding manager."""
-
         feeding_manager = self._get_runtime_managers().feeding_manager
         if feeding_manager is None:
             return
@@ -731,7 +728,6 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
         updates: DogConfigUpdatePayload,
     ) -> None:
         """Push GPS configuration updates into the GPS manager."""
-
         gps_manager = self._get_runtime_managers().gps_geofence_manager
         if gps_manager is None:
             return
@@ -754,12 +750,10 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
     async def _async_refresh_after_update(self) -> None:
         """Refresh coordinator data after a configuration update."""
-
         await self.coordinator.async_refresh_dog(self._dog_id)
 
     def _get_dog_data(self) -> CoordinatorDogData | None:
         """Get data for this number's dog from the coordinator."""
-
         return self._get_dog_data_cached()
 
     def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:

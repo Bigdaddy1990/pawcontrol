@@ -22,7 +22,6 @@ from custom_components.pawcontrol.types import DogModulesProjection
 @pytest.fixture(name="test_logger")
 def fixture_test_logger() -> logging.Logger:
     """Return a dedicated logger for test assertions."""
-
     logger = logging.getLogger("tests.pawcontrol.dashboard_shared")
     return logger
 
@@ -31,7 +30,6 @@ def test_unwrap_async_result_returns_success_payload(
     test_logger: logging.Logger,
 ) -> None:
     """Ensure successful gather results are returned unchanged."""
-
     payload = {"card": "overview"}
 
     assert (
@@ -43,7 +41,6 @@ def test_unwrap_async_result_logs_exceptions(
     caplog: pytest.LogCaptureFixture, test_logger: logging.Logger
 ) -> None:
     """Gather exceptions should be logged and converted to ``None``."""
-
     failure = RuntimeError("boom")
 
     with caplog.at_level(logging.WARNING):
@@ -67,7 +64,6 @@ def test_unwrap_async_result_cancelled_behaviour(
     test_logger: logging.Logger,
 ) -> None:
     """Verify cancellation handling honours the suppression flag."""
-
     cancelled = asyncio.CancelledError()
 
     if suppress:
@@ -96,7 +92,6 @@ def test_unwrap_async_result_cancelled_behaviour(
 
 def test_coerce_dog_config_returns_typed_payload() -> None:
     """Raw dog dictionaries should be converted into typed configs."""
-
     raw_config = {
         CONF_DOG_ID: "alpha",
         CONF_DOG_NAME: "Alpha",
@@ -113,7 +108,6 @@ def test_coerce_dog_config_returns_typed_payload() -> None:
 
 def test_coerce_dog_configs_filters_invalid_payloads() -> None:
     """Helper should ignore payloads missing identifiers."""
-
     valid = {
         CONF_DOG_ID: "bravo",
         CONF_DOG_NAME: "Bravo",
@@ -127,7 +121,6 @@ def test_coerce_dog_configs_filters_invalid_payloads() -> None:
 
 def test_coerce_dog_config_preserves_profile_metadata() -> None:
     """Optional profile metadata should survive repeated coercion."""
-
     raw_config = {
         CONF_DOG_ID: "charlie",
         CONF_DOG_NAME: "Charlie",
@@ -155,7 +148,6 @@ def test_coerce_dog_config_preserves_profile_metadata() -> None:
 
 def test_coerce_dog_config_accepts_module_projection() -> None:
     """Dog module projections should retain toggles during coercion."""
-
     projection = DogModulesProjection(
         config={MODULE_WALK: True}, mapping={MODULE_WALK: True}
     )

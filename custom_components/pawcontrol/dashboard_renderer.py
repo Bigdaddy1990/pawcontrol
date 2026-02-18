@@ -92,7 +92,6 @@ class RenderJob[ConfigT: DashboardRenderJobConfig, OptionsT: DashboardRendererOp
         options: OptionsT | None = None,
     ) -> None:
         """Initialize render job."""
-
         self.job_id = job_id
         self.job_type: RenderJobType = job_type
         self.config: ConfigT = config
@@ -147,7 +146,6 @@ class DashboardRenderer:
     @staticmethod
     def _ensure_dog_config(dog_config: RawDogConfig) -> DogConfigData | None:
         """Return a typed dog configuration for downstream rendering."""
-
         return coerce_dog_config(dog_config)
 
     @staticmethod
@@ -155,7 +153,6 @@ class DashboardRenderer:
         dogs_config: Sequence[RawDogConfig] | None,
     ) -> list[DogConfigData]:
         """Return typed dog configurations from ``dogs_config`` when possible."""
-
         if not dogs_config or isinstance(dogs_config, str | bytes):
             return []
         return coerce_dog_configs(dogs_config)

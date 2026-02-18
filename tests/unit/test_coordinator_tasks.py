@@ -23,7 +23,6 @@ def _patch_runtime_store(
     monkeypatch: pytest.MonkeyPatch, status: str = "current"
 ) -> dict[str, object]:
     """Patch runtime store snapshot helpers to return a deterministic snapshot."""
-
     snapshot = {
         "entry_id": "entry",
         "status": status,
@@ -167,7 +166,6 @@ def _build_coordinator(
 
 def test_build_update_statistics_includes_repair_summary(monkeypatch) -> None:
     """Coordinator update statistics should surface repair telemetry."""
-
     summary = CacheRepairAggregate(
         total_caches=3,
         anomaly_count=2,
@@ -229,7 +227,6 @@ def test_build_update_statistics_includes_repair_summary(monkeypatch) -> None:
 
 def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> None:
     """Coordinator update statistics should expose resilience telemetry when present."""
-
     breaker = SimpleNamespace(
         state=SimpleNamespace(value="closed"),
         failure_count=2,
@@ -298,7 +295,6 @@ def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> N
 
 def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None:
     """Update statistics should provide default rejection metrics without resilience data."""  # noqa: E501
-
     coordinator = _build_coordinator(resilience_manager=None)
 
     runtime_data = SimpleNamespace(
@@ -347,7 +343,6 @@ def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None
 
 def test_derive_rejection_metrics_preserves_defaults() -> None:
     """Derived metrics should keep seeded defaults when resilience payload omits values."""  # noqa: E501
-
     metrics = tasks.derive_rejection_metrics({
         "rejected_call_count": None,
         "rejection_breaker_count": None,
@@ -379,14 +374,12 @@ def test_derive_rejection_metrics_preserves_defaults() -> None:
 
 def test_derive_rejection_metrics_handles_missing_summary() -> None:
     """Passing ``None`` or an empty summary returns seeded defaults."""
-
     assert tasks.derive_rejection_metrics(None) == tasks.default_rejection_metrics()
     assert tasks.derive_rejection_metrics({}) == tasks.default_rejection_metrics()
 
 
 def test_collect_resilience_diagnostics_persists_summary(monkeypatch) -> None:
     """Collected resilience summaries should persist into runtime performance stats."""
-
     breaker = SimpleNamespace(
         state=SimpleNamespace(value="open"),
         failure_count=5,
@@ -430,7 +423,6 @@ def test_collect_resilience_diagnostics_clears_summary_when_no_breakers(
     monkeypatch,
 ) -> None:
     """Persisted resilience summaries should be cleared when no breakers exist."""
-
     summary = {
         "total_breakers": 1,
         "states": {
@@ -478,7 +470,6 @@ def test_collect_resilience_diagnostics_clears_summary_without_manager(
     monkeypatch,
 ) -> None:
     """Persisted resilience summaries should be cleared when manager is unavailable."""
-
     summary = {
         "total_breakers": 2,
         "states": {
@@ -527,7 +518,6 @@ def test_collect_resilience_diagnostics_clears_summary_without_manager(
 
 def test_collect_resilience_diagnostics_clears_summary_on_error(monkeypatch) -> None:
     """Resilience summaries should be cleared when collection raises an exception."""
-
     summary = {
         "total_breakers": 1,
         "states": {
@@ -578,7 +568,6 @@ def test_collect_resilience_diagnostics_clears_summary_on_invalid_payload(
     monkeypatch,
 ) -> None:
     """Resilience summaries should be cleared when payload is not iterable."""
-
     summary = {
         "total_breakers": 1,
         "states": {
@@ -631,7 +620,6 @@ def test_collect_resilience_diagnostics_clears_summary_on_invalid_payload(
 
 def test_collect_resilience_diagnostics_coerces_stats_values(monkeypatch) -> None:
     """Circuit breaker stats should coerce mixed-value payloads safely."""
-
     runtime_data = SimpleNamespace(performance_stats={})
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
 
@@ -682,7 +670,6 @@ def test_collect_resilience_diagnostics_coerces_stats_values(monkeypatch) -> Non
 
 def test_collect_resilience_diagnostics_defaults_unknown_state(monkeypatch) -> None:
     """Collector should normalise missing or blank states to "unknown"."""
-
     runtime_data = SimpleNamespace(performance_stats={})
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
 
@@ -756,7 +743,6 @@ def test_summarise_resilience_normalises_state_metadata() -> None:
 
 def test_summarise_resilience_uses_extended_breaker_identifiers() -> None:
     """Aggregation should honour identifier metadata when breaker IDs are missing."""
-
     summary = tasks._summarise_resilience({
         "api": {"state": "OPEN", "identifier": "api-primary"},
         "fallback": {"state": "half_open", "name": "fallback-service"},
@@ -768,7 +754,6 @@ def test_summarise_resilience_uses_extended_breaker_identifiers() -> None:
 
 def test_collect_resilience_diagnostics_prefers_breaker_metadata(monkeypatch) -> None:
     """Collector should use embedded breaker identifiers when provided."""
-
     runtime_data = SimpleNamespace(performance_stats={})
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
 
@@ -832,7 +817,6 @@ def test_collect_resilience_diagnostics_prefers_breaker_metadata(monkeypatch) ->
 
 def test_collect_resilience_diagnostics_converts_temporal_values(monkeypatch) -> None:
     """Resilience telemetry should normalise datetime, date, and ISO timestamps."""
-
     failure_time = datetime(2024, 1, 2, 12, 30, tzinfo=UTC)
     state_change_iso = "2024-03-01T08:15:00+00:00"
     fallback_date = date(2024, 4, 5)
@@ -966,7 +950,6 @@ def test_collect_resilience_diagnostics_pairs_latest_recovery(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Latest recovery latency should pair success with its originating breaker."""
-
     stale_breaker = {
         "state": "OPEN",
         "failure_count": 4,
@@ -1035,7 +1018,6 @@ def test_collect_resilience_diagnostics_pairs_latest_recovery(
 
 def test_build_runtime_statistics_omits_empty_repair_summary(monkeypatch) -> None:
     """Runtime statistics should omit repairs telemetry when unavailable."""
-
     coordinator = _build_coordinator()
     runtime_data = SimpleNamespace(
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None)
@@ -1052,7 +1034,6 @@ def test_build_runtime_statistics_omits_empty_repair_summary(monkeypatch) -> Non
 
 def test_build_runtime_statistics_omits_empty_resilience(monkeypatch) -> None:
     """Runtime statistics should skip resilience telemetry when no payload is available."""  # noqa: E501
-
     coordinator = _build_coordinator(resilience_manager=_DummyResilience({}))
     runtime_data = SimpleNamespace(
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None)
@@ -1068,7 +1049,6 @@ def test_build_runtime_statistics_omits_empty_resilience(monkeypatch) -> None:
 
 def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> None:
     """Runtime statistics should include default rejection metrics when none recorded."""  # noqa: E501
-
     coordinator = _build_coordinator(resilience_manager=None)
     runtime_data = SimpleNamespace(
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
@@ -1131,7 +1111,6 @@ def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> Non
 
 def test_build_runtime_statistics_includes_guard_metrics(monkeypatch) -> None:
     """Runtime statistics should export guard counters alongside rejection metrics."""
-
     coordinator = _build_coordinator(resilience_manager=None)
     runtime_data = SimpleNamespace(
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
@@ -1190,7 +1169,6 @@ def test_build_runtime_statistics_includes_guard_metrics(monkeypatch) -> None:
 
 def test_build_runtime_statistics_defaults_guard_metrics(monkeypatch) -> None:
     """Guard metrics should fall back to zeroed counters when none recorded."""
-
     coordinator = _build_coordinator(resilience_manager=None)
     runtime_data = SimpleNamespace(
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
@@ -1216,7 +1194,6 @@ def test_build_runtime_statistics_captures_bool_coercion_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Runtime statistics should include and persist bool coercion telemetry."""
-
     coordinator = _build_coordinator(resilience_manager=None)
     runtime_data = SimpleNamespace(
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
@@ -1251,7 +1228,6 @@ def test_build_runtime_statistics_captures_bool_coercion_summary(
 
 def test_build_runtime_statistics_threads_rejection_metrics(monkeypatch) -> None:
     """Runtime statistics should expose rejection metrics within error summaries."""
-
     breaker = SimpleNamespace(
         state=SimpleNamespace(value="open"),
         failure_count=3,
@@ -1319,7 +1295,6 @@ def test_build_update_statistics_handles_missing_resilience_manager(
     monkeypatch,
 ) -> None:
     """Coordinator stats should degrade gracefully when resilience manager is absent."""
-
     coordinator = _build_coordinator(resilience_manager=_MissingResilience())
     runtime_data = SimpleNamespace(
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
@@ -1338,7 +1313,6 @@ def test_build_update_statistics_logs_and_skips_on_resilience_error(
     monkeypatch,
 ) -> None:
     """Coordinator stats should skip resilience telemetry when collection fails."""
-
     coordinator = _build_coordinator(resilience_manager=_BrokenResilience())
     runtime_data = SimpleNamespace(
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
@@ -1355,7 +1329,6 @@ def test_build_update_statistics_logs_and_skips_on_resilience_error(
 
 def test_build_update_statistics_summarises_options_when_uncached(monkeypatch) -> None:
     """Coordinator stats should derive reconfigure telemetry from entry options."""
-
     telemetry = {
         "requested_profile": "advanced",
         "previous_profile": "standard",
@@ -1392,7 +1365,6 @@ def test_build_update_statistics_summarises_options_when_uncached(monkeypatch) -
 @pytest.mark.asyncio
 async def test_run_maintenance_records_success(monkeypatch) -> None:
     """Coordinator maintenance should record structured telemetry on success."""
-
     runtime_data = SimpleNamespace(performance_stats={})
     modules = _MaintenanceModules(expired=4)
     metrics = _MaintenanceMetrics(consecutive_errors=2)
@@ -1433,7 +1405,6 @@ async def test_run_maintenance_records_success(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_run_maintenance_records_failure(monkeypatch) -> None:
     """Coordinator maintenance should capture failures for diagnostics."""
-
     runtime_data = SimpleNamespace(performance_stats={})
     modules = _FailingModules()
     metrics = _MaintenanceMetrics(consecutive_errors=0)

@@ -5,7 +5,6 @@ import pytest
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Register coverage-related options so pytest can parse addopts."""
-
     group = parser.getgroup("cov")
     group.addoption(
         "--cov",
@@ -37,5 +36,4 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 def pytest_configure(config: pytest.Config) -> None:
     """Register a marker placeholder when coverage plugin is absent."""
-
     config.addinivalue_line("markers", "cov: dummy marker for pytest-cov shim")

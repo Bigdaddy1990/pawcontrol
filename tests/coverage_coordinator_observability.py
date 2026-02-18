@@ -18,7 +18,6 @@ PAWCONTROL_ROOT = (PACKAGE_ROOT / "pawcontrol").resolve()
 
 def _ensure_package(name: str, path: pathlib.Path) -> None:
     """Register a namespace package without executing its __init__."""
-
     if name in sys.modules:
         return
 
@@ -30,7 +29,6 @@ def _ensure_package(name: str, path: pathlib.Path) -> None:
 
 def _load_module(name: str, filename: str):
     """Load a module from the pawcontrol package without side effects."""
-
     spec = importlib.util.spec_from_file_location(
         name,
         PAWCONTROL_ROOT / filename,
@@ -87,7 +85,6 @@ def _summarize_entity_budgets(
     snapshots: Iterable[_EntityBudgetSnapshot],
 ) -> dict[str, float | int]:
     """Provide deterministic aggregation used by the observability helpers."""
-
     snapshots = tuple(snapshots)
     if not snapshots:
         return {
@@ -206,7 +203,6 @@ class DummySnapshot:
 
 def test_security_scorecard_passes_with_secure_configuration() -> None:
     """A healthy runtime should report a passing security scorecard."""
-
     adaptive = cast(
         AdaptivePollingDiagnostics,
         {"current_interval_ms": 150.0, "target_cycle_ms": 180.0},
@@ -236,7 +232,6 @@ def test_security_scorecard_passes_with_secure_configuration() -> None:
 
 def test_security_scorecard_gracefully_handles_missing_values() -> None:
     """Missing metrics should fall back to safe defaults without raising."""
-
     scorecard = build_security_scorecard(
         adaptive=cast(AdaptivePollingDiagnostics, {"current_interval_ms": None}),
         entity_summary=cast(EntityBudgetSummary, {"peak_utilization": None}),
@@ -250,7 +245,6 @@ def test_security_scorecard_gracefully_handles_missing_values() -> None:
 
 def test_build_performance_snapshot_includes_runtime_metadata() -> None:
     """Performance snapshots expose update counters and webhook posture."""
-
     metrics = DummyMetrics(update_count=5, failed_cycles=1, consecutive_errors=0)
     adaptive = cast(
         AdaptivePollingDiagnostics,
@@ -294,7 +288,6 @@ def test_build_performance_snapshot_includes_runtime_metadata() -> None:
 
 def test_entity_budget_tracker_summary_and_saturation() -> None:
     """Entity budget tracking aggregates utilisation across dogs."""
-
     tracker = EntityBudgetTracker()
     assert tracker.saturation() == 0.0
 
@@ -337,7 +330,6 @@ def test_entity_budget_tracker_summary_and_saturation() -> None:
 
 def test_entity_budget_tracker_handles_zero_capacity() -> None:
     """Zero capacity snapshots should yield zero saturation."""
-
     tracker = EntityBudgetTracker()
     tracker.record(
         DummySnapshot(
@@ -353,7 +345,6 @@ def test_entity_budget_tracker_handles_zero_capacity() -> None:
 
 def test_security_scorecard_reports_failure_reason() -> None:
     """Failing checks should include the appropriate remediation hints."""
-
     scorecard = build_security_scorecard(
         adaptive=cast(
             AdaptivePollingDiagnostics,
@@ -379,7 +370,6 @@ def test_security_scorecard_reports_failure_reason() -> None:
 
 def test_security_scorecard_coerces_invalid_numbers() -> None:
     """Invalid numeric inputs should be normalised before evaluation."""
-
     scorecard = build_security_scorecard(
         adaptive=cast(
             AdaptivePollingDiagnostics,
@@ -401,7 +391,6 @@ def test_security_scorecard_coerces_invalid_numbers() -> None:
 
 def test_security_scorecard_resets_negative_current_interval() -> None:
     """Negative current intervals should fall back to the target value."""
-
     scorecard = build_security_scorecard(
         adaptive=cast(
             AdaptivePollingDiagnostics,
@@ -476,7 +465,6 @@ def test_normalise_webhook_status_defaults_and_errors() -> None:
 
 def test_summarize_entity_budgets_empty_input() -> None:
     """Summary helper should handle empty iterables gracefully."""
-
     summary = summarize_entity_budgets(())
 
     assert summary == {

@@ -232,7 +232,6 @@ class PawControlCoordinator(
 
     def report_entity_budget(self, snapshot: EntityBudgetSnapshot) -> None:
         """Receive entity budget metrics from the entity factory."""
-
         self._entity_budget.record(snapshot)
         self._adaptive_polling.update_entity_saturation(
             self._entity_budget.saturation(),
@@ -276,18 +275,15 @@ class PawControlCoordinator(
     @property
     def runtime_managers(self) -> paw_types.CoordinatorRuntimeManagers:
         """Return the currently attached runtime managers."""
-
         return self._runtime_managers
 
     @runtime_managers.setter
     def runtime_managers(self, managers: paw_types.CoordinatorRuntimeManagers) -> None:
         """Replace the cached runtime manager container."""
-
         self._runtime_managers = managers
 
     async def async_prepare_entry(self) -> None:
         """Public hook to initialize coordinator state for a config entry."""
-
         if self._setup_complete:
             return
         self._data = {
@@ -347,7 +343,6 @@ class PawControlCoordinator(
 
     async def _fetch_dog_data(self, dog_id: str) -> paw_types.CoordinatorDogData:
         """Delegate to the runtime fetch implementation."""
-
         return await self._runtime._fetch_dog_data(dog_id)
 
     def _apply_adaptive_interval(self, new_interval: float) -> None:
@@ -411,7 +406,6 @@ class PawControlCoordinator(
         coordinator refresh cycle. It updates the `gps` and derived `geofencing`
         module payloads in-place and notifies subscribed entities.
         """
-
         if dog_id not in self.registry.ids():
             _LOGGER.debug("Ignoring GPS patch for unknown dog_id: %s", dog_id)
             return
@@ -449,7 +443,6 @@ class PawControlCoordinator(
         dog_ids: Iterable[str] | None = None,
     ) -> None:
         """Refresh a subset of dogs while keeping existing payloads."""
-
         if dog_ids is None:
             await self.async_request_refresh()
             return
@@ -460,7 +453,6 @@ class PawControlCoordinator(
 
     def get_dog_config(self, dog_id: str) -> paw_types.DogConfigData | None:
         """Return the raw configuration for the specified dog."""
-
         return CoordinatorDataAccessMixin.get_dog_config(self, dog_id)
 
     def get_enabled_modules(self, dog_id: str) -> frozenset[str]:
@@ -473,12 +465,10 @@ class PawControlCoordinator(
 
     def get_dog_ids(self) -> list[str]:
         """Return identifiers for all configured dogs."""
-
         return CoordinatorDataAccessMixin.get_dog_ids(self)
 
     def get_dog_data(self, dog_id: str) -> paw_types.CoordinatorDogData | None:
         """Return the coordinator data payload for the dog."""
-
         return CoordinatorDataAccessMixin.get_dog_data(self, dog_id)
 
     async def async_apply_module_updates(
@@ -488,7 +478,6 @@ class PawControlCoordinator(
         updates: Mapping[str, paw_types.JSONValue],
     ) -> None:
         """Apply module updates to the coordinator data cache."""
-
         if dog_id not in self.registry.ids():
             _LOGGER.debug(
                 "Ignoring module update for unknown dog_id: %s",
@@ -531,7 +520,6 @@ class PawControlCoordinator(
         self, data: paw_types.CoordinatorDataPayload
     ) -> None:
         """Synchronize conflicting module states across managers."""
-
         garden_manager = self.garden_manager
         if garden_manager is None:
             return
@@ -587,7 +575,6 @@ class PawControlCoordinator(
 
     def get_performance_snapshot(self) -> paw_types.CoordinatorPerformanceSnapshot:
         """Return a comprehensive performance snapshot for diagnostics surfaces."""
-
         adaptive = self._adaptive_polling.as_diagnostics()
         entity_budget = self._entity_budget.summary()
         update_interval = (
@@ -639,7 +626,6 @@ class PawControlCoordinator(
 
     def get_security_scorecard(self) -> paw_types.CoordinatorSecurityScorecard:
         """Return aggregated pass/fail status for security critical checks."""
-
         adaptive = self._adaptive_polling.as_diagnostics()
         entity_summary = self._entity_budget.summary()
         webhook_status = self._webhook_security_status()
@@ -663,6 +649,5 @@ class PawControlCoordinator(
 
     def _webhook_security_status(self) -> paw_types.WebhookSecurityStatus:
         """Return normalised webhook security information."""
-
         manager = getattr(self, "notification_manager", None)
         return coordinator_observability.normalise_webhook_status(manager)

@@ -63,7 +63,6 @@ class PawControlDeviceClient:
             resilience_manager: Optional ResilienceManager for fault tolerance.
 
         """
-
         base_url = validate_device_endpoint(endpoint)
 
         self._session = ensure_shared_client_session(
@@ -86,12 +85,10 @@ class PawControlDeviceClient:
     @property
     def base_url(self) -> URL:
         """Return the configured base URL for the companion endpoint."""
-
         return self._endpoint.base_url
 
     async def async_get_json(self, path: str) -> JSONMutableMapping:
         """Perform a JSON GET request against the companion device with resilience."""
-
         # RESILIENCE: Wrap in circuit breaker and retry if available
         if self._resilience_manager:
             response = await self._resilience_manager.execute_with_resilience(
@@ -113,7 +110,6 @@ class PawControlDeviceClient:
 
     async def async_get_feeding_payload(self, dog_id: str) -> JSONMutableMapping:
         """Fetch the latest feeding payload for a dog from the companion device."""
-
         return await self.async_get_json(f"/api/dogs/{dog_id}/feeding")
 
     async def _async_request_protected(self, method: str, path: str) -> ClientResponse:
@@ -137,7 +133,6 @@ class PawControlDeviceClient:
 
     async def _async_request(self, method: str, path: str) -> ClientResponse:
         """Execute an HTTP request and normalize errors."""
-
         url = self._endpoint.base_url.join(URL(path))
         headers: dict[str, str] | None = None
         if self._endpoint.api_key:

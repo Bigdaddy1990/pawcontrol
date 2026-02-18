@@ -184,7 +184,6 @@ class HealthMetrics:
     @classmethod
     def _validate_breed(cls, breed: str | None) -> str | None:
         """Validate and normalize the provided breed string."""
-
         if breed is None:
             return None
         if not isinstance(breed, str):

@@ -9,7 +9,6 @@ from scripts import check_vendor_pyyaml as module
 
 def _make_namespace(**overrides: object) -> argparse.Namespace:
     """Return a namespace emulating parsed CLI arguments."""
-
     base: dict[str, object] = {
         "fail_on_outdated": False,
         "fail_severity": "HIGH",
@@ -24,7 +23,6 @@ def _make_namespace(**overrides: object) -> argparse.Namespace:
 
 def test_parse_wheel_profile() -> None:
     """Parsing wheel profile strings returns dataclass instances."""
-
     profile = module._parse_wheel_profile("cp313:musllinux")
     assert profile.python_tag == "cp313"
     assert profile.platform_fragment == "musllinux"
@@ -33,14 +31,12 @@ def test_parse_wheel_profile() -> None:
 @pytest.mark.parametrize("raw", ["cp313", "cp313-", " :musllinux"])
 def test_parse_wheel_profile_rejects_invalid(raw: str) -> None:
     """Invalid wheel profile strings raise an ``ArgumentTypeError``."""
-
     with pytest.raises(argparse.ArgumentTypeError):
         module._parse_wheel_profile(raw)
 
 
 def test_normalise_wheel_profiles_defaults() -> None:
     """Without overrides the default manylinux and musllinux profiles are used."""
-
     namespace = _make_namespace()
     profiles = module._normalise_wheel_profiles(namespace)
     assert [
@@ -53,7 +49,6 @@ def test_normalise_wheel_profiles_defaults() -> None:
 
 def test_normalise_wheel_profiles_legacy_flags() -> None:
     """Legacy target flags still map to a single profile."""
-
     namespace = _make_namespace(
         target_python_tag="cp311",
         target_platform_fragment="manylinux",
@@ -66,7 +61,6 @@ def test_normalise_wheel_profiles_legacy_flags() -> None:
 
 def test_build_metadata_document_serialises_versions() -> None:
     """Metadata documents are JSON serialisable and contain string versions."""
-
     profile_manylinux = module.WheelProfile("cp313", "manylinux")
     profile_musllinux = module.WheelProfile("cp313", "musllinux")
     metadata = module.build_metadata_document(

@@ -202,7 +202,6 @@ async def test_cleanup_expired_removes_entries(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Expired cache entries should be evicted and reported."""
-
     cache = AdaptiveCache()
 
     base_time = datetime(2024, 1, 1, tzinfo=UTC)
@@ -232,7 +231,6 @@ async def test_cleanup_expired_honours_override(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """cleanup_expired should prefer the shorter override TTL when supplied."""
-
     cache = AdaptiveCache()
 
     base_time = datetime(2024, 3, 1, tzinfo=UTC)
@@ -280,7 +278,6 @@ async def test_cleanup_expired_uses_internal_lock(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The cleanup routine should acquire the cache lock to avoid races."""
-
     cache = AdaptiveCache()
     tracking_lock = _TrackingAsyncLock()
     cache._lock = tracking_lock  # type: ignore[attr-defined]
@@ -308,7 +305,6 @@ async def test_cleanup_diagnostics_track_override(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Diagnostics should record override-driven cleanup activity."""
-
     cache = AdaptiveCache()
 
     diagnostics = cache.get_diagnostics()

@@ -86,7 +86,6 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
 
     def clear(self) -> None:
         """Remove all cached entries."""
-
         self._entries.clear()
 
     def store(
@@ -96,7 +95,6 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
         generated_at: datetime,
     ) -> tuple[str, ...]:
         """Store ``targets`` under ``key`` and return a deduplicated tuple."""
-
         seen: set[str] = set()
         canonical: list[str] = []
         for target in targets:
@@ -113,7 +111,6 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
 
     def try_get(self, key: str, *, now: datetime, ttl: int) -> tuple[str, ...] | None:
         """Return cached targets when still valid, otherwise ``None``."""
-
         payload = self._entries.get(key)
         if payload is None:
             return None
@@ -124,7 +121,6 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
 
     def snapshot(self, *, now: datetime, ttl: int) -> dict[str, EntryT]:
         """Return a diagnostics snapshot of cached entries."""
-
         entries: dict[str, EntryT] = {}
         for key, payload in self._entries.items():
             age_seconds = max(
@@ -144,7 +140,6 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
 
     def __len__(self) -> int:
         """Return the number of cached entries."""
-
         return len(self._entries)
 
 
@@ -233,7 +228,6 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
     @staticmethod
     def _coerce_discovery_interval(value: int | None) -> int:
         """Clamp the discovery interval to supported bounds."""
-
         if not isinstance(value, int):
             return DEFAULT_DISCOVERY_INTERVAL
         return max(MIN_DISCOVERY_INTERVAL, min(MAX_DISCOVERY_INTERVAL, value))
@@ -241,7 +235,6 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
     @staticmethod
     def _coerce_positive_int(value: int | None, *, default: int) -> int:
         """Return ``default`` when ``value`` is not a positive integer."""
-
         if not isinstance(value, int) or value <= 0:
             return default
         return value
@@ -249,7 +242,6 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
     @staticmethod
     def _coerce_string_list(values: Sequence[str] | None) -> list[str]:
         """Return a canonical list of strings from ``values``."""
-
         if not values:
             return []
         return [item for item in values if isinstance(item, str)]
@@ -257,7 +249,6 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
     @staticmethod
     def _coerce_string_mapping(values: Mapping[str, str] | None) -> dict[str, str]:
         """Return mapping entries with string keys and values only."""
-
         if not values:
             return {}
         return {
@@ -272,7 +263,6 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         config: PersonEntityConfigInput,
     ) -> PersonEntityConfig:
         """Normalise ``config`` into a :class:`PersonEntityConfig` instance."""
-
         discovery_interval = cls._coerce_discovery_interval(
             config.get("discovery_interval"),
         )
@@ -357,7 +347,6 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         config: PersonEntityConfigInput | None,
     ) -> None:
         """Initialise manager internals while ``_lock`` is held."""
-
         if config:
             self._config = self._build_config_from_input(config)
         await self._cancel_discovery_task_locked()
@@ -857,13 +846,11 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
     async def async_shutdown(self) -> None:
         """Shutdown person entity manager."""
-
         async with self._lock:
             await self._async_shutdown_locked()
 
     async def _async_shutdown_locked(self) -> None:
         """Shutdown internals while ``_lock`` is held."""
-
         await self._cancel_discovery_task_locked()
         self._clear_state_listeners_locked()
 
@@ -874,7 +861,6 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
     def get_diagnostics(self) -> PersonEntityDiagnostics:
         """Return diagnostic metadata used by coordinator cache monitors."""
-
         now = dt_util.now()
         cache_entries = self._targets_cache.snapshot(
             now=now,
@@ -911,7 +897,6 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
     def _build_person_snapshot(self) -> PersonEntitySnapshot:
         """Return a typed snapshot of discovered person entities."""
-
         persons: dict[str, PersonEntitySnapshotEntry] = {}
         for entity_id, info in self._persons.items():
             persons[entity_id] = {
@@ -932,7 +917,6 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         """Return a coordinator-friendly snapshot of statistics and diagnostics."""
-
         stats = self.get_statistics()
         diagnostics = self.get_diagnostics()
         snapshot = self._build_person_snapshot()
@@ -951,13 +935,11 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         prefix: str = "person_entity",
     ) -> None:
         """Register the person targeting cache with the data manager registrar."""
-
         self._cache_registrar = registrar
         registrar.register_cache_monitor(f"{prefix}_targets", self)
 
     async def _cancel_discovery_task_locked(self) -> None:
         """Cancel the periodic discovery task when held under lock."""
-
         if self._discovery_task is None:
             return
         if not self._discovery_task.done():
@@ -969,7 +951,6 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
     def _clear_state_listeners_locked(self) -> None:
         """Detach any registered state listeners while holding the lock."""
-
         if not self._state_listeners:
             return
         for listener in self._state_listeners:

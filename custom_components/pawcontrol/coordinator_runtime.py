@@ -68,19 +68,16 @@ class EntityBudgetSnapshot:
     @property
     def total_allocated(self) -> int:
         """Return the total number of allocated entities."""
-
         return self.base_allocation + self.dynamic_allocation
 
     @property
     def remaining(self) -> int:
         """Return the remaining capacity within the budget."""
-
         return max(self.capacity - self.total_allocated, 0)
 
     @property
     def saturation(self) -> float:
         """Return the saturation ratio for the entity budget."""
-
         if self.capacity <= 0:
             return 0.0
         return max(0.0, min(1.0, self.total_allocated / self.capacity))
@@ -113,7 +110,6 @@ class AdaptivePollingController:
         idle_grace_seconds: float = 300.0,
     ) -> None:
         """Initialise the adaptive polling controller."""
-
         base_interval = max(initial_interval_seconds, 1.0)
         calculated_min = (
             base_interval * 0.25
@@ -139,12 +135,10 @@ class AdaptivePollingController:
     @property
     def current_interval(self) -> float:
         """Return the current polling interval in seconds."""
-
         return self._current_interval
 
     def update_entity_saturation(self, saturation: float) -> None:
         """Update entity saturation feedback for adaptive decisions."""
-
         self._entity_saturation = max(0.0, min(1.0, saturation))
 
     def record_cycle(
@@ -155,7 +149,6 @@ class AdaptivePollingController:
         error_ratio: float,
     ) -> float:
         """Record an update cycle and return the next interval in seconds."""
-
         self._history.append(max(duration, 0.0))
         if success:
             self._error_streak = 0
@@ -226,7 +219,6 @@ class AdaptivePollingController:
 
     def as_diagnostics(self) -> AdaptivePollingDiagnostics:
         """Return diagnostics for adaptive polling behaviour."""
-
         history_count = len(self._history)
         average_duration = fmean(self._history) if history_count else 0.0
         diagnostics: AdaptivePollingDiagnostics = {
@@ -256,7 +248,6 @@ class RuntimeCycleInfo:
 
     def to_dict(self) -> CoordinatorRuntimeCycleSnapshot:
         """Return a serialisable representation of the cycle."""
-
         snapshot: CoordinatorRuntimeCycleSnapshot = {
             "dog_count": self.dog_count,
             "errors": self.errors,
@@ -338,7 +329,6 @@ class CoordinatorRuntime:
         empty_payload_factory: Callable[[], CoordinatorDogData],
     ) -> tuple[CoordinatorDataPayload, RuntimeCycleInfo]:
         """Fetch data for all configured dogs and return diagnostics."""
-
         if not dog_ids:
             raise CoordinatorUpdateFailed("No valid dogs configured")
         self._metrics.start_cycle()

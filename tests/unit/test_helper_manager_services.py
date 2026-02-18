@@ -36,7 +36,6 @@ async def test_helper_manager_creates_typed_helper_services(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Helper creation should emit strictly typed service payloads."""
-
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     manager = PawControlHelperManager(hass, entry)

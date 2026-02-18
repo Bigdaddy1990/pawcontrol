@@ -62,7 +62,6 @@ async def test_birthdate_extra_attributes_typed(
     hass, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Ensure birthdate entities expose structured, typed attributes."""
-
     coordinator = _DummyCoordinator()
     coordinator.data["dog-1"] = cast(
         CoordinatorDogData,
@@ -113,7 +112,6 @@ async def test_last_vet_visit_extracts_datetime(
     hass, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Ensure health snapshots provide typed dates for vet visits."""
-
     coordinator = _DummyCoordinator()
     coordinator.data["dog-1"] = cast(
         CoordinatorDogData,

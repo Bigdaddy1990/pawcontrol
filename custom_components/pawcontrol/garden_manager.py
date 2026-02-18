@@ -208,7 +208,6 @@ class GardenActivity:
 
     def to_dict(self) -> GardenActivityPayload:
         """Convert to dictionary for storage."""
-
         return GardenActivityPayload(
             activity_type=self.activity_type.value,
             timestamp=self.timestamp.isoformat(),
@@ -221,7 +220,6 @@ class GardenActivity:
     @classmethod
     def from_dict(cls, data: GardenActivityPayload) -> GardenActivity:
         """Create from dictionary data."""
-
         return cls(
             activity_type=GardenActivityType(data["activity_type"]),
             timestamp=_parse_datetime_or_now(data["timestamp"]),
@@ -274,7 +272,6 @@ class GardenSession:
 
     def to_dict(self) -> GardenSessionPayload:
         """Convert to dictionary for storage."""
-
         return GardenSessionPayload(
             session_id=self.session_id,
             dog_id=self.dog_id,
@@ -293,7 +290,6 @@ class GardenSession:
     @classmethod
     def from_dict(cls, data: GardenSessionPayload) -> GardenSession:
         """Create from dictionary data."""
-
         session = cls(
             session_id=data["session_id"],
             dog_id=data["dog_id"],
@@ -509,7 +505,6 @@ class GardenManager:
         name: str,
     ) -> asyncio.Task[None]:
         """Create a named asyncio task using Home Assistant when available."""
-
         hass_create_task = getattr(self.hass, "async_create_task", None)
         if callable(hass_create_task):
             try:
@@ -526,7 +521,6 @@ class GardenManager:
 
     async def _cancel_task(self, task: asyncio.Task[Any] | None, name: str) -> None:
         """Cancel an asyncio task with timeout handling."""
-
         if task is None or task.done():
             return
         task.cancel()
@@ -557,7 +551,6 @@ class GardenManager:
 
     async def _cancel_confirmation_task(self, dog_id: str) -> None:
         """Cancel a pending poop confirmation task for a dog."""
-
         task = self._confirmation_tasks.pop(dog_id, None)
         await self._cancel_task(task, f"poop confirmation ({dog_id})")
 
@@ -1340,7 +1333,6 @@ class GardenManager:
 
     def has_pending_confirmation(self, dog_id: str) -> bool:
         """Return True if a poop confirmation is pending for the dog."""
-
         return any(
             confirmation["dog_id"] == dog_id
             and confirmation["type"] == "poop_confirmation"
@@ -1352,7 +1344,6 @@ class GardenManager:
         dog_id: str,
     ) -> list[GardenConfirmationSnapshot]:
         """Return pending confirmation requests for a dog."""
-
         confirmations: list[GardenConfirmationSnapshot] = []
         for confirmation in self._pending_confirmations.values():
             if (
@@ -1378,7 +1369,6 @@ class GardenManager:
         recent_limit: int = 50,
     ) -> GardenModulePayload:
         """Build a snapshot of garden activity for sensors and diagnostics."""
-
         snapshot: GardenModulePayload = {
             "status": "idle",
             "sessions_today": 0,

@@ -2300,7 +2300,6 @@ def _scan_source(source: str) -> list[str]:
 
 def test_detects_partial_wrapped_fixture() -> None:
     """Flag helpers created via functools.partial wrappers."""
-
     offenders = _scan_source(
         "from functools import partial\nclient = partial(hass_client, hass)\nclient()\n"
     )
@@ -2311,7 +2310,6 @@ def test_detects_partial_wrapped_fixture() -> None:
 
 def test_detects_partialmethod_wrapped_fixture() -> None:
     """Flag helpers created via functools.partialmethod wrappers."""
-
     offenders = _scan_source(
         "from functools import partialmethod\n"
         "class Helper:\n"
@@ -2325,7 +2323,6 @@ def test_detects_partialmethod_wrapped_fixture() -> None:
 
 def test_detects_getattr_fixture_wrapper() -> None:
     """Flag getattr-based wrappers that forward to forbidden fixtures."""
-
     offenders = _scan_source(
         "helper = getattr(pytestconfig, 'hass_ws_client')\nhelper()\n"
     )
@@ -2336,7 +2333,6 @@ def test_detects_getattr_fixture_wrapper() -> None:
 
 def test_detects_methodtype_wrapped_fixture() -> None:
     """Flag types.MethodType wrappers that forward fixture calls."""
-
     offenders = _scan_source(
         "from types import MethodType\n"
         "class Helper:\n"
@@ -2352,7 +2348,6 @@ def test_detects_methodtype_wrapped_fixture() -> None:
 
 def test_detects_admin_websocket_fixture_invocation() -> None:
     """Detect direct invocations of the admin websocket fixture."""
-
     offenders = _scan_source("hass_admin_ws_client()\n")
 
     assert len(offenders) == 1
@@ -2361,7 +2356,6 @@ def test_detects_admin_websocket_fixture_invocation() -> None:
 
 def test_detects_lambda_wrapped_fixture() -> None:
     """Flag lambda wrappers that forward fixture invocations."""
-
     offenders = _scan_source(
         "client = lambda *args, **kwargs: hass_client(*args, **kwargs)\nclient()\n"
     )
@@ -2372,7 +2366,6 @@ def test_detects_lambda_wrapped_fixture() -> None:
 
 def test_detects_supervisor_http_fixture_invocation() -> None:
     """Detect direct invocations of the supervisor HTTP client fixture."""
-
     offenders = _scan_source("hass_supervisor_client()\n")
 
     assert len(offenders) == 1
@@ -2381,7 +2374,6 @@ def test_detects_supervisor_http_fixture_invocation() -> None:
 
 def test_detects_supervisor_websocket_fixture_invocation() -> None:
     """Detect direct invocations of the supervisor websocket fixture."""
-
     offenders = _scan_source("hass_supervisor_ws_client()\n")
 
     assert len(offenders) == 1
@@ -2390,7 +2382,6 @@ def test_detects_supervisor_websocket_fixture_invocation() -> None:
 
 def test_detects_supervisor_admin_websocket_fixture_invocation() -> None:
     """Detect direct invocations of the supervisor admin websocket fixture."""
-
     offenders = _scan_source("hass_supervisor_admin_ws_client()\n")
 
     assert len(offenders) == 1
@@ -2399,7 +2390,6 @@ def test_detects_supervisor_admin_websocket_fixture_invocation() -> None:
 
 def test_detects_aiohttp_server_fixture_invocation() -> None:
     """Detect direct invocations of the aiohttp test server fixture."""
-
     offenders = _scan_source("aiohttp_server()\n")
 
     assert len(offenders) == 1
@@ -2408,7 +2398,6 @@ def test_detects_aiohttp_server_fixture_invocation() -> None:
 
 def test_detects_unauthenticated_http_fixture_invocation() -> None:
     """Detect direct invocations of the unauthenticated HTTP fixture."""
-
     offenders = _scan_source("hass_client_no_auth()\n")
 
     assert len(offenders) == 1
@@ -2417,7 +2406,6 @@ def test_detects_unauthenticated_http_fixture_invocation() -> None:
 
 def test_detects_admin_http_fixture_invocation() -> None:
     """Detect direct invocations of the admin HTTP fixture."""
-
     offenders = _scan_source("hass_client_admin()\n")
 
     assert len(offenders) == 1
@@ -2426,7 +2414,6 @@ def test_detects_admin_http_fixture_invocation() -> None:
 
 def test_detects_mobile_app_http_fixture_invocation() -> None:
     """Detect direct invocations of the mobile app HTTP fixture."""
-
     offenders = _scan_source("hass_mobile_app_client()\n")
 
     assert len(offenders) == 1
@@ -2435,7 +2422,6 @@ def test_detects_mobile_app_http_fixture_invocation() -> None:
 
 def test_detects_mobile_app_websocket_fixture_invocation() -> None:
     """Detect direct invocations of the mobile app websocket fixture."""
-
     offenders = _scan_source("hass_mobile_app_ws_client()\n")
 
     assert len(offenders) == 1
@@ -2444,7 +2430,6 @@ def test_detects_mobile_app_websocket_fixture_invocation() -> None:
 
 def test_detects_companion_http_fixture_invocation() -> None:
     """Detect direct invocations of the companion HTTP client fixture."""
-
     offenders = _scan_source("hass_companion_client()\n")
 
     assert len(offenders) == 1
@@ -2453,7 +2438,6 @@ def test_detects_companion_http_fixture_invocation() -> None:
 
 def test_detects_companion_websocket_fixture_invocation() -> None:
     """Detect direct invocations of the companion websocket client fixture."""
-
     offenders = _scan_source("hass_companion_ws_client()\n")
 
     assert len(offenders) == 1
@@ -2462,7 +2446,6 @@ def test_detects_companion_websocket_fixture_invocation() -> None:
 
 def test_detects_companion_prefix_fixture_invocation() -> None:
     """Detect new companion fixtures registered via prefix matching."""
-
     offenders = _scan_source("hass_companion_voice_client()\n")
 
     assert len(offenders) == 1
@@ -2471,7 +2454,6 @@ def test_detects_companion_prefix_fixture_invocation() -> None:
 
 def test_detects_update_wrapper_alias() -> None:
     """Flag fixtures wrapped via functools.update_wrapper."""
-
     offenders = _scan_source(
         "from functools import update_wrapper\n"
         "def helper(*args, **kwargs):\n"
@@ -2486,7 +2468,6 @@ def test_detects_update_wrapper_alias() -> None:
 
 def test_detects_wraps_decorator_alias() -> None:
     """Flag fixtures wrapped via functools.wraps decorator factories."""
-
     offenders = _scan_source(
         "from functools import wraps\n"
         "client = wraps(hass_client)(lambda *args, **kwargs: None)\n"
@@ -2499,7 +2480,6 @@ def test_detects_wraps_decorator_alias() -> None:
 
 def test_detects_property_descriptor_wrapper() -> None:
     """Flag property descriptors returning forbidden fixtures."""
-
     offenders = _scan_source(
         "class Helper:\n"
         "    client = property(lambda self: hass_ws_client)\n"
@@ -2512,7 +2492,6 @@ def test_detects_property_descriptor_wrapper() -> None:
 
 def test_detects_property_descriptor_local_alias() -> None:
     """Flag descriptor returns that alias fixtures before yielding them."""
-
     offenders = _scan_source(
         "class Helper:\n"
         "    @property\n"
@@ -2528,7 +2507,6 @@ def test_detects_property_descriptor_local_alias() -> None:
 
 def test_detects_cached_property_decorator_wrapper() -> None:
     """Flag cached_property descriptors returning forbidden fixtures."""
-
     offenders = _scan_source(
         "from functools import cached_property\n"
         "class Helper:\n"
@@ -2544,7 +2522,6 @@ def test_detects_cached_property_decorator_wrapper() -> None:
 
 def test_detects_cached_property_nested_alias() -> None:
     """Flag cached_property descriptors that alias fixtures via temporaries."""
-
     offenders = _scan_source(
         "from functools import cached_property\n"
         "class Helper:\n"
@@ -2561,7 +2538,6 @@ def test_detects_cached_property_nested_alias() -> None:
 
 def test_detects_entry_point_fixture_loader() -> None:
     """Detect fixtures resolved dynamically via importlib entry points."""
-
     offenders = _scan_source(
         "from importlib.metadata import entry_points\n"
         "client = entry_points(group='ha.test').get('hass_owner_ws_client').load()\n"
@@ -2574,7 +2550,6 @@ def test_detects_entry_point_fixture_loader() -> None:
 
 def test_detects_entry_point_select_loader() -> None:
     """Detect fixtures pulled from entry point selections by name."""
-
     offenders = _scan_source(
         "from importlib.metadata import entry_points\n"
         "client = entry_points(group='ha.test').select(name='hass_client_admin').load()\n"  # noqa: E501
@@ -2587,7 +2562,6 @@ def test_detects_entry_point_select_loader() -> None:
 
 def test_detects_entry_point_subscript_loader() -> None:
     """Detect fixtures retrieved via subscription off entry point mappings."""
-
     offenders = _scan_source(
         "from importlib.metadata import entry_points\n"
         "entry_points(group='ha.test')['hass_client']()\n"
@@ -2599,7 +2573,6 @@ def test_detects_entry_point_subscript_loader() -> None:
 
 def test_detects_pkgutil_resolve_name_fixture() -> None:
     """Detect fixtures loaded dynamically via pkgutil.resolve_name."""
-
     offenders = _scan_source(
         "from pkgutil import resolve_name\n"
         "client = resolve_name('tests.helpers:hass_voice_assistant_client')\n"
@@ -2612,7 +2585,6 @@ def test_detects_pkgutil_resolve_name_fixture() -> None:
 
 def test_detects_simple_namespace_fixture_alias() -> None:
     """Detect fixtures stored on SimpleNamespace helpers."""
-
     offenders = _scan_source(
         "from types import SimpleNamespace\n"
         "helper = SimpleNamespace(client=hass_client)\n"
@@ -2625,7 +2597,6 @@ def test_detects_simple_namespace_fixture_alias() -> None:
 
 def test_detects_nested_simple_namespace_fixture_alias() -> None:
     """Detect fixtures exposed through nested SimpleNamespace containers."""
-
     offenders = _scan_source(
         "from types import SimpleNamespace\n"
         "spec = SimpleNamespace(loader=SimpleNamespace(create_module=hass_ws_client))\n"
@@ -2638,7 +2609,6 @@ def test_detects_nested_simple_namespace_fixture_alias() -> None:
 
 def test_detects_simple_namespace_exec_module_loader() -> None:
     """Detect fixtures returned from SimpleNamespace exec_module loaders."""
-
     offenders = _scan_source(
         "from types import SimpleNamespace\n"
         "def _exec_module(module):\n"
@@ -2653,7 +2623,6 @@ def test_detects_simple_namespace_exec_module_loader() -> None:
 
 def test_detects_module_spec_loader_fixture_alias() -> None:
     """Detect fixtures wired through ModuleSpec loader helpers."""
-
     offenders = _scan_source(
         "from importlib.machinery import ModuleSpec\n"
         "from types import SimpleNamespace\n"
@@ -2667,7 +2636,6 @@ def test_detects_module_spec_loader_fixture_alias() -> None:
 
 def test_detects_module_spec_loader_exec_module_alias() -> None:
     """Detect fixtures exposed through ModuleSpec exec_module helpers."""
-
     offenders = _scan_source(
         "from importlib.machinery import ModuleSpec\n"
         "from types import SimpleNamespace\n"
@@ -2683,7 +2651,6 @@ def test_detects_module_spec_loader_exec_module_alias() -> None:
 
 def test_detects_module_from_spec_attribute_fixture_alias() -> None:
     """Detect fixtures returned from module_from_spec loader factories."""
-
     offenders = _scan_source(
         "from importlib.util import module_from_spec\n"
         "from types import SimpleNamespace\n"
@@ -2702,7 +2669,6 @@ def test_detects_module_from_spec_attribute_fixture_alias() -> None:
 
 def test_detects_module_from_spec_exec_module_loader() -> None:
     """Detect fixtures returned via module_from_spec followed by exec_module."""
-
     offenders = _scan_source(
         "from importlib.util import module_from_spec\n"
         "from types import SimpleNamespace\n"
@@ -2723,7 +2689,6 @@ def test_detects_module_from_spec_exec_module_loader() -> None:
 
 def test_detects_module_type_update_fixture_alias() -> None:
     """Detect fixtures exposed through ModuleType dictionaries."""
-
     offenders = _scan_source(
         "from types import ModuleType\n"
         "module = ModuleType('helpers')\n"
@@ -2739,7 +2704,6 @@ def test_detects_module_type_update_fixture_alias() -> None:
 
 def test_detects_module_type_update_from_mapping() -> None:
     """Detect fixtures injected into ModuleType via external mappings."""
-
     offenders = _scan_source(
         "payload = {}\n"
         "payload['client'] = hass_client\n"
@@ -2757,7 +2721,6 @@ def test_detects_module_type_update_from_mapping() -> None:
 
 def test_detects_module_type_setdefault_fixture_alias() -> None:
     """Detect fixtures exposed via ModuleType.setdefault aliases."""
-
     offenders = _scan_source(
         "from types import ModuleType\n"
         "module = ModuleType('helpers')\n"
@@ -2773,7 +2736,6 @@ def test_detects_module_type_setdefault_fixture_alias() -> None:
 
 def test_detects_exec_module_setdefault_fixture_alias() -> None:
     """Detect fixtures registered via exec_module callbacks using setdefault."""
-
     offenders = _scan_source(
         "from importlib.util import module_from_spec\n"
         "from types import SimpleNamespace\n"
@@ -2794,7 +2756,6 @@ def test_detects_exec_module_setdefault_fixture_alias() -> None:
 
 def test_detects_pkgutil_iter_modules_spec_loader() -> None:
     """Detect fixtures returned through pkgutil iter_modules loaders."""
-
     offenders = _scan_source(
         "from pkgutil import iter_modules\n"
         "from types import SimpleNamespace\n"
@@ -2809,7 +2770,6 @@ def test_detects_pkgutil_iter_modules_spec_loader() -> None:
 
 def test_detects_pkgutil_get_data_loader() -> None:
     """Detect fixtures returned through pkgutil.get_data loaders."""
-
     offenders = _scan_source(
         "import pkgutil\n"
         "from types import SimpleNamespace\n"
@@ -2825,7 +2785,6 @@ def test_detects_pkgutil_get_data_loader() -> None:
 
 def test_detects_pkgutil_get_loader_loader_chain() -> None:
     """Detect fixtures returned through pkgutil.get_loader loaders."""
-
     offenders = _scan_source(
         "import pkgutil\n"
         "from types import SimpleNamespace\n"
@@ -2843,7 +2802,6 @@ def test_detects_pkgutil_get_loader_loader_chain() -> None:
 
 def test_detects_pkgutil_find_loader_loader_chain() -> None:
     """Detect fixtures returned through pkgutil.find_loader loaders."""
-
     offenders = _scan_source(
         "import pkgutil\n"
         "from types import SimpleNamespace\n"
@@ -2861,7 +2819,6 @@ def test_detects_pkgutil_find_loader_loader_chain() -> None:
 
 def test_detects_importlib_resources_as_file_loader_chain() -> None:
     """Detect fixtures loaded via importlib.resources.as_file context managers."""
-
     offenders = _scan_source(
         "from importlib.resources import files, as_file\n"
         "from importlib.util import module_from_spec\n"
@@ -2882,7 +2839,6 @@ def test_detects_importlib_resources_as_file_loader_chain() -> None:
 
 def test_detects_importlib_resources_open_binary_loader() -> None:
     """Detect fixtures returned via importlib.resources.open_binary wrappers."""
-
     offenders = _scan_source(
         "from importlib.resources import open_binary\n"
         "from types import SimpleNamespace\n"
@@ -2898,7 +2854,6 @@ def test_detects_importlib_resources_open_binary_loader() -> None:
 
 def test_detects_importlib_resources_open_file_loader() -> None:
     """Detect fixtures yielded via importlib.resources.open_file wrappers."""
-
     offenders = _scan_source(
         "from importlib.resources import open_file\n"
         "from contextlib import contextmanager\n"
@@ -2916,7 +2871,6 @@ def test_detects_importlib_resources_open_file_loader() -> None:
 
 def test_detects_importlib_resources_joinpath_open_loader() -> None:
     """Detect fixtures returned via importlib.resources.files joinpath open wrappers."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -2936,7 +2890,6 @@ def test_detects_importlib_resources_joinpath_open_loader() -> None:
 
 def test_detects_importlib_resources_joinpath_read_text_loader() -> None:
     """Detect fixtures returned via importlib.resources.files joinpath read_text wrappers."""  # noqa: E501
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -2956,7 +2909,6 @@ def test_detects_importlib_resources_joinpath_read_text_loader() -> None:
 
 def test_detects_importlib_resources_read_binary_loader() -> None:
     """Detect fixtures returned via importlib.resources.read_binary wrappers."""
-
     offenders = _scan_source(
         "from importlib.resources import read_binary\n"
         "def _read_binary(package: str, resource: str):\n"
@@ -2971,7 +2923,6 @@ def test_detects_importlib_resources_read_binary_loader() -> None:
 
 def test_detects_importlib_resources_open_text_loader() -> None:
     """Detect fixtures returned via importlib.resources.open_text wrappers."""
-
     offenders = _scan_source(
         "from importlib.resources import open_text\n"
         "from types import SimpleNamespace\n"
@@ -2987,7 +2938,6 @@ def test_detects_importlib_resources_open_text_loader() -> None:
 
 def test_detects_importlib_resources_with_suffix_open_text_loader() -> None:
     """Detect fixtures returned via files().joinpath().with_suffix().open_text()."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3009,7 +2959,6 @@ def test_detects_importlib_resources_with_suffix_open_text_loader() -> None:
 
 def test_detects_importlib_resources_with_name_open_text_loader() -> None:
     """Detect fixtures returned via files().joinpath().with_name().open_text()."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3031,7 +2980,6 @@ def test_detects_importlib_resources_with_name_open_text_loader() -> None:
 
 def test_detects_importlib_resources_with_stem_open_text_loader() -> None:
     """Detect fixtures returned via files().joinpath().with_stem().open_text()."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3053,7 +3001,6 @@ def test_detects_importlib_resources_with_stem_open_text_loader() -> None:
 
 def test_detects_importlib_resources_with_segments_open_text_loader() -> None:
     """Detect fixtures returned via files().joinpath().with_segments().open_text."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3075,7 +3022,6 @@ def test_detects_importlib_resources_with_segments_open_text_loader() -> None:
 
 def test_detects_importlib_resources_resolve_open_text_loader() -> None:
     """Detect fixtures returned via files().joinpath().resolve().open_text."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3097,7 +3043,6 @@ def test_detects_importlib_resources_resolve_open_text_loader() -> None:
 
 def test_detects_importlib_resources_parent_joinpath_loader() -> None:
     """Detect fixtures returned via files().joinpath().parent.joinpath().open_text."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3119,7 +3064,6 @@ def test_detects_importlib_resources_parent_joinpath_loader() -> None:
 
 def test_detects_importlib_resources_parents_index_joinpath_loader() -> None:
     """Detect fixtures returned via files().joinpath().parents[0].joinpath()."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3143,7 +3087,6 @@ def test_detects_importlib_resources_parents_index_joinpath_loader() -> None:
 
 def test_detects_importlib_resources_parents_nested_joinpath_loader() -> None:
     """Detect fixtures returned via files().joinpath().parents[2].joinpath()."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3167,7 +3110,6 @@ def test_detects_importlib_resources_parents_nested_joinpath_loader() -> None:
 
 def test_detects_importlib_resources_parents_with_segments_loader() -> None:
     """Detect fixtures returned via parents[index].with_segments().open_text."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3191,7 +3133,6 @@ def test_detects_importlib_resources_parents_with_segments_loader() -> None:
 
 def test_detects_importlib_resources_parents_resolve_joinpath_loader() -> None:
     """Detect fixtures returned via parents[index].resolve().joinpath().open_text."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3217,7 +3158,6 @@ def test_detects_importlib_resources_parents_resolve_joinpath_loader() -> None:
 
 def test_detects_importlib_resources_relative_to_open_text_loader() -> None:
     """Detect fixtures returned via files().joinpath().relative_to().open_text()."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3239,7 +3179,6 @@ def test_detects_importlib_resources_relative_to_open_text_loader() -> None:
 
 def test_detects_importlib_resources_contents_loader_chain() -> None:
     """Detect fixtures retrieved through importlib.resources.contents loaders."""
-
     offenders = _scan_source(
         "from importlib.resources import contents\n"
         "from importlib import import_module\n"
@@ -3260,7 +3199,6 @@ def test_detects_importlib_resources_contents_loader_chain() -> None:
 
 def test_detects_zipimporter_loaded_fixture() -> None:
     """Detect fixtures exposed through zipimporter module loaders."""
-
     offenders = _scan_source(
         "import zipimport\n"
         "importer = zipimport.zipimporter('helpers.zip')\n"
@@ -3273,7 +3211,6 @@ def test_detects_zipimporter_loaded_fixture() -> None:
 
 def test_detects_zipimporter_load_module_loader() -> None:
     """Detect fixtures returned through zipimporter.load_module loaders."""
-
     offenders = _scan_source(
         "import zipimport\n"
         "from types import SimpleNamespace\n"
@@ -3291,7 +3228,6 @@ def test_detects_zipimporter_load_module_loader() -> None:
 
 def test_detects_zipimporter_get_source_loader() -> None:
     """Detect fixtures returned through zipimporter.get_source loaders."""
-
     offenders = _scan_source(
         "import zipimport\n"
         "from types import SimpleNamespace\n"
@@ -3309,7 +3245,6 @@ def test_detects_zipimporter_get_source_loader() -> None:
 
 def test_detects_zipimporter_get_code_loader() -> None:
     """Detect fixtures returned through zipimporter.get_code loaders."""
-
     offenders = _scan_source(
         "import zipimport\n"
         "from types import SimpleNamespace\n"
@@ -3327,7 +3262,6 @@ def test_detects_zipimporter_get_code_loader() -> None:
 
 def test_detects_zipimporter_find_module_loader() -> None:
     """Detect fixtures returned through zipimporter.find_module loaders."""
-
     offenders = _scan_source(
         "import zipimport\n"
         "from types import SimpleNamespace\n"
@@ -3345,7 +3279,6 @@ def test_detects_zipimporter_find_module_loader() -> None:
 
 def test_detects_zipimporter_find_loader_loader() -> None:
     """Detect fixtures returned through zipimporter.find_loader loaders."""
-
     offenders = _scan_source(
         "import zipimport\n"
         "from types import SimpleNamespace\n"
@@ -3365,7 +3298,6 @@ def test_detects_zipimporter_find_loader_loader() -> None:
 
 def test_detects_zipimporter_find_spec_loader() -> None:
     """Detect fixtures returned through zipimporter.find_spec loaders."""
-
     offenders = _scan_source(
         "import zipimport\n"
         "from types import SimpleNamespace\n"
@@ -3387,7 +3319,6 @@ def test_detects_zipimporter_find_spec_loader() -> None:
 
 def test_detects_find_spec_nested_loader_chain() -> None:
     """Detect fixtures returned via nested spec.loader chains."""
-
     offenders = _scan_source(
         "from importlib.util import find_spec\n"
         "from types import SimpleNamespace\n"
@@ -3407,7 +3338,6 @@ def test_detects_find_spec_nested_loader_chain() -> None:
 
 def test_detects_find_spec_invalidate_caches_loader() -> None:
     """Detect fixtures returned after loader.invalidate_caches wrappers."""
-
     offenders = _scan_source(
         "from importlib.util import find_spec\n"
         "from types import SimpleNamespace\n"
@@ -3428,7 +3358,6 @@ def test_detects_find_spec_invalidate_caches_loader() -> None:
 
 def test_detects_runpy_init_globals_fixture_alias() -> None:
     """Detect fixtures injected into runpy namespaces via init_globals."""
-
     offenders = _scan_source(
         "import runpy\n"
         "init_globals = {}\n"
@@ -3445,7 +3374,6 @@ def test_detects_runpy_init_globals_fixture_alias() -> None:
 
 def test_detects_runpy_run_path_fixture_alias() -> None:
     """Detect fixtures retrieved from runpy.run_path namespaces."""
-
     offenders = _scan_source(
         "import runpy\n"
         "namespace = runpy.run_path('tests/helpers.py')\n"
@@ -3458,7 +3386,6 @@ def test_detects_runpy_run_path_fixture_alias() -> None:
 
 def test_detects_pkgutil_get_importer_loader_chain() -> None:
     """Detect fixtures returned from pkgutil.get_importer importers."""
-
     offenders = _scan_source(
         "import pkgutil\n"
         "from types import SimpleNamespace\n"
@@ -3481,7 +3408,6 @@ def test_detects_pkgutil_get_importer_loader_chain() -> None:
 
 def test_detects_owner_websocket_fixture_invocation() -> None:
     """Detect direct invocations of the owner websocket fixture."""
-
     offenders = _scan_source("hass_owner_ws_client()\n")
 
     assert len(offenders) == 1
@@ -3490,7 +3416,6 @@ def test_detects_owner_websocket_fixture_invocation() -> None:
 
 def test_detects_importlib_resources_getattr_loader() -> None:
     """Detect fixtures retrieved from importlib.resources attribute lookups."""
-
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "client = getattr(files('tests.helpers'), 'hass_supervisor_ws_client')\n"
@@ -3503,7 +3428,6 @@ def test_detects_importlib_resources_getattr_loader() -> None:
 
 def test_detects_import_module_factory() -> None:
     """Detect factories loading fixtures dynamically via importlib."""
-
     offenders = _scan_source(
         "from importlib import import_module\n"
         "module = import_module('tests.conftest')\n"
@@ -3517,7 +3441,6 @@ def test_detects_import_module_factory() -> None:
 
 def test_detects_import_module_direct_getattr_invocation() -> None:
     """Detect direct getattr invocations on importlib-loaded modules."""
-
     offenders = _scan_source(
         "from importlib import import_module\n"
         "getattr(import_module('tests.conftest'), 'hass_admin_ws_client')()\n"
@@ -3529,7 +3452,6 @@ def test_detects_import_module_direct_getattr_invocation() -> None:
 
 def test_detects_pkgutil_walk_packages_loader_chain() -> None:
     """Detect fixtures loaded through pkgutil.walk_packages helpers."""
-
     offenders = _scan_source(
         "from importlib import import_module\n"
         "from pkgutil import walk_packages\n"
@@ -3543,7 +3465,6 @@ def test_detects_pkgutil_walk_packages_loader_chain() -> None:
 
 def test_detects_voice_assistant_http_fixture_invocation() -> None:
     """Detect direct invocations of the voice assistant HTTP fixture."""
-
     offenders = _scan_source("hass_voice_assistant_client()\n")
 
     assert len(offenders) == 1
@@ -3552,7 +3473,6 @@ def test_detects_voice_assistant_http_fixture_invocation() -> None:
 
 def test_detects_voice_assistant_websocket_fixture_invocation() -> None:
     """Detect direct invocations of the voice assistant websocket fixture."""
-
     offenders = _scan_source("hass_voice_assistant_ws_client()\n")
 
     assert len(offenders) == 1
@@ -3561,7 +3481,6 @@ def test_detects_voice_assistant_websocket_fixture_invocation() -> None:
 
 def test_detects_voice_assistant_prefix_fixture_invocation() -> None:
     """Detect new voice assistant fixtures exposed via prefix matching."""
-
     offenders = _scan_source("hass_voice_assistant_pipeline_ws_client()\n")
 
     assert len(offenders) == 1
@@ -3570,7 +3489,6 @@ def test_detects_voice_assistant_prefix_fixture_invocation() -> None:
 
 def test_detects_function_returning_fixture_alias() -> None:
     """Detect helper functions that return forbidden fixtures."""
-
     offenders = _scan_source(
         "def build_client():\n    return hass_client\nbuild_client()()\n"
     )
@@ -3581,7 +3499,6 @@ def test_detects_function_returning_fixture_alias() -> None:
 
 def test_detects_descriptor_factory_fixture() -> None:
     """Detect descriptor factories that yield forbidden fixtures."""
-
     offenders = _scan_source(
         "def descriptor_factory():\n"
         "    def getter(self):\n"
@@ -3598,7 +3515,6 @@ def test_detects_descriptor_factory_fixture() -> None:
 
 def test_detects_setattr_descriptor_fixture_alias() -> None:
     """Detect descriptor builders that install fixtures via setattr."""
-
     offenders = _scan_source(
         "def install(cls):\n"
         "    setattr(cls, 'client', property(lambda self: hass_client))\n"
@@ -3614,7 +3530,6 @@ def test_detects_setattr_descriptor_fixture_alias() -> None:
 
 def test_detects_getattr_forwarder_fixture() -> None:
     """Detect __getattr__ forwarders that expose forbidden fixtures."""
-
     offenders = _scan_source(
         "class Proxy:\n"
         "    def __getattr__(self, name):\n"
@@ -3629,7 +3544,6 @@ def test_detects_getattr_forwarder_fixture() -> None:
 
 def test_detects_getattribute_forwarder_fixture() -> None:
     """Detect __getattribute__ forwarders that expose forbidden fixtures."""
-
     offenders = _scan_source(
         "class Proxy:\n"
         "    def __getattribute__(self, name):\n"
@@ -3644,7 +3558,6 @@ def test_detects_getattribute_forwarder_fixture() -> None:
 
 def test_detects_dataclass_field_fixture_alias() -> None:
     """Detect dataclass fields that default to forbidden fixtures."""
-
     offenders = _scan_source(
         "from dataclasses import dataclass, field\n"
         "@dataclass\n"
@@ -3659,7 +3572,6 @@ def test_detects_dataclass_field_fixture_alias() -> None:
 
 def test_detects_make_dataclass_fixture_alias() -> None:
     """Detect dataclasses.make_dataclass fields returning forbidden fixtures."""
-
     offenders = _scan_source(
         "from dataclasses import field, make_dataclass\n"
         "Helper = make_dataclass(\n"
@@ -3675,7 +3587,6 @@ def test_detects_make_dataclass_fixture_alias() -> None:
 
 def test_detects_contextmanager_fixture_wrapper() -> None:
     """Detect contextmanager helpers that yield forbidden fixtures."""
-
     offenders = _scan_source(
         "from contextlib import contextmanager\n"
         "@contextmanager\n"
@@ -3691,7 +3602,6 @@ def test_detects_contextmanager_fixture_wrapper() -> None:
 
 def test_detects_asynccontextmanager_fixture_wrapper() -> None:
     """Detect asynccontextmanager helpers that yield forbidden fixtures."""
-
     offenders = _scan_source(
         "from contextlib import asynccontextmanager\n"
         "@asynccontextmanager\n"
@@ -3708,7 +3618,6 @@ def test_detects_asynccontextmanager_fixture_wrapper() -> None:
 
 def test_detects_class_getitem_fixture_proxy() -> None:
     """Detect __class_getitem__ helpers that expose forbidden fixtures."""
-
     offenders = _scan_source(
         "class Proxy:\n"
         "    def __class_getitem__(cls, item):\n"
@@ -3722,7 +3631,6 @@ def test_detects_class_getitem_fixture_proxy() -> None:
 
 def test_detects_class_getitem_alias_proxy() -> None:
     """Detect aliases of __class_getitem__ helpers returning fixtures."""
-
     offenders = _scan_source(
         "class Proxy:\n"
         "    @classmethod\n"
@@ -3738,7 +3646,6 @@ def test_detects_class_getitem_alias_proxy() -> None:
 
 def test_detects_class_getitem_getattr_proxy() -> None:
     """Detect getattr-based access to __class_getitem__ helpers."""
-
     offenders = _scan_source(
         "class Proxy:\n"
         "    def __class_getitem__(cls, item):\n"
@@ -3754,7 +3661,6 @@ def test_detects_class_getitem_getattr_proxy() -> None:
 
 def test_detects_nullcontext_fixture_wrapper() -> None:
     """Detect nullcontext wrappers that forward forbidden fixtures."""
-
     offenders = _scan_source(
         "from contextlib import nullcontext\n"
         "with nullcontext(hass_client) as helper:\n"
@@ -3767,7 +3673,6 @@ def test_detects_nullcontext_fixture_wrapper() -> None:
 
 def test_detects_closing_fixture_wrapper() -> None:
     """Detect closing wrappers that forward forbidden fixtures."""
-
     offenders = _scan_source(
         "from contextlib import closing\n"
         "with closing(hass_client_admin) as helper:\n"
@@ -3780,7 +3685,6 @@ def test_detects_closing_fixture_wrapper() -> None:
 
 def test_detects_aclosing_fixture_wrapper() -> None:
     """Detect aclosing wrappers that forward forbidden fixtures."""
-
     offenders = _scan_source(
         "from contextlib import aclosing\n"
         "async def run():\n"
@@ -3794,7 +3698,6 @@ def test_detects_aclosing_fixture_wrapper() -> None:
 
 def test_detects_task_group_fixture_invocation() -> None:
     """Detect TaskGroup helpers that schedule forbidden fixtures."""
-
     offenders = _scan_source(
         "import asyncio\n"
         "async def run():\n"
@@ -3808,7 +3711,6 @@ def test_detects_task_group_fixture_invocation() -> None:
 
 def test_detects_task_group_starting_fixture_callable() -> None:
     """Detect TaskGroup helpers that start forbidden fixture callables."""
-
     offenders = _scan_source(
         "import asyncio\n"
         "async def run():\n"
@@ -3822,7 +3724,6 @@ def test_detects_task_group_starting_fixture_callable() -> None:
 
 def test_detects_async_exit_stack_async_context_wrapper() -> None:
     """Detect AsyncExitStack helpers that enter forbidden fixture contexts."""
-
     offenders = _scan_source(
         "from contextlib import AsyncExitStack, nullcontext\n"
         "async def run():\n"
@@ -3836,7 +3737,6 @@ def test_detects_async_exit_stack_async_context_wrapper() -> None:
 
 def test_detects_async_exit_stack_async_callback_wrapper() -> None:
     """Detect AsyncExitStack helpers that push forbidden fixture callbacks."""
-
     offenders = _scan_source(
         "from contextlib import AsyncExitStack\n"
         "async def run():\n"
@@ -3850,7 +3750,6 @@ def test_detects_async_exit_stack_async_callback_wrapper() -> None:
 
 def test_detects_async_exit_stack_async_exit_wrapper() -> None:
     """Detect AsyncExitStack helpers that push forbidden async exits."""
-
     offenders = _scan_source(
         "from contextlib import AsyncExitStack\n"
         "async def run():\n"
@@ -3864,7 +3763,6 @@ def test_detects_async_exit_stack_async_exit_wrapper() -> None:
 
 def test_detects_exitstack_fixture_alias() -> None:
     """Detect ExitStack helpers that alias forbidden fixtures."""
-
     offenders = _scan_source(
         "from contextlib import ExitStack\n"
         "import module\n"
@@ -3883,7 +3781,6 @@ def test_detects_exitstack_fixture_alias() -> None:
 
 def test_forbidden_fixture_invocations() -> None:
     """Fail when tests call fixtures like regular functions or helper wrappers."""
-
     offenders: list[str] = []
 
     for path in sorted(Path("tests").rglob("*.py")):

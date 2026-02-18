@@ -21,14 +21,12 @@ class _CoordinatorStub:
 
     def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
         """Return coordinator dog payload for ``dog_id``."""
-
         return self._data.get(dog_id)
 
     def get_module_data(
         self, dog_id: str, module: str
     ) -> CoordinatorModuleLookupResult:
         """Return module data for ``dog_id`` and ``module``."""
-
         dog_payload = self._data.get(dog_id, cast(CoordinatorDogData, {}))
         return cast(CoordinatorModuleLookupResult, dog_payload.get(module, {}))
 
@@ -47,20 +45,17 @@ class _DummySensor(PawControlSensorBase):
     @property
     def native_value(self) -> int | None:
         """Return a static value; not relevant for module tests."""
-
         return 0
 
 
 def _build_sensor(payload: dict[str, CoordinatorDogData]) -> _DummySensor:
     """Helper to instantiate a sensor against ``payload``."""
-
     coordinator = _CoordinatorStub(payload)
     return _DummySensor(coordinator)
 
 
 def test_get_module_data_preserves_typed_payload() -> None:
     """Typed modules should pass through coordinator payloads unchanged."""
-
     sensor = _build_sensor({
         "alpha": cast(
             CoordinatorDogData,
@@ -76,7 +71,6 @@ def test_get_module_data_preserves_typed_payload() -> None:
 
 def test_get_module_data_returns_empty_mapping_for_unknown_module() -> None:
     """Unknown modules should yield empty payloads."""
-
     sensor = _build_sensor({"alpha": cast(CoordinatorDogData, {})})
 
     payload = sensor._get_module_data("notifications")

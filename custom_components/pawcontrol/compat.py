@@ -426,26 +426,22 @@ class ConfigEntryState(Enum):
 
     def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:
         """Create enum members that store the recoverability flag."""
-
         obj = object.__new__(cls)
         obj._value_ = value
         return obj
 
     def __init__(self, _value: str, recoverable: bool) -> None:
         """Store whether the state can be automatically recovered."""
-
         self._recoverable: bool = recoverable
 
     @property
     def recoverable(self) -> bool:
         """Return whether the state can be recovered without user intervention."""
-
         return self._recoverable
 
     @classmethod
     def from_value(cls, value: str) -> ConfigEntryState:
         """Return the enum member matching ``value`` regardless of casing."""
-
         try:
             return cls[value.upper()]
         except KeyError:
@@ -547,7 +543,6 @@ class ConfigEntry[RuntimeT]:
         modified_at: datetime | None = None,
     ) -> None:
         """Initialize a shim config entry compatible with Home Assistant tests."""
-
         self.entry_id = entry_id or f"entry_{next(self._id_source)}"
         self.domain = domain or "unknown"
         self.data: ConfigEntryData = dict(data or {})
@@ -600,7 +595,6 @@ class ConfigEntry[RuntimeT]:
     @property
     def supports_options(self) -> bool:
         """Return whether the entry exposes an options flow."""
-
         return self._resolve_supports_flag(
             "_supports_options",
             "async_supports_options_flow",
@@ -610,13 +604,11 @@ class ConfigEntry[RuntimeT]:
     @property
     def supports_unload(self) -> bool:
         """Return whether the entry exposes an unload hook."""
-
         return self._resolve_supports_flag("_supports_unload", "async_unload_entry")
 
     @property
     def supports_remove_device(self) -> bool:
         """Return whether the entry exposes a remove-device hook."""
-
         return self._resolve_supports_flag(
             "_supports_remove_device",
             "async_remove_config_entry_device",
@@ -625,7 +617,6 @@ class ConfigEntry[RuntimeT]:
     @property
     def supports_reconfigure(self) -> bool:
         """Return whether the entry exposes a reconfigure flow."""
-
         return self._resolve_supports_flag(
             "_supports_reconfigure",
             "async_supports_reconfigure_flow",
@@ -635,7 +626,6 @@ class ConfigEntry[RuntimeT]:
     @property
     def supported_subentry_types(self) -> dict[str, dict[str, bool]]:
         """Return the supported subentry types mapping."""
-
         if self._supported_subentry_types is not None:
             return self._supported_subentry_types
         handler = HANDLERS.get(self.domain)
@@ -674,7 +664,6 @@ class ConfigEntry[RuntimeT]:
 
     def add_to_hass(self, hass: Any) -> None:
         """Associate the entry with a Home Assistant instance."""
-
         self._hass = hass
         manager = getattr(
             getattr(hass, "config_entries", None),
@@ -689,7 +678,6 @@ class ConfigEntry[RuntimeT]:
         listener: Callable[[Any, ConfigEntry[RuntimeT]], Awaitable[None] | None],
     ) -> Callable[[], None]:
         """Register a callback for config entry updates."""
-
         self.update_listeners.append(listener)
 
         def _remove() -> None:
@@ -703,20 +691,17 @@ class ConfigEntry[RuntimeT]:
         callback: Callable[[], Coroutine[Any, Any, None] | None],
     ) -> Callable[[], Coroutine[Any, Any, None] | None]:
         """Register a callback invoked when the entry unloads."""
-
         self._on_unload.append(callback)
         return callback
 
     async def async_setup(self, hass: Any) -> bool:  # pragma: no cover - helper
         """Mark the entry as loaded when set up in tests."""
-
         self._hass = hass
         self.state = ConfigEntryState.LOADED
         return True
 
     async def async_unload(self, hass: Any | None = None) -> bool:
         """Mark the entry as not loaded and invoke unload callbacks."""
-
         self.state = ConfigEntryState.NOT_LOADED
         for callback in list(self._on_unload):
             result = callback()

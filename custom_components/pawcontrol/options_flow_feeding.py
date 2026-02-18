@@ -40,7 +40,6 @@ class FeedingOptionsMixin(FeedingOptionsHost):
     @staticmethod
     def _coerce_meals_per_day(value: Any, default: int) -> int:
         """Coerce meal counts to a bounded integer."""
-
         if value is None:
             return default
         try:
@@ -53,7 +52,6 @@ class FeedingOptionsMixin(FeedingOptionsHost):
 
     def _current_feeding_options(self, dog_id: str) -> FeedingOptions:
         """Return the stored feeding configuration as a typed mapping."""
-
         dog_options = self._current_dog_options()
         entry = dog_options.get(dog_id, {})
         raw = entry.get("feeding_settings")
@@ -69,7 +67,6 @@ class FeedingOptionsMixin(FeedingOptionsHost):
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure feeding settings for."""
-
         if not self._dogs:
             return await self.async_step_init()
         if user_input is not None:
@@ -90,7 +87,6 @@ class FeedingOptionsMixin(FeedingOptionsHost):
         user_input: OptionsFeedingSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure feeding and nutrition settings."""
-
         current_dog = self._require_current_dog()
         if current_dog is None:
             return await self.async_step_select_dog_for_feeding_settings()
@@ -149,7 +145,6 @@ class FeedingOptionsMixin(FeedingOptionsHost):
         user_input: OptionsFeedingSettingsInput | None = None,
     ) -> vol.Schema:
         """Get feeding settings schema."""
-
         current_feeding = self._current_feeding_options(dog_id)
         current_values = user_input or {}
 
@@ -206,7 +201,6 @@ class FeedingOptionsMixin(FeedingOptionsHost):
         current: FeedingOptions,
     ) -> FeedingOptions:
         """Create a typed feeding payload from the submitted form data."""
-
         return cast(
             FeedingOptions,
             {

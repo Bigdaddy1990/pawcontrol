@@ -573,14 +573,12 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
 
     def _get_coordinator_dog_data(self) -> CoordinatorDogData | None:
         """Get dog data from coordinator."""
-
         if self.coordinator.available:
             return self.coordinator.get_dog_data(self._dog_id)
         return None
 
     def _get_dog_config(self) -> DogConfigData | None:
         """Return the typed dog configuration when available."""
-
         payload = self._get_coordinator_dog_data()
         if payload is None:
             return None

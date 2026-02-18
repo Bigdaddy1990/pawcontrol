@@ -489,7 +489,6 @@ class WeatherHealthManager:
     @staticmethod
     def _parse_translation_key(key: str) -> WeatherTranslationParts | None:
         """Normalise dotted translation keys into typed translation segments."""
-
         segments = tuple(part for part in key.split(".") if part)
         if segments and segments[0] == TRANSLATION_PREFIX:
             segments = segments[1:]
@@ -522,7 +521,6 @@ class WeatherHealthManager:
         Returns:
             Translated string or fallback English text
         """
-
         parts = self._parse_translation_key(key)
         if parts is None:
             return key
@@ -555,7 +553,6 @@ class WeatherHealthManager:
         **kwargs: Any,
     ) -> str:
         """Get English fallback text for translation keys."""
-
         try:
             resolved = self._resolve_translation_value(
                 self._english_translations,
@@ -576,7 +573,6 @@ class WeatherHealthManager:
         parts: WeatherTranslationParts,
     ) -> str | None:
         """Resolve a nested translation value from the provided catalog."""
-
         section = parts[0]
         if section == "alerts":
             alert_parts = cast(AlertTranslationParts, parts)
@@ -604,7 +600,6 @@ class WeatherHealthManager:
         field: AlertField,
     ) -> str | None:
         """Resolve an alert translation field from the alerts catalog."""
-
         if alert_key not in alerts:
             return None
         alert = alerts[alert_key]
@@ -619,7 +614,6 @@ class WeatherHealthManager:
         recommendation_key: WeatherRecommendationKey,
     ) -> str | None:
         """Resolve a recommendation translation string from the catalog."""
-
         if recommendation_key not in recommendations:
             return None
         value = cast(object, recommendations[recommendation_key])
@@ -628,7 +622,6 @@ class WeatherHealthManager:
     @staticmethod
     def _coerce_float(value: object) -> float | None:
         """Convert integers or floats to float, rejecting bools and others."""
-
         if isinstance(value, bool):
             return None
         if isinstance(value, int | float):
@@ -638,7 +631,6 @@ class WeatherHealthManager:
     @staticmethod
     def _coerce_int(value: object) -> int | None:
         """Convert numeric values to integers for probability fields."""
-
         if isinstance(value, bool):
             return None
         if isinstance(value, int):

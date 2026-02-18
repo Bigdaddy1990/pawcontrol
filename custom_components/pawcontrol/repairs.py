@@ -210,7 +210,6 @@ async def async_create_issue(
 
     def _serialise_issue_value(value: Any) -> JSONType:
         """Serialise issue metadata to JSON-compatible structures."""
-
         if value is None or isinstance(value, str | int | float | bool):
             return value
         if isinstance(value, list | tuple | set):
@@ -223,7 +222,6 @@ async def async_create_issue(
 
     def _stringify_placeholder(value: JSONType) -> str:
         """Convert serialised metadata into user-friendly placeholder text."""
-
         if isinstance(value, list):
             return ", ".join(_stringify_placeholder(item) for item in value)
         if isinstance(value, dict):
@@ -2196,7 +2194,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for notification authentication errors."""
-
         if user_input is not None:
             action = user_input.get("action")
             if action == "review_services":
@@ -2227,7 +2224,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for unreachable notification devices."""
-
         if user_input is not None:
             action = user_input.get("action")
             if action == "review_devices":
@@ -2255,7 +2251,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
 
     def _notification_delivery_placeholders(self) -> dict[str, object]:
         """Return shared description placeholders for delivery error repairs."""
-
         return {
             "services": self._issue_data.get("services", "unknown"),
             "service_count": self._issue_data.get("service_count", 0),
@@ -2271,7 +2266,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         options: list[dict[str, str]],
     ) -> vol.Schema:
         """Return a selector schema for notification delivery actions."""
-
         return vol.Schema(
             {
                 vol.Required("action"): selector(
@@ -2289,7 +2283,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for missing notification services."""
-
         if user_input is not None:
             action = user_input.get("action")
             if action == "review_services":
@@ -2329,7 +2322,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for notification timeout errors."""
-
         if user_input is not None:
             action = user_input.get("action")
             if action == "review_services":
@@ -2360,7 +2352,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for rate-limited notification services."""
-
         if user_input is not None:
             action = user_input.get("action")
             if action == "review_automations":
@@ -2400,7 +2391,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for guard-skipped notification deliveries."""
-
         if user_input is not None:
             action = user_input.get("action")
             if action == "review_services":
@@ -2431,7 +2421,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for generic notification delivery errors."""
-
         if user_input is not None:
             action = user_input.get("action")
             if action == "review_services":
@@ -2511,7 +2500,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for storage warnings."""
-
         if user_input is not None:
             action = user_input.get("action")
             if action == "reduce_retention":
@@ -2558,7 +2546,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for high resource module conflicts."""
-
         if user_input is not None:
             action = user_input.get("action")
             if action == "reduce_load":
@@ -2612,7 +2599,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for invalid dog configuration data."""
-
         if user_input is not None:
             action = user_input.get("action")
             if action == "clean_up":
@@ -2675,7 +2661,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for coordinator errors."""
-
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -2852,7 +2837,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
 
     async def _reduce_data_retention(self) -> None:
         """Reduce stored history to the recommended value."""
-
         config_entry_id = self._issue_data.get("config_entry_id")
         if not config_entry_id:
             return
@@ -2870,7 +2854,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
 
     async def _limit_high_resource_modules(self) -> None:
         """Disable heavy modules for dogs beyond the recommended threshold."""
-
         config_entry_id = self._issue_data.get("config_entry_id")
         if not config_entry_id:
             return
@@ -2953,7 +2936,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
 
     async def _remove_invalid_dogs(self) -> None:
         """Remove dogs that are missing required identifiers."""
-
         config_entry_id = self._issue_data.get("config_entry_id")
         if not config_entry_id:
             return
@@ -2973,7 +2955,6 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
 
     async def _reload_config_entry(self) -> bool:
         """Reload the integration config entry to recover from coordinator errors."""
-
         config_entry_id = self._issue_data.get("config_entry_id")
         if not config_entry_id:
             _LOGGER.error(

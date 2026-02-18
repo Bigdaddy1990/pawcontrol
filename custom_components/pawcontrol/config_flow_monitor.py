@@ -20,7 +20,6 @@ class ConfigFlowPerformanceMonitor:
 
     def record_operation(self, operation: str, duration: float) -> None:
         """Record timing information for an operation."""
-
         times = self.operation_times.setdefault(operation, [])
         times.append(duration)
 
@@ -30,14 +29,12 @@ class ConfigFlowPerformanceMonitor:
 
     def record_validation(self, validation_type: str) -> None:
         """Record a validation invocation."""
-
         self.validation_counts[validation_type] = (
             self.validation_counts.get(validation_type, 0) + 1
         )
 
     def get_stats(self) -> ConfigFlowPerformanceStats:
         """Return aggregated statistics for diagnostics."""
-
         operations: ConfigFlowOperationMetricsMap = {}
         for operation, times in self.operation_times.items():
             if not times:

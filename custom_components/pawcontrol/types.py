@@ -1181,12 +1181,10 @@ class DogModulesProjection:
 
     def as_config(self) -> DogModulesConfig:
         """Return a ``DogModulesConfig`` copy suitable for storage."""
-
         return cast(DogModulesConfig, dict(self.config))
 
     def as_mapping(self) -> dict[str, bool]:
         """Return a plain mapping for platform factories."""
-
         return dict(self.mapping)
 
 
@@ -4497,12 +4495,10 @@ class GPSRouteBuffer[TPoint: GPSRoutePoint]:
 
     def append(self, point: TPoint) -> None:
         """Append a new GPS sample to the buffer."""
-
         self._points.append(point)
 
     def prune(self, *, cutoff: datetime, max_points: int) -> None:
         """Drop samples older than ``cutoff`` while enforcing ``max_points``."""
-
         filtered_points: list[TPoint] = []
         for point in self._points:
             timestamp = point.get("timestamp")
@@ -4515,7 +4511,6 @@ class GPSRouteBuffer[TPoint: GPSRoutePoint]:
 
     def snapshot(self, *, limit: int | None = None) -> list[TPoint]:
         """Return a shallow copy of the most recent samples."""
-
         if limit is None:
             return list(self._points)
         if limit <= 0:
@@ -4524,27 +4519,22 @@ class GPSRouteBuffer[TPoint: GPSRoutePoint]:
 
     def view(self) -> Sequence[TPoint]:
         """Return a read-only view over the buffered route samples."""
-
         return self._points
 
     def clear(self) -> None:
         """Remove all buffered samples."""
-
         self._points.clear()
 
     def __len__(self) -> int:
         """Return the number of buffered samples."""
-
         return len(self._points)
 
     def __bool__(self) -> bool:  # pragma: no cover - delegated to __len__
         """Return ``True`` when the buffer contains samples."""
-
         return bool(self._points)
 
     def __iter__(self) -> Iterator[TPoint]:
         """Iterate over buffered samples in chronological order."""
-
         return iter(self._points)
 
 
@@ -5001,7 +4991,6 @@ class ModuleCacheMetrics:
     @property
     def hit_rate(self) -> float:
         """Return the cache hit rate as a percentage."""
-
         total = self.hits + self.misses
         if total <= 0:
             return 0.0
@@ -5032,7 +5021,6 @@ class CoordinatorRuntimeManagers:
     @classmethod
     def attribute_names(cls) -> tuple[str, ...]:
         """Return the coordinator attribute names mirrored by this container."""
-
         return (
             "data_manager",
             "feeding_manager",
@@ -5117,7 +5105,6 @@ class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
 
     def to_mapping(self) -> JSONMutableMapping:
         """Return a mapping representation for downstream consumers."""
-
         payload: JSONMutableMapping = {}
         if self.stats is not None:
             payload["stats"] = cast(JSONValue, dict(self.stats))
@@ -5137,7 +5124,6 @@ class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
     @classmethod
     def from_mapping(cls, payload: JSONMapping) -> CacheDiagnosticsSnapshot:
         """Create a snapshot payload from an arbitrary mapping."""
-
         stats = payload.get("stats")
         diagnostics = payload.get("diagnostics")
         snapshot = payload.get("snapshot")
@@ -5258,7 +5244,6 @@ class CacheRepairTotals:
 
     def as_dict(self) -> dict[str, int | float]:
         """Return a JSON-serialisable view of the totals."""
-
         payload: dict[str, int | float] = {
             "entries": self.entries,
             "hits": self.hits,
@@ -5292,7 +5277,6 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
 
     def to_mapping(self) -> JSONMutableMapping:
         """Return a mapping representation for Home Assistant repairs."""
-
         payload: JSONMutableMapping = {
             "total_caches": self.total_caches,
             "anomaly_count": self.anomaly_count,
@@ -7200,7 +7184,6 @@ class PawControlRuntimeData:
     @property
     def runtime_managers(self) -> CoordinatorRuntimeManagers:
         """Return the runtime manager container associated with this entry."""
-
         cached = self._runtime_managers_cache
         if cached is not None:
             return cached
@@ -7324,12 +7307,10 @@ class DomainRuntimeStoreEntry:
 
     def unwrap(self) -> PawControlRuntimeData:
         """Return the stored runtime payload."""
-
         return self.runtime_data
 
     def ensure_current(self) -> DomainRuntimeStoreEntry:
         """Return an entry stamped with the current schema version."""
-
         if self.version == self.CURRENT_VERSION:
             return self
         return DomainRuntimeStoreEntry(
@@ -7340,7 +7321,6 @@ class DomainRuntimeStoreEntry:
 
     def is_future_version(self) -> bool:
         """Return ``True`` when the entry was produced by a newer schema."""
-
         return (
             self.version > self.CURRENT_VERSION
             or self.created_version > self.CURRENT_VERSION
@@ -7348,7 +7328,6 @@ class DomainRuntimeStoreEntry:
 
     def is_legacy_version(self) -> bool:
         """Return ``True`` when the entry predates the compatibility window."""
-
         return self.created_version < self.MINIMUM_COMPATIBLE_VERSION
 
 
@@ -7655,7 +7634,6 @@ class DailyStats:
     @staticmethod
     def _parse_datetime(value: Any) -> datetime | None:
         """Convert ISO formatted values into timezone aware ``datetime`` objects."""
-
         if value is None:
             return None
         if isinstance(value, datetime):
@@ -7669,7 +7647,6 @@ class DailyStats:
     @classmethod
     def from_dict(cls, payload: JSONDateMapping) -> DailyStats:
         """Deserialize daily statistics from a dictionary structure."""
-
         raw_date = payload.get("date")
         date_value = cls._parse_datetime(raw_date) or dt_util.utcnow()
 
@@ -7732,7 +7709,6 @@ class DailyStats:
 
     def as_dict(self) -> DailyStatsPayload:
         """Serialize the statistics for storage."""
-
         return {
             "date": dt_util.as_utc(self.date).isoformat(),
             "feedings_count": self.feedings_count,
@@ -7754,7 +7730,6 @@ class DailyStats:
 
     def reset(self, *, preserve_date: bool = True) -> None:
         """Reset all counters, optionally keeping the current date."""
-
         if not preserve_date:
             self.date = dt_util.utcnow()
         self.feedings_count = 0
@@ -7771,7 +7746,6 @@ class DailyStats:
 
     def register_feeding(self, portion_size: float, timestamp: datetime | None) -> None:
         """Record a feeding event in the aggregate counters."""
-
         self.feedings_count += 1
         if portion_size > 0:
             self.total_food_amount += portion_size
@@ -7786,7 +7760,6 @@ class DailyStats:
         timestamp: datetime | None,
     ) -> None:
         """Record a walk event in the aggregate counters."""
-
         self.walks_count += 1
         if duration:
             self.total_walk_time += int(duration)
@@ -7798,7 +7771,6 @@ class DailyStats:
 
     def register_health_event(self, timestamp: datetime | None) -> None:
         """Record a health log entry in the aggregate counters."""
-
         self.health_logs_count += 1
         parsed = self._parse_datetime(timestamp)
         if parsed is not None:
@@ -7806,7 +7778,6 @@ class DailyStats:
 
     def register_gps_update(self) -> None:
         """Increase the GPS update counter for the day."""
-
         self.gps_updates_count += 1
 
 

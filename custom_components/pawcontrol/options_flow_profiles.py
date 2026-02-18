@@ -161,7 +161,6 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         self,
     ) -> ConfigFlowPlaceholders:
         """Get description placeholders with caching for better performance."""
-
         dogs_raw = self._entry.data.get(CONF_DOGS, [])
         current_dogs: list[DogConfigData] = []
         if isinstance(dogs_raw, Sequence):
@@ -287,7 +286,6 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
     async def _get_profile_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Get description placeholders for profile selection."""
-
         return await self._get_profile_description_placeholders_cached()
 
     def _get_performance_impact_description(self, profile: str) -> str:
@@ -306,7 +304,6 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         profile: str,
     ) -> JSONMutableMapping:
         """Calculate profile preview with optimized performance."""
-
         dogs_raw = self._entry.data.get(CONF_DOGS, [])
         current_dogs: list[DogConfigData] = []
         if isinstance(dogs_raw, Sequence):
@@ -418,7 +415,6 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         performance_score: float,
     ) -> str:
         """Get enhanced profile recommendation with performance considerations."""
-
         if performance_score < 70:
             return "⚠️ Consider 'basic' or 'standard' profile for better performance"
         if performance_score < 85:
@@ -433,7 +429,6 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         dogs: list[DogConfigData],
     ) -> list[str]:
         """Get profile-specific warnings and recommendations."""
-
         warnings: list[str] = []
 
         for dog in dogs:

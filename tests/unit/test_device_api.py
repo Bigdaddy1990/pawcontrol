@@ -14,7 +14,6 @@ from pytest import MonkeyPatch
 @pytest.fixture(scope="module")
 def device_api_module() -> ModuleType:
     """Load the device API helper without importing the integration package."""
-
     monkeypatch = MonkeyPatch()
     ha_module = ModuleType("homeassistant")
     ha_exceptions = ModuleType("homeassistant.exceptions")
@@ -100,7 +99,6 @@ def test_device_client_uses_injected_session(
     session_factory,
 ) -> None:
     """The device client should proxy requests through the shared session."""
-
     session = session_factory()
     response = Mock()
     response.status = 200
@@ -128,7 +126,6 @@ def test_device_client_rejects_missing_session(
     device_api_module: ModuleType,
 ) -> None:
     """Passing ``None`` should raise a descriptive error."""
-
     with pytest.raises(ValueError) as excinfo:
         device_api_module.PawControlDeviceClient(  # type: ignore[arg-type]
             session=None,
@@ -146,7 +143,6 @@ def test_device_client_rejects_closed_session(
     session_factory,
 ) -> None:
     """Closed sessions must not be accepted."""
-
     session = session_factory(closed=True)
 
     with pytest.raises(ValueError) as excinfo:

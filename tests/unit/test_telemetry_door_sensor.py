@@ -21,7 +21,6 @@ def _build_runtime_data(
     error_history: list[RuntimeErrorHistoryEntry] | None = None,
 ) -> PawControlRuntimeData:
     """Return a runtime data namespace with mutable telemetry containers."""
-
     return cast(
         PawControlRuntimeData,
         SimpleNamespace(
@@ -35,7 +34,6 @@ def test_record_door_sensor_failure_records_structured_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Door sensor persistence failures should persist structured telemetry."""
-
     runtime_data = _build_runtime_data()
     recorded_at = datetime(2024, 1, 5, 12, 0, tzinfo=UTC)
     monkeypatch.setattr(
@@ -99,7 +97,6 @@ def test_record_door_sensor_failure_enforces_history_limits(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Door sensor failure telemetry should cap failure and error history lists."""
-
     existing_failures: list[DoorSensorPersistenceFailure] = [
         {
             "dog_id": f"dog-{index}",
@@ -182,7 +179,6 @@ def test_record_door_sensor_failure_updates_existing_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Recording another failure should bump summary counters for the same dog."""
-
     previous_failure: DoorSensorPersistenceFailure = {
         "dog_id": "alpha",
         "recorded_at": "2024-01-01T00:00:00",

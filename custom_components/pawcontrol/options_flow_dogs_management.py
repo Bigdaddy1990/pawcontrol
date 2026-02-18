@@ -322,7 +322,6 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         user_input: OptionsDoorSensorInput | None = None,
     ) -> vol.Schema:
         """Build schema for configuring per-dog door sensor overrides."""
-
         values = dict(user_input or {})
         sensor_default = values.get(CONF_DOOR_SENSOR)
         if not isinstance(sensor_default, str):
@@ -467,7 +466,6 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
     def _get_available_door_sensors(self) -> dict[str, str]:
         """Return mapping of available door sensors by friendly name."""
-
         sensors: dict[str, str] = {}
         for entity_id in self.hass.states.async_entity_ids("binary_sensor"):
             state = self.hass.states.get(entity_id)
@@ -484,7 +482,6 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         self,
     ) -> ConfigFlowPlaceholders:
         """Async wrapper for module description placeholders."""
-
         if self.hass is not None:
             hass_config = getattr(self.hass, "config", None)
             hass_language = (
@@ -706,7 +703,6 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         dogs: Sequence[Mapping[str, JSONValue]],
     ) -> vol.Schema:
         """Build the removal confirmation schema for the provided dog list."""
-
         dog_options: list[dict[str, str]] = []
         for dog in dogs:
             dog_id = dog.get(DOG_ID_FIELD)

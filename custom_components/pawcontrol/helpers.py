@@ -278,7 +278,6 @@ class OptimizedDataCache[ValueT]:
         runtime. Normalising them prevents stale data from persisting beyond the
         intended TTL once the clock moves backwards again.
         """
-
         timestamp = self._timestamps.get(key)
         if timestamp is None:
             return
@@ -324,7 +323,6 @@ class OptimizedDataCache[ValueT]:
         override_ttl: int | None = None,
     ) -> bool:
         """Return if a cached key is expired using stored TTL information."""
-
         timestamp = self._timestamps.get(key)
         if timestamp is None:
             override_applied = override_ttl is not None
@@ -359,7 +357,6 @@ class OptimizedDataCache[ValueT]:
 
     def _normalize_ttl(self, ttl_seconds: int) -> int:
         """Normalize TTL seconds to a non-negative integer."""
-
         if ttl_seconds <= 0:
             return 0
         return int(ttl_seconds)
@@ -397,7 +394,6 @@ class OptimizedDataCache[ValueT]:
 
     def get_metrics(self) -> OptimizedCacheMetrics:
         """Return an extended metrics payload for coordinator diagnostics."""
-
         stats = self.get_stats()
         metrics: OptimizedCacheMetrics = {
             **stats,
@@ -411,7 +407,6 @@ class OptimizedDataCache[ValueT]:
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         """Return override-aware cleanup metrics for diagnostics panels."""
-
         snapshot = cast(CacheDiagnosticsMetadata, dict(self._diagnostics))
         last_cleanup = snapshot.get("last_cleanup")
         snapshot["last_cleanup"] = (
@@ -428,7 +423,6 @@ class OptimizedDataCache[ValueT]:
 
     def coordinator_snapshot(self) -> OptimizedCacheSnapshot:
         """Return a combined metrics/diagnostics payload for coordinators."""
-
         snapshot: OptimizedCacheSnapshot = {
             "stats": self.get_metrics(),
             "diagnostics": self.get_diagnostics(),
@@ -898,7 +892,6 @@ class PawControlData:
     @staticmethod
     def _is_task_like(candidate: Any) -> bool:
         """Return True if *candidate* behaves like an asyncio.Task."""
-
         return all(
             callable(getattr(candidate, attr, None))
             for attr in ("cancel", "done", "__await__")
@@ -907,7 +900,6 @@ class PawControlData:
     @staticmethod
     def _coerce_dog_configs(raw: Any) -> list[DogConfigData]:
         """Return dog configuration entries as ``DogConfigData`` payloads."""
-
         if not isinstance(raw, list):
             return []
         return [
@@ -919,19 +911,16 @@ class PawControlData:
     @staticmethod
     def _empty_namespace_payload() -> StorageNamespacePayload:
         """Return an empty storage namespace mapping."""
-
         return cast(StorageNamespacePayload, {})
 
     @classmethod
     def _create_empty_data(cls) -> StorageNamespaceState:
         """Return a fresh default data structure for runtime use."""
-
         return {key: cls._empty_namespace_payload() for key in DEFAULT_DATA_KEYS}
 
     @staticmethod
     def _coerce_namespace_payload(value: Any, key: str) -> StorageNamespacePayload:
         """Return a storage namespace mapping, logging if payloads are invalid."""
-
         if isinstance(value, dict):
             return cast(StorageNamespacePayload, dict(value))
         if value not in (None, {}):
@@ -943,7 +932,6 @@ class PawControlData:
 
     def _ensure_namespace(self, key: StorageNamespaceKey) -> StorageNamespacePayload:
         """Return the namespace payload for ``key``, creating a default if needed."""
-
         namespace = self._data.get(key)
         if isinstance(namespace, dict):
             return namespace
@@ -958,7 +946,6 @@ class PawControlData:
         file was manually edited or partially written. We rebuild the
         namespaces here so later operations can rely on their presence.
         """
-
         sanitized = self._create_empty_data()
 
         if not isinstance(data, Mapping):
@@ -982,7 +969,6 @@ class PawControlData:
 
     def _hydrate_event_models(self) -> None:
         """Ensure stored history entries use structured dataclasses."""
-
         health_namespace_payload = self._ensure_namespace("health")
         health_namespace = cast(
             HealthNamespaceMutable,
@@ -1049,7 +1035,6 @@ class PawControlData:
         namespace: Mapping[str, object],
     ) -> StorageNamespacePayload:
         """Convert health namespace to storage-safe data."""
-
         serialized: StorageNamespacePayload = cast(StorageNamespacePayload, {})
         for dog_id, history in namespace.items():
             if not isinstance(history, list):
@@ -1082,7 +1067,6 @@ class PawControlData:
         namespace: Mapping[str, object],
     ) -> StorageNamespacePayload:
         """Convert walk namespace to storage-safe data."""
-
         serialized: StorageNamespacePayload = cast(StorageNamespacePayload, {})
         for dog_id, walk_data in namespace.items():
             if not isinstance(walk_data, Mapping):
@@ -1124,7 +1108,6 @@ class PawControlData:
     @staticmethod
     def _coerce_event_payload(payload: Mapping[str, object]) -> JSONMutableMapping:
         """Return a JSON-compatible mutable payload for queued events."""
-
         return cast(
             JSONMutableMapping,
             {str(key): cast(JSONValue, value) for key, value in payload.items()},
@@ -1136,7 +1119,6 @@ class PawControlData:
         entry: object,
     ) -> JSONMutableMapping | None:
         """Return a storage-safe health history entry or ``None`` if invalid."""
-
         entry_as_dict = getattr(entry, "as_dict", None)
         if callable(entry_as_dict):
             payload = entry_as_dict()
@@ -1176,7 +1158,6 @@ class PawControlData:
         entry: object,
     ) -> JSONMutableMapping | None:
         """Return a storage-safe walk event entry or ``None`` if invalid."""
-
         if isinstance(entry, WalkEvent):
             return entry.as_dict()
         if isinstance(entry, Mapping):
@@ -1209,7 +1190,6 @@ class PawControlData:
     @staticmethod
     def _walk_history_sort_key(entry: Mapping[str, object]) -> tuple[int, str]:
         """Return sort key ensuring entries with timestamps come first."""
-
         timestamp = entry.get("timestamp")
         if isinstance(timestamp, str):
             return (1, timestamp)
@@ -1220,7 +1200,6 @@ class PawControlData:
         entries: list[WalkHistoryEntry],
     ) -> list[WalkHistoryEntry]:
         """Sort walk history newest first and enforce the history limit."""
-
         if not entries:
             return []
         sorted_entries = sorted(
@@ -1749,7 +1728,6 @@ class PawControlNotificationManager:
     @staticmethod
     def _coerce_notification_data(data: JSONLikeMapping) -> JSONMutableMapping:
         """Return JSON-compatible notification extras."""
-
         return cast(
             JSONMutableMapping,
             {str(key): value for key, value in data.items()},
@@ -1874,7 +1852,6 @@ class PawControlNotificationManager:
     @staticmethod
     def _coerce_quiet_hours_time(candidate: object, fallback: str) -> time | None:
         """Return a parsed quiet-hours time or ``None`` if invalid."""
-
         if (parsed_datetime := _deserialize_datetime(candidate)) is not None:
             return dt_util.as_local(parsed_datetime).time().replace(tzinfo=None)
         if isinstance(candidate, datetime):
@@ -1928,7 +1905,6 @@ class PawControlNotificationManager:
 
     def _get_notification_config(self, dog_id: str) -> Mapping[str, JSONValue] | None:
         """Return per-dog notification settings when available."""
-
         options = self.config_entry.options
         dog_options = options.get(CONF_DOG_OPTIONS)
         if isinstance(dog_options, Mapping):
@@ -2107,7 +2083,6 @@ class PerformanceMonitor:
 
     def get_metrics(self) -> PerformanceMonitorSnapshot:
         """Get performance metrics."""
-
         total_cache_operations = self._metrics.cache_hits + self._metrics.cache_misses
         cache_hit_rate = (
             (self._metrics.cache_hits / total_cache_operations * 100)

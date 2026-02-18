@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant import const as ha_const
 from homeassistant.components.script.const import CONF_FIELDS
@@ -66,6 +66,11 @@ CONF_SEQUENCE = getattr(ha_const, "CONF_SEQUENCE", "sequence")
 CONF_DESCRIPTION = "description"
 
 
+def _as_object_map(value: object) -> Mapping[str, object]:
+    """Cast JSON-like payloads used in tests to a generic mapping."""
+    return cast(Mapping[str, object], value)
+
+
 class StubDataManager(PawControlDataManager):
     """Minimal data manager that exercises visitor profiling without HA deps."""
 
@@ -83,13 +88,11 @@ class StubDataManager(PawControlDataManager):
 
     async def _get_namespace_data(self, namespace: str) -> JSONMutableMapping:
         """Return empty namespace data for tests."""
-
         assert namespace == "visitor_mode"
         return cast(JSONMutableMapping, {})
 
     async def _save_namespace(self, namespace: str, data: JSONMutableMapping) -> None:
         """Capture writes instead of hitting Home Assistant storage."""
-
         assert namespace == "visitor_mode"
         self.saved_payload = data
 
@@ -98,7 +101,6 @@ class StubDataManager(PawControlDataManager):
 @pytest.mark.asyncio
 async def test_async_set_visitor_mode_records_metrics() -> None:
     """Visitor workflows should record runtime samples and update metrics."""
-
     manager = StubDataManager()
     metrics_sink = CoordinatorMetrics()
     manager.set_metrics_sink(metrics_sink)
@@ -239,7 +241,6 @@ class _ErrorSummaryTracker(_DummyTracker):
 @pytest.mark.unit
 def test_auto_registered_cache_monitors(tmp_path: Path) -> None:
     """Data manager should surface coordinator caches via diagnostics snapshots."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     modules = _DummyModules()
     tracker = _DummyTracker()
@@ -256,7 +257,7 @@ def test_auto_registered_cache_monitors(tmp_path: Path) -> None:
         dogs_config=[],
     )
 
-    snapshots = manager.cache_snapshots()
+    snapshots = cast(Mapping[str, Mapping[str, object]], manager.cache_snapshots())
 
     assert "coordinator_modules" in snapshots
     module_snapshot = snapshots["coordinator_modules"]
@@ -289,7 +290,6 @@ def test_auto_registered_cache_monitors(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_entity_budget_tracker_handles_summary_errors(tmp_path: Path) -> None:
     """Entity budget diagnostics should expose serialised error payloads."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     modules = _DummyModules()
     tracker = _ErrorSummaryTracker()
@@ -306,7 +306,7 @@ def test_entity_budget_tracker_handles_summary_errors(tmp_path: Path) -> None:
         dogs_config=[],
     )
 
-    snapshots = manager.cache_snapshots()
+    snapshots = cast(Mapping[str, Mapping[str, object]], manager.cache_snapshots())
     diagnostics = snapshots["entity_budget_tracker"]["diagnostics"]
 
     summary = diagnostics["summary"]
@@ -319,7 +319,6 @@ def test_entity_budget_tracker_handles_summary_errors(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_storage_namespace_monitors_track_updates(tmp_path: Path) -> None:
     """Namespace cache monitors should reflect persisted updates."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     manager = PawControlDataManager(
         hass=hass,
@@ -331,7 +330,7 @@ async def test_storage_namespace_monitors_track_updates(tmp_path: Path) -> None:
     await manager.async_set_visitor_mode("buddy", {"enabled": True})
     await manager.async_set_dog_power_state("buddy", True)
 
-    snapshots = manager.cache_snapshots()
+    snapshots = cast(Mapping[str, Mapping[str, object]], manager.cache_snapshots())
 
     visitor_snapshot = snapshots["storage_visitor_mode"]
     assert visitor_snapshot["stats"]["dogs"] == 1
@@ -346,7 +345,6 @@ async def test_storage_namespace_monitors_track_updates(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_storage_namespace_timestamp_anomalies(tmp_path: Path) -> None:
     """Namespace monitors should flag missing or stale timestamps."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     manager = PawControlDataManager(
         hass=hass,
@@ -362,7 +360,7 @@ def test_storage_namespace_timestamp_anomalies(tmp_path: Path) -> None:
         },
     }
 
-    snapshots = manager.cache_snapshots()
+    snapshots = cast(Mapping[str, Mapping[str, object]], manager.cache_snapshots())
     diagnostics = snapshots["storage_visitor_mode"]["diagnostics"]
     anomalies = diagnostics["timestamp_anomalies"]
     assert anomalies["buddy"] == "missing"
@@ -372,7 +370,6 @@ def test_storage_namespace_timestamp_anomalies(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_helper_manager_register_cache_monitor() -> None:
     """Helper manager should expose diagnostics through the cache registrar."""
-
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -413,7 +410,6 @@ async def test_helper_manager_skips_helper_creation_without_services(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Helper manager should short-circuit helper creation when hass services missing."""  # noqa: E501
-
     hass = SimpleNamespace(data={}, states=SimpleNamespace(get=lambda entity_id: None))
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -453,7 +449,6 @@ async def test_helper_manager_guard_metrics_accumulate_skips(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Helper manager should aggregate guard skips across lifecycle services."""
-
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -501,7 +496,6 @@ async def test_helper_manager_guard_metrics_accumulate_skips(
 @pytest.mark.unit
 def test_script_manager_register_cache_monitor() -> None:
     """Script manager should expose created script diagnostics."""
-
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     script_manager = PawControlScriptManager(hass, entry)
@@ -534,7 +528,6 @@ def test_script_manager_register_cache_monitor() -> None:
 @pytest.mark.unit
 def test_script_manager_timestamp_anomaly() -> None:
     """Script manager diagnostics should flag stale generations."""
-
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     script_manager = PawControlScriptManager(hass, entry)
@@ -557,7 +550,6 @@ def test_script_manager_timestamp_anomaly() -> None:
 @pytest.mark.unit
 def test_script_manager_resilience_escalation_definition() -> None:
     """Entry-level resilience escalation script should expose guard thresholds."""
-
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(
         entry_id="entry-id",
@@ -623,7 +615,6 @@ def test_script_manager_resilience_escalation_definition() -> None:
 @pytest.mark.unit
 def test_script_manager_resilience_threshold_overrides() -> None:
     """Config entry options should override default resilience thresholds."""
-
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(
         entry_id="entry-id",
@@ -656,7 +647,7 @@ def test_script_manager_resilience_threshold_overrides() -> None:
     assert manual["listener_sources"] == {}
     assert manual["last_trigger"] is None
     assert manual["event_history"] == []
-    counters = manual["event_counters"]
+    counters = _as_object_map(manual["event_counters"])
     assert counters["total"] == 0
     assert counters["by_event"] == {}
     assert counters["by_reason"] == {}
@@ -665,7 +656,6 @@ def test_script_manager_resilience_threshold_overrides() -> None:
 @pytest.mark.unit
 def test_script_manager_resilience_manual_event_snapshot() -> None:
     """Manual blueprint triggers should be surfaced in diagnostics snapshots."""
-
     hass = SimpleNamespace(
         data={},
         states=SimpleNamespace(get=lambda entity_id: None),
@@ -713,7 +703,7 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
     assert manual["listener_sources"]["pawcontrol_manual_breaker"] == ["blueprint"]
     assert manual["listener_sources"]["pawcontrol_resilience_check"] == ["blueprint"]
     assert manual["last_trigger"] is None
-    counters = manual["event_counters"]
+    counters = _as_object_map(manual["event_counters"])
     assert counters["total"] == 0
     assert counters["by_event"] == {
         "pawcontrol_manual_breaker": 0,
@@ -765,7 +755,6 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
 @pytest.mark.unit
 def test_script_manager_manual_snapshot_combines_system_and_blueprint_sources() -> None:
     """System settings should appear alongside blueprint suggestions."""
-
     hass = SimpleNamespace(
         data={},
         states=SimpleNamespace(get=lambda entity_id: None),
@@ -889,9 +878,8 @@ def test_script_manager_records_manual_event_trigger() -> None:
 
     snapshot = script_manager.get_resilience_escalation_snapshot()
     assert snapshot is not None
-    manual = snapshot["manual_events"]
-    last_event = manual["last_event"]
-    assert last_event is not None
+    manual = _as_object_map(snapshot["manual_events"])
+    last_event = _as_object_map(manual["last_event"])
     assert last_event["event_type"] == "pawcontrol_manual_guard"
     assert last_event["category"] == "guard"
     assert last_event["matched_preference"] == "manual_guard_event"
@@ -908,7 +896,7 @@ def test_script_manager_records_manual_event_trigger() -> None:
         "pawcontrol_manual_check",
         "pawcontrol_manual_guard",
     ]
-    history = manual["event_history"]
+    history = cast(list[Mapping[str, object]], manual["event_history"])
     assert isinstance(history, list) and history
     assert history[0]["event_type"] == "pawcontrol_manual_guard"
     assert history[0]["sources"] == ["system_options"]
@@ -976,11 +964,14 @@ async def test_script_manager_sync_manual_events_updates_blueprint() -> None:
 
     assert len(updated_payloads) == 1
     payload = updated_payloads[0]
-    assert payload.entry.entry_id == "automation-id"
+    payload_entry = cast(SimpleNamespace, payload.entry)
+    assert payload_entry.entry_id == "automation-id"
     assert payload.data is not None
-    blueprint_data = payload.data["use_blueprint"]
-    assert blueprint_data["path"].endswith("resilience_escalation_followup.yaml")
-    inputs = blueprint_data["input"]
+    blueprint_data = _as_object_map(payload.data.get("use_blueprint", {}))
+    assert cast(str, blueprint_data["path"]).endswith(
+        "resilience_escalation_followup.yaml"
+    )
+    inputs = _as_object_map(blueprint_data["input"])
     assert inputs["manual_check_event"] == "pawcontrol_resilience_check_custom"
     assert inputs["manual_guard_event"] == ""
     assert inputs["manual_breaker_event"] == "pawcontrol_manual_breaker"
@@ -1028,24 +1019,26 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
 
     snapshot = script_manager.get_resilience_escalation_snapshot()
     assert snapshot is not None
-    manual = snapshot["manual_events"]
-    last_trigger = manual["last_trigger"]
-    assert last_trigger is not None
+    manual = _as_object_map(snapshot["manual_events"])
+    last_trigger = _as_object_map(manual["last_trigger"])
     assert last_trigger["event_type"] == "pawcontrol_manual_guard"
     assert last_trigger["matched_preference"] == "manual_guard_event"
     assert last_trigger["category"] == "guard"
     assert last_trigger["sources"] == ["system_options"]
     assert last_trigger["reasons"] == ["guard"]
     assert last_trigger["sources"] == ["system_settings", "default"]
-    assert manual["listener_sources"]["pawcontrol_manual_guard"] == ["system_options"]
-    listener_metadata = manual["listener_metadata"]["pawcontrol_manual_guard"]
+    listener_sources = _as_object_map(manual["listener_sources"])
+    assert listener_sources["pawcontrol_manual_guard"] == ["system_options"]
+    listener_metadata = _as_object_map(
+        _as_object_map(manual["listener_metadata"])["pawcontrol_manual_guard"]
+    )
     assert listener_metadata["sources"] == ["default", "system_settings"]
     assert listener_metadata["primary_source"] == "system_settings"
     assert isinstance(last_trigger["recorded_age_seconds"], int)
-    history = manual["event_history"]
+    history = cast(list[Mapping[str, object]], manual["event_history"])
     assert isinstance(history, list) and history
     assert history[0]["event_type"] == "pawcontrol_manual_guard"
-    counters = manual["event_counters"]
+    counters = _as_object_map(manual["event_counters"])
     assert counters["total"] == 1
     assert counters["by_event"] == {"pawcontrol_manual_guard": 1}
     assert counters["by_reason"] == {"guard": 1}
@@ -1054,7 +1047,6 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
 @pytest.mark.unit
 def test_script_manager_manual_history_size_respects_options() -> None:
     """Manual event history length should be configurable via options."""
-
     hass = SimpleNamespace(
         data={},
         states=SimpleNamespace(get=lambda entity_id: None),
@@ -1089,7 +1081,6 @@ def test_script_manager_manual_history_size_respects_options() -> None:
 @pytest.mark.unit
 def test_resilience_followup_blueprint_manual_events() -> None:
     """Manual blueprint triggers should drive escalation and follow-up paths."""
-
     blueprint_path = Path(
         "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml"
     )
@@ -1108,7 +1099,6 @@ def test_resilience_followup_blueprint_manual_events() -> None:
 @pytest.mark.unit
 def test_door_sensor_manager_register_cache_monitor() -> None:
     """Door sensor manager should publish detection diagnostics."""
-
     hass = SimpleNamespace()
     manager = DoorSensorManager(hass, "entry")
     now = dt_util.utcnow()
@@ -1155,7 +1145,6 @@ def test_door_sensor_manager_register_cache_monitor() -> None:
 @pytest.mark.unit
 def test_door_sensor_manager_timestamp_anomaly() -> None:
     """Door sensor diagnostics should surface stale activity timestamps."""
-
     hass = SimpleNamespace()
     manager = DoorSensorManager(hass, "entry")
     old = dt_util.utcnow() - (CACHE_TIMESTAMP_STALE_THRESHOLD + timedelta(hours=2))
@@ -1201,7 +1190,6 @@ def test_auto_registers_helper_manager_cache(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Data manager should register helper manager caches when available."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -1232,7 +1220,7 @@ def test_auto_registers_helper_manager_cache(
     script_manager.register_cache_monitors(manager, prefix="script_manager")
     door_manager.register_cache_monitors(manager, prefix="door_sensor")
 
-    snapshots = manager.cache_snapshots()
+    snapshots = cast(Mapping[str, Mapping[str, object]], manager.cache_snapshots())
     assert "helper_manager_cache" in snapshots
     assert "script_manager_cache" in snapshots
     assert "door_sensor_cache" in snapshots
@@ -1241,7 +1229,6 @@ def test_auto_registers_helper_manager_cache(
 @pytest.mark.unit
 def test_register_runtime_cache_monitors_adds_helper_cache(tmp_path: Path) -> None:
     """Runtime cache registration should pick up helper manager monitors."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -1261,7 +1248,7 @@ def test_register_runtime_cache_monitors_adds_helper_cache(tmp_path: Path) -> No
     )
 
     manager.register_runtime_cache_monitors(runtime)
-    snapshots = manager.cache_snapshots()
+    snapshots = cast(Mapping[str, Mapping[str, object]], manager.cache_snapshots())
 
     assert "helper_manager_cache" in snapshots
 
@@ -1270,7 +1257,6 @@ def test_register_runtime_cache_monitors_adds_helper_cache(tmp_path: Path) -> No
 @pytest.mark.asyncio
 async def test_async_get_module_history_respects_limit(tmp_path: Path) -> None:
     """Module history lookups should return sorted entries with optional limits."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     manager = PawControlDataManager(
         hass=hass,
@@ -1285,11 +1271,11 @@ async def test_async_get_module_history_respects_limit(tmp_path: Path) -> None:
 
     await manager.async_log_health_data(
         "buddy",
-        {"timestamp": earlier, "weight": 12.5, "health_status": "good"},
+        {"timestamp": earlier.isoformat(), "weight": 12.5, "health_status": "good"},
     )
     await manager.async_log_health_data(
         "buddy",
-        {"timestamp": later, "weight": 11.8, "health_status": "excellent"},
+        {"timestamp": later.isoformat(), "weight": 11.8, "health_status": "excellent"},
     )
 
     entries = await manager.async_get_module_history(MODULE_HEALTH, "buddy")
@@ -1323,7 +1309,6 @@ async def test_weekly_health_report_filters_old_entries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Weekly health reports should ignore entries outside the seven-day window."""
-
     from custom_components.pawcontrol import data_manager as dm
 
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
@@ -1344,7 +1329,7 @@ async def test_weekly_health_report_filters_old_entries(
     await manager.async_log_health_data(
         "buddy",
         {
-            "timestamp": older,
+            "timestamp": older.isoformat(),
             "weight": 12.0,
             "temperature": 38.0,
             "health_status": "ok",
@@ -1353,7 +1338,7 @@ async def test_weekly_health_report_filters_old_entries(
     await manager.async_log_health_data(
         "buddy",
         {
-            "timestamp": recent,
+            "timestamp": recent.isoformat(),
             "weight": 11.5,
             "temperature": 37.8,
             "health_status": "excellent",
@@ -1362,14 +1347,18 @@ async def test_weekly_health_report_filters_old_entries(
 
     await manager.async_log_medication(
         "buddy",
-        {"medication_name": "pain-relief", "dose": "5ml", "administration_time": older},
+        {
+            "medication_name": "pain-relief",
+            "dose": "5ml",
+            "administration_time": older.isoformat(),
+        },
     )
     await manager.async_log_medication(
         "buddy",
         {
             "medication_name": "vitamin",
             "dose": "2ml",
-            "administration_time": recent,
+            "administration_time": recent.isoformat(),
         },
     )
 
@@ -1388,7 +1377,6 @@ async def test_analyze_patterns_uses_filtered_history(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Pattern analysis should rely on the shared history helpers."""
-
     from custom_components.pawcontrol import data_manager as dm
 
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
@@ -1442,11 +1430,20 @@ async def test_analyze_patterns_uses_filtered_history(
     recent_health = current_time - timedelta(days=2)
 
     await manager.async_log_health_data(
-        "buddy", {"timestamp": older_health, "weight": 12.3, "health_status": "ok"}
+        "buddy",
+        {
+            "timestamp": older_health.isoformat(),
+            "weight": 12.3,
+            "health_status": "ok",
+        },
     )
     await manager.async_log_health_data(
         "buddy",
-        {"timestamp": recent_health, "weight": 11.9, "health_status": "great"},
+        {
+            "timestamp": recent_health.isoformat(),
+            "weight": 11.9,
+            "health_status": "great",
+        },
     )
 
     older_walk_start = current_time - timedelta(days=8, hours=1)
@@ -1468,17 +1465,17 @@ async def test_analyze_patterns_uses_filtered_history(
 
     result = await manager.async_analyze_patterns("buddy", "comprehensive", days=7)
 
-    feeding = result["feeding"]
+    feeding = _as_object_map(result["feeding"])
     assert feeding["entries"] == 1
     assert feeding["total_portion_size"] == 200.0
-    assert feeding["first_entry"]["portion_size"] == 200.0
-    assert feeding["last_entry"]["portion_size"] == 200.0
+    assert _as_object_map(feeding["first_entry"])["portion_size"] == 200.0
+    assert _as_object_map(feeding["last_entry"])["portion_size"] == 200.0
 
-    walking = result["walking"]
+    walking = _as_object_map(result["walking"])
     assert walking["entries"] == 1
     assert walking["total_distance"] == 3.2
 
-    health = result["health"]
+    health = _as_object_map(result["health"])
     assert health["entries"] == 1
     assert health["latest"]["weight"] == 11.9
 
@@ -1489,7 +1486,6 @@ async def test_export_data_uses_history_helper(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Exports should reuse history filters and maintain chronological ordering."""
-
     from custom_components.pawcontrol import data_manager as dm
 
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
@@ -1556,7 +1552,7 @@ async def test_export_data_uses_history_helper(
         {
             "medication_name": "pain-relief",
             "dose": "5ml",
-            "administration_time": older_medication,
+            "administration_time": older_medication.isoformat(),
         },
     )
     await manager.async_log_medication(
@@ -1564,7 +1560,7 @@ async def test_export_data_uses_history_helper(
         {
             "medication_name": "vitamin",
             "dose": "2ml",
-            "administration_time": recent_medication,
+            "administration_time": recent_medication.isoformat(),
         },
     )
 
@@ -1677,7 +1673,6 @@ class _DummyModulesAdapter:
 @pytest.mark.unit
 def test_notification_person_caches_register_via_binding(tmp_path: Path) -> None:
     """Coordinator binding should surface notification and person cache snapshots."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     coordinator = _DummyCoordinator(hass)
     modules = _DummyModulesAdapter()
@@ -1689,15 +1684,15 @@ def test_notification_person_caches_register_via_binding(tmp_path: Path) -> None
     notification_manager = _DummyNotificationManager()
 
     bind_runtime_managers(
-        coordinator,
-        modules,
+        cast(Any, coordinator),
+        cast(Any, modules),
         CoordinatorRuntimeManagers(
             data_manager=manager,
-            notification_manager=notification_manager,
+            notification_manager=cast(Any, notification_manager),
         ),
     )
 
-    snapshots = manager.cache_snapshots()
+    snapshots = cast(Mapping[str, Mapping[str, object]], manager.cache_snapshots())
 
     assert "notification_cache" in snapshots
     assert snapshots["notification_cache"]["stats"]["marker"] == "notif"

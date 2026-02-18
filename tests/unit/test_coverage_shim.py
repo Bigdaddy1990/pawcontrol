@@ -53,8 +53,7 @@ if not hasattr(ha_util_logging, "log_exception"):
 
 
 def test_runtime_metrics_generation(tmp_path) -> None:
-    """Ensure the coverage shim emits JSON and CSV runtime metrics.【F:coverage.py†L471-L506】"""  # noqa: E501
-
+    """Ensure the coverage shim emits JSON and CSV runtime metrics.【F:coverage.py†L471-L506】."""  # noqa: E501
     _ = tmp_path
     metrics_dir = Path("generated/coverage")
     json_path = metrics_dir / "runtime.json"
@@ -95,8 +94,7 @@ def test_runtime_metrics_generation(tmp_path) -> None:
 
 
 def test_runtime_metrics_can_be_disabled(monkeypatch, tmp_path) -> None:
-    """Environment flag bypasses runtime metrics emission entirely.【F:coverage.py†L437-L442】"""  # noqa: E501
-
+    """Environment flag bypasses runtime metrics emission entirely.【F:coverage.py†L437-L442】."""  # noqa: E501
     monkeypatch.setenv("PAWCONTROL_DISABLE_RUNTIME_METRICS", "1")
     _ = tmp_path
     metrics_dir = Path("generated/coverage")
@@ -125,8 +123,7 @@ def test_runtime_metrics_can_be_disabled(monkeypatch, tmp_path) -> None:
 
 
 def test_compile_cached_reuses_bytecode() -> None:
-    """The compilation helper caches bytecode for repeated calls.【F:coverage.py†L31-L41】"""  # noqa: E501
-
+    """The compilation helper caches bytecode for repeated calls.【F:coverage.py†L31-L41】."""  # noqa: E501
     first = _compile_cached("sample.py", "value = 1")
     second = _compile_cached("sample.py", "value = 1")
     assert first is not None
@@ -134,8 +131,7 @@ def test_compile_cached_reuses_bytecode() -> None:
 
 
 def test_compile_cached_handles_syntax_errors() -> None:
-    """Invalid source returns ``None`` and caches the failure result.【F:coverage.py†L31-L41】"""  # noqa: E501
-
+    """Invalid source returns ``None`` and caches the failure result.【F:coverage.py†L31-L41】."""  # noqa: E501
     source = "def broken(: pass"
     assert _compile_cached("broken.py", source) is None
     assert _compile_cached("broken.py", source) is None
@@ -143,7 +139,6 @@ def test_compile_cached_handles_syntax_errors() -> None:
 
 def test_plugin_records_module_imports() -> None:
     """Coverage controller starts before imports so module setup is tracked."""
-
     module_path = Path("tests/unit/_coverage_plugin_case.py")
     module_path.write_text("VALUE = 1\nRESULT = VALUE\n", encoding="utf-8")
     module_name = "tests.unit._coverage_plugin_case"

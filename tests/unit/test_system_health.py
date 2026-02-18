@@ -26,7 +26,6 @@ class _Coordinator:
 
     def get_update_statistics(self) -> dict[str, object]:
         """Return the stored statistics payload."""
-
         return self._stats
 
 
@@ -44,7 +43,6 @@ def _make_runtime_data(
     script_manager: object | None = None,
 ) -> Any:
     """Return a runtime data stub that passes runtime_data validation."""
-
     runtime_data = _FakeRuntimeData()
     runtime_data.performance_stats = performance_stats
     runtime_data.coordinator = coordinator
@@ -54,7 +52,6 @@ def _make_runtime_data(
 
 def _install_entry(hass: Any, entry: ConfigEntry) -> None:
     """Install a config entry into the Home Assistant stub."""
-
     hass.config_entries.async_entries = lambda domain=None: (
         [entry] if domain == DOMAIN else []
     )
@@ -65,7 +62,6 @@ async def test_system_health_info_reports_guard_breaker_runtime_store(
     hass: Any,
 ) -> None:
     """System health should expose guard, breaker, and runtime store telemetry."""
-
     entry = ConfigEntry(
         domain=DOMAIN,
         data={},
@@ -144,7 +140,6 @@ async def test_system_health_info_reports_guard_breaker_runtime_store(
 @pytest.mark.asyncio
 async def test_system_health_info_coerces_unexpected_types(hass: Any) -> None:
     """System health should coerce malformed telemetry safely."""
-
     entry = ConfigEntry(domain=DOMAIN, data={}, options={})
     coordinator = _Coordinator({"performance_metrics": {"api_calls": None}})
     coordinator.use_external_api = False

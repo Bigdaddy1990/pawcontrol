@@ -20,7 +20,6 @@ async def test_initialisation_builds_registry(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
     """The registry should expose configured dog identifiers."""
-
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
 
     assert coordinator.registry.ids() == ["test_dog"]
@@ -31,7 +30,6 @@ async def test_initialisation_builds_registry(
 @pytest.mark.unit
 def test_initialisation_rejects_missing_session(mock_hass, mock_config_entry) -> None:
     """A helpful error should be raised when no session is provided."""
-
     with pytest.raises(ValueError):
         PawControlCoordinator(  # type: ignore[arg-type]
             mock_hass,
@@ -45,7 +43,6 @@ def test_initialisation_rejects_closed_session(
     mock_hass, mock_config_entry, session_factory
 ) -> None:
     """Closed sessions must be rejected at construction time."""
-
     closed_session = session_factory(closed=True)
 
     with pytest.raises(ValueError):
@@ -62,7 +59,6 @@ async def test_async_update_data_uses_runtime(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
     """Runtime results should be surfaced as coordinator data and adjust polling."""
-
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     runtime_cycle = RuntimeCycleInfo(
         dog_count=1,
@@ -96,7 +92,6 @@ async def test_async_update_data_does_not_call_set_updated_data_directly(
     _async_update_data caused a double notification (and double recorder writes)
     every refresh cycle.  This test verifies the fix is intact.
     """
-
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     runtime_cycle = RuntimeCycleInfo(
         dog_count=1,
@@ -129,7 +124,6 @@ async def test_async_apply_module_updates_merges_data(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
     """Module updates should merge into the coordinator cache."""
-
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coordinator._data = {
         "test_dog": {
@@ -156,7 +150,6 @@ async def test_async_update_data_without_dogs(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
     """When no dogs are configured the coordinator should return an empty payload."""
-
     mock_config_entry.data = {"dogs": []}
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
 
@@ -169,7 +162,6 @@ async def test_report_entity_budget_updates_snapshot(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
     """Entity budget snapshots feed the performance snapshot."""
-
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coordinator._metrics.update_count = 2
     coordinator._metrics.failed_cycles = 1
@@ -212,7 +204,6 @@ def test_performance_snapshot_includes_guard_metrics(
     mock_hass, mock_config_entry, mock_session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Service execution metrics mirror the runtime guard telemetry."""
-
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
 
     raw_guard_metrics = {
@@ -283,7 +274,6 @@ async def test_security_scorecard_detects_insecure_webhooks(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
     """Insecure webhook configurations should fail the scorecard."""
-
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
 
     class InsecureWebhookManager:
@@ -309,7 +299,6 @@ async def test_security_scorecard_detects_insecure_webhooks(
 @pytest.mark.asyncio
 async def test_manager_lifecycle(mock_hass, mock_config_entry, mock_session) -> None:
     """Managers can be attached and cleared without leaking references."""
-
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
 
     managers = {
@@ -336,7 +325,6 @@ async def test_availability_threshold(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
     """Availability respects the consecutive error guardrail."""
-
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coordinator.last_update_success = True
     coordinator._metrics.consecutive_errors = 5
@@ -353,7 +341,6 @@ async def test_get_statistics_records_runtime(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
     """Generating statistics should capture and expose timing samples."""
-
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coordinator._metrics.update_count = 2
 

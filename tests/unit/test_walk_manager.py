@@ -696,7 +696,6 @@ def _build_export_snapshot(
     include_invalid_point: bool = False,
 ) -> WalkSessionSnapshot:
     """Create a typed walk snapshot for export regression tests."""
-
     start_ts = start.isoformat()
     end_ts = (start + timedelta(seconds=duration)).isoformat()
 
@@ -752,7 +751,6 @@ class TestRouteExport:
 
     async def test_export_routes_gpx_payload(self, mock_walk_manager) -> None:
         """GPX exports should include bounds, metadata, and sanitized paths."""
-
         mock_walk_manager._walk_history["test_dog"] = [
             _build_export_snapshot(
                 walk_id="walk-1",
@@ -786,7 +784,6 @@ class TestRouteExport:
 
     async def test_export_routes_json_payload(self, mock_walk_manager) -> None:
         """JSON exports should serialise walks and retain sanitized points."""
-
         mock_walk_manager._walk_history["test_dog"] = [
             _build_export_snapshot(
                 walk_id="walk-json",
@@ -810,7 +807,6 @@ class TestRouteExport:
 
     async def test_export_routes_csv_payload(self, mock_walk_manager) -> None:
         """CSV exports should include headers and typed walk samples."""
-
         mock_walk_manager._walk_history["test_dog"] = [
             _build_export_snapshot(
                 walk_id="walk-csv",
@@ -835,7 +831,6 @@ class TestRouteExport:
 
     async def test_export_routes_without_history(self, mock_walk_manager) -> None:
         """Return ``None`` when no completed walks exist."""
-
         mock_walk_manager._walk_history.pop("test_dog", None)
 
         payload = await mock_walk_manager.async_export_routes(
@@ -846,7 +841,6 @@ class TestRouteExport:
 
     async def test_export_routes_limits_recent_walks(self, mock_walk_manager) -> None:
         """Only the requested number of walks should be exported."""
-
         base = datetime.now(UTC) - timedelta(hours=2)
         mock_walk_manager._walk_history["test_dog"] = [
             _build_export_snapshot(

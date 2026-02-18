@@ -41,7 +41,6 @@ from custom_components.pawcontrol.weather_manager import (
 @pytest.fixture
 def weather_manager(hass: HomeAssistant) -> WeatherHealthManager:
     """Return a fresh weather health manager for each test."""
-
     manager = WeatherHealthManager(hass)
     asyncio.run(manager.async_load_translations())
     return manager
@@ -50,7 +49,6 @@ def weather_manager(hass: HomeAssistant) -> WeatherHealthManager:
 @pytest.fixture
 def config_entry(hass: HomeAssistant) -> MockConfigEntry:
     """Return a config entry populated with a single dog profile."""
-
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={
@@ -76,7 +74,6 @@ async def test_async_update_weather_data_converts_units_and_builds_alerts(
     hass: HomeAssistant, weather_manager: WeatherHealthManager
 ) -> None:
     """High heat and humidity should produce alerts and derived metrics."""
-
     hass.states.async_set(
         "weather.backyard",
         "sunny",
@@ -111,7 +108,6 @@ async def test_async_update_weather_data_missing_temperature_uses_fallbacks(
     hass: HomeAssistant, weather_manager: WeatherHealthManager
 ) -> None:
     """Missing temperature should skip alerts and fall back to default score."""
-
     hass.states.async_set(
         "weather.lawn",
         "cloudy",
@@ -137,7 +133,6 @@ async def test_async_update_weather_data_preserves_previous_conditions_when_unav
     hass: HomeAssistant, weather_manager: WeatherHealthManager
 ) -> None:
     """Unavailable states should leave the last good snapshot untouched."""
-
     hass.states.async_set(
         "weather.rooftop",
         "sunny",
@@ -169,7 +164,6 @@ async def test_async_update_weather_data_missing_translation_falls_back_to_engli
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Broken locale entries should fall back to English strings."""
-
     original_get = weather_translations.get_weather_translations
 
     def _broken_get_weather_translations(language: str) -> WeatherTranslations:
@@ -224,7 +218,6 @@ async def test_async_update_weather_data_handles_formatting_errors_in_translatio
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Locale formatting errors should not break alert generation."""
-
     original_get = weather_translations.get_weather_translations
 
     def _formatting_error_translations(language: str) -> WeatherTranslations:
@@ -284,7 +277,6 @@ async def test_weather_module_adapter_returns_disabled_without_manager(
     config_entry: MockConfigEntry,
 ) -> None:
     """Adapters should surface a disabled status when no manager is attached."""
-
     adapter = WeatherModuleAdapter(
         config_entry=cast(PawControlConfigEntry, config_entry),
         ttl=timedelta(seconds=0),
@@ -305,7 +297,6 @@ async def test_weather_module_adapter_exposes_fallback_health_score(
     weather_manager: WeatherHealthManager,
 ) -> None:
     """When no conditions exist the adapter should return fallback scores."""
-
     adapter = WeatherModuleAdapter(
         config_entry=cast(PawControlConfigEntry, config_entry),
         ttl=timedelta(seconds=0),
@@ -331,7 +322,6 @@ async def test_weather_module_adapter_includes_conditions_when_available(
     weather_manager: WeatherHealthManager,
 ) -> None:
     """Adapters should embed the active conditions snapshot when present."""
-
     config_entry.options = {CONF_WEATHER_ENTITY: "weather.home"}
     hass.states.async_set(
         "weather.home",

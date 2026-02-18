@@ -20,7 +20,6 @@ MODULE_PATH = (
 
 def _load_module() -> ModuleType:
     """Import ``module_adapters`` with the lightweight test shims."""
-
     custom_components_pkg = ModuleType("custom_components")
     custom_components_pkg.__path__ = [
         str(Path(__file__).resolve().parents[2] / "custom_components")
@@ -82,7 +81,6 @@ COORDINATOR_MONITOR = _load_monitor()
 
 def test_expiring_cache_snapshot_tracks_hits_and_metadata() -> None:
     """The cache snapshot should expose typed statistics and metadata."""
-
     cache = MODULE._ExpiringCache[int](timedelta(seconds=5))
     cache.set("alpha", 1)
     assert cache.get("alpha") == 1
@@ -122,7 +120,6 @@ def test_expiring_cache_snapshot_tracks_hits_and_metadata() -> None:
 
 def test_base_adapter_snapshot_without_cache() -> None:
     """Adapters without caching still expose a typed snapshot."""
-
     adapter = MODULE._BaseModuleAdapter[int](ttl=None)
     snapshot = adapter.cache_snapshot()
 
@@ -181,7 +178,6 @@ class _Container:
 
 def test_coordinator_module_cache_monitor_exposes_typed_snapshots() -> None:
     """Coordinator telemetry should surface typed per-module snapshots."""
-
     adapters = {
         "feeding": _DummyAdapter(entries=2, hits=4, misses=1),
         "walk": _DummyAdapter(entries=1, hits=1, misses=0),
@@ -212,7 +208,6 @@ def test_coordinator_module_cache_monitor_exposes_typed_snapshots() -> None:
 
 def test_coordinator_module_cache_monitor_records_snapshot_errors() -> None:
     """Errors when collecting snapshots should be preserved in diagnostics."""
-
     adapters = {
         "feeding": _DummyAdapter(entries=1, hits=1, misses=1),
         "walk": _ErrorAdapter(entries=0, hits=0, misses=1),

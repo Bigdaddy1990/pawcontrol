@@ -481,24 +481,20 @@ class OptimizedEntityBase(
     @property
     def suggested_area(self) -> str | None:
         """Expose the suggested area assigned during configuration."""
-
         return getattr(self, "_attr_suggested_area", None)
 
     @property
     def device_class(self) -> str | None:
         """Expose the configured device class for Home Assistant stubs."""
-
         return getattr(self, "_attr_device_class", None)
 
     @property
     def icon(self) -> str | None:
         """Expose the configured icon for entity inspectors."""
-
         return getattr(self, "_attr_icon", None)
 
     def _device_link_details(self) -> DeviceLinkDetails:
         """Extend base device metadata with dynamic dog information."""
-
         info = cast(DeviceLinkDetails, super()._device_link_details())
         dog_data = self._get_dog_data_cached()
         if dog_data and (dog_info := dog_data.get("dog_info")):
@@ -539,7 +535,6 @@ class OptimizedEntityBase(
 
     def __getattribute__(self, name: str) -> Any:
         """Wrap patched async_update calls so error tracking remains accurate."""
-
         attr = super().__getattribute__(name)
         if name == "async_update" and isinstance(attr, Mock):
 
@@ -798,7 +793,6 @@ class OptimizedEntityBase(
 
     def _update_coordinator_availability(self, current: bool) -> bool:
         """Track coordinator availability transitions and return the previous state."""
-
         last = getattr(self, "_last_coordinator_available", current)
         previous = getattr(self, "_previous_coordinator_available", last)
 
@@ -1029,7 +1023,6 @@ class OptimizedEntityBase(
 
     async def _async_request_refresh(self) -> None:
         """Request a data refresh from the coordinator or parent class."""
-
         parent_update = getattr(super(), "async_update", None)
         if parent_update is not None:
             maybe_coro = parent_update()
@@ -1048,7 +1041,6 @@ class OptimizedEntityBase(
 
     def _purge_entity_cache_entries(self) -> None:
         """Remove cache entries related to this entity to avoid stale state leakage."""
-
         state_keys = [
             key
             for key in list(_STATE_CACHE)
@@ -1409,13 +1401,11 @@ class EntityRegistry:
 
     def __init__(self) -> None:
         """Initialize an empty registry without any tracked entities."""
-
         self._refs: set[weakref.ReferenceType[OptimizedEntityBase]] = set()
         self._sentinel: weakref.ReferenceType[OptimizedEntityBase] | None = None
 
     def set_sentinel(self, entity: OptimizedEntityBase) -> None:
         """Register the sentinel entity without exposing it during iteration."""
-
         self._sentinel = weakref.ref(entity)
 
     def _sentinel_alive(self) -> bool:
@@ -1423,7 +1413,6 @@ class EntityRegistry:
 
     def _prune_dead_refs(self) -> None:
         """Remove dead references and drop the sentinel if it is gone."""
-
         if self._refs:
             gc.collect()
         for reference in tuple(self._refs):
@@ -1433,40 +1422,33 @@ class EntityRegistry:
 
     def add(self, reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:
         """Track a new entity reference inside the registry."""
-
         self._refs.add(reference)
 
     def discard(self, reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:
         """Stop tracking a specific entity reference."""
-
         self._refs.discard(reference)
 
     def __iter__(self) -> Iterator[weakref.ReferenceType[OptimizedEntityBase]]:
         """Iterate over live references after pruning stale entries."""
-
         self._prune_dead_refs()
         yield from tuple(self._refs)
 
     def __len__(self) -> int:
         """Return the number of live references currently tracked."""
-
         self._prune_dead_refs()
         return len(self._refs)
 
     def __bool__(self) -> bool:
         """Return True when at least one live reference or sentinel remains."""
-
         return bool(self._refs) or self._sentinel_alive()
 
     def all_refs(self) -> tuple[weakref.ReferenceType[OptimizedEntityBase], ...]:
         """Return the raw weak references including those that are dead."""
-
         self._prune_dead_refs()
         return tuple(self._refs)
 
     def clear(self) -> None:
         """Remove all tracked entity references and forget the sentinel."""
-
         self._refs.clear()
         self._sentinel = None
 

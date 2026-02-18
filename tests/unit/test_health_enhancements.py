@@ -16,7 +16,6 @@ from custom_components.pawcontrol.health_enhancements import (
 
 def test_update_health_status_generates_typed_entries() -> None:
     """Health status snapshots should expose fully typed telemetry."""
-
     now = dt_util.now()
     profile = EnhancedHealthProfile(
         current_weight=22.5,
@@ -69,7 +68,6 @@ def test_update_health_status_generates_typed_entries() -> None:
 
 def test_calculate_next_appointment_recommendation_structured() -> None:
     """Appointment recommendations should map to the typed contract."""
-
     now = dt_util.now()
     profile = EnhancedHealthProfile(
         current_weight=18.2,

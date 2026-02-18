@@ -243,7 +243,6 @@ class TestNotificationManagerInitialization:
         self, mock_hass, session_factory
     ) -> None:
         """Providing a session should be honoured and reused."""
-
         custom_session = session_factory()
 
         manager = PawControlNotificationManager(
@@ -254,7 +253,6 @@ class TestNotificationManagerInitialization:
 
     async def test_initialization_rejects_missing_session(self, mock_hass) -> None:
         """Fail loudly when no session is provided."""
-
         with pytest.raises(ValueError):
             PawControlNotificationManager(  # type: ignore[arg-type]
                 mock_hass, "test_entry", session=None
@@ -264,7 +262,6 @@ class TestNotificationManagerInitialization:
         self, mock_hass, session_factory
     ) -> None:
         """Fail loudly when the session has been disposed."""
-
         closed_session = session_factory(closed=True)
 
         with pytest.raises(ValueError):
@@ -276,7 +273,6 @@ class TestNotificationManagerInitialization:
         self, mock_hass, mock_session
     ) -> None:
         """Cache registration should wire notification and person caches."""
-
         manager = PawControlNotificationManager(
             mock_hass, "test_entry", session=mock_session
         )
@@ -301,7 +297,6 @@ class TestNotificationWebhooks:
         self, mock_hass, session_factory
     ) -> None:
         """Injected session should be used for webhook HTTP calls."""
-
         custom_session = session_factory()
         response = AsyncMock()
         response.status = 200
@@ -338,7 +333,6 @@ class TestNotificationWebhooks:
         self, mock_hass, session_factory
     ) -> None:
         """Direct ClientResponse objects should be released after validation."""
-
         custom_session = session_factory()
         response = Mock()
         response.status = 200
@@ -372,7 +366,6 @@ class TestNotificationWebhooks:
         self, mock_hass, session_factory
     ) -> None:
         """Responses lacking release should still close the transport."""
-
         custom_session = session_factory()
         response = Mock()
         response.status = 200
@@ -527,7 +520,6 @@ class TestWebhookSecurityStatus:
 
     async def test_secure_webhook_configs(self, mock_notification_manager) -> None:
         """Secure webhooks should report pass status."""
-
         mock_notification_manager._configs["dog1"] = NotificationConfig(
             channels=[NotificationChannel.WEBHOOK],
             custom_settings={"webhook_secret": "supersecret"},
@@ -542,7 +534,6 @@ class TestWebhookSecurityStatus:
 
     async def test_insecure_webhook_configs(self, mock_notification_manager) -> None:
         """Missing secrets should be flagged as insecure."""
-
         mock_notification_manager._configs["dog1"] = NotificationConfig(
             channels=[NotificationChannel.WEBHOOK],
             custom_settings={},
@@ -674,7 +665,6 @@ class TestQuietHours:
         self, mock_hass, mock_session
     ) -> None:
         """Quiet-hours cache should suppress within TTL and recompute after expiry."""
-
         manager = PawControlNotificationManager(
             mock_hass, "test_entry", session=mock_session
         )
@@ -867,7 +857,6 @@ class TestBatchProcessing:
         self, mock_notification_manager, monkeypatch
     ) -> None:
         """Background task should flush aged batches through _send_batch."""
-
         manager = mock_notification_manager
 
         for task_attr in ("_batch_task", "_retry_task", "_cleanup_task"):
@@ -1071,7 +1060,6 @@ class TestNotificationAcknowledgment:
         self, mock_notification_manager
     ) -> None:
         """Notification acknowledgment should short-circuit when hass services missing."""  # noqa: E501
-
         notification_id = await mock_notification_manager.async_send_notification(
             notification_type=NotificationType.FEEDING_REMINDER,
             title="Test",
@@ -1137,7 +1125,6 @@ class TestPersonTargeting:
         self, mock_notification_manager
     ) -> None:
         """Static mobile services should be reused when no dynamic targets exist."""
-
         manager = mock_notification_manager
         stub_person_manager = _NoTargetsPersonManager()
         manager._person_manager = stub_person_manager
@@ -1178,7 +1165,6 @@ class TestPersonTargeting:
         self, mock_notification_manager
     ) -> None:
         """Dynamic person targeting should include away personas when configured."""
-
         manager = mock_notification_manager
         person_manager = _DynamicPersonManager(
             home_persons=[
@@ -1235,7 +1221,6 @@ class TestPersonTargeting:
         self, mock_notification_manager
     ) -> None:
         """Person context should populate template variables for overrides."""
-
         manager = mock_notification_manager
         person_manager = _DynamicPersonManager(
             home_persons=[
@@ -1293,7 +1278,6 @@ class TestNotificationRetries:
         self, mock_notification_manager, monkeypatch
     ) -> None:
         """Failed mobile delivery should reschedule and record telemetry."""
-
         manager = mock_notification_manager
 
         for task_attr in ("_batch_task", "_retry_task", "_cleanup_task"):
@@ -1439,7 +1423,6 @@ class TestNotificationCleanup:
 
     async def test_quiet_hours_cache_cleanup(self, mock_notification_manager) -> None:
         """Cache cleanup should evict stale quiet-hour entries."""
-
         quiet_key = "test_dog"
         cache = mock_notification_manager._cache
 

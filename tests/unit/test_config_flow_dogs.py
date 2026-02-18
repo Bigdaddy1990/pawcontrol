@@ -27,7 +27,6 @@ from custom_components.pawcontrol.flow_steps.health_helpers import (
 @pytest.mark.unit
 def test_build_add_dog_placeholders_returns_mapping_proxy() -> None:
     """The add-dog helper should return an immutable mapping with typed values."""
-
     placeholders = _build_add_dog_placeholders(
         dog_count=2,
         max_dogs=5,
@@ -45,7 +44,6 @@ def test_build_add_dog_placeholders_returns_mapping_proxy() -> None:
 @pytest.mark.unit
 def test_build_dog_modules_placeholders_is_immutable() -> None:
     """The module placeholder helper should expose dog metadata as-is."""
-
     placeholders = _build_dog_modules_placeholders(
         dog_name="Buddy",
         dog_size="large",
@@ -61,7 +59,6 @@ def test_build_dog_modules_placeholders_is_immutable() -> None:
 @pytest.mark.unit
 def test_build_add_dog_summary_placeholders_normalises_counts() -> None:
     """Counts should be rendered as strings for translation placeholders."""
-
     placeholders = _build_add_dog_summary_placeholders(
         dogs_configured=1,
         max_dogs=4,
@@ -77,7 +74,6 @@ def test_build_add_dog_summary_placeholders_normalises_counts() -> None:
 @pytest.mark.unit
 def test_build_dog_modules_form_placeholders_returns_strings() -> None:
     """Module placeholders should coerce counts to strings and keep defaults."""
-
     placeholders = _build_dog_modules_form_placeholders(
         dog_name="Luna",
         dogs_configured=3,
@@ -93,7 +89,6 @@ def test_build_dog_modules_form_placeholders_returns_strings() -> None:
 @pytest.mark.unit
 def test_build_add_another_placeholders_encodes_flags() -> None:
     """The add-another helper should encode boolean flags consistently."""
-
     placeholders = _build_add_another_placeholders(
         dogs_configured=2,
         dogs_list="Buddy, Luna",
@@ -113,7 +108,6 @@ def test_build_add_another_placeholders_encodes_flags() -> None:
 @pytest.mark.unit
 def test_build_dog_gps_placeholders_returns_mapping_proxy() -> None:
     """GPS placeholders should expose the active dog name immutably."""
-
     placeholders = build_dog_gps_placeholders(dog_name="Buddy")
 
     assert isinstance(placeholders, MappingProxyType)
@@ -123,7 +117,6 @@ def test_build_dog_gps_placeholders_returns_mapping_proxy() -> None:
 @pytest.mark.unit
 def test_build_dog_feeding_placeholders_normalises_strings() -> None:
     """Feeding placeholders should coerce numeric values into strings."""
-
     placeholders = _build_dog_feeding_placeholders(
         dog_name="Luna",
         dog_weight="21.5",
@@ -141,7 +134,6 @@ def test_build_dog_feeding_placeholders_normalises_strings() -> None:
 @pytest.mark.unit
 def test_build_dog_health_placeholders_encodes_metadata() -> None:
     """Health placeholders should carry the computed guidance strings."""
-
     placeholders = build_dog_health_placeholders(
         dog_name="Buddy",
         dog_age="5",
@@ -172,7 +164,6 @@ def test_build_dog_health_placeholders_encodes_metadata() -> None:
 @pytest.mark.unit
 def test_build_add_another_summary_placeholders_tracks_capacity() -> None:
     """The summary helper should expose counts and capacity flags."""
-
     placeholders = _build_add_another_summary_placeholders(
         dogs_list="Buddy, Luna",
         dog_count="2",
@@ -192,7 +183,6 @@ def test_build_add_another_summary_placeholders_tracks_capacity() -> None:
 @pytest.mark.unit
 def test_build_module_setup_placeholders_is_immutable() -> None:
     """Module overview placeholders should return a mapping proxy."""
-
     placeholders = _build_module_setup_placeholders(
         total_dogs="2",
         gps_dogs="1",

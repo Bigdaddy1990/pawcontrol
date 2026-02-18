@@ -31,7 +31,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 def _ensure_package(name: str, path: Path) -> ModuleType:
     """Ensure a namespace package exists for dynamic imports."""
-
     module = sys.modules.get(name)
     if module is None:
         module = ModuleType(name)
@@ -42,7 +41,6 @@ def _ensure_package(name: str, path: Path) -> ModuleType:
 
 def _load_module(name: str, path: Path) -> ModuleType:
     """Import ``name`` from ``path`` without executing package ``__init__`` files."""
-
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Cannot load module {name} from {path}")
@@ -115,7 +113,6 @@ def _make_reconfigure_entry(
 
 def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]:
     """Register Home Assistant stubs required by repairs.py."""
-
     homeassistant_test_stubs.install_homeassistant_stubs()
 
     from homeassistant.components import repairs as repairs_component
@@ -222,7 +219,6 @@ def _run_check_for_issues(
 @pytest.fixture
 def repairs_module() -> tuple[Any, AsyncMock, type[StrEnum], AsyncMock]:
     """Return the loaded repairs module alongside the issue registry mock."""
-
     async_create_issue, issue_severity_cls, async_delete_issue = (
         _install_homeassistant_stubs()
     )
@@ -251,7 +247,6 @@ def test_async_create_issue_normalises_unknown_severity(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Severity values outside the registry should fall back to warnings."""
-
     module, create_issue_mock, issue_severity_cls, _ = repairs_module
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
@@ -283,7 +278,6 @@ def test_async_create_issue_accepts_issue_severity_instances(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Passing an IssueSeverity instance should be preserved."""
-
     module, create_issue_mock, issue_severity_cls, _ = repairs_module
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
@@ -311,7 +305,6 @@ def test_async_create_issue_passes_learn_more_url(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Learn-more URLs should be forwarded to the issue registry when supported."""
-
     module, create_issue_mock, _, _ = repairs_module
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
@@ -337,7 +330,6 @@ def _build_config_entries(
     entry: Any,
 ) -> tuple[Any, list[tuple[Any | None, Any | None]], AsyncMock]:
     """Return a config entries namespace with tracking mocks."""
-
     updates: list[tuple[Any | None, Any | None]] = []
     reload_mock = AsyncMock(return_value=True)
 
@@ -366,7 +358,6 @@ def _build_config_entries(
 
 def _create_flow(module: ModuleType, hass: Any, issue_id: str) -> Any:
     """Instantiate the repairs flow with the provided Home Assistant stub."""
-
     flow = module.PawControlRepairsFlow()
     flow.hass = hass
     flow.issue_id = issue_id
@@ -377,7 +368,6 @@ def test_storage_warning_flow_reduces_retention(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Storage warning repair should lower retention and resolve the issue."""
-
     module, _, _, delete_issue_mock = repairs_module
     entry = module.ConfigEntry("entry")
     entry.data = {module.CONF_DOGS: []}
@@ -423,7 +413,6 @@ def test_notification_auth_error_flow_shows_guidance(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Notification auth error repairs should guide users to credentials."""
-
     module, _, _, _ = repairs_module
 
     issue_id = "entry_notification_auth_error"
@@ -453,7 +442,6 @@ def test_notification_device_unreachable_flow_shows_guidance(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Notification unreachable repairs should guide users to device checks."""
-
     module, _, _, _ = repairs_module
 
     issue_id = "entry_notification_device_unreachable"
@@ -483,7 +471,6 @@ def test_notification_missing_service_flow_shows_guidance(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Missing notification service repairs should guide users to setup."""
-
     module, _, _, _ = repairs_module
 
     issue_id = "entry_notification_missing_service"
@@ -514,7 +501,6 @@ def test_module_conflict_flow_disables_extra_gps_modules(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Module conflict repair should disable GPS for dogs beyond the limit."""
-
     module, _, _, delete_issue_mock = repairs_module
     entry = module.ConfigEntry("entry")
     entry.data = {
@@ -563,7 +549,6 @@ def test_invalid_dog_data_flow_removes_entries(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Invalid dog data repair should remove malformed entries."""
-
     module, _, _, delete_issue_mock = repairs_module
     entry = module.ConfigEntry("entry")
     entry.data = {
@@ -606,7 +591,6 @@ def test_coordinator_error_flow_triggers_reload(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Coordinator repair should reload the config entry and resolve the issue."""
-
     module, _, _, delete_issue_mock = repairs_module
     entry = module.ConfigEntry("entry")
     entry.data = {module.CONF_DOGS: []}
@@ -644,7 +628,6 @@ def test_coordinator_error_flow_handles_failed_reload(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Coordinator repair should keep the issue when reload fails."""
-
     module, _, _, delete_issue_mock = repairs_module
     entry = module.ConfigEntry("entry")
     entry.data = {module.CONF_DOGS: []}
@@ -690,7 +673,6 @@ def test_async_check_for_issues_checks_coordinator_health(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Coordinator health should be validated when scanning for issues."""
-
     module, create_issue_mock, _, delete_issue_mock = repairs_module
 
     hass = SimpleNamespace()
@@ -743,7 +725,6 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Aggregated cache anomalies should surface as repairs issues."""
-
     module, create_issue_mock, _, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -793,7 +774,6 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Repairs should clear cache issues when anomalies disappear."""
-
     module, create_issue_mock, _, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -825,7 +805,6 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Reconfigure telemetry warnings should surface as repair issues."""
-
     module, create_issue_mock, _, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -851,7 +830,6 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Health summaries from reconfigure telemetry should raise issues."""
-
     module, create_issue_mock, _, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -881,7 +859,6 @@ def test_check_runtime_store_duration_alerts_creates_issue(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Guard alerts should create a runtime store repair issue."""
-
     module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -931,7 +908,6 @@ def test_check_runtime_store_duration_alerts_clears_issue_without_alerts(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Existing issues should be cleared when no guard alerts remain."""
-
     module, create_issue_mock, _, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -961,7 +937,6 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Reconfigure telemetry without warnings should clear existing issues."""
-
     module, create_issue_mock, _, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -1002,7 +977,6 @@ def test_notification_check_accepts_mobile_app_service_prefix(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Notification checks should detect mobile_app_* notify services."""
-
     module, create_issue_mock, _, _ = repairs_module
 
     hass = SimpleNamespace()
@@ -1036,7 +1010,6 @@ def test_notification_delivery_errors_create_issues(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Recurring notification failures should surface repair issues."""
-
     module, create_issue_mock, issue_severity_cls, _ = repairs_module
     create_issue_mock.reset_mock()
 
@@ -1096,7 +1069,6 @@ def test_notification_delivery_errors_clears_issues_when_clean(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Notification error issues should clear when delivery recovers."""
-
     module, _, _, delete_issue_mock = repairs_module
     delete_issue_mock.reset_mock()
 
@@ -1137,7 +1109,6 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Feeding compliance issues should create repair alerts with metadata."""
-
     module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -1217,7 +1188,6 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Severity should fall back when CRITICAL is unavailable."""
-
     module, create_issue_mock, _, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -1291,7 +1261,6 @@ def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Resolved compliance checks should clear existing repair issues."""
-
     module, create_issue_mock, _, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -1343,7 +1312,6 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """No-data results should raise a warning issue."""
-
     module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
@@ -1396,7 +1364,6 @@ def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
     repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Structured messages should fall back to the localised summary text."""
-
     module, create_issue_mock, _issue_severity_cls, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()

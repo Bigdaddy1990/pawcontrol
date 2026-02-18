@@ -795,14 +795,12 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
     def _get_runtime_data(self) -> PawControlRuntimeData | None:
         """Return runtime data associated with the config entry."""
-
         if self.hass is None:
             return None
         return get_runtime_data(self.hass, self.coordinator.config_entry)
 
     def _get_domain_entry_data(self) -> JSONMutableMapping:
         """Return the hass.data payload for this config entry."""
-
         runtime_data = self._get_runtime_data()
         if runtime_data is not None:
             return cast(JSONMutableMapping, runtime_data.as_dict())
@@ -810,7 +808,6 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
     def _get_data_manager(self) -> PawControlDataManager | None:
         """Return the data manager for persistence if available."""
-
         runtime_data = self._get_runtime_data()
         if runtime_data is not None:
             direct_manager = getattr(runtime_data, "data_manager", None)
@@ -837,7 +834,6 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
     def _get_current_gps_config(self) -> JSONMutableMapping:
         """Return the currently stored GPS configuration."""
-
         dog_data = self._get_dog_data()
         if dog_data is None:
             return cast(JSONMutableMapping, {})
@@ -855,7 +851,6 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         updates: JSONMutableMapping,
     ) -> None:
         """Persist updates for a module and refresh coordinator data."""
-
         data_manager = self._get_data_manager()
         if data_manager:
             try:
@@ -883,7 +878,6 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         config_updates: JSONMutableMapping | None = None,
     ) -> None:
         """Update stored GPS settings and apply them to the GPS manager."""
-
         gps_updates: JSONMutableMapping = {}
         merged_config: JSONMutableMapping | None = None
 
@@ -1015,7 +1009,6 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
     def _get_dog_data(self) -> CoordinatorDogData | None:
         """Get data for this select's dog from the coordinator."""
-
         return self._get_dog_data_cached()
 
     def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
@@ -1176,7 +1169,6 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
 
     async def _async_set_select_option(self, option: str) -> None:
         """Set the notification priority."""
-
         try:
             priority = NotificationPriority(option)
         except ValueError as err:
@@ -1511,7 +1503,6 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
 
     async def _async_set_select_option(self, option: str) -> None:
         """Set the GPS source."""
-
         timestamp = dt_util.utcnow().isoformat()
         await self._async_update_gps_settings(
             state_updates={
@@ -1569,7 +1560,6 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
 
     async def _async_set_select_option(self, option: str) -> None:
         """Set the tracking mode."""
-
         timestamp = dt_util.utcnow().isoformat()
         preset = TRACKING_MODE_PRESETS.get(option)
         config_updates: JSONMutableMapping | None = (
@@ -1612,7 +1602,6 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
 
     async def _async_set_select_option(self, option: str) -> None:
         """Set the location accuracy preference."""
-
         timestamp = dt_util.utcnow().isoformat()
         accuracy_config = LOCATION_ACCURACY_CONFIGS.get(option)
         config_updates: JSONMutableMapping | None = (

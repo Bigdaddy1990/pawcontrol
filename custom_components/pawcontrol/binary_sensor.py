@@ -504,7 +504,6 @@ class PawControlBinarySensorBase(
 
     def _inherit_extra_attributes(self) -> AttributeDict:
         """Return a mutable copy of inherited attributes."""
-
         return cast(
             AttributeDict, normalise_entity_attributes(super().extra_state_attributes)
         )
@@ -521,7 +520,6 @@ class PawControlBinarySensorBase(
     @property
     def device_class(self) -> BinarySensorDeviceClass | None:
         """Expose the configured device class for test doubles."""
-
         return getattr(self, "_attr_device_class", None)
 
     @property
@@ -532,7 +530,6 @@ class PawControlBinarySensorBase(
 
     def _extra_state_attributes(self) -> Mapping[str, object] | None:
         """Return additional attributes shared by binary sensors."""
-
         return {
             "last_update": _as_local(dt_util.utcnow()).isoformat(),
             "sensor_type": self._sensor_type,
@@ -540,31 +537,26 @@ class PawControlBinarySensorBase(
 
     def _get_feeding_payload(self) -> FeedingModulePayload | None:
         """Return the structured feeding payload when available."""
-
         module_state = self._get_module_data(FEEDING_MODULE)
         return cast(FeedingModulePayload, module_state) if module_state else None
 
     def _get_walk_payload(self) -> WalkModulePayload | None:
         """Return the structured walk payload when available."""
-
         module_state = self._get_module_data(WALK_MODULE)
         return cast(WalkModulePayload, module_state) if module_state else None
 
     def _get_gps_payload(self) -> GPSModulePayload | None:
         """Return the structured GPS payload when available."""
-
         module_state = self._get_module_data(GPS_MODULE)
         return cast(GPSModulePayload, module_state) if module_state else None
 
     def _get_health_payload(self) -> HealthModulePayload | None:
         """Return the structured health payload when available."""
-
         module_state = self._get_module_data(HEALTH_MODULE)
         return cast(HealthModulePayload, module_state) if module_state else None
 
     def _get_garden_payload(self) -> GardenModulePayload | None:
         """Return the structured garden payload when available."""
-
         module_state = self._get_module_data(GARDEN_MODULE)
         return cast(GardenModulePayload, module_state) if module_state else None
 
@@ -582,7 +574,6 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
 
     def _apply_garden_common_attributes(self, attrs: AttributeDict) -> None:
         """Populate common garden telemetry attributes for garden sensors."""
-
         data = self._get_garden_data()
         garden_status = data.get("status")
         if garden_status is not None:
@@ -616,12 +607,10 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
 
     def _get_garden_manager(self) -> GardenManager | None:
         """Return the configured garden manager when available."""
-
         return self._get_runtime_managers().garden_manager
 
     def _get_garden_data(self) -> GardenModulePayload:
         """Return garden snapshot data for the dog."""
-
         payload = self._get_garden_payload()
         if payload:
             return payload

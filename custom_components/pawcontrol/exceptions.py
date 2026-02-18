@@ -764,7 +764,6 @@ class FlowValidationError(PawControlError):
 
     def as_form_errors(self) -> dict[str, str]:
         """Return errors in the format expected by Home Assistant forms."""
-
         if self.field_errors:
             return dict(self.field_errors)
         if self.base_errors:
@@ -957,7 +956,6 @@ class NetworkError(PawControlError):
         retryable: bool = True,
     ) -> None:
         """Initialize network error."""
-
         suggestions = [
             "Check your internet connection",
             "Verify the PawControl service is reachable",
@@ -995,7 +993,6 @@ class ServiceUnavailableError(NetworkError):
         operation: str | None = None,
     ) -> None:
         """Initialize service unavailable error."""
-
         super().__init__(
             message,
             endpoint=endpoint,
@@ -1014,7 +1011,6 @@ class AuthenticationError(PawControlError):
 
     def __init__(self, message: str, *, service: str | None = None) -> None:
         """Initialize authentication error."""
-
         super().__init__(
             message,
             error_code="authentication_error",

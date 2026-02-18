@@ -22,7 +22,6 @@ from custom_components.pawcontrol.types import (
 
 def _runtime_data() -> SimpleNamespace:
     """Return a minimal runtime data container for telemetry tests."""
-
     return SimpleNamespace(performance_stats={})
 
 
@@ -34,7 +33,6 @@ def _snapshot(
     divergence: bool = False,
 ) -> RuntimeStoreCompatibilitySnapshot:
     """Build a runtime store compatibility snapshot for testing."""
-
     return {
         "entry_id": "entry",
         "status": status,  # type: ignore[assignment]
@@ -58,7 +56,6 @@ def _snapshot(
 
 def test_update_runtime_store_health_records_counts(monkeypatch: MonkeyPatch) -> None:
     """Recording telemetry should update counts and metadata."""
-
     runtime_data = _runtime_data()
     snapshot = _snapshot()
     monkeypatch.setattr(
@@ -199,7 +196,6 @@ def test_update_runtime_store_health_does_not_increment_when_suppressed(
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Suppressing recording should still refresh last status without new counts."""
-
     runtime_data = _runtime_data()
     first_snapshot = _snapshot(status="current")
     monkeypatch.setattr(
@@ -331,7 +327,6 @@ def test_update_runtime_store_health_records_first_event_when_suppressed(
     monkeypatch: MonkeyPatch,
 ) -> None:
     """The first invocation should record even when suppression is requested."""
-
     runtime_data = _runtime_data()
     snapshot = _snapshot(status="needs_migration", entry_status="unstamped")
     monkeypatch.setattr(
@@ -425,7 +420,6 @@ def test_update_runtime_store_health_escalates_on_persistent_divergence(
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Repeated divergence should escalate the assessment severity."""
-
     runtime_data = _runtime_data()
     monkeypatch.setattr(
         "custom_components.pawcontrol.telemetry.dt_util.utcnow",
@@ -510,7 +504,6 @@ def test_update_runtime_store_health_escalates_on_persistent_divergence(
 
 def test_runtime_store_assessment_tracks_trends(monkeypatch: MonkeyPatch) -> None:
     """Trend counters should track level changes and streaks."""
-
     runtime_data = _runtime_data()
     moments = iter((
         datetime(2024, 4, 1, tzinfo=UTC),
@@ -606,7 +599,6 @@ def test_runtime_store_assessment_tracks_trends(monkeypatch: MonkeyPatch) -> Non
 
 def test_runtime_store_assessment_event_log_capped(monkeypatch: MonkeyPatch) -> None:
     """The assessment event timeline should retain only the configured window."""
-
     runtime_data = _runtime_data()
     limit = telemetry_module._RUNTIME_STORE_ASSESSMENT_EVENT_LIMIT
     base = datetime(2024, 5, 1, tzinfo=UTC)
@@ -639,7 +631,6 @@ def test_runtime_store_assessment_event_log_capped(monkeypatch: MonkeyPatch) -> 
 
 def test_summarise_runtime_store_events_backfills_legacy_durations() -> None:
     """Legacy events without duration metadata should derive it from timestamps."""
-
     events = [
         {
             "timestamp": "2024-01-01T00:00:00+00:00",
@@ -685,7 +676,6 @@ def test_summarise_runtime_store_events_backfills_legacy_durations() -> None:
 
 def test_summarise_runtime_store_events_includes_percentiles() -> None:
     """Percentiles and alert thresholds should cover multi-sample durations."""
-
     events: list[RuntimeStoreAssessmentEvent] = [
         {
             "timestamp": "2024-01-01T00:00:00+00:00",
@@ -736,7 +726,6 @@ def test_summarise_runtime_store_events_includes_percentiles() -> None:
 
 def test_summarise_runtime_store_events_sets_guard_alerts() -> None:
     """Guard alerts should surface when percentiles exceed limits."""
-
     events: list[RuntimeStoreAssessmentEvent] = [
         {
             "timestamp": "2024-01-01T00:00:00+00:00",

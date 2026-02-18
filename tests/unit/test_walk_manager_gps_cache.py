@@ -13,7 +13,6 @@ from custom_components.pawcontrol.walk_manager import (
 
 def test_gps_cache_stats_and_snapshot() -> None:
     """The GPS cache exposes typed stats, metadata, and hit counters."""
-
     cache: GPSCache[CachedGPSLocation] = GPSCache(max_size=2)
 
     # First lookup misses, then populate and retrieve the entry to record a hit.  # noqa: E501

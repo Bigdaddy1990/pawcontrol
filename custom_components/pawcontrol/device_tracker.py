@@ -227,7 +227,6 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     @staticmethod
     def _serialize_timestamp(value: datetime | str | None) -> str | None:
         """Return an ISO-formatted timestamp for ``value`` when possible."""
-
         if isinstance(value, datetime):
             return dt_util.as_utc(value).isoformat()
         if isinstance(value, str):
@@ -236,7 +235,6 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
 
     def _serialize_route_point(self, point: GPSRoutePoint) -> GPSRoutePoint:
         """Convert a route point to a JSON-safe mapping."""
-
         timestamp_iso = self._serialize_timestamp(point.get("timestamp"))
         payload: dict[str, JSONValue] = {
             "latitude": float(point["latitude"]),

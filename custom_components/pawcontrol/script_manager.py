@@ -492,7 +492,6 @@ class PawControlScriptManager:
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialise the script manager."""
-
         self._hass = hass
         self._entry = entry
         self._created_entities: set[str] = set()
@@ -527,7 +526,6 @@ class PawControlScriptManager:
 
     async def async_initialize(self) -> None:
         """Reset internal tracking structures prior to script generation."""
-
         self._created_entities.clear()
         self._dog_scripts.clear()
         self._entry_scripts.clear()
@@ -561,7 +559,6 @@ class PawControlScriptManager:
         prefix: str = "script_manager",
     ) -> None:
         """Expose script diagnostics through the shared cache monitor registry."""
-
         if registrar is None:
             raise ValueError("registrar is required")
         _LOGGER.debug(
@@ -575,7 +572,6 @@ class PawControlScriptManager:
 
     def attach_runtime_manual_history(self, runtime: object) -> None:
         """Attach the current manual event history to ``runtime``."""
-
         if runtime is None:
             return
         manual_history = getattr(runtime, "manual_event_history", None)
@@ -591,12 +587,10 @@ class PawControlScriptManager:
 
     def sync_manual_event_history(self) -> None:
         """Persist the manual event history back to runtime storage."""
-
         self._sync_manual_history_to_runtime()
 
     def _resolve_manual_history_size(self) -> int:
         """Determine the configured manual event history length."""
-
         raw_options = getattr(self._entry, "options", None)
         options = _parse_manual_resilience_options(raw_options)
 
@@ -621,7 +615,6 @@ class PawControlScriptManager:
 
     def _update_manual_history_size(self) -> None:
         """Resize the manual event history deque when configuration changes."""
-
         desired = self._resolve_manual_history_size()
         current = (
             self._manual_event_history.maxlen or _DEFAULT_MANUAL_EVENT_HISTORY_SIZE
@@ -638,7 +631,6 @@ class PawControlScriptManager:
 
     def export_manual_event_history(self) -> list[ManualResilienceEventRecord]:
         """Return a copy of the recorded manual event history."""
-
         return [
             cast(ManualResilienceEventRecord, dict(record))
             for record in self._manual_event_history
@@ -646,7 +638,6 @@ class PawControlScriptManager:
 
     def _resolve_resilience_thresholds(self) -> tuple[int, int]:
         """Return configured guard skip and breaker thresholds."""
-
         raw_options = getattr(self._entry, "options", None)
         options = _parse_manual_resilience_options(raw_options)
         skip_threshold = DEFAULT_RESILIENCE_SKIP_THRESHOLD
@@ -721,7 +712,6 @@ class PawControlScriptManager:
         self,
     ) -> ConfigEntryOptionsPayload | None:
         """Return updated options when legacy script defaults need migration."""
-
         raw_options = getattr(self._entry, "options", None)
         options = _parse_manual_resilience_options(raw_options)
         system_settings = options.get("system_settings")
@@ -757,7 +747,6 @@ class PawControlScriptManager:
         system_settings: ManualResilienceSystemSettingsSnapshot | None,
     ) -> bool:
         """Return ``True`` when script defaults should populate options."""
-
         if script_skip is None and script_breaker is None:
             return False
         if system_settings is None:
@@ -775,7 +764,6 @@ class PawControlScriptManager:
         script_breaker: int | None,
     ) -> ManualResilienceSystemSettingsSnapshot | None:
         """Return a system settings payload with migrated thresholds."""
-
         original = cast(
             ManualResilienceSystemSettingsSnapshot,
             dict(system_settings) if system_settings is not None else {},
@@ -825,7 +813,6 @@ class PawControlScriptManager:
         system_settings: ManualResilienceSystemSettingsSnapshot,
     ) -> ConfigEntryOptionsPayload:
         """Return updated options including migrated system settings."""
-
         updated_options = cast(ConfigEntryOptionsPayload, dict(options))
         updated_options["system_settings"] = cast(SystemOptions, dict(system_settings))
 
@@ -837,7 +824,6 @@ class PawControlScriptManager:
 
     def _resolve_manual_resilience_events(self) -> ManualResilienceEventsTelemetry:
         """Return configured manual escalation events from blueprint automations."""
-
         manager = getattr(self._hass, "config_entries", None)
         entries_callable = getattr(manager, "async_entries", None)
         if not callable(entries_callable):
@@ -1049,7 +1035,6 @@ class PawControlScriptManager:
         self,
     ) -> dict[ManualResiliencePreferenceKey, str | None]:
         """Return manual event preferences derived from config entry options."""
-
         options = getattr(self._entry, "options", {})
         preferences: dict[ManualResiliencePreferenceKey, str | None] = {
             "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
@@ -1080,7 +1065,6 @@ class PawControlScriptManager:
 
     def _manual_event_source_mapping(self) -> dict[str, ManualResilienceEventSource]:
         """Return metadata describing tracked manual resilience event types."""
-
         sources: dict[str, ManualResilienceEventSource] = {}
         preferences = self._manual_event_preferences()
 
@@ -1193,7 +1177,6 @@ class PawControlScriptManager:
 
     def _refresh_manual_event_listeners(self) -> None:
         """Subscribe to configured manual escalation events."""
-
         hass = self._hass
         bus = getattr(hass, "bus", None)
         async_listen = getattr(bus, "async_listen", None)
@@ -1221,7 +1204,6 @@ class PawControlScriptManager:
 
     def _unsubscribe_manual_event_listeners(self) -> None:
         """Detach manual escalation event listeners."""
-
         while self._manual_event_unsubscribes:
             event_type, unsubscribe = self._manual_event_unsubscribes.popitem()
             try:
@@ -1238,7 +1220,6 @@ class PawControlScriptManager:
         value: object,
     ) -> ManualResilienceEventRecord | None:
         """Normalise ``value`` into a manual event record when possible."""
-
         if not isinstance(value, Mapping):
             return None
         record: ManualResilienceEventRecord = {}
@@ -1316,7 +1297,6 @@ class PawControlScriptManager:
 
     def _restore_manual_event_history_from_runtime(self) -> None:
         """Restore manual event history from ``ConfigEntry.runtime_data``."""
-
         runtime = getattr(self._entry, "runtime_data", None)
 
         if isinstance(runtime, Mapping):
@@ -1345,7 +1325,6 @@ class PawControlScriptManager:
 
     def _sync_manual_history_to_runtime(self) -> None:
         """Synchronise the manual event history back to runtime storage."""
-
         runtime = getattr(self._entry, "runtime_data", None)
         if runtime is None:
             return
@@ -1370,7 +1349,6 @@ class PawControlScriptManager:
         recorded_at: datetime | str | None = None,
     ) -> ManualResilienceEventSnapshot | None:
         """Serialise ``record`` into a diagnostics-friendly snapshot."""
-
         if not isinstance(record, Mapping):
             return None
         fired_at = record.get("time_fired")
@@ -1518,7 +1496,6 @@ class PawControlScriptManager:
 
     def _serialise_manual_event_history(self) -> list[ManualResilienceEventSnapshot]:
         """Serialise the tracked manual event history."""
-
         snapshots: list[ManualResilienceEventSnapshot] = []
         for record in self._manual_event_history:
             snapshot = self._serialise_manual_event_record(record)
@@ -1528,25 +1505,21 @@ class PawControlScriptManager:
 
     def get_manual_event_history(self) -> list[ManualResilienceEventSnapshot]:
         """Return serialised manual event history for diagnostics."""
-
         return self._serialise_manual_event_history()
 
     def get_last_manual_event_snapshot(self) -> ManualResilienceEventSnapshot | None:
         """Return the most recent manual event snapshot when available."""
-
         if self._manual_event_history:
             return self._serialise_manual_event_record(self._manual_event_history[-1])
         return self._serialise_manual_event_record(self._last_manual_event)
 
     def _serialise_last_manual_event(self) -> ManualResilienceEventSnapshot | None:
         """Return the most recent manual event payload for diagnostics."""
-
         return self.get_last_manual_event_snapshot()
 
     @callback  # type: ignore[untyped-decorator,misc]
     def _handle_manual_event(self, event: Event) -> None:
         """Capture metadata for manual resilience triggers."""
-
         event_type = getattr(event, "event_type", None)
         if not isinstance(event_type, str):
             return
@@ -1653,7 +1626,6 @@ class PawControlScriptManager:
         events: ManualResilienceEventSelection,
     ) -> None:
         """Update resilience blueprint automations with preferred manual events."""
-
         if not events:
             return
         manager = getattr(self._hass, "config_entries", None)
@@ -1745,7 +1717,6 @@ class PawControlScriptManager:
         require_loaded: bool = True,
     ) -> EntityComponent[Any] | None:
         """Return the Home Assistant script entity component."""
-
         component: EntityComponent[Any] | None = self._hass.data.get(
             SCRIPT_DOMAIN,
         )
@@ -1765,7 +1736,6 @@ class PawControlScriptManager:
         enabled_modules: Collection[str],
     ) -> dict[str, list[str]]:
         """Create or update scripts for every configured dog."""
-
         if not dogs:
             return {}
         component = self._get_component()
@@ -1904,7 +1874,6 @@ class PawControlScriptManager:
 
     async def async_cleanup(self) -> None:
         """Remove all scripts created by the integration."""
-
         component = self._get_component(require_loaded=False)
         registry = er.async_get(self._hass)
 
@@ -1934,7 +1903,6 @@ class PawControlScriptManager:
 
     async def _async_remove_script_entity(self, entity_id: str) -> None:
         """Remove a specific script entity and its registry entry."""
-
         component = self._get_component(require_loaded=False)
         registry = er.async_get(self._hass)
 
@@ -1952,7 +1920,6 @@ class PawControlScriptManager:
         notifications_enabled: bool,
     ) -> list[tuple[str, ConfigType]]:
         """Return raw script configurations for a dog."""
-
         scripts: list[tuple[str, ConfigType]] = []
 
         scripts.append(self._build_reset_script(slug, dog_id, dog_name))
@@ -1985,14 +1952,12 @@ class PawControlScriptManager:
 
     def _build_entry_scripts(self) -> list[tuple[str, ConfigType]]:
         """Return global script definitions scoped to the config entry."""
-
         scripts: list[tuple[str, ConfigType]] = []
         scripts.append(self._build_resilience_escalation_script())
         return scripts
 
     def _build_resilience_escalation_script(self) -> tuple[str, ConfigType]:
         """Create the guard and breaker escalation script definition."""
-
         object_id = _resolve_resilience_object_id(self._entry)
         default_statistics_entity = "sensor.pawcontrol_statistics"
         skip_threshold_default, breaker_threshold_default = (
@@ -2316,7 +2281,6 @@ class PawControlScriptManager:
 
     def get_resilience_escalation_snapshot(self) -> ResilienceEscalationSnapshot | None:
         """Return diagnostics metadata for the resilience escalation helper."""
-
         definition = self._resilience_escalation_definition
         if not isinstance(definition, dict):
             return None
@@ -2559,7 +2523,6 @@ class PawControlScriptManager:
         dog_name: str,
     ) -> tuple[str, ConfigType]:
         """Create the confirmation notification script definition."""
-
         object_id = f"pawcontrol_{slug}_outdoor_check"
         notification_id = f"pawcontrol_{slug}_outdoor_check"
         default_title = f"{dog_name} outdoor check"
@@ -2654,7 +2617,6 @@ class PawControlScriptManager:
         dog_name: str,
     ) -> tuple[str, ConfigType]:
         """Create the daily reset helper script definition."""
-
         object_id = f"pawcontrol_{slug}_daily_reset"
         raw_config: ConfigType = {
             CONF_ALIAS: f"{dog_name} reset daily counters",
@@ -2721,7 +2683,6 @@ class PawControlScriptManager:
         dog_name: str,
     ) -> tuple[str, ConfigType]:
         """Create the push notification test script definition."""
-
         object_id = f"pawcontrol_{slug}_notification_test"
         default_message = f"Test notification for {dog_name} from PawControl"
 
@@ -2772,7 +2733,6 @@ class PawControlScriptManager:
         notifications_enabled: bool,
     ) -> tuple[str, ConfigType]:
         """Create the daily setup orchestration script definition."""
-
         object_id = f"pawcontrol_{slug}_daily_setup"
         default_message = f"Daily PawControl setup completed for {dog_name}."
 

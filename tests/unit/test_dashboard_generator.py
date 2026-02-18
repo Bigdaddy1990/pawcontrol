@@ -29,7 +29,6 @@ from custom_components.pawcontrol.dashboard_renderer import (
 
 def test_copy_dashboard_options_returns_plain_dict() -> None:
     """Dashboard options should be copied into a JSON-compatible dict."""
-
     readonly_options = MappingProxyType({"theme": "modern", "layout": "full"})
 
     copied = PawControlDashboardGenerator._copy_dashboard_options(readonly_options)
@@ -44,7 +43,6 @@ def test_copy_dashboard_options_returns_plain_dict() -> None:
 
 def test_copy_dashboard_options_returns_empty_dict_for_none() -> None:
     """``None`` options should yield an empty JSON-compatible dict."""
-
     copied = PawControlDashboardGenerator._copy_dashboard_options(None)
 
     assert copied == {}
@@ -53,7 +51,6 @@ def test_copy_dashboard_options_returns_empty_dict_for_none() -> None:
 
 def test_summarise_dashboard_views_marks_notifications() -> None:
     """The view summariser should flag the notifications module view."""
-
     dashboard_config = {
         "views": [
             {
@@ -91,7 +88,6 @@ def test_summarise_dashboard_views_marks_notifications() -> None:
 
 def test_normalise_dashboard_registry_filters_invalid_entries() -> None:
     """Stored dashboard registry payloads should be normalised to plain dicts."""
-
     stored_dashboard = MappingProxyType({
         "url": "dashboard-1",
         "title": "Primary dashboard",
@@ -145,7 +141,6 @@ async def test_generator_initialises_cleanup_tracking(
     mock_store: MagicMock, hass, mock_config_entry
 ) -> None:
     """Generator initialisation should create the cleanup tracking set."""
-
     mock_store.return_value = MagicMock()
 
     generator = PawControlDashboardGenerator(hass, mock_config_entry)
@@ -160,7 +155,6 @@ async def test_track_task_registers_and_clears(
     mock_store: MagicMock, hass, mock_config_entry
 ) -> None:
     """Tracked tasks should be cancelled during cleanup and removed on completion."""
-
     mock_store.return_value = MagicMock()
     generator = PawControlDashboardGenerator(hass, mock_config_entry)
 
@@ -178,7 +172,6 @@ async def test_track_task_registers_and_clears(
 @pytest.mark.asyncio
 async def test_track_task_falls_back_to_asyncio(mock_config_entry) -> None:
     """Use ``asyncio.create_task`` when Home Assistant helper is unavailable."""
-
     generator = object.__new__(PawControlDashboardGenerator)
     generator.hass = SimpleNamespace()
     generator._cleanup_tasks = set()
@@ -204,7 +197,6 @@ async def test_track_task_falls_back_to_asyncio(mock_config_entry) -> None:
 @pytest.mark.asyncio
 async def test_track_task_uses_hass_loop_when_available(mock_config_entry) -> None:
     """Fallback to ``hass.loop.create_task`` before raw asyncio scheduling."""
-
     loop_mock = MagicMock()
     generator = object.__new__(PawControlDashboardGenerator)
     generator.hass = SimpleNamespace(loop=loop_mock)
@@ -245,7 +237,6 @@ async def test_track_task_accepts_existing_task(
     mock_store: MagicMock, hass, mock_config_entry
 ) -> None:
     """Existing tasks should be tracked without being recreated."""
-
     mock_store.return_value = MagicMock()
 
     generator = PawControlDashboardGenerator(hass, mock_config_entry)
@@ -303,7 +294,6 @@ def test_resolve_coordinator_statistics_uses_runtime_data(
     mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Coordinator statistics should be sourced from runtime data helpers."""
-
     mock_store.return_value = MagicMock()
     generator = PawControlDashboardGenerator(hass, mock_config_entry)
     sentinel_stats = {"rejection_metrics": default_rejection_metrics()}
@@ -328,7 +318,6 @@ def test_resolve_service_execution_metrics_uses_runtime_data(
     mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Service execution metrics should reuse runtime performance stats."""
-
     mock_store.return_value = MagicMock()
     generator = PawControlDashboardGenerator(hass, mock_config_entry)
 
@@ -360,7 +349,6 @@ def test_resolve_service_guard_metrics_uses_runtime_data(
     mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Guard metrics should be normalised from runtime performance stats."""
-
     mock_store.return_value = MagicMock()
     generator = PawControlDashboardGenerator(hass, mock_config_entry)
 
@@ -399,7 +387,6 @@ async def test_renderer_forwards_statistics_context(
     hass, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The statistics renderer should receive coordinator and service metrics."""
-
     renderer = DashboardRenderer(hass)
     sentinel_stats = {"rejection_metrics": default_rejection_metrics()}
     service_metrics = default_rejection_metrics()
@@ -470,7 +457,6 @@ async def test_write_dashboard_file_preserves_existing_file_on_error(
     hass, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Failed writes should not corrupt the existing dashboard file."""
-
     renderer = DashboardRenderer(hass)
     file_path = tmp_path / "dashboard.json"
     file_path.write_text("original", encoding="utf-8")
@@ -497,7 +483,6 @@ async def test_async_cleanup_cancels_tracked_tasks(
     mock_store: MagicMock, hass, mock_config_entry
 ) -> None:
     """Pending tasks tracked by the generator should be cancelled during cleanup."""
-
     mock_store.return_value = MagicMock()
     generator = PawControlDashboardGenerator(hass, mock_config_entry)
 
@@ -523,7 +508,6 @@ async def test_store_metadata_includes_notifications_view(
     tmp_path: Path,
 ) -> None:
     """Storing dashboard metadata should export the notifications view summary."""
-
     generator = object.__new__(PawControlDashboardGenerator)
     generator.entry = mock_config_entry
     generator._dashboards = {}
@@ -593,7 +577,6 @@ async def test_validate_single_dashboard_rehydrates_notifications_view(
     tmp_path: Path,
 ) -> None:
     """Stored dashboards missing metadata should be refreshed during validation."""
-
     generator = object.__new__(PawControlDashboardGenerator)
 
     dashboard_file = tmp_path / "lovelace.test-dashboard"

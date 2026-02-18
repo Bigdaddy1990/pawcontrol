@@ -48,7 +48,6 @@ class _SelectorNamespaceProtocol(Protocol):
 
     def __call__(self, config: Any) -> Any:
         """Return normalized selector config payload."""
-
         pass
 
 

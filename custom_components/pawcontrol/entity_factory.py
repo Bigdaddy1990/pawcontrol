@@ -98,7 +98,6 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
 
     def __getitem__(self, key: str) -> EntityCreationValue:
         """Return the requested creation attribute for mapping compatibility."""
-
         match key:
             case "dog_id":
                 return self.dog_id
@@ -122,7 +121,6 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
 
     def __iter__(self) -> Iterator[str]:
         """Yield entity creation keys to mimic mapping iteration."""
-
         yield from (
             "dog_id",
             "entity_type",
@@ -137,12 +135,10 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
 
     def __len__(self) -> int:
         """Return the number of defined creation attributes."""
-
         return 8 + len(self.extras)
 
     def as_dict(self) -> dict[str, EntityCreationValue]:
         """Return a standard mutable mapping copy."""
-
         payload: dict[str, EntityCreationValue] = {
             "dog_id": self.dog_id,
             "entity_type": self.entity_type,
@@ -182,7 +178,6 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
 
     def __getitem__(self, key: str) -> EntityProfileValue:
         """Return the requested profile metadata attribute."""
-
         match key:
             case "name":
                 return self.name
@@ -204,7 +199,6 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
 
     def __iter__(self) -> Iterator[str]:
         """Yield profile attribute keys in canonical order."""
-
         yield from (
             "name",
             "description",
@@ -218,7 +212,6 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
 
     def __len__(self) -> int:
         """Return the number of profile attributes."""
-
         return 8
 
 
@@ -239,7 +232,6 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
 
     def __getitem__(self, key: str) -> float | int | str:
         """Return the requested performance metric value."""
-
         match key:
             case "profile":
                 return self.profile
@@ -259,7 +251,6 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
 
     def __iter__(self) -> Iterator[str]:
         """Yield metric keys in deterministic order."""
-
         yield from (
             "profile",
             "estimated_entities",
@@ -272,12 +263,10 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
 
     def __len__(self) -> int:
         """Return the number of metrics tracked."""
-
         return 7
 
     def as_dict(self) -> dict[str, float | int | str]:
         """Return a standard mapping representation for diagnostics/logging."""
-
         return {
             "profile": self.profile,
             "estimated_entities": self.estimated_entities,
@@ -559,7 +548,6 @@ class EntityBudget:
 
     def __post_init__(self) -> None:
         """Normalize base allocation to remain within the capacity."""
-
         if self.base_allocation > self.capacity:
             _LOGGER.warning(
                 "Base allocation %d exceeds capacity %d for %s/%s",  # pragma: no cover - log only  # noqa: E501
@@ -573,12 +561,10 @@ class EntityBudget:
     @property
     def remaining(self) -> int:
         """Return remaining entity slots in the budget."""
-
         return max(self.capacity - self.base_allocation - self.dynamic_allocation, 0)
 
     def reserve(self, identifier: str, *, priority: int, weight: int = 1) -> bool:
         """Reserve capacity for an entity request."""
-
         if weight <= 0:
             weight = 1
         if self.remaining < weight:
@@ -590,7 +576,6 @@ class EntityBudget:
 
     def snapshot(self) -> EntityBudgetSnapshot:
         """Create a snapshot for diagnostics and coordinator reporting."""
-
         return EntityBudgetSnapshot(
             dog_id=self.dog_id,
             profile=self.profile,
@@ -664,7 +649,6 @@ class EntityFactory:
 
     def _prewarm_caches(self) -> None:
         """Warm up internal caches for consistent performance."""
-
         original_runtime_floor = self._runtime_guard_floor
 
         try:
@@ -767,7 +751,6 @@ class EntityFactory:
 
     def _update_last_estimate_state(self, estimate: EntityEstimate) -> None:
         """Cache metadata derived from the most recent estimate."""
-
         if (
             self._last_estimate_key is not None
             and self._last_estimate_key[0] == estimate.profile
@@ -802,7 +785,6 @@ class EntityFactory:
         base_allocation: int = 0,
     ) -> EntityBudget:
         """Begin tracking an entity budget for a dog/profile combination."""
-
         profile_info = self.get_profile_info(profile)
         capacity = profile_info.max_entities
         budget = EntityBudget(
@@ -816,12 +798,10 @@ class EntityFactory:
 
     def get_budget(self, dog_id: str, profile: str) -> EntityBudget | None:
         """Return the active budget for the provided dog and profile."""
-
         return self._active_budgets.get((dog_id, profile))
 
     def finalize_budget(self, dog_id: str, profile: str) -> EntityBudgetSnapshot | None:
         """Finalize and report the entity budget for a dog/profile."""
-
         key = (dog_id, profile)
         budget = self._active_budgets.pop(key, None)
         if budget is None:
@@ -841,12 +821,10 @@ class EntityFactory:
 
     def get_budget_snapshot(self, dog_id: str) -> EntityBudgetSnapshot | None:
         """Return the most recent budget snapshot for a dog."""
-
         return self._last_budget_snapshots.get(dog_id)
 
     def _enforce_metrics_runtime(self) -> None:
         """Yield control to the event loop after intensive calculations."""
-
         self._ensure_loop_state()
         if not self._loop_supports_callbacks or self._loop_ref is None:
             return
@@ -858,7 +836,6 @@ class EntityFactory:
 
     def _ensure_loop_state(self) -> None:
         """Refresh cached event loop information when necessary."""
-
         if self._loop_supports_callbacks is False:
             return
         if self._loop_supports_callbacks and self._loop_ref is not None:
@@ -879,7 +856,6 @@ class EntityFactory:
     @staticmethod
     def _yield_control() -> None:
         """No-op callback scheduled to allow the event loop to run."""
-
         return
 
     def _get_entity_estimate(
@@ -890,7 +866,6 @@ class EntityFactory:
         log_invalid_inputs: bool,
     ) -> EntityEstimate:
         """Return cached entity estimate for a profile and module set."""
-
         normalized_profile = self._normalize_profile(
             profile,
             log=log_invalid_inputs,
@@ -924,7 +899,6 @@ class EntityFactory:
 
     def _normalize_profile(self, profile: str, *, log: bool) -> str:
         """Normalize profile name and optionally log when invalid."""
-
         if self._validate_profile(profile):
             return profile
         if log:
@@ -938,7 +912,6 @@ class EntityFactory:
         log: bool,
     ) -> dict[str, bool]:
         """Normalize module configuration and optionally log when invalid."""
-
         if modules is None or not isinstance(modules, Mapping):
             if log:
                 _LOGGER.warning(
@@ -961,7 +934,6 @@ class EntityFactory:
         module_signature: tuple[tuple[str, bool], ...],
     ) -> EntityEstimate:
         """Compute entity estimation details for caching."""
-
         base_entities = 3
         module_entities = 0
         enabled_modules = 0
@@ -1005,7 +977,6 @@ class EntityFactory:
         Returns:
             Estimated entity count
         """
-
         started_at = time.perf_counter()
         estimate = self._get_entity_estimate(
             profile,
@@ -1031,7 +1002,6 @@ class EntityFactory:
         modules: Mapping[str, bool],
     ) -> int:
         """Estimate entity count without blocking the event loop."""
-
         started_at = time.perf_counter()
         estimate = self._get_entity_estimate(
             profile,
@@ -1138,7 +1108,6 @@ class EntityFactory:
         priority: int = 5,
     ) -> bool:
         """Determine entity creation without blocking the event loop."""
-
         started_at = time.perf_counter()
         cache_key = (
             profile,
@@ -1202,13 +1171,11 @@ class EntityFactory:
 
     def _ensure_min_runtime(self, started_at: float) -> None:
         """Record runtime guard metrics for the completed operation."""
-
         actual_duration = max(time.perf_counter() - started_at, 0.0)
         self._recalibrate_runtime_floor(actual_duration)
 
     async def _ensure_min_runtime_async(self, started_at: float) -> None:
         """Record runtime guard metrics without blocking the event loop."""
-
         actual_duration = max(time.perf_counter() - started_at, 0.0)
         self._recalibrate_runtime_floor(actual_duration)
 
@@ -1218,7 +1185,6 @@ class EntityFactory:
         actual_duration: float,
     ) -> None:
         """Persist runtime guard telemetry into the config entry runtime store."""
-
         coordinator = self.coordinator
         if coordinator is None:
             return
@@ -1242,7 +1208,6 @@ class EntityFactory:
 
     def _recalibrate_runtime_floor(self, actual_duration: float) -> None:
         """Adapt the runtime guard to smooth jitter in busy environments."""
-
         if not self._enforce_min_runtime:
             self._record_runtime_guard_calibration("disabled", actual_duration)
             return
@@ -1275,7 +1240,6 @@ class EntityFactory:
     @staticmethod
     def _resolve_platform(entity_type: str | Enum) -> Platform | None:
         """Return the Home Assistant platform for the provided entity type."""
-
         for candidate in EntityFactory._iter_platform_candidates(entity_type):
             if isinstance(candidate, Platform):
                 return candidate
@@ -1291,7 +1255,6 @@ class EntityFactory:
         value: str | Enum | Platform | None,
     ) -> Iterator[str | Platform]:
         """Yield potential platform identifiers from enums or strings."""
-
         if value is None:
             return
         stack: list[str | Platform | Enum] = [value]
@@ -1323,7 +1286,6 @@ class EntityFactory:
     @staticmethod
     def _enum_contains_platform(enum_value: Enum, resolved: Platform) -> bool:
         """Return ``True`` if the enum contains the resolved platform value."""
-
         resolved_value = getattr(resolved, "value", None)
         target_value = (
             str(resolved_value).lower() if resolved_value is not None else None
@@ -1368,7 +1330,6 @@ class EntityFactory:
         resolved: Platform,
     ) -> Platform | Enum:
         """Return the platform instance appropriate for the execution context."""
-
         if isinstance(requested, Enum) and EntityFactory._enum_contains_platform(
             requested,
             resolved,

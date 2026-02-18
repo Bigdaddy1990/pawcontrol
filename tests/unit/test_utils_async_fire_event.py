@@ -14,7 +14,6 @@ from custom_components.pawcontrol.utils import async_fire_event
 @pytest.mark.asyncio
 async def test_async_fire_event_awaits_async_bus() -> None:
     """Ensure async_fire_event awaits coroutine returning bus calls."""
-
     hass = Mock()
     hass.bus = Mock()
     hass.bus.async_fire = AsyncMock(return_value=None)
@@ -31,7 +30,6 @@ async def test_async_fire_event_awaits_async_bus() -> None:
 @pytest.mark.asyncio
 async def test_async_fire_event_handles_sync_bus() -> None:
     """Ensure async_fire_event supports synchronous Home Assistant bus APIs."""
-
     hass = Mock()
     hass.bus = Mock()
     hass.bus.async_fire = Mock(return_value=None)
@@ -45,7 +43,6 @@ async def test_async_fire_event_handles_sync_bus() -> None:
 @pytest.mark.asyncio
 async def test_async_fire_event_forwards_kwargs_and_returns_value() -> None:
     """Ensure optional parameters are forwarded and return values are preserved."""
-
     hass = Mock()
     hass.bus = Mock()
     hass.bus.async_fire = AsyncMock(return_value={"fired": True})
@@ -76,7 +73,6 @@ async def test_async_fire_event_forwards_kwargs_and_returns_value() -> None:
 @pytest.mark.asyncio
 async def test_async_fire_event_normalises_time_fired() -> None:
     """Ensure time metadata is normalised to UTC when forwarded."""
-
     hass = Mock()
     hass.bus = Mock()
     hass.bus.async_fire = AsyncMock(return_value=None)
@@ -131,7 +127,6 @@ async def test_async_fire_event_caches_signature(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Ensure repeated calls reuse cached signature inspection."""
-
     hass = Mock()
     hass.bus = Mock()
     hass.bus.async_fire = AsyncMock(return_value=None)
@@ -157,7 +152,6 @@ async def test_async_fire_event_caches_signature(
 @pytest.mark.asyncio
 async def test_async_fire_event_accepts_iso_timestamp() -> None:
     """Ensure ISO formatted strings are normalised and forwarded."""
-
     hass = Mock()
     hass.bus = Mock()
     hass.bus.async_fire = AsyncMock(return_value=None)
@@ -180,7 +174,6 @@ async def test_async_fire_event_accepts_iso_timestamp() -> None:
 @pytest.mark.asyncio
 async def test_async_fire_event_accepts_epoch_timestamp() -> None:
     """Ensure Unix epoch seconds are converted to UTC datetimes."""
-
     hass = Mock()
     hass.bus = Mock()
     hass.bus.async_fire = AsyncMock(return_value=None)
@@ -205,7 +198,6 @@ async def test_async_fire_event_logs_invalid_time_payload(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Ensure invalid timestamp metadata is ignored with a breadcrumb."""
-
     hass = Mock()
     hass.bus = Mock()
     hass.bus.async_fire = AsyncMock(return_value=None)

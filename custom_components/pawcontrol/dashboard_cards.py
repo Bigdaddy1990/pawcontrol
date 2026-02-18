@@ -458,7 +458,6 @@ class BaseCardGenerator:
     @staticmethod
     def _ensure_dog_config(dog_config: RawDogConfig) -> DogConfigData | None:
         """Return a typed dog configuration extracted from ``dog_config``."""
-
         return coerce_dog_config(dog_config)
 
     def _ensure_dog_configs(
@@ -466,7 +465,6 @@ class BaseCardGenerator:
         dogs_config: Sequence[RawDogConfig],
     ) -> list[DogConfigData]:
         """Return typed dog configurations for downstream processing."""
-
         return coerce_dog_configs(dogs_config)
 
     async def _collect_single_card(
@@ -474,7 +472,6 @@ class BaseCardGenerator:
         card_coro: Awaitable[CardConfigType | None],
     ) -> CardCollection:
         """Resolve ``card_coro`` and wrap the payload in a list for gather usage."""
-
         card = await card_coro
         return [card] if card is not None else []
 
@@ -648,7 +645,6 @@ class BaseCardGenerator:
     @property
     def performance_stats(self) -> DashboardCardPerformanceStats:
         """Return a copy of the generator performance counters."""
-
         return cast(
             DashboardCardPerformanceStats,
             self._performance_stats.copy(),
@@ -1041,7 +1037,6 @@ class DogCardGenerator(BaseCardGenerator):
         modules: ModulesConfigType,
     ) -> CardCollection:
         """Return rendered action buttons for gather pipelines."""
-
         buttons = await self.templates.get_action_buttons_template(dog_id, modules)
         return self._build_action_button_cards(buttons)
 
@@ -1950,7 +1945,6 @@ class ModuleCardGenerator(BaseCardGenerator):
         options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate notification module cards using typed templates."""
-
         typed_dog = self._ensure_dog_config(dog_config)
         if typed_dog is None:
             return []
@@ -2002,7 +1996,6 @@ class ModuleCardGenerator(BaseCardGenerator):
         options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate visitor module cards highlighting guest mode controls."""
-
         typed_dog = self._ensure_dog_config(dog_config)
         if typed_dog is None:
             return []
@@ -2249,7 +2242,6 @@ class WeatherCardGenerator(BaseCardGenerator):
     @staticmethod
     def _normalise_recommendations(source: object) -> list[str]:
         """Return a flat list of recommendation strings from arbitrary payloads."""
-
         if source is None:
             return []
         if isinstance(source, str):
@@ -2290,7 +2282,6 @@ class WeatherCardGenerator(BaseCardGenerator):
 
     def _collect_weather_recommendations(self, entity_id: str) -> list[str]:
         """Gather structured weather recommendations from Home Assistant state."""
-
         state = self.hass.states.get(entity_id)
         if state is None:
             return []

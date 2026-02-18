@@ -19,19 +19,16 @@ class _StubCoordinator:
 
     def async_add_listener(self, update_callback: object) -> callable:  # type: ignore[override]
         """Return a no-op unsubscribe callback."""
-
         return lambda: None
 
     def get_dog_data(self, dog_id: str) -> dict[str, object]:
         """Return stored dog payloads for tests."""
-
         return self.data.get(dog_id, {})
 
 
 @pytest.mark.asyncio
 async def test_last_grooming_datetime_localizes_notes(hass: HomeAssistant) -> None:
     """The grooming datetime entity should localize manual notes."""
-
     coordinator = _StubCoordinator(hass)
     hass.config.language = "de"
 

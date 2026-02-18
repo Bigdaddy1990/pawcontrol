@@ -24,7 +24,6 @@ from custom_components.pawcontrol.utils import ensure_utc_datetime
 )
 def test_ensure_utc_datetime_handles_supported_inputs(value, expected) -> None:
     """ensure_utc_datetime should coerce supported types into UTC datetimes."""
-
     result = ensure_utc_datetime(value)
 
     if expected is None:
@@ -36,7 +35,6 @@ def test_ensure_utc_datetime_handles_supported_inputs(value, expected) -> None:
 
 def test_ensure_utc_datetime_rejects_invalid_strings() -> None:
     """Invalid string inputs should return ``None``."""
-
     assert ensure_utc_datetime("") is None
     assert ensure_utc_datetime("not-a-date") is None
 
@@ -44,13 +42,11 @@ def test_ensure_utc_datetime_rejects_invalid_strings() -> None:
 @pytest.mark.parametrize("value", [object(), [2024, 1, 1]])
 def test_ensure_utc_datetime_rejects_unsupported_types(value) -> None:
     """Unsupported input types should return ``None``."""
-
     assert ensure_utc_datetime(value) is None
 
 
 def test_ensure_utc_datetime_converts_naive_datetimes_to_utc() -> None:
     """Naive datetimes should be normalised to UTC."""
-
     naive = datetime(2024, 1, 1, 12, 0, 0)
 
     result = ensure_utc_datetime(naive)

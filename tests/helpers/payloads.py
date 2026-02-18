@@ -8,5 +8,4 @@ T = TypeVar("T")
 
 def typed_deepcopy[T](value: T) -> T:
     """Return a type-preserving deep copy for complex fixtures."""
-
     return deepcopy(value)

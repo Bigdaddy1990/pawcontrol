@@ -92,7 +92,6 @@ class _HelperGuardMetricsState:
 
     def reset(self) -> None:
         """Reset aggregated metrics to their initial state."""
-
         self.executed = 0
         self.skipped = 0
         self.reasons.clear()
@@ -100,7 +99,6 @@ class _HelperGuardMetricsState:
 
     def record(self, result: ServiceGuardResult) -> None:
         """Accumulate the outcome of a guarded service call."""
-
         if result.executed:
             self.executed += 1
         else:
@@ -111,7 +109,6 @@ class _HelperGuardMetricsState:
 
     def snapshot(self) -> HelperManagerGuardMetrics:
         """Return a JSON-compatible diagnostics payload."""
-
         return {
             "executed": self.executed,
             "skipped": self.skipped,
@@ -299,23 +296,19 @@ class PawControlHelperManager:
 
     def _reset_guard_metrics(self) -> None:
         """Reset aggregated guard telemetry for helper service calls."""
-
         self._guard_metrics.reset()
 
     def _record_guard_result(self, result: ServiceGuardResult) -> None:
         """Store guard telemetry for diagnostics and cache exports."""
-
         self._guard_metrics.record(result)
 
     @property
     def guard_metrics(self) -> HelperManagerGuardMetrics:
         """Return a copy of aggregated guard telemetry."""
-
         return self._guard_metrics.snapshot()
 
     async def async_initialize(self) -> None:
         """Reset internal state prior to creating helpers."""
-
         for unsubscribe in self._cleanup_listeners:
             try:
                 unsubscribe()
@@ -344,7 +337,6 @@ class PawControlHelperManager:
         prefix: str = "helpers",
     ) -> None:
         """Register helper diagnostics with the data manager cache monitor."""
-
         if registrar is None:
             raise ValueError("registrar is required")
         monitor = _HelperManagerCacheMonitor(self)
@@ -353,7 +345,6 @@ class PawControlHelperManager:
     @staticmethod
     def _normalize_dogs_config(dogs: object) -> list[DogConfigData]:
         """Convert raw config entry dog data into typed dictionaries."""
-
         normalized: list[DogConfigData] = []
 
         def _append(candidate: Mapping[str, object]) -> None:
@@ -401,7 +392,6 @@ class PawControlHelperManager:
     @staticmethod
     def _normalize_enabled_modules(modules: object) -> frozenset[str]:
         """Return a normalized set of enabled module identifiers."""
-
         normalized: set[str] = set()
 
         if isinstance(modules, Mapping):
@@ -460,7 +450,6 @@ class PawControlHelperManager:
         enabled_modules: Collection[str] | Mapping[str, bool],
     ) -> dict[str, list[str]]:
         """Create helpers for all provided dogs and return created entity IDs."""
-
         created: dict[str, list[str]] = {}
         enabled_lookup: dict[str, bool] = {}
         if isinstance(enabled_modules, Mapping):
@@ -1004,7 +993,6 @@ class PawControlHelperManager:
 
     async def _ensure_daily_reset_listener(self) -> None:
         """Ensure the daily reset listener is configured exactly once."""
-
         if self._daily_reset_configured:
             return
         try:
@@ -1256,7 +1244,6 @@ class PawControlHelperManager:
 
     def get_helper_count(self) -> int:
         """Return the total number of helpers managed by this instance."""
-
         return len(self._created_helpers)
 
     @property

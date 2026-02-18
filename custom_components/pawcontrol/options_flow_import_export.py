@@ -53,7 +53,6 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
         user_input: OptionsImportExportInput | None = None,
     ) -> ConfigFlowResult:
         """Handle selection for the import/export utilities."""
-
         if user_input is None:
             return self.async_show_form(
                 step_id="import_export",
@@ -87,7 +86,6 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
         user_input: OptionsExportDisplayInput | None = None,
     ) -> ConfigFlowResult:
         """Surface a JSON export of the current configuration."""
-
         if user_input is not None:
             return await self.async_step_init()
         payload = self._build_export_payload()
@@ -123,7 +121,6 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
         user_input: OptionsImportPayloadInput | None = None,
     ) -> ConfigFlowResult:
         """Import configuration from a JSON payload."""
-
         errors: dict[str, str] = {}
         payload_text = ""
 
@@ -178,7 +175,6 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
 
     def _get_import_export_menu_schema(self) -> vol.Schema:
         """Return the schema for selecting an import/export action."""
-
         return vol.Schema(
             {
                 vol.Required("action", default="export"): selector.SelectSelector(
@@ -193,7 +189,6 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
 
     def _get_import_export_import_schema(self, default_payload: str) -> vol.Schema:
         """Return the schema for the import form."""
-
         return vol.Schema(
             {
                 vol.Required("payload", default=default_payload): selector.TextSelector(

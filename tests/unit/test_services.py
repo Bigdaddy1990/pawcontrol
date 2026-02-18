@@ -50,7 +50,6 @@ except ImportError:  # pragma: no cover - ensure stubs are available for tests
 
 def test_service_validation_error_uses_homeassistant_class() -> None:
     """``_service_validation_error`` should emit ServiceValidationError."""
-
     error = services._service_validation_error("boom")
 
     assert isinstance(error, ServiceValidationError)
@@ -59,14 +58,12 @@ def test_service_validation_error_uses_homeassistant_class() -> None:
 
 def test_service_validation_error_rejects_blank_message() -> None:
     """Blank messages should be rejected to preserve telemetry detail."""
-
     with pytest.raises(AssertionError):
         services._service_validation_error("   ")
 
 
 def test_service_validation_error_trims_whitespace() -> None:
     """Messages should be trimmed before instantiating the service error."""
-
     error = services._service_validation_error("  trimmed  ")
 
     assert isinstance(error, ServiceValidationError)
@@ -76,7 +73,6 @@ def test_service_validation_error_trims_whitespace() -> None:
 @pytest.mark.unit
 def test_coerce_service_details_value_handles_nested_payloads() -> None:
     """``_coerce_service_details_value`` should return JSON-safe structures."""
-
     payload = {
         "timestamp": datetime(2024, 1, 1, tzinfo=UTC),
         "details": {
@@ -116,7 +112,6 @@ def test_coerce_service_details_value_handles_nested_payloads() -> None:
 
 def test_record_service_result_merges_rejection_metrics() -> None:
     """Service telemetry should reuse the rejection metrics helper."""
-
     resilience_summary: dict[str, object] = {
         "total_breakers": 1,
         "states": {
@@ -183,7 +178,6 @@ def test_record_service_result_merges_rejection_metrics() -> None:
 
 def test_record_service_result_defaults_rejection_metrics_without_breakers() -> None:
     """Circuit recovery snapshots should keep rejection metrics at defaults."""
-
     resilience_summary: dict[str, object] = {
         "rejected_call_count": 0,
         "rejection_breaker_count": 0,
@@ -228,7 +222,6 @@ def test_record_service_result_defaults_rejection_metrics_without_breakers() -> 
 
 def test_classify_error_reason_detects_notification_failures() -> None:
     """Error classification should bucket auth and reachability failures."""
-
     from custom_components.pawcontrol.error_classification import classify_error_reason
 
     assert classify_error_reason("missing_notify_service") == "missing_service"
@@ -798,7 +791,6 @@ async def _setup_service_environment(
     runtime_data: SimpleNamespace,
 ) -> SimpleNamespace:
     """Register PawControl services against a stub Home Assistant instance."""
-
     hass = SimpleNamespace(
         services=_ServiceRegistryStub(),
         data={},
@@ -832,7 +824,6 @@ async def test_async_setup_services_registers_expected_services(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Service setup should register the documented set and skip legacy entries."""
-
     coordinator = _CoordinatorStub(SimpleNamespace())
     runtime_data = SimpleNamespace(performance_stats={})
 
@@ -890,7 +881,6 @@ async def test_async_setup_services_registers_expected_services(
 @pytest.mark.unit
 def test_capture_cache_diagnostics_returns_snapshot() -> None:
     """Helper should normalise diagnostics payloads provided by the data manager."""
-
     payload = {
         "coordinator_modules": {
             "stats": {"entries": 3, "hits": 5, "misses": 1},
@@ -940,7 +930,6 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Daily reset should persist the latest cache diagnostics snapshot."""
-
     payload = {
         "coordinator_modules": {
             "stats": {"entries": 1, "hits": 1, "misses": 0, "hit_rate": 100.0},
@@ -1087,7 +1076,6 @@ async def test_perform_daily_reset_records_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Daily reset should capture failures in the service result log."""
-
     telemetry = {
         "requested_profile": "advanced",
         "previous_profile": "standard",
@@ -1161,7 +1149,6 @@ async def test_perform_daily_reset_normalises_complex_reconfigure_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Daily reset metadata should remain JSON-safe for complex summaries."""
-
     complex_summary = {
         "timestamp": datetime(2024, 3, 15, tzinfo=UTC),
         "warnings": {"critical": ("gps", "walk")},
@@ -1227,7 +1214,6 @@ async def test_perform_daily_reset_failure_normalises_complex_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Failure telemetry should also coerce complex metadata payloads."""
-
     complex_summary = {
         "timestamp": datetime(2024, 4, 1, tzinfo=UTC),
         "categories": {1: {"issues": {"primary": {"ids": {42, 43}}}}},
@@ -1287,7 +1273,6 @@ async def test_send_notification_service_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Notification services should record successful telemetry snapshots."""
-
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1326,7 +1311,6 @@ async def test_send_notification_service_recovers_from_invalid_payloads(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Notification service should fall back to defaults for invalid inputs."""
-
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1376,7 +1360,6 @@ async def test_send_notification_service_records_guard_skip(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Guard skips should be captured in service telemetry summaries."""
-
     notification_manager = _GuardSkippingNotificationManager()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1420,7 +1403,6 @@ async def test_send_notification_service_accepts_enum_inputs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Notification service should accept enum values directly."""
-
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1464,7 +1446,6 @@ async def test_send_notification_service_accepts_string_channel(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Single string channel inputs should normalise to enum lists."""
-
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1497,7 +1478,6 @@ async def test_send_notification_service_deduplicates_channels(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Duplicate channel inputs should collapse to a single entry."""
-
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1550,7 +1530,6 @@ async def test_send_notification_service_rejects_invalid_expiry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Invalid expiry overrides should raise service validation errors."""
-
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1586,7 +1565,6 @@ async def test_send_notification_service_rejects_non_positive_expiry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Non-positive expiry overrides should raise service validation errors."""
-
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1622,7 +1600,6 @@ async def test_send_notification_service_rejects_blank_title(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Blank titles should raise service validation errors."""
-
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1657,7 +1634,6 @@ async def test_send_notification_service_accepts_valid_expiry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Valid expiry overrides should be converted to timedeltas."""
-
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1693,7 +1669,6 @@ async def test_send_notification_service_records_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Notification telemetry should capture errors when sends fail."""
-
     notification_manager = _NotificationManagerStub()
     notification_manager.fail_send = True
     coordinator = _CoordinatorStub(
@@ -1728,7 +1703,6 @@ async def test_acknowledge_notification_service_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Acknowledging notifications should append success telemetry."""
-
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
         SimpleNamespace(), notification_manager=notification_manager
@@ -1754,7 +1728,6 @@ async def test_acknowledge_notification_records_not_found(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Telemetry should capture missing notifications when acknowledgements fail."""
-
     notification_manager = _NotificationManagerStub()
     notification_manager.ack_exists = False
     coordinator = _CoordinatorStub(
@@ -1782,7 +1755,6 @@ async def test_gps_start_walk_service_rejects_invalid_boolean_toggle(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """GPS walk start should reject non-boolean toggle values."""
-
     gps_manager = _GPSManagerStub()
     coordinator = _CoordinatorStub(SimpleNamespace(), gps_manager=gps_manager)
     coordinator.register_dog("fido")
@@ -1820,7 +1792,6 @@ async def test_gps_start_walk_service_coerces_common_boolean_inputs(
     expected: bool,
 ) -> None:
     """GPS walk start should accept common Home Assistant boolean shapes."""
-
     gps_manager = _GPSManagerStub()
     coordinator = _CoordinatorStub(SimpleNamespace(), gps_manager=gps_manager)
     coordinator.register_dog("fido")
@@ -1842,7 +1813,6 @@ async def test_setup_automatic_gps_service_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Automation services should capture configuration telemetry."""
-
     notification_manager = _NotificationManagerStub()
     gps_manager = _GPSManagerStub()
     coordinator = _CoordinatorStub(
@@ -1887,7 +1857,6 @@ async def test_setup_automatic_gps_service_rejects_invalid_interval(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """GPS setup should reject invalid update intervals with clear errors."""
-
     notification_manager = _NotificationManagerStub()
     gps_manager = _GPSManagerStub()
     coordinator = _CoordinatorStub(
@@ -1921,7 +1890,6 @@ async def test_setup_automatic_gps_service_rejects_invalid_safe_zone_radius(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """GPS setup should route safe-zone validation through shared validators."""
-
     notification_manager = _NotificationManagerStub()
     gps_manager = _GPSManagerStub()
     coordinator = _CoordinatorStub(
@@ -1955,7 +1923,6 @@ async def test_setup_automatic_gps_service_rejects_out_of_range_safe_zone_radius
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """GPS setup should reject safe-zone radius values outside allowed bounds."""
-
     notification_manager = _NotificationManagerStub()
     gps_manager = _GPSManagerStub()
     coordinator = _CoordinatorStub(
@@ -1989,7 +1956,6 @@ async def test_setup_automatic_gps_service_rejects_invalid_boolean_toggle(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """GPS setup should reject non-boolean toggle values."""
-
     notification_manager = _NotificationManagerStub()
     gps_manager = _GPSManagerStub()
     coordinator = _CoordinatorStub(
@@ -2021,7 +1987,6 @@ async def test_setup_automatic_gps_service_records_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Automation telemetry should note failures when configuration raises."""
-
     notification_manager = _NotificationManagerStub()
     gps_manager = _GPSManagerStub()
     gps_manager.fail_configure = True
@@ -2051,7 +2016,6 @@ async def test_gps_export_route_service_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """GPS export service should notify and log telemetry for multi-route payloads."""
-
     notification_manager = _NotificationManagerStub()
     gps_manager = _GPSManagerStub()
     export_payload: GPSRouteExportJSONPayload = {
@@ -2155,7 +2119,6 @@ async def test_gps_export_route_service_records_no_routes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """GPS export service should log telemetry when no history is present."""
-
     notification_manager = _NotificationManagerStub()
     gps_manager = _GPSManagerStub()
     gps_manager.export_result = None
@@ -2196,7 +2159,6 @@ async def test_add_health_snack_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Health snack service should append success telemetry with details."""
-
     feeding_manager = _FeedingManagerStub()
     coordinator = _CoordinatorStub(SimpleNamespace(), feeding_manager=feeding_manager)
     coordinator.register_dog("buddy", name="Buddy")
@@ -2231,7 +2193,6 @@ async def test_add_health_snack_records_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Health snack telemetry should capture Home Assistant errors."""
-
     feeding_manager = _FeedingManagerStub()
     feeding_manager.fail_with = services.HomeAssistantError("snack failed")
     coordinator = _CoordinatorStub(SimpleNamespace(), feeding_manager=feeding_manager)
@@ -2260,7 +2221,6 @@ async def test_check_feeding_compliance_notifies_on_issues(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Compliance service should forward typed payloads to notifications."""
-
     feeding_manager = _FeedingManagerStub()
     feeding_manager.compliance_result = {
         "status": "completed",
@@ -2392,7 +2352,6 @@ async def test_check_feeding_compliance_skips_when_clean(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Clean compliance results should not trigger notifications."""
-
     feeding_manager = _FeedingManagerStub()
     feeding_manager.compliance_result = {
         "status": "completed",
@@ -2468,7 +2427,6 @@ async def test_check_feeding_compliance_respects_notify_toggle(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Notifications are skipped when notify_on_issues is False."""
-
     feeding_manager = _FeedingManagerStub()
     feeding_manager.compliance_result = {
         "status": "completed",
@@ -2543,7 +2501,6 @@ async def test_check_feeding_compliance_sanitises_structured_messages(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Structured compliance messages should be normalised to readable text."""
-
     feeding_manager = _FeedingManagerStub()
     feeding_manager.compliance_result = {
         "status": "no_data",
@@ -2612,7 +2569,6 @@ async def test_check_feeding_compliance_sanitises_structured_messages(
 @pytest.mark.unit
 def test_merge_service_context_metadata_respects_include_none() -> None:
     """Helper should optionally persist ``None`` metadata values."""
-
     target: dict[str, object] = {"existing": True}
     metadata = {"context_id": None, "parent_id": "parent-123"}
 
@@ -2630,7 +2586,6 @@ def test_merge_service_context_metadata_respects_include_none() -> None:
 @pytest.mark.unit
 def test_merge_service_context_metadata_preserves_additional_keys() -> None:
     """Additional context metadata should be forwarded unchanged."""
-
     target: dict[str, object] = {}
     metadata = {"context_id": "ctx-123", "source": "stub"}
 
@@ -2643,7 +2598,6 @@ def test_merge_service_context_metadata_preserves_additional_keys() -> None:
 @pytest.mark.unit
 def test_merge_service_context_metadata_ignores_non_string_keys() -> None:
     """Non-string metadata keys are ignored for safety."""
-
     target: dict[str, object] = {}
     metadata = {"context_id": "ctx-123", 42: "skip-me"}
 
@@ -2658,7 +2612,6 @@ async def test_check_feeding_compliance_builds_context_from_stub(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Context metadata should be normalised when Home Assistant provides stubs."""
-
     feeding_manager = _FeedingManagerStub()
     feeding_manager.compliance_result = {
         "status": "completed",
@@ -2735,7 +2688,6 @@ async def test_check_feeding_compliance_builds_context_from_mapping(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Mapping-based service contexts should be normalised for telemetry."""
-
     feeding_manager = _FeedingManagerStub()
     feeding_manager.compliance_result = {
         "status": "completed",
@@ -2812,7 +2764,6 @@ async def test_check_feeding_compliance_records_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Service should capture telemetry when compliance checks fail."""
-
     feeding_manager = _FeedingManagerStub()
     feeding_manager.compliance_error = services.HomeAssistantError("compliance failed")
     notification_manager = _NotificationManagerStub()
@@ -2856,7 +2807,6 @@ async def test_log_poop_service_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Poop logging should emit success telemetry with timestamp details."""
-
     data_manager = _DataManagerStub()
     coordinator = _CoordinatorStub(SimpleNamespace(), data_manager=data_manager)
     coordinator.register_dog("buddy")
@@ -2894,7 +2844,6 @@ async def test_log_poop_service_records_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Poop logging telemetry should capture Home Assistant errors."""
-
     data_manager = _DataManagerStub()
     data_manager.fail_log = services.HomeAssistantError("poop failed")
     coordinator = _CoordinatorStub(SimpleNamespace(), data_manager=data_manager)
@@ -2919,7 +2868,6 @@ async def test_start_grooming_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Grooming service should store telemetry for successful sessions."""
-
     reminder_sent_at = datetime.now(UTC)
     data_manager = _DataManagerStub()
     notification_manager = _NotificationManagerStub()
@@ -2979,7 +2927,6 @@ async def test_start_grooming_localizes_notification(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Grooming notifications should respect the active Home Assistant language."""
-
     data_manager = _DataManagerStub()
     notification_manager = _NotificationManagerStub()
     coordinator = _CoordinatorStub(
@@ -3018,7 +2965,6 @@ async def test_start_grooming_records_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Grooming telemetry should track Home Assistant errors."""
-
     data_manager = _DataManagerStub()
     data_manager.fail_groom = services.HomeAssistantError("groom failed")
     coordinator = _CoordinatorStub(SimpleNamespace(), data_manager=data_manager)
@@ -3050,7 +2996,6 @@ async def test_start_garden_session_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Garden session start should log telemetry with detection metadata."""
-
     garden_manager = _GardenManagerStub()
     coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
     coordinator.register_dog("buddy", name="Buddy")
@@ -3100,7 +3045,6 @@ async def test_start_garden_session_records_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Garden session telemetry should capture Home Assistant errors."""
-
     garden_manager = _GardenManagerStub()
     garden_manager.fail_start = services.HomeAssistantError("start failed")
     coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
@@ -3130,7 +3074,6 @@ async def test_end_garden_session_records_validation_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Ending a non-existent garden session should record validation telemetry."""
-
     garden_manager = _GardenManagerStub()
     garden_manager.next_end_session = None
     coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
@@ -3157,7 +3100,6 @@ async def test_add_garden_activity_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Garden activity service should capture success telemetry."""
-
     garden_manager = _GardenManagerStub()
     coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
     coordinator.register_dog("buddy")
@@ -3194,7 +3136,6 @@ async def test_add_garden_activity_records_validation_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Garden activity telemetry should note validation failures."""
-
     garden_manager = _GardenManagerStub()
     garden_manager.activity_success = False
     coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
@@ -3223,7 +3164,6 @@ async def test_confirm_garden_poop_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Garden poop confirmations should capture telemetry on success."""
-
     garden_manager = _GardenManagerStub()
     coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
     coordinator.register_dog("buddy")
@@ -3261,7 +3201,6 @@ async def test_confirm_garden_poop_records_missing_pending(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Telemetry should record validation errors when no confirmation is pending."""
-
     garden_manager = _GardenManagerStub()
     garden_manager.pending_confirmation = False
     coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)

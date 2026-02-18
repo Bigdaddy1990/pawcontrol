@@ -280,7 +280,6 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
     async def _async_get_flow_translations(self, language: str) -> dict[str, str]:
         """Return config-flow translations for the requested language."""
-
         if _ASYNC_GET_TRANSLATIONS is None:
             return {}
         try:
@@ -298,7 +297,6 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         self,
     ) -> tuple[dict[str, str], dict[str, str]]:
         """Return translations with an English fallback mapping."""
-
         target_language = (
             cast(str | None, getattr(self.hass.config, "language", None)) or "en"
         )
@@ -1031,7 +1029,6 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         user_input: DogHealthStepInput,
     ) -> list[DogMedicationEntry]:
         """Construct typed medication entries from the configuration form."""
-
         medications: list[DogMedicationEntry] = []
         for slot in ("1", "2"):
             name = coerce_optional_str(user_input.get(f"medication_{slot}_name"))
@@ -1067,7 +1064,6 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
     def _collect_health_conditions(self, user_input: DogHealthStepInput) -> list[str]:
         """Collect health conditions from user input for feeding calculations."""
-
         conditions: list[str] = []
 
         condition_mapping = {
@@ -1277,7 +1273,6 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         dog_size: str,
     ) -> str:
         """Get guidance text about diet compatibility based on dog characteristics."""
-
         translations, fallback = await self._async_get_translation_lookup()
         guidance_prefix = "config.error"
 

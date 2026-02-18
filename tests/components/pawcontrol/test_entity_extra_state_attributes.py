@@ -281,7 +281,6 @@ async def test_extra_state_attributes_json_serialisable(
     expected_type: type[object],
 ) -> None:
     """Ensure extra state attributes stay JSON serialisable."""
-
     coordinator = _make_coordinator()
     entity = factory(coordinator)
     entity.hass = hass

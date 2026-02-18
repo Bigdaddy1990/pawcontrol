@@ -27,7 +27,6 @@ async def test_person_entity_manager_coordinator_snapshot(
     mock_hass: HomeAssistant,
 ) -> None:
     """Coordinator snapshots should include statistics and diagnostics payloads."""
-
     manager = PersonEntityManager(mock_hass, "test-entry")
     manager._targets_cache.store("home", ["notify.mobile_app"], dt_util.now())
     manager._state_listeners.append(lambda: None)
@@ -74,7 +73,6 @@ async def test_force_discovery_returns_typed_payload(
     mock_hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Force discovery should expose the structured TypedDict payload."""
-
     manager = PersonEntityManager(mock_hass, "typed-entry")
     manager._persons["person.jane"] = PersonEntityInfo(
         entity_id="person.jane",
@@ -106,7 +104,6 @@ async def test_validate_configuration_returns_structured_payload(
     mock_hass: HomeAssistant,
 ) -> None:
     """Validation should return the TypedDict with issues and recommendations."""
-
     mock_hass.services.has_service = lambda *_: False
     manager = PersonEntityManager(mock_hass, "validate-entry")
 

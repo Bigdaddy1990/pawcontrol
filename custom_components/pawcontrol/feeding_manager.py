@@ -766,7 +766,6 @@ class FeedingConfig:
 
     def _get_diet_validation_summary(self) -> FeedingDietValidationSummary:
         """Get summary of diet validation adjustments."""
-
         total_diets = len(self.special_diet or [])
 
         validation = self.diet_validation
@@ -1023,7 +1022,6 @@ class FeedingConfig:
 
     def get_health_summary(self) -> FeedingHealthSummary:
         """Get summary of health-related feeding configuration."""
-
         health_metrics = self._build_health_metrics()
 
         # Calculate daily calorie requirement if possible
@@ -1170,7 +1168,6 @@ class FeedingManager:
         **kwargs: Any,
     ) -> T:
         """Run *func* in a worker thread and emit async profiling logs."""
-
         start = perf_counter()
         if kwargs:
             func = partial(func, **kwargs)
@@ -1191,7 +1188,6 @@ class FeedingManager:
         dog_id: str,
     ) -> None:
         """Restore baseline feeding parameters after emergency mode."""
-
         config.daily_food_amount = original_config["daily_food_amount"]
         config.meals_per_day = original_config["meals_per_day"]
         config.schedule_type = original_config["schedule_type"]
@@ -1641,7 +1637,6 @@ class FeedingManager:
 
     def _normalize_special_diet(self, raw_value: Any) -> list[str]:
         """Normalize special diet configuration values into a list of strings."""
-
         if raw_value is None:
             return []
         if isinstance(raw_value, str):
@@ -1666,7 +1661,6 @@ class FeedingManager:
 
     def _require_config(self, dog_id: str) -> FeedingConfig:
         """Return the FeedingConfig for ``dog_id`` or raise KeyError."""
-
         config = self._configs.get(dog_id)
         if config is None:
             raise KeyError(dog_id)
@@ -1674,7 +1668,6 @@ class FeedingManager:
 
     def _require_dog_record(self, dog_id: str) -> FeedingDogMetadata:
         """Return the cached dog metadata for ``dog_id``."""
-
         try:
             return self._dogs[dog_id]
         except KeyError as err:  # pragma: no cover - defensive
@@ -1682,7 +1675,6 @@ class FeedingManager:
 
     def _calculate_rer(self, weight: float, *, adjusted: bool = True) -> float:
         """Calculate resting energy requirement for ``weight`` in kilograms."""
-
         if not is_number(weight):
             raise ValueError("Weight must be a number")
         weight_value = float(weight)
@@ -1697,7 +1689,6 @@ class FeedingManager:
 
     def calculate_daily_calories(self, dog_id: str) -> float:
         """Return the daily calorie recommendation for ``dog_id``."""
-
         dog = self._require_dog_record(dog_id)
         config = self._require_config(dog_id)
 
@@ -1757,7 +1748,6 @@ class FeedingManager:
 
     def calculate_portion(self, dog_id: str, meal_type: str | None = None) -> float:
         """Return the suggested portion size for ``dog_id`` and ``meal_type``."""
-
         config = self._require_config(dog_id)
 
         daily_grams = float(config.daily_food_amount)
@@ -2197,7 +2187,6 @@ class FeedingManager:
         helper reuses the async cache but falls back to building the snapshot
         inline when the cached value has expired.
         """
-
         if dog_id not in self._configs and dog_id not in self._feedings:
             snapshot = self._empty_feeding_data(None)
             self._data_cache[dog_id] = snapshot
@@ -2216,7 +2205,6 @@ class FeedingManager:
 
     def get_daily_stats(self, dog_id: str) -> FeedingDailyStats:
         """Return today's feeding statistics for the given dog."""
-
         data = self.get_feeding_data(dog_id)
         stats = data.get(
             "daily_stats",
@@ -2255,12 +2243,10 @@ class FeedingManager:
 
     def get_feeding_config(self, dog_id: str) -> FeedingConfig | None:
         """Return feeding configuration for a dog if available."""
-
         return self._configs.get(dog_id)
 
     def get_active_emergency(self, dog_id: str) -> FeedingEmergencyState | None:
         """Return active or most recent emergency feeding state for a dog."""
-
         emergency = self._active_emergencies.get(dog_id)
         if not emergency:
             return None
@@ -2268,7 +2254,6 @@ class FeedingManager:
 
     def _build_feeding_snapshot(self, dog_id: str) -> FeedingSnapshot:
         """Calculate feeding data without cache."""
-
         feedings = self._feedings.get(dog_id, [])
         config = self._configs.get(dog_id)
 
@@ -2583,7 +2568,6 @@ class FeedingManager:
 
     def _empty_feeding_data(self, config: FeedingConfig | None) -> FeedingSnapshot:
         """Generate an empty feeding snapshot structure."""
-
         calories_per_gram = config._estimate_calories_per_gram() if config else None
         daily_amount_target = (
             float(

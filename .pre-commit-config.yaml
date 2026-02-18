@@ -57,7 +57,7 @@ repos:
           - --show-fixes
           - --unsafe-fixes
           - --exit-non-zero-on-fix
-          - --output-format=github .
+          - --output-format=github
         types_or:
           - python
           - pyi
@@ -98,9 +98,11 @@ repos:
     rev: v1.19.1
     hooks:
       - id: mypy
+        args:
+          - custom_components/pawcontrol
         additional_dependencies:
           - types-pyyaml
-        types: [python]
+        pass_filenames: false
 
   - repo: local
     hooks:
