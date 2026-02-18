@@ -967,7 +967,7 @@ async def test_script_manager_sync_manual_events_updates_blueprint() -> None:
     payload_entry = cast(SimpleNamespace, payload.entry)
     assert payload_entry.entry_id == "automation-id"
     assert payload.data is not None
-    blueprint_data = _as_object_map(payload.data.get("use_blueprint", {}))
+    blueprint_data = _as_object_map(payload.data["use_blueprint"])
     assert cast(str, blueprint_data["path"]).endswith(
         "resilience_escalation_followup.yaml"
     )
@@ -1275,7 +1275,7 @@ async def test_async_get_module_history_respects_limit(tmp_path: Path) -> None:
     )
     await manager.async_log_health_data(
         "buddy",
-        {"timestamp": later.isoformat(), "weight": 11.8, "health_status": "excellent"},
+        {"timestamp": later, "weight": 11.8, "health_status": "excellent"},
     )
 
     entries = await manager.async_get_module_history(MODULE_HEALTH, "buddy")
