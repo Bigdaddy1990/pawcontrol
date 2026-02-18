@@ -30,6 +30,7 @@ else:  # pragma: no cover
 
 class MenuOptionsMixin(MenuOptionsHost):
     """Mixin that provides the main options menu step."""
+
     async def async_step_init(
         self,
         user_input: OptionsMainMenuInput | None = None,

@@ -447,7 +447,10 @@ class PawControlConfigFlow(
                 }
                 return result
 
-            except (ValidationError, ConfigurationError):  # [BUG FIX] Python 3 tuple syntax
+            except (
+                ValidationError,
+                ConfigurationError,
+            ):  # [BUG FIX] Python 3 tuple syntax
                 # Re-raise domain exceptions without wrapping — the outer except
                 # clause below must not re-catch and double-wrap these.
                 raise

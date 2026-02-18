@@ -9,8 +9,6 @@ Home Assistant: 2026.2.1+
 Python: 3.14+
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 import logging
 from typing import Any

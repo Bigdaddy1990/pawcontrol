@@ -27,7 +27,7 @@ repos:
           - --py311-plus
           - --py313-plus
           - --py314-plus
-    
+
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.8.1
     hooks:
@@ -39,7 +39,7 @@ repos:
           - --keep-updates
           - --check
           - --force
-          
+
   - repo: https://github.com/JelleZijlstra/autotyping
     rev: 24.9.0
     hooks:

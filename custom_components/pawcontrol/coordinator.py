@@ -1,7 +1,5 @@
 """Coordinator for the PawControl integration."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from inspect import isawaitable

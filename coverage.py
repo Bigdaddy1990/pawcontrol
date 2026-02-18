@@ -16,9 +16,7 @@ from typing import Any, Protocol
 class TraceFunc(Protocol):
     """Protocol for trace callback functions."""
 
-    def __call__(
-        self, frame: FrameType, event: str, arg: object
-    ) -> TraceFunc | None:
+    def __call__(self, frame: FrameType, event: str, arg: object) -> TraceFunc | None:
         """Invoke the trace callback for the given frame and event."""
         ...
 
