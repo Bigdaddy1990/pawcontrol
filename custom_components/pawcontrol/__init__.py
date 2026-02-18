@@ -157,6 +157,8 @@ def get_platforms_for_profile_and_modules(
                 active_modules.add(module_name)
 
     cache_key = (len(dogs), profile, frozenset(active_modules))
+    # Platform cache reads and eviction use the same wall-clock source so tests
+    # and runtime expiry logic stay aligned.
     now = time.time()
     cached = _PLATFORM_CACHE.get(cache_key)
     if cached and now - cached[1] <= _CACHE_TTL_SECONDS:
