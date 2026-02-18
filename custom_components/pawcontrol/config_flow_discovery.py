@@ -115,7 +115,6 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
         discovery_info: ZeroconfServiceInfo,
     ) -> ConfigFlowResult:
         """Handle Zeroconf discovery."""
-
         _LOGGER.debug("Zeroconf discovery: %s", discovery_info)
 
         hostname = discovery_info.hostname or ""
@@ -157,7 +156,6 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
         discovery_info: DhcpServiceInfo,
     ) -> ConfigFlowResult:
         """Handle DHCP discovery."""
-
         _LOGGER.debug("DHCP discovery: %s", discovery_info)
 
         hostname = discovery_info.hostname or ""
@@ -189,7 +187,6 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
 
     async def async_step_usb(self, discovery_info: UsbServiceInfo) -> ConfigFlowResult:
         """Handle USB discovery for supported trackers."""
-
         _LOGGER.debug("USB discovery: %s", discovery_info)
 
         description = discovery_info.description or ""
@@ -235,7 +232,6 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
         discovery_info: BluetoothServiceInfoBleak,
     ) -> ConfigFlowResult:
         """Handle Bluetooth discovery for supported trackers."""
-
         _LOGGER.debug("Bluetooth discovery: %s", discovery_info)
 
         name = getattr(discovery_info, "name", "") or ""
@@ -280,7 +276,6 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
         user_input: DiscoveryConfirmInput | None = None,
     ) -> ConfigFlowResult:
         """Confirm discovered device setup."""
-
         if user_input is not None:
             if user_input.get("confirm", False):
                 if getattr(self, "_unique_id", None) is not None:

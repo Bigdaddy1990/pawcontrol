@@ -133,7 +133,6 @@ class AdaptiveCache[ValueT]:
 
     def __init__(self, default_ttl: int = 300) -> None:
         """Initialise the cache with the provided default TTL."""
-
         self._default_ttl = default_ttl
         self._data: dict[str, ValueT] = {}
         self._metadata: dict[str, AdaptiveCacheEntry] = {}
@@ -151,7 +150,6 @@ class AdaptiveCache[ValueT]:
 
     async def get(self, key: str) -> tuple[ValueT | None, bool]:
         """Return cached value for ``key`` and whether it was a cache hit."""
-
         async with self._lock:
             entry = self._metadata.get(key)
             if entry is None:
@@ -180,7 +178,6 @@ class AdaptiveCache[ValueT]:
 
     async def set(self, key: str, value: ValueT, base_ttl: int = 300) -> None:
         """Store ``value`` for ``key`` honouring ``base_ttl`` when positive."""
-
         async with self._lock:
             ttl = base_ttl if base_ttl > 0 else self._default_ttl
             now = _utcnow()
@@ -195,7 +192,6 @@ class AdaptiveCache[ValueT]:
 
     async def cleanup_expired(self, ttl_seconds: int | None = None) -> int:
         """Remove expired cache entries and return the number purged."""
-
         async with self._lock:
             now = _utcnow()
             override_ttl: int | None
@@ -258,7 +254,6 @@ class AdaptiveCache[ValueT]:
 
     def get_stats(self) -> AdaptiveCacheStats:
         """Return basic cache statistics used by diagnostics."""
-
         total = self._hits + self._misses
         hit_rate = (self._hits / total * 100) if total else 0
         stats: AdaptiveCacheStats = {
@@ -272,7 +267,6 @@ class AdaptiveCache[ValueT]:
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         """Return cleanup metrics to surface override activity in diagnostics."""
-
         snapshot = cast(CacheDiagnosticsMetadata, dict(self._diagnostics))
         last_cleanup = snapshot.get("last_cleanup")
         snapshot["last_cleanup"] = (
@@ -286,7 +280,6 @@ class AdaptiveCache[ValueT]:
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         """Return a combined statistics/diagnostics payload for coordinators."""
-
         stats = self.get_stats()
         diagnostics = self.get_diagnostics()
         stats_payload = cast(JSONMutableMapping, dict(stats))
@@ -302,7 +295,6 @@ class AdaptiveCache[ValueT]:
         now: datetime,
     ) -> AdaptiveCacheEntry:
         """Clamp metadata when cached entries originate from the future."""
-
         ttl = int(entry.get("ttl", self._default_ttl))
         created_at = entry.get("created_at")
         if not isinstance(created_at, datetime):
@@ -871,7 +863,6 @@ class DogProfile:
         stored: JSONLikeMapping | None,
     ) -> DogProfile:
         """Restore a profile from persisted JSON data."""
-
         daily_stats_payload: JSONMappingLike | JSONMutableMapping | None = None
         if stored:
             raw_daily_stats = stored.get("daily_stats")
@@ -948,7 +939,6 @@ class DogProfile:
 
     def as_dict(self) -> JSONMutableMapping:
         """Return a serialisable representation of the profile."""
-
         data: JSONMutableMapping = {
             "config": cast(JSONValue, self.config),
             "daily_stats": cast(JSONValue, self.daily_stats.as_dict()),
@@ -1002,7 +992,6 @@ class PawControlDataManager:
         dogs_config: Sequence[RawDogConfig] | None = None,
     ) -> None:
         """Create a new data manager tied to ``entry_id`` and configuration."""
-
         self.hass = hass
         self._coordinator = coordinator
         typed_configs: dict[str, DogConfigData] = {}
@@ -1056,7 +1045,6 @@ class PawControlDataManager:
 
     def _get_runtime_data(self) -> PawControlRuntimeData | None:
         """Return the runtime data container when available."""
-
         entry_id = getattr(self, "entry_id", None)
         if not entry_id:
             return None
@@ -1071,7 +1059,6 @@ class PawControlDataManager:
 
     def _get_namespace_lock(self, namespace: str) -> asyncio.Lock:
         """Return a lock used to guard namespace updates."""
-
         locks = getattr(self, "_namespace_locks", None)
         if locks is None:
             locks = {}
@@ -1089,7 +1076,6 @@ class PawControlDataManager:
         updater: Callable[[Any | None], Any | None],
     ) -> Any | None:
         """Update ``namespace`` payload for ``dog_id`` using ``updater``."""
-
         lock = self._get_namespace_lock(namespace)
         async with lock:
             data = await self._get_namespace_data(namespace)
@@ -1104,7 +1090,6 @@ class PawControlDataManager:
 
     def _ensure_profile(self, dog_id: str) -> DogProfile:
         """Return the profile for ``dog_id`` or raise ``HomeAssistantError``."""
-
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
             raise HomeAssistantError(f"Unknown PawControl dog: {dog_id}")
@@ -1112,7 +1097,6 @@ class PawControlDataManager:
 
     async def _async_save_profile(self, dog_id: str, profile: DogProfile) -> None:
         """Persist ``profile`` for ``dog_id`` and update cached config."""
-
         self._dog_profiles[dog_id] = profile
         typed_config = ensure_dog_config_data(
             cast(Mapping[str, JSONValue], profile.config),
@@ -1130,7 +1114,6 @@ class PawControlDataManager:
 
     def _ensure_metrics_containers(self) -> None:
         """Initialise in-memory metrics containers if missing."""
-
         if not hasattr(self, "_metrics"):
             self._metrics: JSONMutableMapping = {
                 "operations": 0,
@@ -1146,7 +1129,6 @@ class PawControlDataManager:
 
     def _increment_metric(self, key: str, *, increment: int = 1) -> None:
         """Increment a numeric metric stored in ``_metrics`` safely."""
-
         self._ensure_metrics_containers()
         current = self._metrics.get(key)
         base = current if isinstance(current, int | float) else 0
@@ -1154,7 +1136,6 @@ class PawControlDataManager:
 
     async def async_initialize(self) -> None:
         """Create storage folders and load persisted data."""
-
         try:
             self._storage_dir.mkdir(parents=True, exist_ok=True)
         except OSError as err:
@@ -1197,7 +1178,6 @@ class PawControlDataManager:
 
     async def async_shutdown(self) -> None:
         """Persist pending data on shutdown."""
-
         if not self._initialised:
             return
         for dog_id in list(self._dog_profiles):
@@ -1211,7 +1191,6 @@ class PawControlDataManager:
 
     async def async_log_feeding(self, dog_id: str, feeding: FeedingData) -> bool:
         """Record a feeding event."""
-
         if dog_id not in self._dog_profiles:
             return False
         async with self._data_lock:
@@ -1258,7 +1237,6 @@ class PawControlDataManager:
         **kwargs: Any,
     ) -> bool:
         """Persist visitor mode configuration for ``dog_id``."""
-
         if not dog_id:
             raise ValueError("dog_id is required")
         payload: VisitorModeSettingsPayload | JSONLikeMapping | None = settings
@@ -1313,7 +1291,6 @@ class PawControlDataManager:
         dog_id: str,
     ) -> VisitorModeSettingsPayload:
         """Return the visitor mode status for ``dog_id``."""
-
         namespace = "visitor_mode"
         data = await self._get_namespace_data(namespace)
         entry = data.get(dog_id)
@@ -1323,13 +1300,11 @@ class PawControlDataManager:
 
     def set_metrics_sink(self, metrics: CoordinatorMetrics | None) -> None:
         """Register a metrics sink used for coordinator diagnostics."""
-
         self._ensure_metrics_containers()
         self._metrics_sink = metrics
 
     def _auto_register_cache_monitors(self) -> None:
         """Register known coordinator caches for diagnostics snapshots."""
-
         coordinator = self._coordinator
 
         def _try_register(name: str, cache: Any) -> None:
@@ -1390,7 +1365,6 @@ class PawControlDataManager:
         label: str,
     ) -> None:
         """Register cache monitors exposed by ``manager`` if available."""
-
         if manager is None:
             _LOGGER.debug(
                 "Skipping cache monitor registration for %s: manager missing",
@@ -1421,7 +1395,6 @@ class PawControlDataManager:
 
     def _register_runtime_cache_monitors_internal(self, runtime: Any | None) -> None:
         """Register cache monitors exposed by runtime data containers."""
-
         if runtime is None:
             return
         self._register_manager_cache_monitors(
@@ -1452,7 +1425,6 @@ class PawControlDataManager:
 
     def _register_coordinator_cache_monitors(self, coordinator: Any | None) -> None:
         """Register cache monitors exposed directly on the coordinator."""
-
         if coordinator is None:
             return
         modules = getattr(coordinator, "_modules", None)
@@ -1511,7 +1483,6 @@ class PawControlDataManager:
 
     def register_runtime_cache_monitors(self, runtime: Any | None = None) -> None:
         """Register cache monitors from ``runtime`` or the stored runtime data."""
-
         if runtime is None:
             runtime = self._get_runtime_data()
         self._register_runtime_cache_monitors_internal(runtime)
@@ -1525,7 +1496,6 @@ class PawControlDataManager:
         repairs. This helper normalises the callable surface offered by legacy
         caches so all registered providers deliver a consistent structure.
         """
-
         if not isinstance(name, str) or not name:
             raise ValueError("Cache monitor name must be a non-empty string")
         _LOGGER.debug("Registering cache monitor: %s", name)
@@ -1580,7 +1550,6 @@ class PawControlDataManager:
 
     def cache_snapshots(self) -> CacheDiagnosticsMap:
         """Return registered cache diagnostics for coordinator use."""
-
         snapshots: CacheDiagnosticsMap = {}
         for name, provider in self._cache_monitors.items():
             try:
@@ -1594,7 +1563,6 @@ class PawControlDataManager:
         snapshots: CacheDiagnosticsMap | None = None,
     ) -> CacheRepairAggregate | None:
         """Return aggregated cache metrics suitable for Home Assistant repairs."""
-
         if snapshots is None:
             snapshots = self.cache_snapshots()
         if not snapshots:
@@ -1804,7 +1772,6 @@ class PawControlDataManager:
 
     def _record_visitor_metrics(self, duration: float) -> None:
         """Capture visitor-mode runtime metrics and forward to sinks."""
-
         self._ensure_metrics_containers()
 
         duration_ms = max(duration, 0.0) * 1000.0
@@ -1825,7 +1792,6 @@ class PawControlDataManager:
 
     def get_daily_feeding_stats(self, dog_id: str) -> JSONMutableMapping | None:
         """Return aggregated feeding information for today."""
-
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
             return None
@@ -1859,7 +1825,6 @@ class PawControlDataManager:
         limit: int | None = None,
     ) -> list[JSONMutableMapping]:
         """Return historical feeding entries."""
-
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
             return []
@@ -1874,7 +1839,6 @@ class PawControlDataManager:
 
     async def async_reset_dog_daily_stats(self, dog_id: str) -> None:
         """Reset the daily statistics for ``dog_id``."""
-
         profile = self._ensure_profile(dog_id)
         async with self._data_lock:
             profile.daily_stats = DailyStats(date=_utcnow())
@@ -1882,7 +1846,6 @@ class PawControlDataManager:
 
     async def async_get_module_data(self, dog_id: str) -> JSONMutableMapping:
         """Return merged module configuration for ``dog_id``."""
-
         profile = self._ensure_profile(dog_id)
         namespace = await self._get_namespace_data("module_state")
         raw_overrides = namespace.get(dog_id)
@@ -1912,7 +1875,6 @@ class PawControlDataManager:
         order. Optional ``since``/``until`` bounds allow callers to apply window
         filtering without duplicating the timestamp parsing performed here.
         """
-
         module_key = module.lower()
         attr_info = _MODULE_HISTORY_ATTRS.get(module_key)
         if attr_info is None:
@@ -2029,7 +1991,6 @@ class PawControlDataManager:
         limit: int = 100,
     ) -> bool:
         """Store poop events for ``dog_id`` with optional history limit."""
-
         if dog_id not in self._dog_profiles:
             return False
         payload = _coerce_json_mutable(
@@ -2060,7 +2021,6 @@ class PawControlDataManager:
         session_id: str | None = None,
     ) -> str:
         """Record the start of a grooming session and return the session id."""
-
         profile = self._ensure_profile(dog_id)
         payload = _coerce_json_mutable(
             cast(JSONMappingLike | JSONMutableMapping, session_data),
@@ -2088,7 +2048,6 @@ class PawControlDataManager:
         days: int = 30,
     ) -> JSONMutableMapping:
         """Analyze historic data for ``dog_id``."""
-
         self._ensure_profile(dog_id)
 
         now = _utcnow()
@@ -2219,7 +2178,6 @@ class PawControlDataManager:
         send_notification: bool | None = None,
     ) -> JSONMutableMapping:
         """Generate a summary report for ``dog_id``."""
-
         profile = self._ensure_profile(dog_id)
         now = _utcnow()
         report_window_start = (
@@ -2382,7 +2340,6 @@ class PawControlDataManager:
         include_medication: bool = True,
     ) -> JSONMutableMapping:
         """Generate a weekly health overview for ``dog_id``."""
-
         self._ensure_profile(dog_id)
         now = _utcnow()
         cutoff = now - timedelta(days=7)
@@ -2449,7 +2406,6 @@ class PawControlDataManager:
         date_to: datetime | str | None = None,
     ) -> Path:
         """Export stored data for ``dog_id`` leveraging the shared history helper."""
-
         _ = self._ensure_profile(dog_id)
 
         normalized_type = data_type.lower()
@@ -2705,7 +2661,6 @@ class PawControlDataManager:
         notes: str = "",
     ) -> bool:
         """Begin a walk for the provided dog."""
-
         if dog_id not in self._dog_profiles:
             return False
         async with self._data_lock:
@@ -2744,7 +2699,6 @@ class PawControlDataManager:
         notes: str = "",
     ) -> bool:
         """Complete the current walk for ``dog_id``."""
-
         if dog_id not in self._dog_profiles:
             return False
         async with self._data_lock:
@@ -2793,7 +2747,6 @@ class PawControlDataManager:
         limit: int | None = None,
     ) -> list[JSONMutableMapping]:
         """Return stored walk history."""
-
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
             return []
@@ -2811,7 +2764,6 @@ class PawControlDataManager:
 
     async def async_update_walk_route(self, dog_id: str, location: GPSLocation) -> bool:
         """Add GPS information to the active walk."""
-
         profile = self._dog_profiles.get(dog_id)
         if profile is None or profile.current_walk is None:
             return False
@@ -2855,7 +2807,6 @@ class PawControlDataManager:
         health: HealthData | JSONLikeMapping,
     ) -> bool:
         """Record a health measurement."""
-
         if dog_id not in self._dog_profiles:
             return False
         payload = _coerce_health_payload(health)
@@ -2885,7 +2836,6 @@ class PawControlDataManager:
         medication_data: JSONLikeMapping,
     ) -> bool:
         """Persist medication information for ``dog_id``."""
-
         if dog_id not in self._dog_profiles:
             return False
         payload = _coerce_medication_payload(medication_data)
@@ -2907,7 +2857,6 @@ class PawControlDataManager:
         persist: bool = True,
     ) -> bool:
         """Merge ``updates`` into the stored dog configuration."""
-
         if dog_id not in self._dog_profiles:
             return False
         async with self._data_lock:
@@ -2958,7 +2907,6 @@ class PawControlDataManager:
         persist: bool = True,
     ) -> bool:
         """Persist profile-specific updates for ``dog_id``."""
-
         return await self.async_update_dog_data(
             dog_id,
             {"profile": profile_updates},
@@ -2972,7 +2920,6 @@ class PawControlDataManager:
         limit: int | None = None,
     ) -> list[JSONMutableMapping]:
         """Return stored health entries."""
-
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
             return []
@@ -2992,7 +2939,6 @@ class PawControlDataManager:
         days: int = 7,
     ) -> JSONMutableMapping | None:
         """Analyse health entries recorded within ``days``."""
-
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
             return None
@@ -3074,7 +3020,6 @@ class PawControlDataManager:
 
     def get_metrics(self) -> DataManagerMetricsSnapshot:
         """Expose lightweight metrics for diagnostics tests."""
-
         metrics: DataManagerMetricsSnapshot = {
             "dogs": len(self._dog_profiles),
             "storage_path": str(self._storage_path),
@@ -3084,18 +3029,15 @@ class PawControlDataManager:
 
     async def async_get_registered_dogs(self) -> list[str]:
         """Return the list of configured dog identifiers."""
-
         return list(self._dog_profiles)
 
     def _namespace_path(self, namespace: str) -> Path:
         """Return the file path used to persist a namespace payload."""
-
         safe_namespace = namespace.replace("/", "_")
         return self._storage_dir / f"{self.entry_id}_{safe_namespace}.json"
 
     async def _get_namespace_data(self, namespace: str) -> StorageNamespacePayload:
         """Read a JSON payload for ``namespace`` from disk."""
-
         path = self._namespace_path(namespace)
         try:
             if not Path.exists(path):
@@ -3136,7 +3078,6 @@ class PawControlDataManager:
         data: StorageNamespacePayload,
     ) -> None:
         """Persist a JSON payload for ``namespace`` to disk."""
-
         path = self._namespace_path(namespace)
         payload = json.dumps(data, ensure_ascii=False, indent=2)
         try:
@@ -3159,7 +3100,6 @@ class PawControlDataManager:
         *args: Any,
     ) -> ValueT:
         """Run a sync function in the Home Assistant executor."""
-
         async_add_executor_job = getattr(self.hass, "async_add_executor_job", None)
         if callable(async_add_executor_job):
             return await async_add_executor_job(func, *args)
@@ -3167,7 +3107,6 @@ class PawControlDataManager:
 
     async def _async_load_storage(self) -> JSONMutableMapping:
         """Load stored JSON data, falling back to the backup if required."""
-
         try:
             data = await self._async_add_executor_job(
                 self._read_storage_payload,
@@ -3217,7 +3156,6 @@ class PawControlDataManager:
 
     async def _async_save_dog_data(self, dog_id: str) -> None:
         """Persist all dog data to disk."""
-
         async with self._save_lock:
             payload: JSONMutableMapping = {
                 k: cast(JSONValue, profile.as_dict())
@@ -3236,7 +3174,6 @@ class PawControlDataManager:
     @staticmethod
     def _read_storage_payload(path: Path) -> Mapping[str, Any] | None:
         """Read a JSON payload from ``path`` when it exists."""
-
         if not path.exists():
             return None
         with path.open(encoding="utf-8") as handle:
@@ -3244,7 +3181,6 @@ class PawControlDataManager:
 
     def _write_storage(self, payload: JSONMutableMapping) -> None:
         """Write data to the JSON storage file."""
-
         if self._storage_path.exists():
             self._create_backup()
         with open(self._storage_path, "w", encoding="utf-8") as handle:
@@ -3252,7 +3188,6 @@ class PawControlDataManager:
 
     def _create_backup(self) -> None:
         """Create a best-effort backup copy of the current data file."""
-
         try:
             data = self._storage_path.read_bytes()
         except FileNotFoundError:
@@ -3262,7 +3197,6 @@ class PawControlDataManager:
     @staticmethod
     def _maybe_roll_daily_stats(profile: DogProfile, timestamp: datetime) -> None:
         """Reset daily statistics when the day changes."""
-
         current_day = dt_util.as_utc(timestamp).date()
         if profile.daily_stats.date.date() != current_day:
             profile.daily_stats = DailyStats(date=dt_util.as_utc(timestamp))

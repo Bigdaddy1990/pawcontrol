@@ -127,7 +127,6 @@ class _ExpiringCache[PayloadT]:
 
     def get(self, key: str) -> PayloadT | None:
         """Return cached data if it has not expired."""
-
         if key not in self._data:
             self._misses += 1
             return None
@@ -141,12 +140,10 @@ class _ExpiringCache[PayloadT]:
 
     def set(self, key: str, value: PayloadT) -> None:
         """Store a value in the cache."""
-
         self._data[key] = (value, dt_util.utcnow())
 
     def cleanup(self, now: datetime) -> int:
         """Remove all expired entries and return count of evicted items."""
-
         expired: list[str] = []
         for key, (_, timestamp) in self._data.items():
             if now - timestamp > self._ttl:
@@ -163,7 +160,6 @@ class _ExpiringCache[PayloadT]:
 
     def clear(self) -> None:
         """Reset the cache entirely."""
-
         self._data.clear()
         self._evicted_total = 0
         self._hits = 0
@@ -173,7 +169,6 @@ class _ExpiringCache[PayloadT]:
 
     def metrics(self) -> ModuleCacheMetrics:
         """Return current metrics for this cache."""
-
         return ModuleCacheMetrics(
             entries=len(self._data),
             hits=self._hits,
@@ -182,7 +177,6 @@ class _ExpiringCache[PayloadT]:
 
     def metadata(self) -> ModuleAdapterCacheMetadata:
         """Return metadata describing cache state for diagnostics."""
-
         metadata: ModuleAdapterCacheMetadata = {
             "ttl_seconds": self._ttl.total_seconds(),
         }
@@ -195,7 +189,6 @@ class _ExpiringCache[PayloadT]:
 
     def snapshot(self) -> ModuleAdapterCacheSnapshot:
         """Return a typed snapshot of cache statistics and metadata."""
-
         metrics = self.metrics()
         stats: ModuleAdapterCacheStats = {
             "entries": metrics.entries,
@@ -348,12 +341,10 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
 
     def attach(self, manager: FeedingManager | None) -> None:
         """Attach the feeding manager instance."""
-
         self._manager = manager
 
     async def async_get_data(self, dog_id: str) -> FeedingModulePayload:
         """Return the latest feeding context for the dog."""
-
         if (cached := self._cached(dog_id)) is not None:
             return cached
         if self._manager is not None:
@@ -816,7 +807,6 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
 
     def _resolve_dog_config(self, dog_id: str) -> JSONLikeMapping | None:
         """Return the config entry mapping for ``dog_id`` if available."""
-
         raw_dogs = self._config_entry.data.get(CONF_DOGS)
         if not isinstance(raw_dogs, list):
             return None

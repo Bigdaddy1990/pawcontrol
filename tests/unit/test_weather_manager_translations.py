@@ -26,7 +26,6 @@ from custom_components.pawcontrol.weather_translations import (
 @pytest.fixture
 def weather_manager() -> WeatherHealthManager:
     """Create a weather manager with deterministic translations."""
-
     manager = WeatherHealthManager(MagicMock(spec=HomeAssistant))
     manager._english_translations = get_weather_translations(DEFAULT_LANGUAGE)
     return manager
@@ -36,7 +35,6 @@ def test_get_translation_returns_localized_text(
     weather_manager: WeatherHealthManager,
 ) -> None:
     """Localized translations should resolve from the active catalog."""
-
     weather_manager._translations = get_weather_translations("de")
 
     title = weather_manager._get_translation(
@@ -57,7 +55,6 @@ def test_get_translation_uses_english_fallback_when_missing_local_entry(
     weather_manager: WeatherHealthManager,
 ) -> None:
     """Missing localized entries should fall back to the English catalog."""
-
     translations = get_weather_translations("de")
     translations["alerts"].pop("extreme_heat_warning")
     weather_manager._translations = translations
@@ -73,7 +70,6 @@ def test_get_translation_returns_original_key_when_fallback_missing(
     weather_manager: WeatherHealthManager,
 ) -> None:
     """If neither catalog has a key the original dotted key should be returned."""
-
     weather_manager._translations = get_weather_translations("de")
 
     result = weather_manager._get_translation("weather.alerts.unknown.key")
@@ -85,7 +81,6 @@ def test_get_translation_handles_format_errors_in_fallback(
     weather_manager: WeatherHealthManager,
 ) -> None:
     """Fallback formatting errors should yield the template text without substitution."""  # noqa: E501
-
     translations = get_weather_translations("de")
     translations["alerts"].pop("extreme_heat_warning")
     weather_manager._translations = translations
@@ -103,7 +98,6 @@ def test_get_translation_handles_non_string_local_entries(
     weather_manager: WeatherHealthManager,
 ) -> None:
     """Mappings at localized leaves should fall back to English strings."""
-
     translations = get_weather_translations("de")
     cast(dict[str, object], translations["alerts"]["extreme_heat_warning"])["title"] = {
         "value": "mapping"
@@ -134,7 +128,6 @@ def test_resolve_translation_value_retrieves_values(
     parts: WeatherTranslationParts, expected: str | None
 ) -> None:
     """The resolver should return strings or None for missing leaves."""
-
     catalog = get_weather_translations(DEFAULT_LANGUAGE)
 
     assert WeatherHealthManager._resolve_translation_value(catalog, parts) == expected
@@ -142,7 +135,6 @@ def test_resolve_translation_value_retrieves_values(
 
 def test_resolve_translation_value_returns_none_for_missing_alert() -> None:
     """Missing alert entries should return None to trigger fallbacks."""
-
     catalog = get_weather_translations(DEFAULT_LANGUAGE)
     catalog["alerts"].pop("extreme_heat_warning")
 
@@ -165,13 +157,11 @@ def test_resolve_translation_value_returns_none_for_missing_alert() -> None:
 )
 def test_parse_translation_key_rejects_invalid_paths(key: str) -> None:
     """Invalid keys should return None so callers can fall back."""
-
     assert WeatherHealthManager._parse_translation_key(key) is None
 
 
 def test_parse_translation_key_allows_weather_prefix() -> None:
     """Keys with the leading weather prefix should parse correctly."""
-
     parts = WeatherHealthManager._parse_translation_key(
         "weather.alerts.extreme_heat_warning.title"
     )
@@ -181,7 +171,6 @@ def test_parse_translation_key_allows_weather_prefix() -> None:
 
 def test_resolve_translation_value_rejects_unknown_section() -> None:
     """Unknown sections must raise ValueError for guard-rails."""
-
     catalog = get_weather_translations(DEFAULT_LANGUAGE)
 
     with pytest.raises(ValueError):
@@ -192,7 +181,6 @@ def test_resolve_translation_value_rejects_unknown_section() -> None:
 
 def test_translation_catalog_keys_match_literal_definitions() -> None:
     """Every catalog must provide entries for all declared translation keys."""
-
     for language in SUPPORTED_LANGUAGES:
         catalog = get_weather_translations(language)
 

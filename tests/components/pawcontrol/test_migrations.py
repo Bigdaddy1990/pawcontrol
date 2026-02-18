@@ -22,7 +22,6 @@ from custom_components.pawcontrol.types import (
 @pytest.mark.asyncio
 async def test_async_migrate_entry_v1_to_v2(hass: HomeAssistant) -> None:
     """Ensure legacy entry data is migrated into the latest schema."""
-
     entry = ConfigEntry(
         domain=DOMAIN,
         version=1,

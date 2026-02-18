@@ -101,7 +101,6 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select a dog for door sensor configuration."""
-
         current_dogs = list(self._dogs)
         if not current_dogs:
             return await self.async_step_manage_dogs()
@@ -145,7 +144,6 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
         user_input: OptionsDoorSensorInput | None = None,
     ) -> ConfigFlowResult:
         """Configure door sensor entity and overrides for the current dog."""
-
         if not self._current_dog:
             return await self.async_step_manage_dogs()
         dog_id = cast(str | None, self._current_dog.get(DOG_ID_FIELD))

@@ -83,13 +83,11 @@ class StubDataManager(PawControlDataManager):
 
     async def _get_namespace_data(self, namespace: str) -> JSONMutableMapping:
         """Return empty namespace data for tests."""
-
         assert namespace == "visitor_mode"
         return cast(JSONMutableMapping, {})
 
     async def _save_namespace(self, namespace: str, data: JSONMutableMapping) -> None:
         """Capture writes instead of hitting Home Assistant storage."""
-
         assert namespace == "visitor_mode"
         self.saved_payload = data
 
@@ -98,7 +96,6 @@ class StubDataManager(PawControlDataManager):
 @pytest.mark.asyncio
 async def test_async_set_visitor_mode_records_metrics() -> None:
     """Visitor workflows should record runtime samples and update metrics."""
-
     manager = StubDataManager()
     metrics_sink = CoordinatorMetrics()
     manager.set_metrics_sink(metrics_sink)
@@ -239,7 +236,6 @@ class _ErrorSummaryTracker(_DummyTracker):
 @pytest.mark.unit
 def test_auto_registered_cache_monitors(tmp_path: Path) -> None:
     """Data manager should surface coordinator caches via diagnostics snapshots."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     modules = _DummyModules()
     tracker = _DummyTracker()
@@ -289,7 +285,6 @@ def test_auto_registered_cache_monitors(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_entity_budget_tracker_handles_summary_errors(tmp_path: Path) -> None:
     """Entity budget diagnostics should expose serialised error payloads."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     modules = _DummyModules()
     tracker = _ErrorSummaryTracker()
@@ -319,7 +314,6 @@ def test_entity_budget_tracker_handles_summary_errors(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_storage_namespace_monitors_track_updates(tmp_path: Path) -> None:
     """Namespace cache monitors should reflect persisted updates."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     manager = PawControlDataManager(
         hass=hass,
@@ -346,7 +340,6 @@ async def test_storage_namespace_monitors_track_updates(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_storage_namespace_timestamp_anomalies(tmp_path: Path) -> None:
     """Namespace monitors should flag missing or stale timestamps."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     manager = PawControlDataManager(
         hass=hass,
@@ -372,7 +365,6 @@ def test_storage_namespace_timestamp_anomalies(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_helper_manager_register_cache_monitor() -> None:
     """Helper manager should expose diagnostics through the cache registrar."""
-
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -413,7 +405,6 @@ async def test_helper_manager_skips_helper_creation_without_services(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Helper manager should short-circuit helper creation when hass services missing."""  # noqa: E501
-
     hass = SimpleNamespace(data={}, states=SimpleNamespace(get=lambda entity_id: None))
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -453,7 +444,6 @@ async def test_helper_manager_guard_metrics_accumulate_skips(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Helper manager should aggregate guard skips across lifecycle services."""
-
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -501,7 +491,6 @@ async def test_helper_manager_guard_metrics_accumulate_skips(
 @pytest.mark.unit
 def test_script_manager_register_cache_monitor() -> None:
     """Script manager should expose created script diagnostics."""
-
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     script_manager = PawControlScriptManager(hass, entry)
@@ -534,7 +523,6 @@ def test_script_manager_register_cache_monitor() -> None:
 @pytest.mark.unit
 def test_script_manager_timestamp_anomaly() -> None:
     """Script manager diagnostics should flag stale generations."""
-
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     script_manager = PawControlScriptManager(hass, entry)
@@ -557,7 +545,6 @@ def test_script_manager_timestamp_anomaly() -> None:
 @pytest.mark.unit
 def test_script_manager_resilience_escalation_definition() -> None:
     """Entry-level resilience escalation script should expose guard thresholds."""
-
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(
         entry_id="entry-id",
@@ -623,7 +610,6 @@ def test_script_manager_resilience_escalation_definition() -> None:
 @pytest.mark.unit
 def test_script_manager_resilience_threshold_overrides() -> None:
     """Config entry options should override default resilience thresholds."""
-
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(
         entry_id="entry-id",
@@ -665,7 +651,6 @@ def test_script_manager_resilience_threshold_overrides() -> None:
 @pytest.mark.unit
 def test_script_manager_resilience_manual_event_snapshot() -> None:
     """Manual blueprint triggers should be surfaced in diagnostics snapshots."""
-
     hass = SimpleNamespace(
         data={},
         states=SimpleNamespace(get=lambda entity_id: None),
@@ -765,7 +750,6 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
 @pytest.mark.unit
 def test_script_manager_manual_snapshot_combines_system_and_blueprint_sources() -> None:
     """System settings should appear alongside blueprint suggestions."""
-
     hass = SimpleNamespace(
         data={},
         states=SimpleNamespace(get=lambda entity_id: None),
@@ -1054,7 +1038,6 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
 @pytest.mark.unit
 def test_script_manager_manual_history_size_respects_options() -> None:
     """Manual event history length should be configurable via options."""
-
     hass = SimpleNamespace(
         data={},
         states=SimpleNamespace(get=lambda entity_id: None),
@@ -1089,7 +1072,6 @@ def test_script_manager_manual_history_size_respects_options() -> None:
 @pytest.mark.unit
 def test_resilience_followup_blueprint_manual_events() -> None:
     """Manual blueprint triggers should drive escalation and follow-up paths."""
-
     blueprint_path = Path(
         "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml"
     )
@@ -1108,7 +1090,6 @@ def test_resilience_followup_blueprint_manual_events() -> None:
 @pytest.mark.unit
 def test_door_sensor_manager_register_cache_monitor() -> None:
     """Door sensor manager should publish detection diagnostics."""
-
     hass = SimpleNamespace()
     manager = DoorSensorManager(hass, "entry")
     now = dt_util.utcnow()
@@ -1155,7 +1136,6 @@ def test_door_sensor_manager_register_cache_monitor() -> None:
 @pytest.mark.unit
 def test_door_sensor_manager_timestamp_anomaly() -> None:
     """Door sensor diagnostics should surface stale activity timestamps."""
-
     hass = SimpleNamespace()
     manager = DoorSensorManager(hass, "entry")
     old = dt_util.utcnow() - (CACHE_TIMESTAMP_STALE_THRESHOLD + timedelta(hours=2))
@@ -1201,7 +1181,6 @@ def test_auto_registers_helper_manager_cache(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Data manager should register helper manager caches when available."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -1241,7 +1220,6 @@ def test_auto_registers_helper_manager_cache(
 @pytest.mark.unit
 def test_register_runtime_cache_monitors_adds_helper_cache(tmp_path: Path) -> None:
     """Runtime cache registration should pick up helper manager monitors."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -1270,7 +1248,6 @@ def test_register_runtime_cache_monitors_adds_helper_cache(tmp_path: Path) -> No
 @pytest.mark.asyncio
 async def test_async_get_module_history_respects_limit(tmp_path: Path) -> None:
     """Module history lookups should return sorted entries with optional limits."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     manager = PawControlDataManager(
         hass=hass,
@@ -1323,7 +1300,6 @@ async def test_weekly_health_report_filters_old_entries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Weekly health reports should ignore entries outside the seven-day window."""
-
     from custom_components.pawcontrol import data_manager as dm
 
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
@@ -1388,7 +1364,6 @@ async def test_analyze_patterns_uses_filtered_history(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Pattern analysis should rely on the shared history helpers."""
-
     from custom_components.pawcontrol import data_manager as dm
 
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
@@ -1489,7 +1464,6 @@ async def test_export_data_uses_history_helper(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Exports should reuse history filters and maintain chronological ordering."""
-
     from custom_components.pawcontrol import data_manager as dm
 
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
@@ -1677,7 +1651,6 @@ class _DummyModulesAdapter:
 @pytest.mark.unit
 def test_notification_person_caches_register_via_binding(tmp_path: Path) -> None:
     """Coordinator binding should surface notification and person cache snapshots."""
-
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     coordinator = _DummyCoordinator(hass)
     modules = _DummyModulesAdapter()

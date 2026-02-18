@@ -19,7 +19,6 @@ INTERNAL_MODULES: set[str] = set()
 
 def _extract_requirement_name(line: str) -> str | None:
     """Return the normalized package name from a requirement line."""
-
     stripped = line.split("#", 1)[0].strip()
     if not stripped or stripped.startswith("-"):
         return None

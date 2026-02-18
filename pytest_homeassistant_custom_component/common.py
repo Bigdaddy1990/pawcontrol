@@ -29,7 +29,6 @@ class MockModule(ModuleType):
 
 def mock_integration(hass, module: ModuleType) -> ModuleType:
     """Register a mocked integration with the Home Assistant test stubs."""
-
     domain = getattr(module, "domain", None) or getattr(module, "DOMAIN", None)
     if domain is None:
         raise ValueError("mock integration must provide a domain")
@@ -44,5 +43,4 @@ def patch_all(
     mock_config: dict[str, Any],
 ) -> dict[str, Any]:  # pragma: no cover - compat shim
     """Compatibility helper retained for third-party tests."""
-
     return mock_config

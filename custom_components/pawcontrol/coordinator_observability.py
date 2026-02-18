@@ -65,12 +65,10 @@ class EntityBudgetTracker:
 
     def record(self, snapshot: EntityBudgetSnapshot) -> None:
         """Store the latest snapshot for a dog."""
-
         self._snapshots[snapshot.dog_id] = snapshot
 
     def saturation(self) -> float:
         """Return aggregate utilisation across all tracked dogs."""
-
         if not self._snapshots:
             return 0.0
         total_capacity = sum(snapshot.capacity for snapshot in self._snapshots.values())
@@ -83,12 +81,10 @@ class EntityBudgetTracker:
 
     def summary(self) -> EntityBudgetSummary:
         """Return a diagnostics friendly summary."""
-
         return summarize_entity_budgets(self._snapshots.values())
 
     def snapshots(self) -> Iterable[EntityBudgetSnapshot]:
         """Expose raw snapshots (used in diagnostics)."""
-
         return tuple(self._snapshots.values())
 
 

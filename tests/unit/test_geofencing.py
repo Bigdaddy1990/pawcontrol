@@ -23,7 +23,6 @@ from custom_components.pawcontrol.types import (
 @pytest.mark.unit
 def test_geofence_zone_storage_roundtrip() -> None:
     """Geofence zone payloads should round-trip through typed storage."""
-
     metadata: GeofenceZoneMetadata = {
         "auto_created": True,
         "color": "#00FFAA",
@@ -52,7 +51,6 @@ def test_geofence_zone_storage_roundtrip() -> None:
 @pytest.mark.asyncio
 async def test_save_data_persists_typed_metadata(mock_hass) -> None:
     """Persisted data should include the typed zone metadata."""
-
     geofencing = PawControlGeofencing(mock_hass, "entry")
     store = MagicMock()
     store.async_save = AsyncMock()
@@ -80,7 +78,6 @@ async def test_save_data_persists_typed_metadata(mock_hass) -> None:
 @pytest.mark.asyncio
 async def test_notify_zone_event_uses_typed_payload(mock_hass) -> None:
     """Notification payloads should expose the typed geofence structure."""
-
     geofencing = PawControlGeofencing(mock_hass, "entry")
     notify = AsyncMock()
     manager = SimpleNamespace(async_send_notification=notify)
@@ -116,7 +113,6 @@ async def test_notify_zone_event_uses_typed_payload(mock_hass) -> None:
 @pytest.mark.unit
 def test_geofence_zone_metadata_sanitization() -> None:
     """Zone metadata should drop unsupported legacy values."""
-
     raw_metadata: dict[str, object] = {
         "auto_created": "yes",
         "color": 128934,
@@ -145,7 +141,6 @@ def test_geofence_zone_metadata_sanitization() -> None:
 @pytest.mark.unit
 def test_from_storage_payload_sanitizes_metadata() -> None:
     """Stored payloads with invalid metadata types are normalised."""
-
     payload: GeofenceZoneStoragePayload = cast(
         GeofenceZoneStoragePayload,
         {
@@ -176,7 +171,6 @@ def test_from_storage_payload_sanitizes_metadata() -> None:
 @pytest.mark.asyncio
 async def test_initialize_accepts_legacy_list_storage(mock_hass) -> None:
     """Legacy list-based storage payloads should load successfully."""
-
     geofencing = PawControlGeofencing(mock_hass, "entry")
     store = MagicMock()
     legacy_zone: GeofenceZoneStoragePayload = cast(

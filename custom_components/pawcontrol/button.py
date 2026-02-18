@@ -515,7 +515,6 @@ class ProfileAwareButtonFactory:
 
     def _get_garden_button_rules(self) -> list[ButtonRule]:
         """Get garden button creation rules based on profile."""
-
         rules: list[ButtonRule] = [
             {
                 "factory": PawControlStartGardenSessionButton,
@@ -567,7 +566,6 @@ class ProfileAwareButtonFactory:
 
     def create_buttons_for_dog(self, dog: DogConfigData) -> list[PawControlButtonBase]:
         """Create profile-optimized buttons for ``dog`` with strict typing."""
-
         dog_id = dog[DOG_ID_FIELD]
         dog_name = dog[DOG_NAME_FIELD]
 
@@ -858,7 +856,6 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Intercept hass assignment to prepare a patch-friendly registry."""
-
         if name == "hass" and value is not None and isinstance(value, HomeAssistant):
             _prepare_service_proxy(value)
         super().__setattr__(name, value)
@@ -866,7 +863,6 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return attributes with optimized caching."""
-
         attrs = self._build_entity_attributes(
             {
                 "button_type": self._button_type,
@@ -880,19 +876,16 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
 
     def _get_walk_payload(self) -> WalkModulePayload | None:
         """Return the walk module payload if available."""
-
         walk_data = self._get_module_data(MODULE_WALK)
         return cast(WalkModulePayload, walk_data) if walk_data is not None else None
 
     def _get_gps_payload(self) -> GPSModulePayload | None:
         """Return the GPS module payload if available."""
-
         gps_data = self._get_module_data(MODULE_GPS)
         return cast(GPSModulePayload, gps_data) if gps_data is not None else None
 
     def _get_garden_payload(self) -> GardenModulePayload | None:
         """Return the garden module payload if available."""
-
         garden_data = self._get_module_data(MODULE_GARDEN)
         return (
             cast(
@@ -906,7 +899,6 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     @staticmethod
     def _normalize_module_flag(value: Any, field: str) -> bool:
         """Normalise boolean-like flags reported by module payloads."""
-
         if isinstance(value, bool):
             return value
         if isinstance(value, int | float) and value in {0, 1}:
@@ -931,7 +923,6 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     @staticmethod
     def _parse_datetime(value: Any) -> datetime | None:
         """Parse ISO-formatted datetime strings into aware datetimes."""
-
         if isinstance(value, datetime):
             return value
         if isinstance(value, str):
@@ -950,7 +941,6 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
         self,
     ) -> ServiceRegistryLike | None:
         """Return a service registry object that supports attribute patching."""
-
         if self.hass is None:
             services = getattr(HomeAssistant, "services", None)
             if isinstance(services, ServiceRegistryLike):
@@ -972,7 +962,6 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
         **kwargs: Any,
     ) -> None:
         """Call a Home Assistant service via a patch-friendly proxy."""
-
         registry = self._ensure_patchable_services()
         if registry is None:
             _LOGGER.debug(
@@ -1019,7 +1008,6 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
         **kwargs: Any,
     ) -> None:
         """Run a service call and surface consistent errors."""
-
         try:
             await self._async_service_call(domain, service, data, **kwargs)
         except Exception as err:
@@ -1323,7 +1311,6 @@ class PawControlFeedNowButton(PawControlButtonBase):
 
     async def async_press(self) -> None:
         """Trigger an immediate feeding service call."""
-
         await super().async_press()
         amount = resolve_default_feeding_amount(
             self.coordinator,

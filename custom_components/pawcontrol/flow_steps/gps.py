@@ -275,7 +275,6 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         user_input: DogGPSStepInput | None = None,
     ) -> ConfigFlowResult:
         """Configure GPS settings for the specific dog."""
-
         current_dog = self._current_dog_config
         if current_dog is None:
             _LOGGER.error(
@@ -400,7 +399,6 @@ class DogGPSFlowMixin(DogGPSFlowHost):
 
     def _get_dog_gps_schema(self) -> vol.Schema:
         """Build the schema for GPS configuration."""
-
         gps_sources = self._get_available_device_trackers()
         return build_dog_gps_schema(gps_sources)
 
@@ -487,7 +485,6 @@ class GPSOptionsMixin(GPSOptionsHost):
 
     def _current_gps_options(self, dog_id: str) -> GPSOptions:
         """Return the stored GPS configuration with legacy fallbacks."""
-
         dog_options = self._current_dog_options()
         entry = dog_options.get(dog_id, {})
         raw = entry.get(GPS_SETTINGS_FIELD)
@@ -540,7 +537,6 @@ class GPSOptionsMixin(GPSOptionsHost):
 
     def _current_geofence_options(self, dog_id: str) -> GeofenceOptions:
         """Fetch the stored geofence configuration as a typed mapping."""
-
         dog_options = self._current_dog_options()
         entry = dog_options.get(dog_id, {})
         raw = entry.get("geofence_settings")
@@ -556,7 +552,6 @@ class GPSOptionsMixin(GPSOptionsHost):
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure GPS settings for."""
-
         if not self._dogs:
             return await self.async_step_init()
         if user_input is not None:
@@ -577,7 +572,6 @@ class GPSOptionsMixin(GPSOptionsHost):
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure geofencing for."""
-
         if not self._dogs:
             return await self.async_step_init()
         if user_input is not None:
@@ -598,7 +592,6 @@ class GPSOptionsMixin(GPSOptionsHost):
         user_input: OptionsGPSSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure GPS settings."""
-
         explicitly_selected_dog = self._current_dog
         current_dog = self._require_current_dog()
         if current_dog is None:
@@ -740,7 +733,6 @@ class GPSOptionsMixin(GPSOptionsHost):
         user_input: OptionsGPSSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Handle geofence settings step for the selected dog."""
-
         explicitly_selected_dog = self._current_dog
         self._require_current_dog()
 
@@ -890,7 +882,6 @@ class GPSOptionsMixin(GPSOptionsHost):
         current_options: GPSOptions,
     ) -> vol.Schema:
         """Build schema for GPS settings."""
-
         return build_gps_settings_schema(current_options)
 
     def _build_geofence_settings_schema(
@@ -898,7 +889,6 @@ class GPSOptionsMixin(GPSOptionsHost):
         current_options: GeofenceOptions,
     ) -> vol.Schema:
         """Build schema for geofence settings."""
-
         return build_geofence_settings_schema(current_options)
 
 
@@ -914,7 +904,6 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
     @staticmethod
     def _coerce_bool(value: Any, default: bool) -> bool:
         """Return a boolean using Home Assistant style truthiness rules."""
-
         if value is None:
             return default
         if isinstance(value, bool):
@@ -1079,7 +1068,6 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
         mutable: JSONMutableMapping,
     ) -> GPSOptions | None:
         """Normalise GPS payloads in the options snapshot."""
-
         gps_settings: GPSOptions | None = None
 
         if DOG_OPTIONS_FIELD in mutable:

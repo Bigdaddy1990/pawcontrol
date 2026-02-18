@@ -13,7 +13,6 @@ from custom_components.pawcontrol.types import JSONMutableMapping
 
 def test_service_guard_result_to_mapping() -> None:
     """Service guard results should emit structured payloads."""
-
     result = ServiceGuardResult(
         domain="notify",
         service="mobile_app",
@@ -33,7 +32,6 @@ def test_service_guard_result_to_mapping() -> None:
 
 def test_service_guard_snapshot_summary_and_metrics() -> None:
     """Snapshots should summarise guard telemetry consistently."""
-
     results = (
         ServiceGuardResult("notify", "mobile_app", True),
         ServiceGuardResult("light", "turn_on", False, reason="cooldown"),
@@ -80,7 +78,6 @@ def test_normalise_guard_result_payload(
     raw_payload: JSONMutableMapping, expected: bool
 ) -> None:
     """Guard result payload normalisation should coerce booleans and text."""
-
     payload = normalise_guard_result_payload(raw_payload)
     assert payload["executed"] is expected
     assert all(isinstance(value, str | bool) for value in payload.values())
@@ -88,7 +85,6 @@ def test_normalise_guard_result_payload(
 
 def test_normalise_guard_history_handles_mixed_entries() -> None:
     """Guard history normalisation must handle results and mappings."""
-
     history = normalise_guard_history([
         ServiceGuardResult("notify", "persistent_notification", True),
         {"domain": "script", "service": "turn_on", "reason": "cooldown"},

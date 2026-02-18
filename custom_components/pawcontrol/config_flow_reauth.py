@@ -107,7 +107,6 @@ class ReauthFlowMixin(ReauthFlowHost):
         dogs: object,
     ) -> list[Mapping[str, JSONValue]]:
         """Return stored dog payloads normalised to a list of mappings."""
-
         if isinstance(dogs, Sequence) and not isinstance(dogs, str | bytes):
             return [dog for dog in dogs if isinstance(dog, Mapping)]
         return []
@@ -115,12 +114,10 @@ class ReauthFlowMixin(ReauthFlowHost):
     @classmethod
     def _count_dogs(cls, dogs: object) -> int:
         """Return the number of stored dogs from an entry payload."""
-
         return len(cls._normalise_dog_payload(dogs))
 
     def _render_reauth_health_status(self, summary: ReauthHealthSummary) -> str:
         """Render a concise description of the reauth health snapshot."""
-
         healthy = summary.get("healthy", True)
         validated = summary.get("validated_dogs", 0)
         total = summary.get("total_dogs", 0)
@@ -151,7 +148,6 @@ class ReauthFlowMixin(ReauthFlowHost):
         summary: ReauthHealthSummary,
     ) -> tuple[ReauthDataUpdates, ReauthOptionsUpdates]:
         """Build typed update payloads for a successful reauth."""
-
         timestamp = dt_util.utcnow().isoformat()
 
         data_updates: ReauthDataUpdates = {
@@ -180,7 +176,6 @@ class ReauthFlowMixin(ReauthFlowHost):
         summary: ReauthHealthSummary,
     ) -> ReauthPlaceholders:
         """Generate description placeholders for the reauth confirmation form."""
-
         if not self.reauth_entry:
             raise ConfigEntryAuthFailed(
                 "No entry available for reauthentication",
@@ -216,7 +211,6 @@ class ReauthFlowMixin(ReauthFlowHost):
         _entry_data: Mapping[str, object],
     ) -> ConfigFlowResult:
         """Handle reauthentication flow with enhanced error handling."""
-
         _LOGGER.debug(
             "Starting reauthentication flow (event=reauth_start entry_id=%s)",
             self.context.get("entry_id"),
@@ -275,7 +269,6 @@ class ReauthFlowMixin(ReauthFlowHost):
 
     async def _validate_reauth_entry_enhanced(self, entry: ConfigEntry) -> None:
         """Enhanced config entry validation for reauthentication."""
-
         dogs_raw = entry.data.get(CONF_DOGS, [])
         dogs = self._normalise_dog_payload(dogs_raw)
         if not dogs:
@@ -332,7 +325,6 @@ class ReauthFlowMixin(ReauthFlowHost):
         user_input: ReauthConfirmInput | None = None,
     ) -> ConfigFlowResult:
         """Confirm reauthentication with enhanced validation and error handling."""
-
         if not self.reauth_entry:
             reauth_error = ReauthRequiredError(
                 "No entry available for reauthentication",
@@ -496,7 +488,6 @@ class ReauthFlowMixin(ReauthFlowHost):
         entry: ConfigEntry,
     ) -> ReauthHealthSummary:
         """Enhanced configuration health check with graceful degradation."""
-
         dogs = [dict(dog) for dog in self._normalise_entry_dogs(entry)]
         issues: list[str] = []
         warnings: list[str] = []
@@ -599,7 +590,6 @@ class ReauthFlowMixin(ReauthFlowHost):
 
     async def _get_health_status_summary_safe(self, entry: ConfigEntry) -> str:
         """Get health status summary with graceful error handling."""
-
         try:
             async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):
                 summary = cast(  # type: ignore[redundant-cast]

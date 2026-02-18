@@ -26,7 +26,6 @@ class _DummyCoordinator(CoordinatorDataAccessMixin):
 
 def test_get_module_data_returns_unknown_status_for_missing_typed_module() -> None:
     """Typed modules fall back to an unknown status payload when absent."""
-
     coordinator = _DummyCoordinator()
 
     payload = coordinator.get_module_data("alpha", "gps")
@@ -36,7 +35,6 @@ def test_get_module_data_returns_unknown_status_for_missing_typed_module() -> No
 
 def test_get_module_data_preserves_typed_payloads() -> None:
     """Typed module payloads are returned unchanged when available."""
-
     coordinator = _DummyCoordinator()
     coordinator._data["alpha"]["gps"] = {"status": "online", "fix_quality": "3d"}
 
@@ -47,7 +45,6 @@ def test_get_module_data_preserves_typed_payloads() -> None:
 
 def test_get_module_data_returns_empty_dict_for_unknown_modules() -> None:
     """Untyped modules continue to return empty dictionaries when unavailable."""
-
     coordinator = _DummyCoordinator()
 
     assert coordinator.get_module_data("alpha", "notifications") == {}

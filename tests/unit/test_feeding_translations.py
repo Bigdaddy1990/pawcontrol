@@ -39,7 +39,6 @@ def _limited_generator(
 
 def test_normalise_sequence_supports_nested_iteration() -> None:
     """Snapshots should remain reusable even with nested iteration."""
-
     generator = (value for value in range(5))
     snapshot: Sequence[object] | None = _normalise_sequence(generator)
     assert snapshot is not None
@@ -59,7 +58,6 @@ def test_normalise_sequence_supports_nested_iteration() -> None:
 
 def test_normalise_sequence_handles_parallel_iteration() -> None:
     """Multiple iterators should be able to advance in lockstep."""
-
     generator = (value for value in range(4))
     snapshot: Sequence[object] | None = _normalise_sequence(generator)
     assert snapshot is not None
@@ -71,7 +69,6 @@ def test_normalise_sequence_handles_parallel_iteration() -> None:
 
 def test_normalise_sequence_preserves_bounded_snapshot_identity() -> None:
     """Bounded snapshots should be returned unchanged without consuming items."""
-
     consumed = 0
 
     def _source() -> Iterator[int]:
@@ -100,7 +97,6 @@ def test_normalise_sequence_preserves_bounded_snapshot_identity() -> None:
 
 def test_format_structured_message_handles_recursive_mapping() -> None:
     """Structured message extraction should tolerate self-referential payloads."""
-
     payload: dict[str, object] = {"detail": "Telemetry offline"}
     payload["self"] = payload
 
@@ -111,7 +107,6 @@ def test_format_structured_message_handles_recursive_mapping() -> None:
 
 def test_get_feeding_compliance_translations_falls_back_to_english() -> None:
     """Unknown languages should fall back to the English templates."""
-
     translations = get_feeding_compliance_translations("fr")
 
     assert translations["missed_meals_header"] == "Missed meals:"
@@ -119,7 +114,6 @@ def test_get_feeding_compliance_translations_falls_back_to_english() -> None:
 
 def test_build_notification_includes_translated_headers() -> None:
     """Notification templates should include language-specific headers."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 80,
@@ -150,7 +144,6 @@ def test_build_notification_includes_translated_headers() -> None:
 
 def test_build_notification_handles_no_data() -> None:
     """No-data results should return the fallback message."""
-
     compliance = {
         "status": "no_data",
         "message": "No telemetry available",
@@ -166,7 +159,6 @@ def test_build_notification_handles_no_data() -> None:
 
 def test_build_notification_extracts_text_from_mapping_message() -> None:
     """Structured mapping payloads should surface readable text when available."""
-
     compliance = {
         "status": "no_data",
         "message": {"message": "Telemetry offline"},
@@ -182,7 +174,6 @@ def test_build_notification_extracts_text_from_mapping_message() -> None:
 
 def test_build_notification_falls_back_for_unhelpful_mapping() -> None:
     """Mappings without descriptive text should use the default message."""
-
     compliance = {
         "status": "no_data",
         "message": {"unexpected": "mapping"},
@@ -198,7 +189,6 @@ def test_build_notification_falls_back_for_unhelpful_mapping() -> None:
 
 def test_build_notification_extracts_singleton_mapping_text() -> None:
     """Singleton mappings with unknown keys should still surface descriptive text."""
-
     compliance = {
         "status": "no_data",
         "message": {"custom": "Telemetry offline now"},
@@ -213,7 +203,6 @@ def test_build_notification_extracts_singleton_mapping_text() -> None:
 
 def test_build_notification_handles_case_variant_keys() -> None:
     """Preferred keys should match regardless of case."""
-
     compliance = {
         "status": "no_data",
         "message": {"Message": "Telemetry offline"},
@@ -228,7 +217,6 @@ def test_build_notification_handles_case_variant_keys() -> None:
 
 def test_iter_text_candidates_skips_none_values() -> None:
     """Iterators should not yield ``None`` even when mappings contain null entries."""
-
     payload = {"primary": None, "secondary": "ok"}
 
     candidates = list(_iter_text_candidates(payload))
@@ -239,7 +227,6 @@ def test_iter_text_candidates_skips_none_values() -> None:
 
 def test_bounded_sequence_snapshot_supports_slices() -> None:
     """Bounded snapshots should support slicing semantics."""
-
     generator = (value for value in range(_SEQUENCE_SCAN_LIMIT + 3))
     snapshot: Sequence[int] | None = _normalise_sequence(generator)
     assert snapshot is not None
@@ -250,7 +237,6 @@ def test_bounded_sequence_snapshot_supports_slices() -> None:
 
 def test_build_notification_falls_back_for_collection_without_text() -> None:
     """Collections lacking descriptive text should use the fallback message."""
-
     compliance = {
         "status": "no_data",
         "message": {"unexpected", "values"},
@@ -285,7 +271,6 @@ def test_build_notification_extracts_generator_message_text() -> None:
 
 def test_build_notification_extracts_sequence_message_text() -> None:
     """Sequence-based messages should expose joined text content."""
-
     compliance = {
         "status": "no_data",
         "message": ("Telemetry offline", "Check scheduler"),
@@ -301,7 +286,6 @@ def test_build_notification_extracts_sequence_message_text() -> None:
 
 def test_format_structured_message_limits_generator_consumption() -> None:
     """Structured message parsing should only consume the required generator entries."""
-
     consumed = 0
 
     def _factory(index: int) -> dict[str, str]:
@@ -319,7 +303,6 @@ def test_format_structured_message_limits_generator_consumption() -> None:
 
 def test_build_notification_handles_recursive_mapping() -> None:
     """Self-referential mappings should fall back to the default message."""
-
     message_payload: dict[str, object] = {}
     message_payload["self"] = message_payload
 
@@ -337,7 +320,6 @@ def test_build_notification_handles_recursive_mapping() -> None:
 
 def test_build_notification_handles_recursive_sequence() -> None:
     """Self-referential sequences should fall back to the default message."""
-
     loop: list[object] = []
     loop.append(loop)
 
@@ -355,7 +337,6 @@ def test_build_notification_handles_recursive_sequence() -> None:
 
 def test_build_notification_decodes_bytes_message() -> None:
     """Byte payloads should surface readable text for no-data results."""
-
     compliance = {
         "status": "no_data",
         "message": b"unexpected",
@@ -371,7 +352,6 @@ def test_build_notification_decodes_bytes_message() -> None:
 
 def test_build_notification_decodes_bytearray_message() -> None:
     """Bytearray payloads should be decoded to UTF-8 text."""
-
     compliance = {
         "status": "no_data",
         "message": bytearray(b"unexpected"),
@@ -387,7 +367,6 @@ def test_build_notification_decodes_bytearray_message() -> None:
 
 def test_build_notification_decodes_memoryview_message() -> None:
     """Memoryview payloads should surface decoded text."""
-
     compliance = {
         "status": "no_data",
         "message": memoryview(b"unexpected"),
@@ -403,7 +382,6 @@ def test_build_notification_decodes_memoryview_message() -> None:
 
 def test_build_notification_accepts_user_string_message() -> None:
     """String wrappers should be treated as readable text."""
-
     compliance = {
         "status": "no_data",
         "message": UserString("Telemetry offline"),
@@ -419,7 +397,6 @@ def test_build_notification_accepts_user_string_message() -> None:
 
 def test_build_notification_accepts_pathlike_message() -> None:
     """Path-like objects should surface their filesystem representation."""
-
     compliance = {
         "status": "no_data",
         "message": Path("/tmp/telemetry.log"),
@@ -435,7 +412,6 @@ def test_build_notification_accepts_pathlike_message() -> None:
 
 def test_build_notification_salvages_nested_mapping_text() -> None:
     """Nested mappings without preferred keys should still surface text."""
-
     compliance = {
         "status": "no_data",
         "message": {"meta": {"info": "Telemetry offline"}, "code": 503},
@@ -451,7 +427,6 @@ def test_build_notification_salvages_nested_mapping_text() -> None:
 
 def test_build_notification_salvages_sequence_mapping_text() -> None:
     """Sequences containing mappings should provide readable text."""
-
     compliance = {
         "status": "no_data",
         "message": [
@@ -469,7 +444,6 @@ def test_build_notification_salvages_sequence_mapping_text() -> None:
 
 def test_build_summary_decodes_byte_recommendations() -> None:
     """Recommendations supplied as bytes should be decoded to text."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 90,
@@ -491,7 +465,6 @@ def test_build_summary_decodes_byte_recommendations() -> None:
 
 def test_build_summary_decodes_scalar_byte_recommendations() -> None:
     """Singleton byte recommendations should be decoded to readable text."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 88,
@@ -513,7 +486,6 @@ def test_build_summary_decodes_scalar_byte_recommendations() -> None:
 
 def test_build_summary_decodes_memoryview_recommendations() -> None:
     """Memoryview recommendations should be treated as readable text."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 90,
@@ -535,7 +507,6 @@ def test_build_summary_decodes_memoryview_recommendations() -> None:
 
 def test_build_summary_handles_generator_recommendations() -> None:
     """Generator-backed recommendations should be materialised correctly."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 92,
@@ -557,7 +528,6 @@ def test_build_summary_handles_generator_recommendations() -> None:
 
 def test_build_summary_extracts_mapping_recommendations() -> None:
     """Mapping recommendations should surface descriptive text."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 91,
@@ -579,7 +549,6 @@ def test_build_summary_extracts_mapping_recommendations() -> None:
 
 def test_build_summary_extracts_nested_mapping_recommendations() -> None:
     """Nested mapping recommendations should decode nested entries."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 87,
@@ -603,7 +572,6 @@ def test_build_summary_extracts_nested_mapping_recommendations() -> None:
 
 def test_build_summary_decodes_byte_issue_details() -> None:
     """Issue metadata provided as bytes should surface readable text."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 65,
@@ -630,7 +598,6 @@ def test_build_summary_decodes_byte_issue_details() -> None:
 
 def test_build_summary_decodes_memoryview_issue_details() -> None:
     """Memoryview issue details should surface readable text."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 65,
@@ -657,7 +624,6 @@ def test_build_summary_decodes_memoryview_issue_details() -> None:
 
 def test_build_summary_accepts_mapping_issue() -> None:
     """Single mapping issue entries should still be captured."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 75,
@@ -682,7 +648,6 @@ def test_build_summary_accepts_mapping_issue() -> None:
 
 def test_build_summary_handles_nested_issue_mapping() -> None:
     """Issue entries containing nested mappings should prefer descriptive text."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 70,
@@ -709,7 +674,6 @@ def test_build_summary_handles_nested_issue_mapping() -> None:
 
 def test_build_summary_accepts_mapping_missed_meal() -> None:
     """Single missed meal mappings should be materialised correctly."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 80,
@@ -731,7 +695,6 @@ def test_build_summary_accepts_mapping_missed_meal() -> None:
 
 def test_build_summary_returns_localised_sections() -> None:
     """Summary builder should expose localised sections for repairs."""
-
     compliance = {
         "status": "completed",
         "compliance_score": 75,
@@ -771,7 +734,6 @@ def test_build_summary_returns_localised_sections() -> None:
 
 def test_build_summary_handles_malformed_payload() -> None:
     """Summary builder should sanitise malformed payload data."""
-
     compliance = {
         "status": "completed",
         "compliance_score": "82.45",
@@ -807,7 +769,6 @@ def test_build_summary_handles_malformed_payload() -> None:
 
 def test_collect_missed_meals_limits_generator_consumption() -> None:
     """Missed meal aggregation should stop iterating once the limit is reached."""
-
     translations = get_feeding_compliance_translations("en")
     consumed = 0
 
@@ -826,7 +787,6 @@ def test_collect_missed_meals_limits_generator_consumption() -> None:
 
 def test_collect_issue_summaries_limits_generator_consumption() -> None:
     """Issue aggregation should consume at most the configured number of entries."""
-
     translations = get_feeding_compliance_translations("en")
     consumed = 0
 
@@ -848,7 +808,6 @@ def test_collect_issue_summaries_limits_generator_consumption() -> None:
 
 def test_collect_recommendations_limits_generator_consumption() -> None:
     """Recommendation aggregation should not exhaust unbounded iterables."""
-
     translations = get_feeding_compliance_translations("en")
     consumed = 0
 

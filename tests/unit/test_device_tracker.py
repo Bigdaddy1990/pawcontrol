@@ -31,7 +31,6 @@ def _build_tracker(payload: GPSModulePayload | None) -> PawControlGPSTracker:
 
 def test_extra_state_attributes_coerce_runtime_payload() -> None:
     """Ensure GPS telemetry is exported as JSON-safe, typed attributes."""
-
     now = datetime.now(tz=UTC)
     payload: GPSModulePayload = {
         "status": "tracking",
@@ -85,7 +84,6 @@ def test_extra_state_attributes_coerce_runtime_payload() -> None:
 @pytest.mark.asyncio
 async def test_async_export_route_json_builds_typed_payload() -> None:
     """The JSON route exporter should emit the typed export payload."""
-
     now = datetime.now(tz=UTC)
     tracker = _build_tracker({"status": "tracking"})
 
@@ -120,7 +118,6 @@ async def test_async_export_route_json_builds_typed_payload() -> None:
 @pytest.mark.asyncio
 async def test_async_export_route_handles_invalid_format() -> None:
     """Unsupported export formats should return ``None`` without raising."""
-
     tracker = _build_tracker({"status": "tracking"})
     tracker._route_points.append(  # type: ignore[attr-defined]
         {

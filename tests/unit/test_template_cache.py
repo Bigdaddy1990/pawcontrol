@@ -18,7 +18,6 @@ type TemplatePayload = CardConfig | CardCollection
 @pytest.mark.asyncio
 async def test_template_cache_stats_and_snapshot() -> None:
     """The template cache returns typed stats and metadata snapshots."""
-
     cache: TemplateCache[TemplatePayload] = TemplateCache(maxsize=2)
 
     template: CardConfig = {"type": "button", "name": "Test"}
@@ -58,7 +57,6 @@ async def test_template_cache_stats_and_snapshot() -> None:
 @pytest.mark.asyncio
 async def test_template_cache_ttl_invalidation(monkeypatch: pytest.MonkeyPatch) -> None:
     """Entries expire when accessed beyond their configured TTL."""
-
     cache: TemplateCache[TemplatePayload] = TemplateCache(maxsize=1)
 
     now = datetime.now(UTC)

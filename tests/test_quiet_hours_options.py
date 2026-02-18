@@ -7,7 +7,6 @@ from tests.helpers import install_homeassistant_stubs
 
 def _install_options_flow_dependencies() -> None:
     """Install Home Assistant stubs required to import the options flow."""
-
     install_homeassistant_stubs()
     const_module = sys.modules["homeassistant.const"]
     const_module.CONF_ALIAS = "alias"
@@ -47,7 +46,6 @@ def _install_options_flow_dependencies() -> None:
 
 def test_notification_settings_payload_coercion() -> None:
     """Ensure notification settings normalise quiet hours input."""
-
     _install_options_flow_dependencies()
     from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
 
@@ -82,7 +80,6 @@ def test_notification_settings_payload_coercion() -> None:
 
 def test_gps_settings_payload_clamps_ranges() -> None:
     """Ensure GPS options normalization clamps and defaults values."""
-
     _install_options_flow_dependencies()
     from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
     from custom_components.pawcontrol.flow_helpers import coerce_bool
@@ -126,7 +123,6 @@ def test_gps_settings_payload_clamps_ranges() -> None:
 
 def test_build_notifications_schema_defaults() -> None:
     """Ensure notification schema defaults match current settings."""
-
     _install_options_flow_dependencies()
     from custom_components.pawcontrol.flow_steps.notifications_schemas import (
         build_notifications_schema,
@@ -162,7 +158,6 @@ def test_build_notifications_schema_defaults() -> None:
 
 def test_ensure_notification_options_coerces_payload() -> None:
     """Ensure notification options parsing normalizes mixed payload values."""
-
     from custom_components.pawcontrol.types import (
         DEFAULT_NOTIFICATION_OPTIONS,
         NOTIFICATION_MOBILE_FIELD,

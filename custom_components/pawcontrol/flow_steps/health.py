@@ -58,7 +58,6 @@ class HealthSummaryMixin(HealthSummaryHost):
 
     def _summarise_health_summary(self, summary: Any) -> str:
         """Convert a health summary mapping into a user-facing string."""
-
         return summarise_health_summary(summary)
 
 
@@ -126,7 +125,6 @@ class DogHealthFlowMixin(DogHealthFlowHost):
         user_input: DogHealthStepInput | None = None,
     ) -> ConfigFlowResult:
         """Configure comprehensive health settings including health-aware feeding."""
-
         current_dog = self._current_dog_config
         if current_dog is None:
             _LOGGER.error(
@@ -307,7 +305,6 @@ class HealthOptionsMixin(HealthOptionsHost):
 
     def _current_health_options(self, dog_id: str) -> HealthOptions:
         """Return the stored health configuration as a typed mapping."""
-
         dog_options = self._current_dog_options()
         entry = dog_options.get(dog_id, {})
         raw = entry.get("health_settings")
@@ -323,7 +320,6 @@ class HealthOptionsMixin(HealthOptionsHost):
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure health settings for."""
-
         if not self._dogs:
             return await self.async_step_init()
         if user_input is not None:
@@ -344,7 +340,6 @@ class HealthOptionsMixin(HealthOptionsHost):
         user_input: OptionsHealthSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure health monitoring settings."""
-
         current_dog = self._require_current_dog()
         if current_dog is None:
             return await self.async_step_select_dog_for_health_settings()
@@ -403,7 +398,6 @@ class HealthOptionsMixin(HealthOptionsHost):
         user_input: OptionsHealthSettingsInput | None = None,
     ) -> vol.Schema:
         """Get health settings schema."""
-
         current_health = self._current_health_options(dog_id)
         return build_health_settings_schema(
             current_health,
@@ -416,7 +410,6 @@ class HealthOptionsMixin(HealthOptionsHost):
         current: HealthOptions,
     ) -> HealthOptions:
         """Create a typed health payload from the submitted form data."""
-
         return build_health_settings_payload(
             user_input,
             current,

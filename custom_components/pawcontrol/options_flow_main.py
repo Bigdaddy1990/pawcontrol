@@ -209,7 +209,6 @@ class PawControlOptionsFlow(
 
     def initialize_from_config_entry(self, config_entry: ConfigEntry) -> None:
         """Attach the originating config entry to this options flow."""
-
         self._entry = config_entry
         dogs_data_raw = config_entry.data.get(CONF_DOGS, [])
         dogs_iterable: Sequence[JSONLikeMapping] = (
@@ -230,18 +229,15 @@ class PawControlOptionsFlow(
 
     def _invalidate_profile_caches(self) -> None:
         """Clear cached profile data when configuration changes."""
-
         self._profile_cache.clear()
         self._entity_estimates_cache.clear()
 
     def _current_options(self) -> Mapping[str, JSONValue]:
         """Return the current config entry options as a typed mapping."""
-
         return cast(Mapping[str, JSONValue], self._entry.options)
 
     def _clone_options(self) -> dict[str, JSONValue]:
         """Return a shallow copy of the current options for mutation."""
-
         return cast(
             dict[str, JSONValue],
             dict(cast(Mapping[str, JSONValue], self._entry.options)),
@@ -252,7 +248,6 @@ class PawControlOptionsFlow(
         options: Mapping[str, JSONValue] | JSONMutableMapping,
     ) -> Mapping[str, JSONValue]:
         """Return a typed options mapping with notifications and dog entries coerced."""
-
         mutable = ensure_json_mapping(options)
         self._normalise_notification_options(mutable)
         self._normalise_gps_options_snapshot(mutable)
@@ -275,7 +270,6 @@ class PawControlOptionsFlow(
         dogs: Sequence[Mapping[str, JSONValue]],
     ) -> list[DogConfigData]:
         """Return typed dog configurations for entry persistence."""
-
         typed_dogs: list[DogConfigData] = []
         for dog in dogs:
             normalised = ensure_dog_config_data(
@@ -288,13 +282,11 @@ class PawControlOptionsFlow(
 
     def _last_reconfigure_timestamp(self) -> str | None:
         """Return the ISO timestamp recorded for the last reconfigure run."""
-
         value = self._entry.options.get(LAST_RECONFIGURE_FIELD)
         return str(value) if isinstance(value, str) and value else None
 
     def _reconfigure_telemetry(self) -> ReconfigureTelemetry | None:
         """Return the stored reconfigure telemetry, if available."""
-
         telemetry = self._entry.options.get(RECONFIGURE_TELEMETRY_FIELD)
         if isinstance(telemetry, Mapping):
             return cast(ReconfigureTelemetry, telemetry)
@@ -302,7 +294,6 @@ class PawControlOptionsFlow(
 
     def _format_local_timestamp(self, timestamp: str | None) -> str:
         """Return a human-friendly representation for an ISO timestamp."""
-
         if not timestamp:
             return "Never reconfigured"
         parsed = dt_util.parse_datetime(timestamp)
@@ -315,7 +306,6 @@ class PawControlOptionsFlow(
 
     def _summarise_health_summary(self, health: Any) -> str:
         """Convert a health summary mapping into a user-facing string."""
-
         return summarise_health_summary(health)
 
     @classmethod
@@ -324,7 +314,6 @@ class PawControlOptionsFlow(
         mapping: Mapping[str, JSONValue],
     ) -> dict[str, str]:
         """Extract setup flag translations from a loaded JSON mapping."""
-
         common = (
             mapping.get("common")
             if isinstance(
@@ -350,7 +339,6 @@ class PawControlOptionsFlow(
         hass: HomeAssistant,
     ) -> dict[str, str]:
         """Load setup flag translations from a JSON file if it exists."""
-
         try:
             raw = await hass.async_add_executor_job(path.read_text, "utf-8")
             content = json.loads(raw)
@@ -372,7 +360,6 @@ class PawControlOptionsFlow(
         path: Path,
     ) -> dict[str, str]:
         """Synchronously load setup flag translations from a JSON file."""
-
         try:
             content = json.loads(path.read_text(encoding="utf-8"))
         except FileNotFoundError:
@@ -394,7 +381,6 @@ class PawControlOptionsFlow(
         hass: HomeAssistant,
     ) -> dict[str, str]:
         """Return setup flag translations for the provided language."""
-
         if cls._SETUP_FLAG_EN_TRANSLATIONS is None:
             cls._SETUP_FLAG_EN_TRANSLATIONS = (
                 await cls._load_setup_flag_translations_from_path(
@@ -422,7 +408,6 @@ class PawControlOptionsFlow(
     @classmethod
     def _setup_flag_translations_for_language(cls, language: str) -> dict[str, str]:
         """Return setup flag translations for the provided language."""
-
         if cls._SETUP_FLAG_EN_TRANSLATIONS is None:
             cls._SETUP_FLAG_EN_TRANSLATIONS = (
                 cls._load_setup_flag_translations_from_path_sync(cls._STRINGS_PATH)
@@ -444,7 +429,6 @@ class PawControlOptionsFlow(
 
     def _determine_language(self) -> str:
         """Return the preferred language for localized labels."""
-
         hass = getattr(self, "hass", None)
         hass_language: str | None = None
         if hass is not None:
@@ -460,13 +444,11 @@ class PawControlOptionsFlow(
 
     def _setup_flag_translation(self, key: str, *, language: str) -> str:
         """Return the localized string for the provided setup flag key."""
-
         translations = self._setup_flag_translations_for_language(language)
         return translations.get(key, key)
 
     async def _async_prepare_setup_flag_translations(self) -> None:
         """Preload setup flag translations without blocking the event loop."""
-
         language = self._determine_language()
         hass = getattr(self, "hass", None)
         if not isinstance(hass, HomeAssistant):
@@ -476,7 +458,6 @@ class PawControlOptionsFlow(
     @staticmethod
     def _normalise_manual_event_value(value: Any) -> str | None:
         """Return a normalised manual event string."""
-
         if isinstance(value, str):
             candidate = value.strip()
             return candidate or None
@@ -487,7 +468,6 @@ class PawControlOptionsFlow(
         current: SystemOptions,
     ) -> ManualEventDefaults:
         """Return preferred manual event defaults for the system settings form."""
-
         defaults: ManualEventDefaults = {
             "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
             "manual_guard_event": DEFAULT_MANUAL_GUARD_EVENT,
@@ -508,7 +488,6 @@ class PawControlOptionsFlow(
         current: SystemOptions,
     ) -> ManualEventSchemaDefaults:
         """Return schema defaults for manual event inputs as strings."""
-
         defaults = self._manual_event_defaults(current)
         return {
             "manual_check_event": defaults["manual_check_event"] or "",
@@ -518,7 +497,6 @@ class PawControlOptionsFlow(
 
     def _manual_events_snapshot(self) -> Mapping[str, JSONValue] | None:
         """Return the current manual events snapshot from the script manager."""
-
         hass = getattr(self, "hass", None)
         if hass is None:
             return None
@@ -546,7 +524,6 @@ class PawControlOptionsFlow(
         manual_snapshot: Mapping[str, JSONValue] | None = None,
     ) -> dict[str, set[ManualEventSource]]:
         """Return known manual events mapped to their source categories."""
-
         sources: dict[str, set[ManualEventSource]] = {}
 
         def _register(value: Any, source: ManualEventSource) -> None:
@@ -663,7 +640,6 @@ class PawControlOptionsFlow(
         manual_snapshot: Mapping[str, JSONValue] | None = None,
     ) -> list[ManualEventOption]:
         """Return select options for manual event configuration."""
-
         language = self._determine_language()
 
         disabled_label = self._setup_flag_translation(
@@ -784,7 +760,6 @@ class PawControlOptionsFlow(
 
     def _resolve_manual_event_choices(self) -> dict[ManualEventField, list[str]]:
         """Return configured manual event identifiers for blueprint helpers."""
-
         current_system = self._current_system_options()
         manual_snapshot = self._manual_events_snapshot()
 

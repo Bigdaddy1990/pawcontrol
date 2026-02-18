@@ -289,14 +289,12 @@ class _CoordinatorResolver:
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Create a resolver tied to the provided Home Assistant instance."""
-
         self._hass = hass
         self._cached_coordinator: PawControlCoordinator | None = None
         self._cached_entry_id: str | None = None
 
     def resolve(self) -> PawControlCoordinator:
         """Return the active coordinator, consulting cache when valid."""
-
         coordinator = self._get_cached_coordinator()
         if coordinator is not None:
             return coordinator
@@ -306,7 +304,6 @@ class _CoordinatorResolver:
 
     def invalidate(self, *, entry_id: str | None = None) -> None:
         """Drop any cached coordinator when it is no longer valid."""
-
         if self._cached_coordinator is None:
             return
         if (
@@ -344,7 +341,6 @@ class _CoordinatorResolver:
 
     def _resolve_from_sources(self) -> PawControlCoordinator:
         """Locate the active coordinator from config entries or stored data."""
-
         entries = list(self._hass.config_entries.async_entries(DOMAIN))
 
         for entry in entries:
@@ -1313,7 +1309,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         entry: ConfigEntry,
     ) -> None:
         """Invalidate cached coordinator when the active entry changes state."""
-
         if entry.domain != DOMAIN:
             return
         if change in (
@@ -1331,7 +1326,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     def _get_coordinator() -> PawControlCoordinator:
         """Return the active coordinator or raise a descriptive error."""
-
         return resolver.resolve()
 
     def _get_runtime_manager(
@@ -1339,7 +1333,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         attribute: str,
     ) -> Any | None:
         """Return a runtime manager from the coordinator container when available."""
-
         managers = getattr(coordinator, "runtime_managers", None)
         if isinstance(managers, CoordinatorRuntimeManagers):
             return getattr(managers, attribute)
@@ -1347,7 +1340,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     def _require_manager(manager: _ManagerT | None, description: str) -> _ManagerT:
         """Ensure a runtime manager is available before using it."""
-
         if manager is None:
             raise HomeAssistantError(
                 f"The PawControl {description} is not ready yet. "
@@ -1361,7 +1353,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         raw_dog_id: str,
     ) -> tuple[str, DogConfigData]:
         """Validate and normalize a dog identifier for service handling."""
-
         try:
             dog_id = normalize_dog_id(raw_dog_id)
         except InputCoercionError as err:
@@ -1393,7 +1384,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         duration_ms: float,
     ) -> None:
         """Update latency metrics for a service call."""
-
         latency_raw = target.get("latency_ms")
         if isinstance(latency_raw, MutableMapping):
             latency = latency_raw
@@ -1422,7 +1412,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         duration_ms: float,
     ) -> None:
         """Accumulate service call metrics into ``target``."""
-
         total_calls_raw = target.get("total_calls", 0)
         total_calls = (
             int(total_calls_raw) if isinstance(total_calls_raw, int | float) else 0
@@ -1454,7 +1443,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         duration_ms: float,
     ) -> None:
         """Record service call telemetry in runtime performance stats."""
-
         if runtime_data is None:
             return
         performance_stats = ensure_runtime_performance_stats(runtime_data)
@@ -1536,7 +1524,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema: vol.Schema,
     ) -> None:
         """Register a service with telemetry wrapping."""
-
         hass.services.async_register(
             DOMAIN,
             service,
@@ -1550,7 +1537,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         service_name: str,
     ) -> None:
         """Shared implementation for feeding-related services."""
-
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
             _get_runtime_manager(
@@ -1648,7 +1634,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def add_feeding_service(call: ServiceCall) -> None:
         """Handle add feeding service call."""
-
         await _async_handle_feeding_request(call.data, service_name=SERVICE_ADD_FEEDING)
 
     async def add_gps_point_service(call: ServiceCall) -> None:
@@ -3161,7 +3146,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def daily_reset_service(call: ServiceCall) -> None:
         """Trigger a manual daily reset."""
-
         entry_id = call.data.get("entry_id")
         target_entry: ConfigEntry | None = None
         if entry_id:
@@ -5076,7 +5060,6 @@ class PawControlServiceManager:
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the service manager and register services when needed."""
-
         self._hass = hass
         self._services_task: asyncio.Task[None] | None = None
 
@@ -5096,7 +5079,6 @@ class PawControlServiceManager:
 
     async def async_shutdown(self) -> None:
         """Unload registered services when the integration is removed."""
-
         if self._services_task and not self._services_task.done():
             with suppress(asyncio.CancelledError):
                 await self._services_task

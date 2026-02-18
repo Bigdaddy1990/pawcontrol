@@ -29,7 +29,6 @@ def _summary_payload() -> dict[str, object]:
 
 def test_serialise_cache_snapshot_coerces_repair_summary() -> None:
     """Serialisation should export dataclass-backed repair summaries as mappings."""
-
     summary = CacheRepairAggregate.from_mapping(_summary_payload())
     snapshot = CacheDiagnosticsSnapshot(
         stats={"entries": 10},
@@ -43,7 +42,6 @@ def test_serialise_cache_snapshot_coerces_repair_summary() -> None:
 
 def test_snapshot_from_mapping_returns_dataclass() -> None:
     """Snapshots parsed from mappings should materialise dataclass summaries."""
-
     summary_payload = _summary_payload()
     snapshot = CacheDiagnosticsSnapshot.from_mapping({
         "repair_summary": summary_payload
@@ -55,7 +53,6 @@ def test_snapshot_from_mapping_returns_dataclass() -> None:
 
 def test_serialise_cache_snapshot_drops_invalid_repair_summary() -> None:
     """Unexpected repair summary payloads should be dropped from diagnostics."""
-
     snapshot = CacheDiagnosticsSnapshot(
         stats={"entries": 5},
         repair_summary="unexpected",  # type: ignore[arg-type]
@@ -68,7 +65,6 @@ def test_serialise_cache_snapshot_drops_invalid_repair_summary() -> None:
 
 def test_normalise_cache_snapshot_reuses_reload_safe_helper(monkeypatch) -> None:
     """Cache repair summaries should flow through the reload-safe helper."""
-
     original_summary = CacheRepairAggregate.from_mapping(_summary_payload())
     replacement_summary = CacheRepairAggregate.from_mapping(_summary_payload())
     snapshot = CacheDiagnosticsSnapshot(repair_summary=original_summary)

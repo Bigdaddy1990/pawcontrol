@@ -22,7 +22,6 @@ from custom_components.pawcontrol.types import (
 
 def test_build_garden_snapshot_returns_structured_payload(hass: HomeAssistant) -> None:
     """Garden snapshots should expose structured TypedDict payloads."""
-
     manager = GardenManager(hass, "entry")
     now = dt_util.utcnow()
 
@@ -106,7 +105,6 @@ def test_build_garden_snapshot_returns_structured_payload(hass: HomeAssistant) -
 
 def test_garden_activity_payload_roundtrip() -> None:
     """Activity payloads should round-trip through the TypedDict helpers."""
-
     now = dt_util.utcnow()
     activity = GardenActivity(
         activity_type=GardenActivityType.SNIFFING,
@@ -129,7 +127,6 @@ def test_garden_activity_payload_roundtrip() -> None:
 
 def test_garden_session_payload_roundtrip() -> None:
     """Session payloads should maintain structured activity lists."""
-
     now = dt_util.utcnow()
     session = GardenSession(
         session_id="garden-round-trip",

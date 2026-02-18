@@ -22,13 +22,11 @@ OVERRIDDEN_REQUIREMENTS_ACTIONS: dict[str, Mapping[str, Mapping[str, set[str]]]]
 
 def _normalize_package_name(name: str) -> str:
     """Return a normalized package name following pip's canonical form."""
-
     return name.replace("_", "-").lower()
 
 
 def process_action_requirement(requirement: str, integration: str) -> str:
     """Apply override markers for a given requirement if configured."""
-
     overrides = OVERRIDDEN_REQUIREMENTS_ACTIONS.get(integration)
     if not overrides:
         return requirement

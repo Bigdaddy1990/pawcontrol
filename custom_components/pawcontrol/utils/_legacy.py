@@ -896,7 +896,6 @@ class PawControlDeviceLinkMixin:
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Set up default device link metadata."""
-
         super().__init__(*args, **kwargs)
         self._device_link_defaults: DeviceLinkDetails = {
             "manufacturer": MANUFACTURER,
@@ -909,17 +908,14 @@ class PawControlDeviceLinkMixin:
 
     def _set_device_link_info(self, **info: Any) -> None:
         """Update device link metadata used when creating the device entry."""
-
         self._device_link_defaults.update(cast("DeviceLinkDetails", info))
 
     def _device_link_details(self) -> DeviceLinkDetails:
         """Return a copy of the device metadata for linking."""
-
         return cast("DeviceLinkDetails", dict(self._device_link_defaults))
 
     async def async_added_to_hass(self) -> None:
         """Link entity to device entry after regular setup."""
-
         # CoordinatorEntity and RestoreEntity expose incompatible type hints for
         # async_added_to_hass(), so we silence the mismatch on the cooperative
         # super() call used by Home Assistant's entity model.
@@ -929,7 +925,6 @@ class PawControlDeviceLinkMixin:
     @property
     def device_info(self) -> DeviceInfo | None:
         """Return device metadata for entity registry registration."""
-
         dog_id = getattr(self, "_dog_id", None)
         dog_name = getattr(self, "_dog_name", None)
         if not dog_id or not dog_name:
@@ -961,7 +956,6 @@ class PawControlDeviceLinkMixin:
 
     async def _async_link_device_entry(self) -> None:
         """Create or fetch the device entry and attach it to the entity."""
-
         if self._device_link_initialized:
             return
         hass: HomeAssistant | None = getattr(self, "hass", None)
@@ -1587,7 +1581,6 @@ def retry_on_exception(
         func: Callable[P, Awaitable[R]] | Callable[P, R],
     ) -> Callable[P, Awaitable[R]]:
         """Wrap `func` with retry handling that always returns an async callable."""
-
         is_coroutine = inspect.iscoroutinefunction(func)
 
         @wraps(func)

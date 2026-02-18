@@ -14,7 +14,6 @@ from scripts import publish_coverage
 @pytest.mark.ci_only
 def test_publish_coverage_degrades_without_network(tmp_path, monkeypatch) -> None:
     """The publisher should degrade to an archive when GitHub is unavailable."""
-
     coverage_xml = tmp_path / "coverage.xml"
     coverage_xml.write_text(
         """<?xml version='1.0' ?><coverage line-rate='0.9523'></coverage>""",
@@ -70,7 +69,6 @@ def test_publish_coverage_supports_custom_prefix_templates(
     tmp_path, monkeypatch
 ) -> None:
     """Custom prefix templates should produce the expected archive layout."""
-
     coverage_xml = tmp_path / "coverage.xml"
     coverage_xml.write_text(
         """<?xml version='1.0' ?><coverage line-rate='0.9000'></coverage>""",
@@ -121,7 +119,6 @@ def test_publish_coverage_supports_custom_prefix_templates(
 
 def test_github_pages_publisher_prunes_expired_runs(monkeypatch) -> None:
     """Expired coverage runs should be deleted via the Git data API."""
-
     now = dt.datetime(2024, 3, 1, tzinfo=dt.UTC)
     old_timestamp = now - dt.timedelta(days=45)
     recent_timestamp = now - dt.timedelta(days=5)
@@ -208,7 +205,6 @@ def test_github_pages_publisher_prunes_expired_runs(monkeypatch) -> None:
 
 def test_publish_prune_expired_runs_degrades_on_failure(tmp_path, monkeypatch) -> None:
     """Pruning should degrade gracefully when the API is offline."""
-
     coverage_xml = tmp_path / "coverage.xml"
     coverage_xml.write_text(
         """<?xml version='1.0' ?><coverage line-rate='0.9523'></coverage>""",
@@ -249,7 +245,6 @@ def test_publish_prune_expired_runs_degrades_on_failure(tmp_path, monkeypatch) -
 
 def test_ensure_allowed_github_api_url_rejects_insecure_scheme() -> None:
     """Only HTTPS GitHub API URLs should be accepted."""
-
     with pytest.raises(publish_coverage.PublishError):
         publish_coverage.ensure_allowed_github_api_url(
             "http://api.github.com/repos/test/test"
@@ -258,7 +253,6 @@ def test_ensure_allowed_github_api_url_rejects_insecure_scheme() -> None:
 
 def test_ensure_allowed_github_api_url_rejects_foreign_host() -> None:
     """Non-GitHub hosts must be rejected before making a request."""
-
     with pytest.raises(publish_coverage.PublishError):
         publish_coverage.ensure_allowed_github_api_url(
             "https://example.com/repos/test/test"
@@ -267,7 +261,6 @@ def test_ensure_allowed_github_api_url_rejects_foreign_host() -> None:
 
 def test_ensure_allowed_github_api_url_accepts_expected_endpoint() -> None:
     """Valid GitHub API URLs should pass validation."""
-
     publish_coverage.ensure_allowed_github_api_url(
         "https://api.github.com/repos/test/test"
     )
@@ -275,7 +268,6 @@ def test_ensure_allowed_github_api_url_accepts_expected_endpoint() -> None:
 
 def test_publish_uses_custom_prune_max_age(tmp_path, monkeypatch) -> None:
     """Prune window should respect the --prune-max-age-days argument."""
-
     coverage_xml = tmp_path / "coverage.xml"
     coverage_xml.write_text(
         """<?xml version='1.0' ?><coverage line-rate='0.9523'></coverage>""",

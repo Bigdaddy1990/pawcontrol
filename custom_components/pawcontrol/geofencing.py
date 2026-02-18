@@ -201,7 +201,6 @@ class GeofenceZone:
 
     def to_storage_payload(self) -> GeofenceZoneStoragePayload:
         """Convert zone to a typed storage payload."""
-
         metadata_dict = _sanitize_zone_metadata(self.metadata)
         if "tags" in metadata_dict:
             metadata_dict["tags"] = list(metadata_dict["tags"])
@@ -224,7 +223,6 @@ class GeofenceZone:
     @classmethod
     def from_storage_payload(cls, data: GeofenceZoneStoragePayload) -> GeofenceZone:
         """Create zone from dictionary data."""
-
         metadata_raw = data.get("metadata", {})
         metadata = _sanitize_zone_metadata(
             metadata_raw if isinstance(metadata_raw, Mapping) else {},
@@ -335,7 +333,6 @@ class PawControlGeofencing:
         Args:
             notification_manager: Notification manager instance or ``None`` to detach
         """
-
         self._notification_manager = notification_manager
         if notification_manager:
             _LOGGER.debug("Geofencing notification manager attached")
@@ -830,7 +827,6 @@ class PawControlGeofencing:
         location: GPSLocation | None,
     ) -> None:
         """Send a notification for a geofence event using the notification manager."""
-
         if not self._notification_manager:
             return
         priority = self._map_notification_priority(zone, event)
@@ -879,7 +875,6 @@ class PawControlGeofencing:
         event: GeofenceEvent,
     ) -> NotificationPriority:
         """Determine notification priority for a geofence event."""
-
         if zone.type == GeofenceType.RESTRICTED_AREA:
             if event == GeofenceEvent.ENTERED:
                 return NotificationPriority.URGENT
@@ -906,7 +901,6 @@ class PawControlGeofencing:
         location: GPSLocation | None,
     ) -> tuple[str, str]:
         """Create notification title and message for a geofence event."""
-
         location_suffix = ""
         if location:
             location_suffix = (

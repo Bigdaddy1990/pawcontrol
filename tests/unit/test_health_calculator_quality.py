@@ -20,7 +20,6 @@ dt_util.now = lambda: datetime.now(UTC)
 
 def create_metrics(**overrides: object) -> HealthMetrics:
     """Create a ``HealthMetrics`` instance with sensible defaults for tests."""
-
     defaults: dict[str, object] = {
         "current_weight": 25.0,
         "ideal_weight": 22.0,
@@ -39,14 +38,12 @@ class TestHealthMetricsValidation:
 
     def test_validate_breed_normalizes_whitespace(self) -> None:
         """Breed values are normalised and validated."""
-
         metrics = create_metrics(breed="  golden   retriever  ")
         assert metrics.breed == "golden retriever"
 
     @pytest.mark.parametrize("invalid", ["", "x", "Poodle!", 123])
     def test_validate_breed_rejects_invalid_values(self, invalid: object) -> None:
         """Invalid breed values raise a descriptive error."""
-
         with pytest.raises((TypeError, ValueError)):
             create_metrics(breed=invalid)
 
@@ -56,7 +53,6 @@ class TestLifeStageCalculation:
 
     def test_life_stage_thresholds(self) -> None:
         """Life stage thresholds account for breed size."""
-
         assert HealthCalculator.calculate_life_stage(10, "medium") == LifeStage.PUPPY
         assert (
             HealthCalculator.calculate_life_stage(20, "medium") == LifeStage.YOUNG_ADULT
@@ -69,7 +65,6 @@ class TestLifeStageCalculation:
 
     def test_life_stage_negative_age_raises(self) -> None:
         """Negative ages are rejected instead of silently classified."""
-
         with pytest.raises(ValueError):
             HealthCalculator.calculate_life_stage(-1)
 
@@ -79,7 +74,6 @@ class TestPortionCalculations:
 
     def test_portion_adjustment_factor_combines_all_modifiers(self) -> None:
         """BCS, conditions and diets influence the portion multiplier."""
-
         metrics = create_metrics(
             body_condition_score=BodyConditionScore.OVERWEIGHT,
             health_conditions=["Diabetes"],
@@ -91,7 +85,6 @@ class TestPortionCalculations:
 
     def test_portion_adjustment_respects_lower_bound(self) -> None:
         """Extreme adjustments are clamped to the safe lower bound."""
-
         metrics = create_metrics(
             body_condition_score=BodyConditionScore.SEVERELY_OBESE,
             health_conditions=["diabetes", "heart_disease"],
@@ -105,7 +98,6 @@ class TestPortionCalculations:
 
     def test_diet_validation_adjustment_applies_conflicts_and_warnings(self) -> None:
         """Conflicts and warnings reduce the adjustment factor cumulatively."""
-
         validation: DietValidationResult = {
             "valid": False,
             "conflicts": [
@@ -135,7 +127,6 @@ class TestPortionCalculations:
 
     def test_diet_interactions_detects_risk_levels(self) -> None:
         """Diet interactions categorise combinations correctly."""
-
         interactions = HealthCalculator.get_diet_interaction_effects([
             "senior_formula",
             "joint_support",
@@ -157,13 +148,11 @@ class TestFeedingHistoryAnalysis:
 
     def test_analyze_feeding_history_handles_no_events(self) -> None:
         """No events returns a helpful guidance payload."""
-
         result = HealthCalculator.analyze_feeding_history([], 600.0)
         assert result["status"] == "no_data"
 
     def test_analyze_feeding_history_requires_recent_data(self) -> None:
         """Only recent events are considered for analysis."""
-
         old_event_time = dt_util.now() - timedelta(days=10)
         result = HealthCalculator.analyze_feeding_history(
             [FeedingHistoryEvent(time=old_event_time, amount=200.0)],
@@ -173,7 +162,6 @@ class TestFeedingHistoryAnalysis:
 
     def test_analyze_feeding_history_balanced_plan(self) -> None:
         """Balanced meals surface a 'good' status and actionable tips."""
-
         now = dt_util.now()
         events = [
             FeedingHistoryEvent(time=now - timedelta(days=1), amount=100.0),

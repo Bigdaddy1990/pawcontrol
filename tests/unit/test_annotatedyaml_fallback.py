@@ -15,7 +15,6 @@ import pytest
 @contextmanager
 def _isolated_import(module_name: str) -> Iterator[None]:
     """Temporarily replace ``module_name`` with a fresh import."""
-
     existing = {
         key: value
         for key, value in sys.modules.items()
@@ -37,7 +36,6 @@ def _isolated_import(module_name: str) -> Iterator[None]:
 @contextmanager
 def _force_stub_loader(*, blocked_modules: tuple[str, ...] = ()) -> Iterator[None]:
     """Prevent specified modules from resolving so the stub executes."""
-
     original_find_spec = importlib.machinery.PathFinder.find_spec
 
     def _guard(
@@ -55,7 +53,6 @@ def _force_stub_loader(*, blocked_modules: tuple[str, ...] = ()) -> Iterator[Non
 @contextmanager
 def _hide_modules(*module_names: str) -> Iterator[None]:
     """Temporarily remove modules from ``sys.modules`` and block re-imports."""
-
     removed: dict[str, ModuleType] = {}
     for module in module_names:
         for key in list(sys.modules):
@@ -86,7 +83,6 @@ def _hide_modules(*module_names: str) -> Iterator[None]:
 
 def test_fallback_loader_exposes_stub_module(tmp_path: Path) -> None:
     """The repository fallback exposes ``load_yaml`` from the stub loader."""
-
     with _force_stub_loader(), _isolated_import("annotatedyaml"):
         module = importlib.import_module("annotatedyaml")
 
@@ -102,7 +98,6 @@ def test_fallback_loader_exposes_stub_module(tmp_path: Path) -> None:
 
 def test_fallback_loader_uses_vendored_yaml(tmp_path: Path) -> None:
     """When system PyYAML is missing the vendored copy provides ``safe_load``."""
-
     if importlib.util.find_spec("annotatedyaml._vendor.yaml") is None:
         pytest.skip("annotatedyaml does not vendor PyYAML in this environment")
 
@@ -125,7 +120,6 @@ def test_fallback_loader_uses_vendored_yaml(tmp_path: Path) -> None:
 
 def test_fallback_loader_rejects_invalid_yaml(tmp_path: Path) -> None:
     """Invalid YAML surfaces a ``ValueError`` so callers receive actionable errors."""
-
     with _force_stub_loader(), _isolated_import("annotatedyaml"):
         module = importlib.import_module("annotatedyaml")
         yaml_path = tmp_path / "config.yaml"

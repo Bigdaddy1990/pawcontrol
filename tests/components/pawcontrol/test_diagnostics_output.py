@@ -15,7 +15,6 @@ from custom_components.pawcontrol.types import PawControlRuntimeData
 @pytest.mark.asyncio
 async def test_performance_metrics_defaults_include_rejection_metrics() -> None:
     """Ensure performance diagnostics always include rejection defaults."""
-
     payload = await diagnostics._get_performance_metrics(None)
 
     assert payload["available"] is False
@@ -27,7 +26,6 @@ async def test_performance_metrics_defaults_include_rejection_metrics() -> None:
 @pytest.mark.asyncio
 async def test_notification_diagnostics_include_rejection_defaults() -> None:
     """Ensure notification diagnostics include rejection metrics defaults."""
-
     payload = await diagnostics._get_notification_diagnostics(None)
 
     assert payload["available"] is False
@@ -39,7 +37,6 @@ async def test_notification_diagnostics_include_rejection_defaults() -> None:
 @pytest.mark.asyncio
 async def test_service_execution_defaults_include_rejection_metrics() -> None:
     """Ensure service execution diagnostics include default metrics."""
-
     payload = await diagnostics._get_service_execution_diagnostics(None)
 
     assert payload["available"] is False
@@ -78,7 +75,6 @@ async def test_diagnostics_payloads_json_serialisable(
     mock_dog_config,
 ) -> None:
     """Ensure diagnostics payloads remain JSON serialisable with runtime data."""
-
     sample_time = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
     sample_delta = timedelta(minutes=15)
     sample_payload = _DiagnosticsDataclass("sample", sample_time)

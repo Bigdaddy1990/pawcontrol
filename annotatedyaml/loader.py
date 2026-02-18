@@ -16,7 +16,6 @@ safe_load = yaml.safe_load
 
 def load_yaml(path: str) -> dict[str, Any]:
     """Load a YAML file and return the parsed mapping."""
-
     payload = Path(path).read_text(encoding="utf-8")
     try:
         return safe_load(payload)

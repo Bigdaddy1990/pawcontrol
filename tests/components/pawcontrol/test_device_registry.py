@@ -20,7 +20,6 @@ async def test_remove_config_entry_device_blocks_configured_dog(
     hass: HomeAssistant,
 ) -> None:
     """Ensure configured dogs are not removed from the device registry."""
-
     entry = ConfigEntry(
         domain=DOMAIN,
         data={
@@ -47,7 +46,6 @@ async def test_remove_config_entry_device_allows_orphaned_device(
     hass: HomeAssistant,
 ) -> None:
     """Allow removal when no configured dogs match the device identifiers."""
-
     entry = ConfigEntry(
         domain=DOMAIN,
         data={
@@ -74,7 +72,6 @@ async def test_async_get_or_create_dog_device_entry_updates_metadata(
     hass: HomeAssistant,
 ) -> None:
     """Verify dog devices are created and updated dynamically."""
-
     dr.async_get(hass)
 
     device = await async_get_or_create_dog_device_entry(

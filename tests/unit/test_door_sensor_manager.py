@@ -95,14 +95,12 @@ def test_ensure_door_sensor_settings_config(
     overrides: DoorSensorSettingsInput | None, expected: DoorSensorSettingsConfig
 ) -> None:
     """Normalisation should coerce aliases, clamp values, and honour dataclasses."""
-
     result = ensure_door_sensor_settings_config(overrides)
     assert result == expected
 
 
 def test_settings_clamp_extreme_values() -> None:
     """Overrides outside the allowed bounds should clamp to safe defaults."""
-
     base = DoorSensorSettingsConfig(
         walk_detection_timeout=90,
         minimum_walk_duration=120,
@@ -145,13 +143,11 @@ def test_coerce_bool_numeric_inputs(
     value: DoorSensorOverrideScalar, default: bool, expected: bool
 ) -> None:
     """Numeric strings and numbers should coerce using non-zero semantics."""
-
     assert _coerce_bool(value, default=default) is expected
 
 
 def test_coerce_bool_invalid_strings_use_default() -> None:
     """Strings that are neither numeric nor keywords fall back to the default."""
-
     assert _coerce_bool("maybe", default=True) is True
     assert _coerce_bool("", default=False) is False
 
@@ -161,7 +157,6 @@ async def test_update_settings_without_entity_change(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Settings updates should preserve the entity and restart monitoring when changed."""  # noqa: E501
-
     hass = Mock()
     manager = DoorSensorManager(hass, "entry")
     config = DoorSensorConfig(
@@ -205,7 +200,6 @@ async def test_update_with_blank_sensor_removes_configuration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Providing an empty sensor string should remove the configuration."""
-
     hass = Mock()
     manager = DoorSensorManager(hass, "entry")
     manager._sensor_configs["dog-1"] = DoorSensorConfig(
@@ -231,7 +225,6 @@ async def test_update_without_changes_does_not_restart(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """No-op updates should avoid restarting monitoring."""
-
     hass = Mock()
     manager = DoorSensorManager(hass, "entry")
     config = DoorSensorConfig(
@@ -251,7 +244,6 @@ async def test_update_without_changes_does_not_restart(
 
 def test_default_settings_constants() -> None:
     """Defaults should remain synchronised with the manager dataclass."""
-
     settings = DEFAULT_DOOR_SENSOR_SETTINGS
     assert settings.walk_detection_timeout == DEFAULT_WALK_DETECTION_TIMEOUT
     assert settings.minimum_walk_duration == DEFAULT_MINIMUM_WALK_DURATION
@@ -267,7 +259,6 @@ async def test_initialize_persists_trimmed_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Initialisation should persist trimmed sensor IDs and clamped settings."""
-
     hass = Mock()
     manager = DoorSensorManager(hass, "entry")
     data_manager = AsyncMock()
@@ -307,7 +298,6 @@ async def test_initialize_ignores_non_string_sensor(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Non-string sensor entries should be ignored safely."""
-
     hass = Mock()
     manager = DoorSensorManager(hass, "entry")
     data_manager = AsyncMock()
@@ -335,7 +325,6 @@ async def test_initialize_discards_non_mapping_settings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Settings objects that are not mappings should be ignored."""
-
     hass = Mock()
     manager = DoorSensorManager(hass, "entry")
     data_manager = AsyncMock()
@@ -362,7 +351,6 @@ async def test_initialize_discards_non_mapping_settings(
 @pytest.mark.asyncio
 async def test_update_persists_changes(monkeypatch: pytest.MonkeyPatch) -> None:
     """Runtime updates should push normalised payloads into the data manager."""
-
     hass = Mock()
     manager = DoorSensorManager(hass, "entry")
     manager._data_manager = AsyncMock()

@@ -49,7 +49,6 @@ def _load_translation(path: Path) -> dict[str, object]:
 @pytest.mark.parametrize("path", TRANSLATION_FILES, ids=lambda path: path.name)
 def test_reconfigure_warning_placeholders_present(path: Path) -> None:
     """Ensure reconfigure warning translations keep all format placeholders."""
-
     payload = _load_translation(path)
     issues = payload.get("issues")
     assert isinstance(issues, dict)
@@ -67,7 +66,6 @@ def test_reconfigure_warning_placeholders_present(path: Path) -> None:
 @pytest.mark.parametrize("path", TRANSLATION_FILES, ids=lambda path: path.name)
 def test_reconfigure_health_placeholders_present(path: Path) -> None:
     """Ensure reconfigure health translations keep all format placeholders."""
-
     payload = _load_translation(path)
     issues = payload.get("issues")
     assert isinstance(issues, dict)
@@ -85,7 +83,6 @@ def test_reconfigure_health_placeholders_present(path: Path) -> None:
 @pytest.mark.parametrize("path", TRANSLATION_FILES, ids=lambda path: path.name)
 def test_reconfigure_entity_placeholders_present(path: Path) -> None:
     """Ensure reconfigure entity profile translations include all placeholders."""
-
     payload = _load_translation(path)
     config_flow = payload.get("config")
     assert isinstance(config_flow, dict)

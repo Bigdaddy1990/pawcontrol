@@ -29,7 +29,6 @@ class _TestFlow(PawControlBaseConfigFlow):
 @pytest.mark.asyncio
 async def test_validate_integration_name_rejects_reserved() -> None:
     """Reserved integration names surface a typed validation error payload."""
-
     flow = _TestFlow()
 
     result: IntegrationNameValidationResult = (
@@ -43,7 +42,6 @@ async def test_validate_integration_name_rejects_reserved() -> None:
 @pytest.mark.asyncio
 async def test_validate_integration_name_accepts_trimmed() -> None:
     """Whitespace-trimmed names are accepted and return an empty error map."""
-
     flow = _TestFlow()
 
     result: IntegrationNameValidationResult = (
@@ -56,7 +54,6 @@ async def test_validate_integration_name_accepts_trimmed() -> None:
 
 def test_get_feeding_defaults_by_size_returns_structured_payload() -> None:
     """Feeding defaults expose the typed size payload for scheduler setup."""
-
     flow = _TestFlow()
 
     defaults: FeedingSizeDefaults = flow._get_feeding_defaults_by_size("toy")

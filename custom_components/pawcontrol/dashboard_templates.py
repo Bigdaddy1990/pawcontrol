@@ -655,7 +655,6 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
     @callback
     def get_metadata(self) -> TemplateCacheDiagnosticsMetadata:
         """Return metadata describing cache configuration."""
-
         metadata: TemplateCacheDiagnosticsMetadata = {
             "cached_keys": sorted(self._cache),
             "ttl_seconds": TEMPLATE_TTL_SECONDS,
@@ -668,7 +667,6 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
     @callback
     def coordinator_snapshot(self) -> TemplateCacheSnapshot:
         """Return a snapshot suitable for diagnostics collectors."""
-
         return TemplateCacheSnapshot(
             stats=self.get_stats(),
             metadata=self.get_metadata(),
@@ -896,7 +894,6 @@ class DashboardTemplates:
 
     def _card_mod(self, theme_styles: ThemeStyles) -> CardModConfig:
         """Return a mutable card-mod payload for template assembly."""
-
         card_mod = theme_styles.get("card_mod")
         if card_mod is None:
             return cast(CardModConfig, {})
@@ -908,7 +905,6 @@ class DashboardTemplates:
         theme_styles: ThemeStyles,
     ) -> CardModConfig:
         """Return a card-mod payload attached to ``template``."""
-
         existing = template.get("card_mod")
         if isinstance(existing, dict):
             return cast(CardModConfig, existing)
@@ -919,7 +915,6 @@ class DashboardTemplates:
     @staticmethod
     def _parse_int(value: object, *, default: int = 0) -> int:
         """Return an integer coerced from ``value`` with ``default`` fallback."""
-
         if isinstance(value, bool):
             return int(value)
         if isinstance(value, int):
@@ -936,7 +931,6 @@ class DashboardTemplates:
     @staticmethod
     def _parse_bool(value: object) -> bool:
         """Return a boolean coerced from arbitrary payloads."""
-
         if isinstance(value, bool):
             return value
         if isinstance(value, int | float):
@@ -948,7 +942,6 @@ class DashboardTemplates:
     @staticmethod
     def _parse_channels(value: object) -> list[str]:
         """Return a list of channel labels extracted from ``value``."""
-
         if isinstance(value, str):
             return [
                 chunk for chunk in (part.strip() for part in value.split(",")) if chunk
@@ -968,7 +961,6 @@ class DashboardTemplates:
     @staticmethod
     def _parse_last_notification(value: object) -> NotificationLastEvent | None:
         """Return a structured notification payload extracted from ``value``."""
-
         if not isinstance(value, Mapping):
             return None
         event: NotificationLastEvent = {}
@@ -990,7 +982,6 @@ class DashboardTemplates:
         state: State | None,
     ) -> tuple[NotificationPerformanceMetrics, dict[str, NotificationDogOverview]]:
         """Return typed metrics extracted from ``sensor.pawcontrol_notifications``."""
-
         metrics: NotificationPerformanceMetrics = {"notifications_failed": 0}
         per_dog: dict[str, NotificationDogOverview] = {}
 
@@ -1412,7 +1403,6 @@ class DashboardTemplates:
         options: MapOptionsInput,
     ) -> MapCardOptions:
         """Return a typed ``MapCardOptions`` payload extracted from ``options``."""
-
         resolved: MapCardOptions = {
             "zoom": DEFAULT_MAP_ZOOM,
             "default_zoom": DEFAULT_MAP_ZOOM,
@@ -1714,7 +1704,6 @@ class DashboardTemplates:
         theme: str = "modern",
     ) -> CardConfig | None:
         """Return a typed statistics-graph card for analytics dashboards."""
-
         if not entities:
             return None
         theme_styles = self._get_theme_styles(theme)
@@ -1746,7 +1735,6 @@ class DashboardTemplates:
         service_guard_metrics: HelperManagerGuardMetrics | JSONMapping | None = None,
     ) -> CardConfig:
         """Return a summary markdown card for analytics dashboards."""
-
         typed_dogs = coerce_dog_configs(dogs)
 
         module_counts = {
@@ -2155,7 +2143,6 @@ class DashboardTemplates:
         theme: str = "modern",
     ) -> CardConfig:
         """Return a Lovelace markdown card for service guard metrics."""
-
         theme_styles = self._get_theme_styles(theme)
         card_mod = self._card_mod(theme_styles)
 
@@ -2184,7 +2171,6 @@ class DashboardTemplates:
         theme: str = "modern",
     ) -> CardConfig:
         """Return a Lovelace markdown card for notification rejection metrics."""
-
         theme_styles = self._get_theme_styles(theme)
         card_mod = self._card_mod(theme_styles)
 
@@ -2215,7 +2201,6 @@ class DashboardTemplates:
         theme: str = "modern",
     ) -> CardConfig:
         """Return a Lovelace markdown card for combined guard error metrics."""
-
         theme_styles = self._get_theme_styles(theme)
         card_mod = self._card_mod(theme_styles)
 
@@ -2250,7 +2235,6 @@ class DashboardTemplates:
         theme: str = "modern",
     ) -> CardConfig | None:
         """Return the notification control entities card."""
-
         if not entities:
             return None
         theme_styles = self._get_theme_styles(theme)
@@ -2283,7 +2267,6 @@ class DashboardTemplates:
         theme: str = "modern",
     ) -> CardConfig:
         """Return a markdown overview for the notification dashboard."""
-
         theme_styles = self._get_theme_styles(theme)
         card_mod = self._card_mod(theme_styles)
         hass_language: str | None = getattr(self.hass.config, "language", None)
@@ -2437,7 +2420,6 @@ class DashboardTemplates:
         theme: str = "modern",
     ) -> CardConfig:
         """Return quick action buttons for notification workflows."""
-
         theme_styles = self._get_theme_styles(theme)
         base_button = self._get_base_card_template("button")
         hass_language: str | None = getattr(self.hass.config, "language", None)
@@ -3096,7 +3078,6 @@ class DashboardTemplates:
         Returns:
             Weather recommendations card template
         """
-
         theme_styles = self._get_theme_styles(theme)
         rec_icon = "💡" if theme == "playful" else "mdi:lightbulb-on"
 
@@ -3837,5 +3818,4 @@ class DashboardTemplates:
     @callback
     def get_cache_snapshot(self) -> TemplateCacheSnapshot:
         """Return a diagnostics snapshot of the template cache."""
-
         return self._cache.coordinator_snapshot()

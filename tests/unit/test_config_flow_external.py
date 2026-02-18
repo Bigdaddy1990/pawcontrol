@@ -116,7 +116,6 @@ class _ExternalEntityFlow(ExternalEntityConfigurationMixin):
 @pytest.mark.asyncio
 async def test_async_step_configure_external_entities_accepts_valid_payload() -> None:
     """The mixin persists validated entity selections into the shared mapping."""
-
     hass = _FakeHomeAssistant(
         states=_FakeStates({
             "device_tracker.main_phone": SimpleNamespace(state="home"),
@@ -155,7 +154,6 @@ async def test_async_step_configure_external_entities_rejects_invalid_door_senso
     None
 ):
     """Door sensor validation rejects entities with unsupported device classes."""
-
     hass = _FakeHomeAssistant(
         states=_FakeStates({
             "binary_sensor.back_door": SimpleNamespace(
@@ -185,7 +183,6 @@ async def test_async_step_configure_external_entities_rejects_unknown_notify_ser
     None
 ):
     """Invalid notify service selections surface the validation error in the form."""
-
     hass = _FakeHomeAssistant(
         states=_FakeStates({
             "device_tracker.main_phone": SimpleNamespace(state="home"),
@@ -218,7 +215,6 @@ async def test_async_step_configure_external_entities_rejects_invalid_notify_for
     None
 ):
     """Notify service formatting errors surface a field validation key."""
-
     hass = _FakeHomeAssistant(
         states=_FakeStates({
             "device_tracker.main_phone": SimpleNamespace(state="home"),
@@ -245,7 +241,6 @@ async def test_async_step_configure_external_entities_rejects_invalid_notify_for
 @pytest.mark.asyncio
 async def test_async_step_configure_external_entities_exposes_placeholders() -> None:
     """The mixin should expose immutable placeholders for the configuration form."""
-
     hass = _FakeHomeAssistant(
         states=_FakeStates({}),
         services=_FakeServices({"notify": {}}),

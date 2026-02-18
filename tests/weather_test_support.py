@@ -37,7 +37,6 @@ _WEATHER_COMPAT_READY = False
 
 def ensure_weather_module_compat() -> UnitOfTemperatureType:
     """Ensure weather modules have the expected constants for tests."""
-
     global _WEATHER_COMPAT_READY
     if not _WEATHER_COMPAT_READY:
         for attr, value in _MISSING_WEATHER_ATTRS.items():

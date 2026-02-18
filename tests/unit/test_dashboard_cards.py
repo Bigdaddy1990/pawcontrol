@@ -15,7 +15,6 @@ from custom_components.pawcontrol.types import (
 
 async def test_performance_stats_returns_copy(hass: HomeAssistant) -> None:
     """BaseCardGenerator should expose an immutable performance stats snapshot."""
-
     templates = MagicMock(spec=DashboardTemplates)
     generator = BaseCardGenerator(hass, templates)
 
@@ -36,20 +35,17 @@ async def test_performance_stats_returns_copy(hass: HomeAssistant) -> None:
 
 def test_resolve_dashboard_theme_option_defaults() -> None:
     """The helper should default to the modern dashboard theme when unset."""
-
     options: DashboardCardOptions = {}
     assert _resolve_dashboard_theme_option(options) == "modern"
 
 
 def test_resolve_dashboard_theme_option_custom() -> None:
     """Custom themes should be preserved after whitespace normalisation."""
-
     options: DashboardCardOptions = {"theme": "  classic  "}
     assert _resolve_dashboard_theme_option(options) == "classic"
 
 
 def test_resolve_dashboard_theme_option_rejects_invalid() -> None:
     """Non-string or blank themes should fall back to the default."""
-
     options: DashboardCardOptions = {"theme": ""}
     assert _resolve_dashboard_theme_option(options) == "modern"

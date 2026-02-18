@@ -13,7 +13,6 @@ async def test_repairs_flow_routes_notification_auth_error(
     hass,
 ) -> None:
     """Ensure notification auth error routes to the correct flow step."""
-
     issue_id = "entry_notification_auth_error"
     issue_data = {
         "config_entry_id": "entry",

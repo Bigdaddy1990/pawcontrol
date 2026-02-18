@@ -291,7 +291,6 @@ class DogConfigRegistry:
     @classmethod
     def from_entry(cls, entry: PawControlConfigEntry) -> DogConfigRegistry:
         """Build registry from a config entry."""
-
         raw_dogs = entry.data.get(CONF_DOGS, [])
         if raw_dogs in (None, ""):
             raw_dogs = []
@@ -367,7 +366,6 @@ class DogConfigRegistry:
 
     def empty_payload(self) -> CoordinatorDogData:
         """Return an empty coordinator payload for a dog."""
-
         payload: dict[str, object] = {
             "dog_info": cast(
                 DogConfigData,
@@ -437,7 +435,6 @@ class DogConfigRegistry:
     @staticmethod
     def _enforce_polling_limits(interval: int | None) -> int:
         """Clamp polling intervals to Platinum quality requirements."""
-
         if not isinstance(interval, int):
             raise ValidationError(
                 "update_interval",
@@ -457,7 +454,6 @@ class DogConfigRegistry:
     @staticmethod
     def _validate_gps_interval(value: Any) -> int:
         """Validate the GPS interval option and return a positive integer."""
-
         if isinstance(value, bool):
             raise ValidationError(
                 "gps_update_interval",
@@ -550,18 +546,15 @@ class CoordinatorMetrics:
 
     def record_statistics_timing(self, duration: float) -> None:
         """Track how long runtime statistics generation took in seconds."""
-
         self.statistics_timings.append(max(duration, 0.0))
 
     def record_visitor_timing(self, duration: float) -> None:
         """Track how long visitor-mode persistence took in seconds."""
-
         self.visitor_mode_timings.append(max(duration, 0.0))
 
     @property
     def average_statistics_runtime_ms(self) -> float:
         """Return the rolling average runtime for statistics generation."""
-
         if not self.statistics_timings:
             return 0.0
         return (sum(self.statistics_timings) / len(self.statistics_timings)) * 1000
@@ -569,7 +562,6 @@ class CoordinatorMetrics:
     @property
     def average_visitor_runtime_ms(self) -> float:
         """Return the rolling average runtime for visitor mode persistence."""
-
         if not self.visitor_mode_timings:
             return 0.0
         return (sum(self.visitor_mode_timings) / len(self.visitor_mode_timings)) * 1000

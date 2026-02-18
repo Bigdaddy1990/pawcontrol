@@ -154,7 +154,6 @@ class DashboardFlowMixin:
         This step allows users to configure how the dashboard should be created
         and displayed, including per-dog dashboards and theme selection.
         """
-
         has_multiple_dogs = len(self._dogs) > 1
 
         if user_input is not None:
@@ -288,7 +287,6 @@ class DashboardFlowMixin:
 
     def _get_dashboard_info(self, language: str | None) -> str:
         """Get dashboard information for display."""
-
         info = [
             _translated_dashboard_info_line(language, "auto_create"),
             _translated_dashboard_info_line(language, "cards"),
@@ -313,7 +311,6 @@ class DashboardFlowMixin:
         has_gps_enabled: bool,
     ) -> str:
         """Return localized feature highlights for the dashboard wizard."""
-
         feature_keys = ["status_cards", "activity_tracking", "quick_actions"]
 
         if has_gps_enabled:

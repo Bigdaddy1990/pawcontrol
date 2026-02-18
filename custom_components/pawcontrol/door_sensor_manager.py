@@ -638,7 +638,6 @@ class DoorSensorManager:
         prefix: str = "door_sensor",
     ) -> None:
         """Register cache diagnostics for the door sensor manager."""
-
         if registrar is None:
             raise ValueError("registrar is required")
         _LOGGER.debug(
@@ -652,7 +651,6 @@ class DoorSensorManager:
 
     def _ensure_data_manager(self) -> PawControlDataManager | None:
         """Return the active data manager when available."""
-
         if self._data_manager is not None:
             return self._data_manager
         runtime_data = get_runtime_data(self.hass, self.entry_id)
@@ -669,7 +667,6 @@ class DoorSensorManager:
         settings: object = _UNSET,
     ) -> None:
         """Persist normalised door sensor overrides when they change."""
-
         data_manager = self._ensure_data_manager()
         if data_manager is None:
             _LOGGER.error(
@@ -715,7 +712,6 @@ class DoorSensorManager:
         normalised: DoorSensorSettingsConfig,
     ) -> object:
         """Return payload to persist when ``raw_settings`` differs from ``normalised``."""  # noqa: E501
-
         desired_payload = _settings_to_payload(normalised)
 
         current_payload: DoorSensorSettingsPayload | None
@@ -1548,7 +1544,6 @@ class DoorSensorManager:
         This compatibility helper keeps older setup/diagnostics call sites working
         while `get_configured_sensors()` provides the richer mapping payload.
         """
-
         return list(self._sensor_configs)
 
     def is_dog_on_walk(self, dog_id: str) -> bool:

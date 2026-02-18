@@ -12,7 +12,6 @@ def _reload_compat_with_stub(
     const_stub: ModuleType | None = None,
 ) -> Iterator[ModuleType]:
     """Reload the compat module with an optional Home Assistant stub."""
-
     module_name = "custom_components.pawcontrol.compat"
     original_compat = sys.modules.pop(module_name, None)
     original_exceptions = sys.modules.pop("homeassistant.exceptions", None)
@@ -41,7 +40,6 @@ def _reload_compat_with_stub(
 
 def test_config_entry_auth_failed_fallback_accepts_auth_migration() -> None:
     """ConfigEntryAuthFailed fallback should accept auth_migration flag."""
-
     stub = ModuleType("homeassistant.exceptions")
 
     class HomeAssistantError(Exception):
@@ -70,7 +68,6 @@ def test_config_entry_auth_failed_fallback_accepts_auth_migration() -> None:
 
 def test_config_entry_auth_failed_fallback_without_config_entry_error() -> None:
     """Fallback should inherit from HomeAssistantError when ConfigEntryError missing."""
-
     stub = ModuleType("homeassistant.exceptions")
 
     class HomeAssistantError(Exception):
@@ -86,7 +83,6 @@ def test_config_entry_auth_failed_fallback_without_config_entry_error() -> None:
 
 def test_config_entry_auth_failed_fallback_without_home_assistant_error() -> None:
     """Fallback should still work when Home Assistant exceptions module is empty."""
-
     stub = ModuleType("homeassistant.exceptions")
 
     with _reload_compat_with_stub(stub) as compat:
@@ -95,7 +91,6 @@ def test_config_entry_auth_failed_fallback_without_home_assistant_error() -> Non
 
 def test_unit_of_mass_fallback_uses_default_units() -> None:
     """Compat should supply a UnitOfMass fallback when HA consts are missing."""
-
     const_stub = ModuleType("homeassistant.const")
 
     with _reload_compat_with_stub(None, const_stub=const_stub) as compat:
@@ -107,7 +102,6 @@ def test_unit_of_mass_fallback_uses_default_units() -> None:
 
 def test_unit_of_mass_prefers_homeassistant_enum() -> None:
     """Compat should prefer UnitOfMass from Home Assistant when available."""
-
     const_stub = ModuleType("homeassistant.const")
 
     class UnitOfMass:

@@ -35,7 +35,6 @@ class PublishResult:
 
 def ensure_allowed_github_api_url(url: str) -> None:
     """Validate that a GitHub API URL is safe to request."""
-
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme != "https":
         raise PublishError("GitHub API URL must use HTTPS")
@@ -49,7 +48,6 @@ def _open_github_api_request(
     timeout: int = 30,
 ) -> urllib.response.addinfourl:
     """Open a GitHub API request after validating the URL."""
-
     ensure_allowed_github_api_url(request.full_url)
     return urllib.request.urlopen(request, timeout=timeout)  # nosec B310
 
@@ -251,7 +249,6 @@ class GitHubPagesPublisher:
         **__: object,
     ) -> str:
         """Return a placeholder URL for the published coverage bundle."""
-
         return f"https://github.com/{self._repository}"
 
     def prune_expired_runs(

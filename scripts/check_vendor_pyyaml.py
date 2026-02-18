@@ -78,7 +78,6 @@ class MonitoringResult:
 
 def _parse_wheel_profile(value: str) -> WheelProfile:
     """Return a wheel profile parsed from the CLI representation."""
-
     if ":" not in value:
         raise argparse.ArgumentTypeError(
             "Wheel profile must follow <python_tag>:<platform_fragment> format."
@@ -101,7 +100,6 @@ DEFAULT_WHEEL_PROFILES = (
 
 def _normalise_wheel_profiles(args: argparse.Namespace) -> list[WheelProfile]:
     """Derive the list of wheel profiles that should be monitored."""
-
     if args.wheel_profile:
         return [
             WheelProfile(
@@ -127,7 +125,6 @@ def _normalise_wheel_profiles(args: argparse.Namespace) -> list[WheelProfile]:
 
 def parse_arguments() -> argparse.Namespace:
     """Parse command-line options."""
-
     parser = argparse.ArgumentParser(
         description=(
             "Check the vendored PyYAML version against PyPI and OSV metadata."
@@ -188,7 +185,6 @@ def parse_arguments() -> argparse.Namespace:
 
 def load_vendor_version() -> Version:
     """Extract the vendored PyYAML version from annotatedyaml."""
-
     if not ANNOTATEDYAML_INIT.exists():
         raise MonitoringError(
             "annotatedyaml/_vendor/yaml/__init__.py is missing; vendored PyYAML "
@@ -210,7 +206,6 @@ def load_vendor_version() -> Version:
 
 def fetch_pypi_metadata() -> dict[str, Any]:
     """Load the PyPI JSON metadata for PyYAML."""
-
     try:
         response = requests.get(PYPI_URL, timeout=20)
         response.raise_for_status()
@@ -226,7 +221,6 @@ def select_latest_release(
     data: dict[str, Any],
 ) -> tuple[Version | None, list[dict[str, Any]]]:
     """Return the newest stable release and its file entries."""
-
     latest_version: Version | None = None
     latest_files: list[dict[str, Any]] = []
     for raw_version, files in data["releases"].items():
@@ -347,7 +341,6 @@ def _derive_severity(entry: dict[str, Any]) -> str:
 
 def query_osv(vendor_version: Version) -> list[VulnerabilityRecord]:
     """Return vulnerabilities that still affect the vendored version."""
-
     payload = {
         "package": {"name": "PyYAML", "ecosystem": "PyPI"},
         "version": str(vendor_version),
@@ -400,7 +393,6 @@ def locate_target_wheel(
     platform_fragment: str,
 ) -> tuple[Version | None, str, str]:
     """Find the newest release that ships a compatible wheel."""
-
     sorted_releases: list[tuple[Version, list[dict[str, Any]]]] = []
     for raw_version, files in data["releases"].items():
         try:
@@ -427,7 +419,6 @@ def locate_target_wheel(
 
 def build_summary(result: MonitoringResult) -> str:
     """Compose a GitHub Actions step summary for the monitoring run."""
-
     latest_release_text = (
         f"`{result.latest_release}`" if result.latest_release is not None else "n/a"
     )
@@ -479,7 +470,6 @@ def build_summary(result: MonitoringResult) -> str:
 
 def build_metadata_document(result: MonitoringResult) -> dict[str, Any]:
     """Serialise the monitoring result into a JSON-serialisable mapping."""
-
     return {
         "vendor_version": str(result.vendor_version),
         "latest_release": str(result.latest_release)
@@ -515,7 +505,6 @@ def evaluate(
     wheel_profiles: list[WheelProfile],
 ) -> tuple[MonitoringResult, int]:
     """Run the monitoring routine and return the result plus exit code."""
-
     vendor_version = load_vendor_version()
     pypi_metadata = fetch_pypi_metadata()
     latest_release, latest_files = select_latest_release(pypi_metadata)
@@ -596,7 +585,6 @@ def evaluate(
 
 def main() -> int:
     """Entry point for the monitoring script."""
-
     args = parse_arguments()
     wheel_profiles = _normalise_wheel_profiles(args)
     try:

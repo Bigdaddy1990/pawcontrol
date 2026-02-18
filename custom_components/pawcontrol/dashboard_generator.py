@@ -240,7 +240,6 @@ class PawControlDashboardGenerator:
 
     def _get_runtime_data(self) -> PawControlRuntimeData | None:
         """Return the runtime data container attached to the config entry."""
-
         runtime = getattr(self.entry, "runtime_data", None)
         if isinstance(runtime, PawControlRuntimeData):
             return runtime
@@ -251,7 +250,6 @@ class PawControlDashboardGenerator:
 
     def _resolve_coordinator_statistics(self) -> CoordinatorStatisticsPayload | None:
         """Return the latest coordinator statistics snapshot when available."""
-
         runtime_data = self._get_runtime_data()
         if runtime_data is None:
             return None
@@ -275,7 +273,6 @@ class PawControlDashboardGenerator:
 
     def _resolve_service_execution_metrics(self) -> CoordinatorRejectionMetrics | None:
         """Return rejection metrics recorded during service execution."""
-
         runtime_data = self._get_runtime_data()
         if runtime_data is None:
             return None
@@ -292,7 +289,6 @@ class PawControlDashboardGenerator:
 
     def _resolve_service_guard_metrics(self) -> HelperManagerGuardMetrics | None:
         """Return aggregated guard telemetry captured during service execution."""
-
         runtime_data = self._get_runtime_data()
         if runtime_data is None:
             return None
@@ -323,7 +319,6 @@ class PawControlDashboardGenerator:
 
     async def _renderer_async_initialize(self) -> None:
         """Initialise the dashboard renderer when it exposes an async hook."""
-
         init = getattr(self._renderer, "async_initialize", None)
         if callable(init):
             await init()
@@ -413,7 +408,6 @@ class PawControlDashboardGenerator:
     @staticmethod
     def _ensure_dog_config(dog_config: RawDogConfig) -> DogConfigData | None:
         """Return a typed dog configuration extracted from ``dog_config``."""
-
         return coerce_dog_config(dog_config)
 
     def _ensure_dog_configs(
@@ -421,7 +415,6 @@ class PawControlDashboardGenerator:
         dogs_config: Sequence[RawDogConfig],
     ) -> list[DogConfigData]:
         """Return typed dog configurations for downstream operations."""
-
         return coerce_dog_configs(dogs_config)
 
     @staticmethod
@@ -429,7 +422,6 @@ class PawControlDashboardGenerator:
         options: DashboardRendererOptions | None = None,
     ) -> DashboardRendererOptions:
         """Return a shallow copy of ``options`` for metadata persistence."""
-
         if options is None:
             return cast(DashboardRendererOptions, {})
         return cast(DashboardRendererOptions, dict(options))
@@ -439,7 +431,6 @@ class PawControlDashboardGenerator:
         dog: RawDogConfig,
     ) -> DogModulesConfig:
         """Return a typed modules payload extracted from ``dog``."""
-
         modules_payload = (
             dog.get(DOG_MODULES_FIELD) if isinstance(dog, Mapping) else None
         )
@@ -451,7 +442,6 @@ class PawControlDashboardGenerator:
     @staticmethod
     def _coerce_int_value(value: JSONValue | object | None) -> int:
         """Return ``value`` coerced to an integer when possible."""
-
         if value is None:
             return 0
         if isinstance(value, bool):
@@ -471,7 +461,6 @@ class PawControlDashboardGenerator:
     @staticmethod
     def _coerce_float_value(value: JSONValue | object | None) -> float:
         """Return ``value`` coerced to a float when possible."""
-
         if value is None:
             return 0.0
         if isinstance(value, bool):
@@ -491,7 +480,6 @@ class PawControlDashboardGenerator:
         payload: JSONMapping,
     ) -> DashboardPerformanceMetrics:
         """Normalise performance metrics loaded from storage."""
-
         return {
             "total_generations": cls._coerce_int_value(
                 payload.get("total_generations"),
@@ -510,7 +498,6 @@ class PawControlDashboardGenerator:
         payload: JSONMapping,
     ) -> DashboardRegistry[DashboardMetadata]:
         """Return a typed dashboard registry copied from stored payload."""
-
         registry: DashboardRegistry[DashboardMetadata] = {}
         for url, info in payload.items():
             if not isinstance(url, str) or not isinstance(info, Mapping):
@@ -521,7 +508,6 @@ class PawControlDashboardGenerator:
     @staticmethod
     def _monotonic_time() -> float:
         """Return monotonic time for performance tracking."""
-
         try:
             return asyncio.get_running_loop().time()
         except RuntimeError:
@@ -532,7 +518,6 @@ class PawControlDashboardGenerator:
         dashboard_config: DashboardRenderResult | JSONMapping,
     ) -> list[DashboardViewSummary]:
         """Return a compact summary of the Lovelace views in ``dashboard_config``."""
-
         if isinstance(dashboard_config, Mapping):
             raw_views = dashboard_config.get("views")
         else:
@@ -578,7 +563,6 @@ class PawControlDashboardGenerator:
         value: Any,
     ) -> list[DashboardViewSummary] | None:
         """Return a normalised ``DashboardViewSummary`` list when ``value`` is valid."""
-
         if not isinstance(value, Sequence) or isinstance(value, str | bytes):
             return None
         normalised: list[DashboardViewSummary] = []
@@ -622,7 +606,6 @@ class PawControlDashboardGenerator:
 
     async def _load_dashboard_config(self, path: Path) -> JSONMutableMapping | None:
         """Load the stored Lovelace config from ``path`` if the file exists."""
-
         try:
             async with aiofiles.open(path, encoding="utf-8") as file_handle:
                 data = json.loads(await file_handle.read())
@@ -649,7 +632,6 @@ class PawControlDashboardGenerator:
         view_summaries: Sequence[DashboardViewSummary],
     ) -> bool:
         """Return True when a notifications module view is present."""
-
         return any(view.get("path") == MODULE_NOTIFICATIONS for view in view_summaries)
 
     async def async_initialize(self) -> None:
@@ -1649,7 +1631,6 @@ class PawControlDashboardGenerator:
         dashboard_info: DashboardMetadata,
     ) -> tuple[bool, bool]:
         """Validate single dashboard asynchronously."""
-
         metadata_updated = False
 
         try:

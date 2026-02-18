@@ -52,7 +52,6 @@ def _load_diagnostics() -> ModuleType:
 
 def test_redact_sensitive_keys_respects_word_boundaries() -> None:
     """Ensure redaction matches keys at boundaries without over-redacting."""
-
     module = _load_redaction_helpers()
     patterns = module.compile_redaction_patterns({"location", "api_key"})
     payload = {
@@ -71,7 +70,6 @@ def test_redact_sensitive_keys_respects_word_boundaries() -> None:
 
 def test_notification_rejection_metrics_defaults() -> None:
     """Notification rejection metrics should include full defaults."""
-
     diagnostics = _load_diagnostics()
     payload = diagnostics._build_notification_rejection_metrics(None)
 
@@ -87,7 +85,6 @@ def test_notification_rejection_metrics_defaults() -> None:
 
 def test_notification_rejection_metrics_summarises_services() -> None:
     """Service-level failures should be summarised for notification diagnostics."""
-
     diagnostics = _load_diagnostics()
     delivery = {
         "services": {
@@ -120,7 +117,6 @@ def test_notification_rejection_metrics_summarises_services() -> None:
 
 def test_rejection_metrics_capture_failure_reasons() -> None:
     """Rejection metrics should surface aggregated failure reasons."""
-
     from custom_components.pawcontrol.coordinator_tasks import derive_rejection_metrics
 
     summary = {
@@ -136,7 +132,6 @@ def test_rejection_metrics_capture_failure_reasons() -> None:
 
 def test_fallback_coordinator_statistics_include_rejection_metrics() -> None:
     """Fallback coordinator stats should export rejection metrics defaults."""
-
     diagnostics = _load_diagnostics()
     stats = diagnostics._fallback_coordinator_statistics()
 
@@ -149,7 +144,6 @@ def test_fallback_coordinator_statistics_include_rejection_metrics() -> None:
 
 def test_guard_notification_error_metrics_aggregate_counts() -> None:
     """Guard and notification errors should aggregate into a shared snapshot."""
-
     diagnostics = _load_diagnostics()
     guard_metrics = {
         "executed": 4,
@@ -197,7 +191,6 @@ def test_guard_notification_error_metrics_aggregate_counts() -> None:
 
 def test_service_guard_metrics_defaults_to_zero_payload() -> None:
     """Service guard metrics should always export default-zero payloads."""
-
     diagnostics = _load_diagnostics()
     runtime_data = type("RuntimeData", (), {"performance_stats": {}})()
 
@@ -213,7 +206,6 @@ def test_service_guard_metrics_defaults_to_zero_payload() -> None:
 
 def test_configuration_url_redacted_in_diagnostics() -> None:
     """Ensure configuration_url fields are redacted in diagnostics payloads."""
-
     diagnostics = _load_diagnostics()
     payload = {
         "devices": [
@@ -233,7 +225,6 @@ def test_configuration_url_redacted_in_diagnostics() -> None:
 
 def test_redacts_mac_strings_and_serial_numbers_in_nested_payloads() -> None:
     """MAC addresses and serial numbers must be redacted in nested structures."""
-
     diagnostics = _load_diagnostics()
     redaction = _load_redaction_helpers()
     patterns = redaction.compile_redaction_patterns(diagnostics.REDACTED_KEYS)
@@ -265,7 +256,6 @@ def test_redacts_mac_strings_and_serial_numbers_in_nested_payloads() -> None:
 
 def test_redacts_connections_and_identifiers_payloads() -> None:
     """Connections and identifiers lists should redact MAC addresses."""
-
     diagnostics = _load_diagnostics()
     redaction = _load_redaction_helpers()
     patterns = redaction.compile_redaction_patterns(diagnostics.REDACTED_KEYS)
@@ -284,7 +274,6 @@ def test_redacts_connections_and_identifiers_payloads() -> None:
 
 def test_entity_attribute_normalisation_is_json_serialisable() -> None:
     """Entity attribute normalization must yield JSON-serialisable values."""
-
     from custom_components.pawcontrol.utils import (
         normalise_entity_attributes,
         normalize_value,
@@ -331,7 +320,6 @@ def test_entity_attribute_normalisation_is_json_serialisable() -> None:
 
 def test_extra_state_attributes_use_normalisation_helpers() -> None:
     """extra_state_attributes implementations must normalise payloads."""
-
     missing = []
     for path in PAWCONTROL_ROOT.rglob("*.py"):
         source = path.read_text(encoding="utf-8")

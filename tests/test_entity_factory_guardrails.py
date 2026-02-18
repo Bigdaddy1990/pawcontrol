@@ -53,13 +53,11 @@ install_homeassistant_stubs()
 
 def test_basic_profile_supports_buttons() -> None:
     """The basic profile must now recognise button entities."""
-
     assert _Platform.BUTTON in ENTITY_PROFILES["basic"]["platforms"]
 
 
 def test_validate_profile_rejects_unknown_modules() -> None:
     """Unknown modules should cause profile validation to fail."""
-
     factory = EntityFactory(coordinator=None)
     modules = {"feeding": True, "unknown": True}
 
@@ -68,7 +66,6 @@ def test_validate_profile_rejects_unknown_modules() -> None:
 
 def test_should_create_entity_accepts_platform_enum() -> None:
     """Passing the Platform enum is supported and validated."""
-
     factory = EntityFactory(coordinator=None)
 
     assert factory.should_create_entity(
@@ -81,7 +78,6 @@ def test_should_create_entity_accepts_platform_enum() -> None:
 
 def test_should_create_entity_accepts_nested_enum_alias() -> None:
     """Nested enum aliases should resolve to their underlying platform."""
-
     factory = EntityFactory(coordinator=None)
 
     assert factory.should_create_entity(
@@ -94,7 +90,6 @@ def test_should_create_entity_accepts_nested_enum_alias() -> None:
 
 def test_should_create_entity_blocks_unknown_module() -> None:
     """Unknown modules are rejected even for high-priority requests."""
-
     factory = EntityFactory(coordinator=None)
 
     assert not factory.should_create_entity(
@@ -107,7 +102,6 @@ def test_should_create_entity_blocks_unknown_module() -> None:
 
 def test_create_entity_config_normalises_output() -> None:
     """Entity configuration results expose canonical values."""
-
     factory = EntityFactory(coordinator=None)
     config = factory.create_entity_config(
         dog_id="buddy",
@@ -124,7 +118,6 @@ def test_create_entity_config_normalises_output() -> None:
 
 def test_create_entity_config_preserves_alias_enum_platform() -> None:
     """Entity configs should preserve alias enums when values match."""
-
     factory = EntityFactory(coordinator=None)
 
     config = factory.create_entity_config(
@@ -141,7 +134,6 @@ def test_create_entity_config_preserves_alias_enum_platform() -> None:
 
 def test_create_entity_config_rejects_invalid_type() -> None:
     """Unsupported entity types should return ``None``."""
-
     factory = EntityFactory(coordinator=None)
 
     assert (
@@ -157,7 +149,6 @@ def test_create_entity_config_rejects_invalid_type() -> None:
 
 def test_runtime_guard_expands_when_scheduler_starves() -> None:
     """The runtime guard should expand if operations are repeatedly delayed."""
-
     factory = EntityFactory(coordinator=None, enforce_min_runtime=True)
     baseline = factory._runtime_guard_floor
 
@@ -174,7 +165,6 @@ def test_runtime_guard_expands_when_scheduler_starves() -> None:
 
 def test_runtime_guard_contracts_after_sustained_stability() -> None:
     """The adaptive guard should relax when jitter subsides."""
-
     factory = EntityFactory(coordinator=None, enforce_min_runtime=True)
     factory._runtime_guard_floor = _RUNTIME_MAX_FLOOR
 
@@ -189,7 +179,6 @@ def test_runtime_guard_contracts_after_sustained_stability() -> None:
 
 def test_runtime_guard_respects_minimum_floor() -> None:
     """Contraction must not push the guard below the static baseline."""
-
     factory = EntityFactory(coordinator=None, enforce_min_runtime=True)
     factory._runtime_guard_floor = _MIN_OPERATION_DURATION * 1.5
 
@@ -202,7 +191,6 @@ def test_prewarm_restores_runtime_guard_floor(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Prewarming should not permanently alter the runtime guard floor."""
-
     factory = EntityFactory(
         coordinator=None,
         prewarm=False,
@@ -236,7 +224,6 @@ def test_prewarm_restores_runtime_guard_floor(
 
 def test_runtime_guard_records_telemetry() -> None:
     """Runtime guard recalibrations should persist telemetry snapshots."""
-
     runtime_store = types.SimpleNamespace(performance_stats={})
     coordinator = types.SimpleNamespace(
         config_entry=types.SimpleNamespace(runtime_data=runtime_store),

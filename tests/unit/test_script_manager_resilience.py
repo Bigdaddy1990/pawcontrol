@@ -14,7 +14,6 @@ from custom_components.pawcontrol.script_manager import PawControlScriptManager
 @pytest.mark.unit
 def test_resilience_snapshot_requires_definition() -> None:
     """The resilience snapshot should be unavailable without a definition."""
-
     hass = SimpleNamespace(
         data={DOMAIN: {}},
         states={},
@@ -37,7 +36,6 @@ def test_resilience_snapshot_requires_definition() -> None:
 @pytest.mark.unit
 def test_resilience_snapshot_serialises_manual_payload() -> None:
     """The resilience snapshot should expose JSON-safe manual event payloads."""
-
     now = dt_util.utcnow()
     hass = SimpleNamespace(
         data={DOMAIN: {}},

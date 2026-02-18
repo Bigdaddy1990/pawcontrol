@@ -221,7 +221,6 @@ def register_sensor(
         cls: type[PawControlSensorBase],
     ) -> type[PawControlSensorBase]:
         """Register the decorated sensor class in the mapping."""
-
         SENSOR_MAPPING[name] = cls
         return cls
 
@@ -848,7 +847,6 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
         module_data: object | None,
     ) -> CoordinatorModuleLookupResult:
         """Return a mapping payload regardless of adapter state."""
-
         if isinstance(module_data, Mapping):
             return cast(CoordinatorModuleLookupResult, module_data)
         return cast(CoordinatorUntypedModuleState, {})
@@ -856,7 +854,6 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
     @staticmethod
     def _coerce_float(value: object, default: float = 0.0) -> float:
         """Return a float converted from ``value`` when possible."""
-
         if isinstance(value, bool):
             return float(value)
         if isinstance(value, int | float):
@@ -871,7 +868,6 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
     @staticmethod
     def _coerce_int(value: object, default: int = 0) -> int:
         """Return an int converted from ``value`` when possible."""
-
         if isinstance(value, bool):
             return int(value)
         if isinstance(value, int):
@@ -888,7 +884,6 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
     @staticmethod
     def _coerce_utc_datetime(value: object | None) -> datetime | None:
         """Return an aware UTC datetime when ``value`` is convertible."""
-
         if (
             isinstance(value, datetime | date | str | int | float | Real)
             or value is None
@@ -901,7 +896,6 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
         payload: CoordinatorModuleLookupResult,
     ) -> FeedingModulePayload | None:
         """Return a feeding payload when the mapping is compatible."""
-
         if isinstance(payload, Mapping):
             return cast(FeedingModulePayload, payload)
         return None
@@ -911,7 +905,6 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
         payload: CoordinatorModuleLookupResult,
     ) -> WalkModuleTelemetry | None:
         """Return a walk payload when the mapping is compatible."""
-
         if isinstance(payload, Mapping):
             return cast(WalkModuleTelemetry, payload)
         return None
@@ -921,7 +914,6 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
         payload: CoordinatorModuleLookupResult,
     ) -> GPSModulePayload | None:
         """Return a GPS payload when the mapping is compatible."""
-
         return ensure_gps_payload(payload) if isinstance(payload, Mapping) else None
 
     @staticmethod
@@ -929,34 +921,28 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
         payload: CoordinatorModuleLookupResult,
     ) -> HealthModulePayload | None:
         """Return a health payload when the mapping is compatible."""
-
         if isinstance(payload, Mapping):
             return cast(HealthModulePayload, payload)
         return None
 
     def _get_feeding_module(self) -> FeedingModulePayload | None:
         """Return the feeding module payload when available."""
-
         return self._coerce_feeding_payload(self._get_module_data("feeding"))
 
     def _get_walk_module(self) -> WalkModuleTelemetry | None:
         """Return the walk module payload when available."""
-
         return self._coerce_walk_payload(self._get_module_data("walk"))
 
     def _get_gps_module(self) -> GPSModulePayload | None:
         """Return the GPS module payload when available."""
-
         return self._coerce_gps_payload(self._get_module_data("gps"))
 
     def _get_health_module(self) -> HealthModulePayload | None:
         """Return the health module payload when available."""
-
         return self._coerce_health_payload(self._get_module_data("health"))
 
     async def async_added_to_hass(self) -> None:
         """Populate translation data after the entity is registered."""
-
         await super().async_added_to_hass()
 
         if self._pending_translation_key and self._attr_translation_key is None:
@@ -964,7 +950,6 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
 
     def _base_attributes(self) -> AttributeInputDict:
         """Return a copy of the base extra state attributes."""
-
         base = cast(
             AttributeInputDict,
             PawControlSensorBase.extra_state_attributes.__get__(
@@ -977,25 +962,21 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
     @property
     def device_class(self) -> SensorDeviceClass | None:
         """Expose the configured device class for test doubles."""
-
         return getattr(self, "_attr_device_class", None)
 
     @property
     def state_class(self) -> SensorStateClass | None:
         """Expose the configured state class for test doubles."""
-
         return getattr(self, "_attr_state_class", None)
 
     @property
     def native_unit_of_measurement(self) -> str | None:
         """Expose the configured native unit for test doubles."""
-
         return getattr(self, "_attr_native_unit_of_measurement", None)
 
     @property
     def state(self) -> Any:
         """Expose the sensor state for compatibility with legacy inspectors."""
-
         return self.native_value
 
     @property
@@ -1005,7 +986,6 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
 
     def _extra_state_attributes(self) -> AttributeInputDict:
         """Return additional state attributes for the sensor."""
-
         return {"sensor_type": self._sensor_type}
 
 
@@ -1016,7 +996,6 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     def _get_garden_data(self) -> GardenModulePayload:
         """Return garden snapshot data for the current dog."""
-
         module_data = self._get_module_data(self._module_name)
         if module_data:
             return cast(GardenModulePayload, module_data)
@@ -1035,7 +1014,6 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     def _garden_attributes(self) -> JSONMutableMapping:
         """Build shared garden attributes for subclasses."""
-
         data = self._get_garden_data()
         attrs: GardenAttributes = {
             "garden_status": data.get("status"),
@@ -1129,7 +1107,6 @@ class PawControlDietValidationSensorBase(PawControlSensorBase):
 
     def _get_validation_summary(self) -> FeedingDietValidationSummary | None:
         """Return diet validation summary for the current dog."""
-
         module_data = self._get_module_data(self._module_name)
         if not module_data:
             return None
@@ -2758,7 +2735,6 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
     @property
     def native_value(self) -> int:
         """Return number of configured feeding portions completed today."""
-
         feeding_data = self._get_feeding_module()
         if not feeding_data:
             return 0
@@ -2926,7 +2902,6 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         """Return current health feeding status."""
-
         feeding_data = self._get_module_data("feeding")
         status = (
             feeding_data.get(
@@ -2942,7 +2917,6 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return diagnostic attributes for the health feeding status."""
-
         attrs: AttributeInputDict = self._base_attributes()
         feeding_payload = self._get_feeding_module()
         feeding_data: FeedingModulePayload = feeding_payload or cast(
@@ -2998,7 +2972,6 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return the current calorie target in kcal."""
-
         feeding_data = self._get_feeding_module()
         if not feeding_data:
             return None
@@ -3315,7 +3288,6 @@ class PawControlLastWalkHoursSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float:
         """Return hours elapsed since the most recent walk."""
-
         walk_data = self._get_walk_module()
         if not walk_data:
             return 0.0
@@ -3347,7 +3319,6 @@ class PawControlWalksTodaySensor(PawControlSensorBase):
     @property
     def native_value(self) -> int:
         """Return the number of walks recorded for today."""
-
         walk_data = self._get_walk_module()
         if not walk_data:
             return 0
@@ -3379,7 +3350,6 @@ class PawControlCurrentWalkDurationSensor(PawControlSensorBase):
     @property
     def native_value(self) -> int:
         """Return the active walk duration if a walk is in progress."""
-
         walk_data = self._get_walk_module()
         if not walk_data or not walk_data.get("walk_in_progress"):
             return 0
@@ -4034,7 +4004,6 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         """Return the friendly current location for the dog."""
-
         gps_data = self._get_gps_module()
         if not gps_data:
             return _STATE_UNKNOWN
@@ -4151,7 +4120,6 @@ class PawControlSpeedSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float:
         """Return the current GPS speed reading."""
-
         gps_data = self._get_gps_module()
         if not gps_data:
             return 0.0
@@ -4416,7 +4384,6 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         """Return comma separated list of health conditions."""
-
         conditions: HealthModulePayload = cast(
             HealthModulePayload,
             self._get_health_module() or {},
@@ -4478,7 +4445,6 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return percentage progress toward weight goal."""
-
         health_data = self._get_health_module()
         if not health_data:
             return None
@@ -4528,7 +4494,6 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         """Return the activity level for today."""
-
         health_data = self._get_module_data("health")
         if not health_data:
             return "unknown"

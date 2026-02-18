@@ -24,7 +24,6 @@ async def test_async_build_setup_flags_panel_returns_typed_payload(
     hass: HomeAssistant,
 ) -> None:
     """Setup flag diagnostics should emit a fully typed payload."""
-
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={
@@ -156,7 +155,6 @@ async def test_async_build_setup_flags_panel_supports_blueprint_and_disabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Setup flag diagnostics should handle blueprint and disabled sources."""
-
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={},

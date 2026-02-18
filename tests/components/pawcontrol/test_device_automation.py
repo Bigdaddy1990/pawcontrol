@@ -71,7 +71,6 @@ def _register_entity(
 @pytest.mark.asyncio
 async def test_async_get_triggers_returns_available(hass: HomeAssistant) -> None:
     """Verify triggers are generated for registered device entities."""
-
     device_entry = _register_device(hass)
     _register_entity(
         hass,
@@ -108,7 +107,6 @@ async def test_async_get_triggers_returns_available(hass: HomeAssistant) -> None
 @pytest.mark.asyncio
 async def test_async_get_triggers_missing_device(hass: HomeAssistant) -> None:
     """Return no triggers when device is unknown."""
-
     triggers = await async_get_triggers(hass, "missing-device")
 
     assert triggers == []
@@ -119,7 +117,6 @@ async def test_async_get_actions_returns_metadata(
     hass: HomeAssistant,
 ) -> None:
     """Verify action metadata is provided for devices."""
-
     device_entry = _register_device(hass)
 
     actions = await async_get_actions(hass, device_entry.id)
@@ -133,7 +130,6 @@ async def test_async_get_conditions_returns_metadata(
     hass: HomeAssistant,
 ) -> None:
     """Verify condition metadata is provided for devices."""
-
     device_entry = _register_device(hass)
     entity_id = "binary_sensor.pawcontrol_buddy_is_hungry"
     _register_entity(
@@ -155,7 +151,6 @@ async def test_condition_uses_entity_state_fallback(
     hass: HomeAssistant,
 ) -> None:
     """Verify conditions evaluate using entity state when no runtime data exists."""
-
     device_entry = _register_device(hass)
     entity_id = "binary_sensor.pawcontrol_buddy_is_hungry"
     _register_entity(
@@ -187,7 +182,6 @@ async def test_condition_missing_entity_returns_false(
     hass: HomeAssistant,
 ) -> None:
     """Ensure missing entities cause conditions to fail."""
-
     device_entry = _register_device(hass)
 
     condition = await async_condition_from_config(
@@ -207,7 +201,6 @@ async def test_condition_missing_entity_returns_false(
 @pytest.mark.asyncio
 async def test_action_calls_feeding_manager(hass: HomeAssistant) -> None:
     """Verify device actions call managers with dog identifiers."""
-
     device_entry = _register_device(hass)
 
     feeding_manager = AsyncMock()
@@ -250,7 +243,6 @@ async def test_action_capabilities_require_amount(
     hass: HomeAssistant,
 ) -> None:
     """Ensure feeding action capabilities require amount."""
-
     capabilities = await async_get_action_capabilities(
         hass,
         {CONF_TYPE: "log_feeding"},
@@ -267,7 +259,6 @@ async def test_trigger_capabilities_status_changed(
     hass: HomeAssistant,
 ) -> None:
     """Ensure status trigger capabilities expose from/to fields."""
-
     capabilities = await async_get_trigger_capabilities(
         hass,
         {CONF_TYPE: "status_changed"},
@@ -284,7 +275,6 @@ async def test_action_missing_runtime_data_raises(
     hass: HomeAssistant,
 ) -> None:
     """Ensure actions raise when runtime data is missing."""
-
     with pytest.raises(HomeAssistantError):
         await async_call_action(
             hass,

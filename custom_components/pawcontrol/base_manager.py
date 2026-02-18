@@ -10,7 +10,7 @@ Python: 3.14+
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from contextlib import suppress  # noqa: F401
+from contextlib import suppress
 import logging
 import time
 from typing import TYPE_CHECKING, Any
@@ -481,7 +481,7 @@ async def setup_managers(
         try:
             await manager.async_initialize()
             successful.append(manager)
-        except Exception:  # noqa: BLE001
+        except Exception:
             if stop_on_error:
                 for m in reversed(successful):
                     with suppress(Exception):
@@ -509,6 +509,6 @@ async def shutdown_managers(
     for manager in managers:
         try:
             await manager.async_teardown()
-        except Exception:  # noqa: BLE001
+        except Exception:
             if not ignore_errors:
                 raise

@@ -19,7 +19,6 @@ async def test_user_flow_aborts_when_entry_exists(
     hass: HomeAssistant,
 ) -> None:
     """Ensure the user flow aborts when the integration is already configured."""
-
     entry = MockConfigEntry(domain=DOMAIN, data={}, unique_id=DOMAIN)
     entry.add_to_hass(hass)
 
@@ -37,7 +36,6 @@ async def test_import_flow_normalizes_dog_id(
     hass: HomeAssistant,
 ) -> None:
     """Verify import flow normalizes dog identifiers."""
-
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": "import"},

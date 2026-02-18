@@ -15,7 +15,6 @@ from custom_components.pawcontrol.types import _coerce_bool
 
 def test_coerce_bool_records_none_default() -> None:
     """None inputs should count as defaulted coercions."""
-
     reset_bool_coercion_metrics()
 
     assert _coerce_bool(None, default=True) is True
@@ -33,7 +32,6 @@ def test_coerce_bool_records_none_default() -> None:
 
 def test_coerce_bool_records_blank_string_default() -> None:
     """Blank strings should increment the blank-string reason bucket."""
-
     reset_bool_coercion_metrics()
 
     assert _coerce_bool("   ", default=False) is False
@@ -51,7 +49,6 @@ def test_coerce_bool_records_blank_string_default() -> None:
 
 def test_coerce_bool_records_fallback_for_sequence() -> None:
     """Non-primitive payloads should register fallback coercions."""
-
     reset_bool_coercion_metrics()
 
     assert _coerce_bool(["enabled"], default=False) is True
@@ -72,7 +69,6 @@ def test_coerce_bool_records_fallback_for_sequence() -> None:
 
 def test_coerce_bool_records_numeric_reasons() -> None:
     """Numeric conversions should emit dedicated telemetry reasons."""
-
     reset_bool_coercion_metrics()
 
     assert _coerce_bool(5, default=False) is True
@@ -93,7 +89,6 @@ def test_coerce_bool_records_numeric_reasons() -> None:
 
 def test_coerce_bool_records_native_bool_reason() -> None:
     """Boolean inputs should register dedicated native reason buckets."""
-
     reset_bool_coercion_metrics()
 
     assert _coerce_bool(True, default=False) is True
@@ -114,7 +109,6 @@ def test_coerce_bool_records_native_bool_reason() -> None:
 
 def test_coerce_bool_records_string_reasons() -> None:
     """String payloads should distinguish truthy, falsy, and unknown cases."""
-
     reset_bool_coercion_metrics()
 
     assert _coerce_bool("Yes", default=False) is True
@@ -136,7 +130,6 @@ def test_coerce_bool_records_string_reasons() -> None:
 
 def test_bool_coercion_metrics_include_timestamps() -> None:
     """Aggregated metrics should expose first/last timestamps."""
-
     reset_bool_coercion_metrics()
 
     assert _coerce_bool("true", default=False) is True
@@ -169,7 +162,6 @@ def test_bool_coercion_metrics_include_timestamps() -> None:
 
 def test_bool_coercion_metrics_include_active_window_seconds() -> None:
     """The metrics should surface the active window between coercions."""
-
     reset_bool_coercion_metrics()
 
     start = datetime(2024, 6, 1, 12, 0, tzinfo=UTC)
@@ -193,7 +185,6 @@ def test_bool_coercion_metrics_include_active_window_seconds() -> None:
 
 def test_bool_coercion_metrics_track_reset_count() -> None:
     """Reset invocations should be tracked alongside coercion counters."""
-
     reset_bool_coercion_metrics()
     baseline = get_bool_coercion_metrics()["reset_count"]
 
@@ -216,7 +207,6 @@ def test_bool_coercion_metrics_track_reset_count() -> None:
 
 def test_bool_coercion_metrics_record_last_reset_timestamp() -> None:
     """Reset telemetry should capture the ISO timestamp of the reset."""
-
     first_reset = datetime(2024, 9, 18, 11, 45, tzinfo=UTC)
     second_reset = first_reset + timedelta(minutes=5)
 
@@ -239,7 +229,6 @@ def test_bool_coercion_metrics_record_last_reset_timestamp() -> None:
 
 def test_bool_coercion_diagnostics_include_reset_only_snapshots() -> None:
     """Diagnostics should expose reset metadata even when no coercions ran."""
-
     reset_bool_coercion_metrics()
     metrics = get_bool_coercion_metrics()
     assert metrics["total"] == 0
@@ -263,7 +252,6 @@ def test_bool_coercion_diagnostics_include_reset_only_snapshots() -> None:
 
 def test_bool_coercion_metrics_track_last_reason() -> None:
     """Metrics should expose the most recent coercion reason."""
-
     reset_bool_coercion_metrics()
     initial = get_bool_coercion_metrics()
     assert initial["last_reason"] is None
@@ -283,7 +271,6 @@ def test_bool_coercion_metrics_track_last_reason() -> None:
 
 def test_bool_coercion_metrics_track_last_value_details() -> None:
     """Metrics should capture the last coerced value's type and representation."""
-
     reset_bool_coercion_metrics()
 
     assert _coerce_bool(" yes ", default=False) is True
@@ -314,7 +301,6 @@ def test_bool_coercion_metrics_track_last_value_details() -> None:
 
 def test_summarise_bool_coercion_metrics_limits_samples() -> None:
     """Coordinator summaries should clamp sample counts and sort reason keys."""
-
     reset_bool_coercion_metrics()
 
     record_bool_coercion_event(

@@ -631,7 +631,6 @@ class NotificationCache[ConfigT: NotificationConfig]:
     @staticmethod
     def _quiet_cache_monotonic(value: object) -> float:
         """Convert quiet-cache timestamp payloads to monotonic-like seconds."""
-
         if isinstance(value, datetime):
             return value.timestamp()
         if isinstance(value, int | float):
@@ -746,7 +745,6 @@ class NotificationCache[ConfigT: NotificationConfig]:
 
     def get_diagnostics(self) -> NotificationCacheDiagnostics:
         """Return diagnostics metadata consumed by coordinator snapshots."""
-
         metadata = self._diagnostics
         last_cleanup = metadata["last_cleanup"]
 
@@ -765,7 +763,6 @@ class NotificationCache[ConfigT: NotificationConfig]:
 
     def coordinator_snapshot(self) -> NotificationCacheSnapshot:
         """Return a coordinator-friendly snapshot of cache telemetry."""
-
         snapshot: NotificationCacheSnapshot = {
             "stats": self.get_stats(),
             "diagnostics": self.get_diagnostics(),
@@ -861,12 +858,10 @@ class PawControlNotificationManager:
     @property
     def session(self) -> ClientSession:
         """Return the shared aiohttp session used for webhooks."""
-
         return self._session
 
     def get_performance_metrics(self) -> NotificationPerformanceMetrics:
         """Return a shallow copy of the performance metrics payload."""
-
         metrics: NotificationPerformanceMetrics = {
             **self._performance_metrics,
         }
@@ -874,7 +869,6 @@ class PawControlNotificationManager:
 
     def get_delivery_status_snapshot(self) -> NotificationDeliveryDiagnostics:
         """Return a diagnostics payload for notification delivery status."""
-
         services: dict[str, JSONMutableMapping] = {}
         failed_services: list[str] = []
 
@@ -904,7 +898,6 @@ class PawControlNotificationManager:
 
     def _record_delivery_success(self, service_name: str) -> None:
         """Persist a successful delivery outcome for diagnostics."""
-
         status = self._delivery_status.setdefault(
             service_name,
             NotificationDeliveryStatus(),
@@ -923,7 +916,6 @@ class PawControlNotificationManager:
         error: Exception | None = None,
     ) -> None:
         """Persist a failed delivery outcome for diagnostics."""
-
         error_context = build_error_context(reason, error)
         status = self._delivery_status.setdefault(
             service_name,
@@ -941,7 +933,6 @@ class PawControlNotificationManager:
         error_context: ErrorContext,
     ) -> None:
         """Store delivery failure reasons in shared rejection metrics."""
-
         runtime_data = get_runtime_data(self._hass, self._entry_id)
         if runtime_data is None:
             return
@@ -965,7 +956,6 @@ class PawControlNotificationManager:
 
     def _notify_service_available(self, service_name: str) -> bool:
         """Return True when a notify service is registered."""
-
         services = getattr(self._hass, "services", None)
         async_services = getattr(services, "async_services", None)
         if not callable(async_services):
@@ -1206,7 +1196,6 @@ class PawControlNotificationManager:
         priority: NotificationPriority,
     ) -> None:
         """Set the default notification priority threshold for a dog."""
-
         config_key = dog_id or "system"
 
         async with self._lock:
@@ -1464,7 +1453,6 @@ class PawControlNotificationManager:
 
     async def _get_config_cached(self, config_key: str) -> NotificationConfig:
         """Get configuration directly from in-memory config state."""
-
         cached = self._cache.get_config(config_key)
         if cached is not None:
             self._performance_metrics["cache_hits"] += 1
@@ -1521,7 +1509,6 @@ class PawControlNotificationManager:
         limit_minutes: int,
     ) -> bool:
         """Return True when the notification is allowed by rate limit."""
-
         now = time.monotonic()
         channel_state = self._rate_limit_last_sent.setdefault(config_key, {})
         last_sent = channel_state.get(channel)
@@ -1846,7 +1833,6 @@ class PawControlNotificationManager:
         notification: NotificationEvent,
     ) -> NotificationWebhookPayload:
         """Build a structured payload for webhook delivery."""
-
         return {
             "id": notification.id,
             "title": notification.title,
@@ -1865,7 +1851,6 @@ class PawControlNotificationManager:
 
     async def _send_webhook_notification(self, notification: NotificationEvent) -> None:
         """Send notification payload to a configured webhook endpoint."""
-
         config_key = notification.dog_id if notification.dog_id else "system"
         config = await self._get_config_cached(config_key)
         webhook_url = config.custom_settings.get("webhook_url")
@@ -2452,7 +2437,6 @@ class PawControlNotificationManager:
         person-targeting entries are sourced from ``PersonEntityManager`` cache
         diagnostics when available.
         """
-
         rate_limit_entries = sum(
             len(channel_map) for channel_map in self._rate_limit_last_sent.values()
         )
@@ -2538,7 +2522,6 @@ class PawControlNotificationManager:
 
     def register_cache_monitors(self, registrar: CacheMonitorRegistrar) -> None:
         """Register notification-centric caches with the provided registrar."""
-
         self._cache_monitor_registrar = registrar
         registrar.register_cache_monitor(
             "notification_cache",
@@ -2548,7 +2531,6 @@ class PawControlNotificationManager:
 
     def _register_person_cache_monitor(self) -> None:
         """Register the person entity targeting cache when available."""
-
         if self._cache_monitor_registrar is None or self._person_manager is None:
             return
         self._person_manager.register_cache_monitors(
@@ -2558,7 +2540,6 @@ class PawControlNotificationManager:
 
     def webhook_security_status(self) -> WebhookSecurityStatus:
         """Return aggregated HMAC webhook security information."""
-
         webhook_configs: list[str] = []
         insecure_configs: list[str] = []
 
@@ -2686,7 +2667,6 @@ class PawControlNotificationManager:
         compliance: FeedingComplianceResult,
     ) -> str | None:
         """Send structured compliance telemetry when feeding gaps appear."""
-
         display_name = dog_name or dog_id
 
         language = getattr(

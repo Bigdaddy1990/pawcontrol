@@ -127,7 +127,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         a scalar string, a list, or an arbitrary serialisable value. Normalise those
         variants to a stable ``list[str]`` for placeholder rendering.
         """
-
         if value is None:
             return []
         if isinstance(value, str):
@@ -145,7 +144,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _manual_event_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Return description placeholders enumerating known manual events."""
-
         choices = self._resolve_manual_event_choices()
         placeholders: dict[str, bool | int | float | str] = {}
         for field, values in choices.items():
@@ -165,7 +163,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         default: str | None,
     ) -> str | None:
         """Return a normalised manual event or fallback to the provided default."""
-
         if isinstance(value, str):
             candidate = value.strip()
             return candidate or None
@@ -173,7 +170,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _get_reconfigure_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Return placeholders describing the latest reconfigure telemetry."""
-
         telemetry = self._reconfigure_telemetry()
         timestamp = self._format_local_timestamp(
             (telemetry or {}).get("timestamp") if telemetry else None,
@@ -257,12 +253,10 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _normalise_export_value(self, value: Any) -> JSONValue:
         """Convert complex values into JSON-serialisable primitives."""
-
         return cast(JSONValue, normalize_value(value))
 
     def _map_import_payload_error(self, error: FlowValidationError) -> str:
         """Map dog validation errors to import payload error codes."""
-
         if error.base_errors:
             return "dog_invalid"
         field_errors = error.field_errors
@@ -278,7 +272,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _build_export_payload(self) -> OptionsExportPayload:
         """Serialise the current configuration into an export payload."""
-
         typed_options = self._normalise_options_snapshot(self._clone_options())
         options = cast(
             PawControlOptionsData,
@@ -321,7 +314,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _validate_import_payload(self, payload: Any) -> OptionsExportPayload:
         """Validate and normalise an imported payload."""
-
         if not isinstance(payload, Mapping):
             raise FlowValidationError(field_errors={"payload": "payload_not_mapping"})
         version = payload.get("version")
@@ -377,7 +369,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _current_weather_options(self) -> WeatherOptions:
         """Return the stored weather configuration with root fallbacks."""
-
         options = self._current_options()
         raw = options.get("weather_settings", {})
         if isinstance(raw, Mapping):
@@ -397,7 +388,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _current_dog_options(self) -> DogOptionsMap:
         """Return the stored per-dog overrides keyed by dog ID."""
-
         raw = self._current_options().get(DOG_OPTIONS_FIELD, {})
         if not isinstance(raw, Mapping):
             return {}
@@ -416,7 +406,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _require_current_dog(self) -> DogConfigData | None:
         """Return the current dog, defaulting when only one is configured."""
-
         if self._current_dog is not None:
             return self._current_dog
         if len(self._dogs) == 1:
@@ -426,7 +415,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _select_dog_by_id(self, dog_id: str | None) -> DogConfigData | None:
         """Select and store the current dog based on the provided identifier."""
-
         if not isinstance(dog_id, str):
             self._current_dog = None
             return None
@@ -459,7 +447,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _current_system_options(self) -> SystemOptions:
         """Return persisted system settings metadata."""
-
         options = self._current_options()
         raw = options.get("system_settings", {})
         if isinstance(raw, Mapping):
@@ -528,7 +515,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         manual_snapshot: Mapping[str, JSONValue] | None = None,
     ) -> JSONMutableMapping:
         """Return manual event suggestions sourced from runtime and defaults."""
-
         check_suggestions: set[str] = {
             DEFAULT_MANUAL_CHECK_EVENT,
         }
@@ -621,7 +607,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         fallback: int,
     ) -> int:
         """Return the default threshold from system options or legacy storage."""
-
         candidate = system.get(field)
         if isinstance(candidate, int):
             return candidate
@@ -637,7 +622,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         has_breaker: bool,
     ) -> tuple[int | None, int | None]:
         """Return script thresholds when options are missing values."""
-
         if has_skip and has_breaker:
             return None, None
         hass = getattr(self, "hass", None)
@@ -657,7 +641,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         fallback: int,
     ) -> int:
         """Return the stored threshold, falling back to script defaults when needed."""
-
         if include_script and script_value is not None:
             return self._coerce_clamped_int(
                 script_value,
@@ -675,7 +658,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _current_dashboard_options(self) -> DashboardOptions:
         """Return the stored dashboard configuration."""
-
         raw = self._current_options().get("dashboard_settings", {})
         if isinstance(raw, Mapping):
             return cast(DashboardOptions, dict(raw))
@@ -683,7 +665,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     def _current_advanced_options(self) -> AdvancedOptions:
         """Return advanced configuration merged with root fallbacks."""
-
         options = self._current_options()
         raw = options.get(ADVANCED_SETTINGS_FIELD)
         source = (
@@ -702,7 +683,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
     @staticmethod
     def _coerce_bool(value: Any, default: bool) -> bool:
         """Return a boolean value using Home Assistant style truthiness rules."""
-
         if value is None:
             return default
         if isinstance(value, bool):
@@ -714,7 +694,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
     @staticmethod
     def _coerce_manual_event(value: Any) -> str | None:
         """Normalise manual event identifiers, returning ``None`` when disabled."""
-
         if isinstance(value, str):
             candidate = value.strip()
             if candidate:
@@ -724,7 +703,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
     @staticmethod
     def _coerce_int(value: Any, default: int) -> int:
         """Return an integer, falling back to the provided default on error."""
-
         if value is None:
             return default
         try:
@@ -735,7 +713,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
     @staticmethod
     def _coerce_time_string(value: Any, default: str) -> str:
         """Normalise selector values into Home Assistant time strings."""
-
         if value is None:
             return default
         if isinstance(value, str):
@@ -748,7 +725,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
     @staticmethod
     def _coerce_optional_float(value: Any, default: float | None) -> float | None:
         """Return a float or ``None`` when conversion fails."""
-
         if value is None:
             return default
         try:
@@ -765,7 +741,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         maximum: float,
     ) -> float:
         """Normalise numeric input and clamp it to an allowed range."""
-
         return clamp_float_range(
             value,
             field="options_float_range",
@@ -783,7 +758,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         maximum: int,
     ) -> int:
         """Normalise numeric selector input and clamp to an allowed range."""
-
         return clamp_int_range(
             value,
             field="options_int_range",
@@ -795,7 +769,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
     @staticmethod
     def _normalize_choice(value: Any, *, valid: set[str], default: str) -> str:
         """Return a validated selector choice, falling back to ``default``."""
-
         if isinstance(value, str):
             candidate = value.strip().lower()
             if candidate in valid:
@@ -814,7 +787,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         current: WeatherOptions,
     ) -> WeatherOptions:
         """Create a typed weather configuration payload from submitted data."""
-
         raw_entity = user_input.get("weather_entity")
         entity: str | None
         if isinstance(raw_entity, str):
@@ -903,7 +875,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         reset_default: str,
     ) -> tuple[SystemOptions, str]:
         """Create typed system settings and the reset time string."""
-
         retention = self._coerce_clamped_int(
             user_input.get("data_retention_days"),
             current.get("data_retention_days", 90),
@@ -1021,7 +992,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         default_mode: str,
     ) -> tuple[DashboardOptions, str]:
         """Create typed dashboard configuration and selected mode."""
-
         valid_modes = {option["value"] for option in DASHBOARD_MODE_SELECTOR_OPTIONS}
         mode = self._normalize_choice(
             user_input.get("dashboard_mode"),
@@ -1056,7 +1026,6 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         current: AdvancedOptions,
     ) -> AdvancedOptions:
         """Create typed advanced configuration metadata."""
-
         endpoint_raw = user_input.get(
             CONF_API_ENDPOINT,
             current.get(CONF_API_ENDPOINT, ""),

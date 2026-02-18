@@ -241,7 +241,6 @@ class GPSCache[LocationT: CachedGPSLocation]:
 
     def get_metadata(self) -> GPSCacheDiagnosticsMetadata:
         """Return metadata describing current cache contents."""
-
         metadata: GPSCacheDiagnosticsMetadata = {
             "cached_dogs": sorted(self._cache),
             "max_size": self._max_size,
@@ -253,7 +252,6 @@ class GPSCache[LocationT: CachedGPSLocation]:
 
     def coordinator_snapshot(self) -> GPSCacheSnapshot:
         """Return a telemetry snapshot suitable for diagnostics."""
-
         return GPSCacheSnapshot(stats=self.get_stats(), metadata=self.get_metadata())
 
 
@@ -278,7 +276,6 @@ class WalkSession:
 
     def as_dict(self) -> WalkSessionSnapshot:
         """Convert the session to a mutable dictionary."""
-
         start_location = (
             cast(WalkLocationSnapshot, dict(self.start_location))
             if self.start_location is not None
@@ -375,7 +372,6 @@ class WalkManager:
 
     def _update_dog_container(self, dog_id: str) -> None:
         """Ensure compatibility structure for tests and legacy callers."""
-
         container = self._dogs.setdefault(
             dog_id,
             {
@@ -598,7 +594,6 @@ class WalkManager:
         Returns:
             ``True`` when the GPS payload is accepted and stored.
         """
-
         return await self.async_update_gps_data(
             dog_id=dog_id,
             latitude=latitude,
@@ -841,7 +836,6 @@ class WalkManager:
         save_route: bool = True,
     ) -> WalkSessionSnapshot | None:
         """Finalize an active walk while the data lock is held."""
-
         if dog_id not in self._current_walks:
             _LOGGER.warning("No walk in progress for %s", dog_id)
             return None
@@ -976,7 +970,6 @@ class WalkManager:
         Returns:
             Completed walk data if successful, None otherwise
         """
-
         async with self._data_lock:
             return await self._finalize_walk_locked(
                 dog_id,
@@ -1492,7 +1485,6 @@ class WalkManager:
         limit: int | None = None,
     ) -> list[WalkSessionSnapshot]:
         """Return stored walk history synchronously for testing helpers."""
-
         history = self._walk_history.get(dog_id, [])
         if not history:
             return []
@@ -1505,13 +1497,11 @@ class WalkManager:
 
     def get_last_walk_info(self, dog_id: str) -> WalkSessionSnapshot | None:
         """Return the most recent walk if available."""
-
         history = self.get_walk_history(dog_id, limit=1)
         return history[0] if history else None
 
     def get_active_walk_info(self, dog_id: str) -> WalkSessionSnapshot | None:
         """Return details about the active walk."""
-
         container = self._dogs.get(dog_id)
         if container is None:
             return None
@@ -1534,7 +1524,6 @@ class WalkManager:
 
     def get_walk_data(self, dog_id: str) -> WalkOverviewSnapshot | None:
         """Return a snapshot of walk data for a dog."""
-
         if dog_id not in self._dogs:
             return None
         active_walk = self._dogs[dog_id].get("active_walk")
@@ -1569,7 +1558,6 @@ class WalkManager:
 
     def get_daily_walk_stats(self, dog_id: str) -> WalkDailyStatistics | None:
         """Return aggregated statistics for the current day."""
-
         stats = self._walk_data.get(dog_id)
         if stats is None:
             return None
@@ -1585,7 +1573,6 @@ class WalkManager:
 
     def get_weekly_walk_stats(self, dog_id: str) -> WalkWeeklyStatistics | None:
         """Return aggregated statistics for the current week."""
-
         stats = self._walk_data.get(dog_id)
         if stats is None:
             return None
@@ -1638,7 +1625,6 @@ class WalkManager:
     # Keep existing utility methods
     def _calculate_average_speed(self, walk_data: WalkSessionSnapshot) -> float | None:
         """Calculate average speed for a walk."""
-
         duration_raw = walk_data.get("duration")
         if not is_number(duration_raw):
             return None
@@ -1970,7 +1956,6 @@ class WalkManager:
         dog_id: str,
     ) -> str:
         """Generate GPX data with defensive error handling."""
-
         try:
             return self._render_enhanced_gpx_document(walks, dog_id)
         except Exception:  # pragma: no cover - defensive logging

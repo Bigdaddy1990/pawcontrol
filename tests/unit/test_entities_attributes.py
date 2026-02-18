@@ -82,7 +82,6 @@ class _AttributeEntity(PawControlDogEntityBase):
 @pytest.mark.asyncio
 async def test_entity_attributes_normalise_complex_types(hass) -> None:
     """Ensure entity attributes are normalized into JSON-serialisable values."""
-
     coordinator = _DummyCoordinator()
     entity = _AttributeEntity(
         cast(PawControlCoordinator, coordinator),
@@ -102,7 +101,6 @@ async def test_entity_attributes_normalise_complex_types(hass) -> None:
 @pytest.mark.asyncio
 async def test_garden_sensor_attributes_normalise_datetimes(hass) -> None:
     """Ensure garden attributes normalise datetime values."""
-
     coordinator = _DummyCoordinator()
     coordinator.data["dog-1"] = cast(
         CoordinatorDogData,
