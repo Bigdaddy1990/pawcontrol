@@ -83,23 +83,7 @@ jobs:
             --cov-report=xml \
             --junitxml=testreport.junit.xml
 
-      - name: Determine repository auto-fix eligibility
-        if: steps.initial_gate.outcome == 'failure'
-        id: repo_autofix_guard
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          AUTHOR_EMAIL="$(git log -1 --pretty=%ae)"
-          AUTHOR_NAME="$(git log -1 --pretty=%an)"
-          if [[ "$EVENT_NAME" == "push" && ("$AUTHOR_NAME" == *"[bot]"* || "$AUTHOR_EMAIL" == *"[bot]"*) ]]; then
-            echo "allow_autofix=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "allow_autofix=false" >> "$GITHUB_OUTPUT"
-            echo "Auto-fix disabled for this run (strict failure mode)."
-          fi
-
       - name: Apply repository auto-fixes
-        if: steps.initial_gate.outcome == 'failure' && steps.repo_autofix_guard.outputs.allow_autofix == 'true'
         run: |
           python -m scripts.homeassistant_push_guard --fix || true
           ruff check . --fix || true
@@ -112,7 +96,6 @@ jobs:
             --allowlist scripts/sync_localization_flags.allowlist || true
 
       - name: Commit and push repository auto-fixes
-        if: steps.initial_gate.outcome == 'failure' && steps.repo_autofix_guard.outputs.allow_autofix == 'true'
         run: |
           if git diff --quiet; then
             echo "No repository auto-fix changes generated."
@@ -125,7 +108,6 @@ jobs:
           git push
 
       - name: Re-run CI quality gate after fixes
-        if: steps.initial_gate.outcome == 'failure' && steps.repo_autofix_guard.outputs.allow_autofix == 'true'
         run: |
           set -e
           ruff check --output-format=github .
@@ -143,12 +125,6 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml \
             --junitxml=testreport.junit.xml
-
-      - name: Enforce strict failure when unresolved
-        if: steps.initial_gate.outcome == 'failure' && steps.repo_autofix_guard.outputs.allow_autofix != 'true'
-        run: |
-          echo "CI quality gate failed and auto-fix was not permitted for this run."
-          exit 0
 
       - name: Upload (test) coverage to Codecov
         if: ${{ !cancelled() }}
