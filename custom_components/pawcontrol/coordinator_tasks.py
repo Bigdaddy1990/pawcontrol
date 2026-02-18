@@ -1209,11 +1209,7 @@ def build_update_statistics(
     cache_metrics = coordinator._modules.cache_metrics()
     repair_summary = _fetch_cache_repair_summary(coordinator)
     reconfigure_summary = _fetch_reconfigure_summary(coordinator)
-    last_update_time = getattr(
-        coordinator,
-        "last_update_time",
-        getattr(coordinator, "last_update_success_time", None),
-    )
+    last_update_time = getattr(coordinator, "last_update_success_time", None)
     stats = coordinator._metrics.update_statistics(
         cache_entries=cache_metrics.entries,
         cache_hit_rate=cache_metrics.hit_rate,
@@ -1255,11 +1251,7 @@ def build_runtime_statistics(
     cache_metrics = coordinator._modules.cache_metrics()
     repair_summary = _fetch_cache_repair_summary(coordinator)
     reconfigure_summary = _fetch_reconfigure_summary(coordinator)
-    last_update_time = getattr(
-        coordinator,
-        "last_update_time",
-        getattr(coordinator, "last_update_success_time", None),
-    )
+    last_update_time = getattr(coordinator, "last_update_success_time", None)
     stats = coordinator._metrics.runtime_statistics(
         cache_metrics=cache_metrics,
         total_dogs=len(coordinator.registry),
@@ -1390,8 +1382,13 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
                 coordinator._metrics.consecutive_errors > 0
                 and coordinator.last_update_success
             ):
+                last_update_time = getattr(
+                    coordinator,
+                    "last_update_success_time",
+                    now,
+                )
                 hours_since_last_update = (
-                    now - (coordinator.last_update_time or now)
+                    now - last_update_time
                 ).total_seconds() / 3600
                 if hours_since_last_update > 1:
                     previous = coordinator._metrics.consecutive_errors
