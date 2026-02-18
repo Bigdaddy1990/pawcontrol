@@ -558,15 +558,6 @@ class PawControlCoordinator(
         return self.last_update_success and self._metrics.consecutive_errors < 5
 
     @property
-    def data(self) -> paw_types.CoordinatorDataPayload:
-        """Return the latest coordinator payload."""
-        return self._data
-
-    @data.setter
-    def data(self, value: paw_types.CoordinatorDataPayload) -> None:
-        self._data = value
-
-    @property
     def last_update_time(self) -> Any:
         """Backwards-compatible alias for Home Assistant update timestamps."""
         return getattr(self, "last_update_success_time", None)
