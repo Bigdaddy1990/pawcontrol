@@ -49,13 +49,13 @@ fix = true
 unsafe-fixes = true
 force-exclude = true
 exit-non-zero-on-fix= true
-output-format= "github ."
+output-format= "github"
 
 [tool.ruff.analyze]
 detect-string-imports = true
 direction = "dependencies"
 string-imports-min-dots = 2
-type-checking-imports = false
+type-checking-imports = true
 
 [tool.ruff.format]
 preview = true
