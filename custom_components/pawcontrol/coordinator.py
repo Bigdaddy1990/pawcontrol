@@ -68,6 +68,7 @@ RuntimeCycleInfo = coordinator_runtime.RuntimeCycleInfo
 __all__ = ["EntityBudgetSnapshot", "PawControlCoordinator", "RuntimeCycleInfo"]
 
 
+# Backwards-compatible re-export for tests and diagnostics monkeypatching.
 def collect_resilience_diagnostics(
     coordinator: PawControlCoordinator,
 ) -> paw_types.CoordinatorResilienceDiagnostics:
@@ -135,11 +136,6 @@ class PawControlCoordinator(
             config_entry=entry,
         )
         self.last_update_success = True
-        # NOTE: Do NOT set self.last_update_time — DataUpdateCoordinator provides
-        # ``last_update_success_time`` as the authoritative last-update timestamp.
-        # A custom ``last_update_time`` attribute set here would never be updated by
-        # the base class and would always remain None in performance snapshots.
-        # All callers should use ``getattr(coordinator, "last_update_success_time")``.
 
         # DataUpdateCoordinator initialises ``update_interval`` but MyPy cannot
         # determine the attribute on subclasses without an explicit assignment.
@@ -158,6 +154,9 @@ class PawControlCoordinator(
         self._data: paw_types.CoordinatorDataPayload = {
             dog_id: self.registry.empty_payload() for dog_id in self.registry.ids()
         }
+        # Keep ``data`` populated for callers/tests that inspect the payload before
+        # the first scheduled refresh cycle.
+        self.data = dict(self._data)
         self._metrics = coordinator_support.CoordinatorMetrics()
         self._entity_budget = coordinator_observability.EntityBudgetTracker()
         self._setup_complete = False
@@ -337,6 +336,9 @@ class PawControlCoordinator(
             )
 
         self._data = data
+        # Keep the public coordinator payload in sync for direct-call tests and
+        # diagnostics code paths that inspect ``coordinator.data``.
+        self.data = data
         # BUG FIX: Do NOT call async_set_updated_data here.
         # DataUpdateCoordinator._async_refresh already sets self.data from the
         # return value of _async_update_data and notifies all listeners.

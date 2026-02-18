@@ -618,7 +618,14 @@ def record_maintenance_result(
         history = []
         store["maintenance_results"] = history
 
-    # Backward-compatibility alias used by existing diagnostics/tests.
+    legacy_history = store.get("maintenance_history")
+    if isinstance(legacy_history, list):
+        # Merge legacy history into maintenance_results to avoid dropping
+        # events when both keys are present during migration.
+        history.extend(item for item in legacy_history if item not in history)
+
+    # Keep both keys pointing at the same list during the compatibility window.
+    store["maintenance_results"] = history
     store["maintenance_history"] = history
 
     entry: dict[str, Any] = {
