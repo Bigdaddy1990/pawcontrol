@@ -419,9 +419,7 @@ async def _async_monitor_background_tasks(runtime_data: PawControlRuntimeData) -
                     and garden_manager._stats_update_task.done()
                 ):
                     _LOGGER.warning(
-                        
-"Garden manager stats update task has stopped; attempting restart",
-
+                        "Garden manager stats update task has stopped; attempting restart",
                     )
                     restart_fn = getattr(
                         garden_manager, "async_start_stats_update_task", None
