@@ -157,6 +157,9 @@ jobs:
           python -m scripts.enforce_test_requirements
           python -m scripts.sync_localization_flags
 
+      - name: Enforce Home Assistant push guard (reusable)
+        run: python -m scripts.homeassistant_push_guard --check
+
       - name: Initial reusable test gate
         id: initial_gate
         continue-on-error: true
@@ -164,7 +167,6 @@ jobs:
           PYTHONPATH: .
         run: |
           set -e
-          python -m scripts.homeassistant_push_guard --check
           ruff check --output-format=github .
           python -m pytest \
             --cov=custom_components/pawcontrol \
