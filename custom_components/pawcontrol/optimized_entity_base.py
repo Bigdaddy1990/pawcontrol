@@ -75,11 +75,11 @@ from .utils import (
     JSONMappingLike,
     JSONMutableMapping,
     PawControlDeviceLinkMixin,
-    _coerce_json_mutable,
     async_call_add_entities,
     ensure_utc_datetime,
     normalize_value,
 )
+from .utils._legacy import _coerce_json_mutable
 
 _LOGGER = logging.getLogger(__name__)
 
