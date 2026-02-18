@@ -32,7 +32,6 @@ repos:
         additional_dependencies:
           - types-pyyaml
         types: [python]
-        exclude: ^testing/resources/
 
   - repo: https://github.com/JelleZijlstra/autotyping
     rev: 24.9.0
@@ -51,6 +50,7 @@ repos:
           - --show-fixes
           - --unsafe-fixes
           - --exit-non-zero-on-fix
+          - --ALL
         types_or:
           - python
           - pyi
