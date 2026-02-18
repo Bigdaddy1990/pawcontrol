@@ -150,9 +150,6 @@ class PawControlCoordinator(
         self._data: paw_types.CoordinatorDataPayload = {
             dog_id: self.registry.empty_payload() for dog_id in self.registry.ids()
         }
-        # Keep ``data`` populated for callers/tests that inspect the payload before
-        # the first scheduled refresh cycle.
-        self.data = dict(self._data)
         self._metrics = coordinator_support.CoordinatorMetrics()
         self._entity_budget = coordinator_observability.EntityBudgetTracker()
         self._setup_complete = False
