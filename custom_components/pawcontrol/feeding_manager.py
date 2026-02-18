@@ -1629,7 +1629,7 @@ class FeedingManager:
                 return time(int(parts[0]), int(parts[1]))
             if len(parts) == 3:
                 return time(int(parts[0]), int(parts[1]), int(parts[2]))
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             # BUG FIX: Python 2 `except A, B:` is a SyntaxError in Python 3.
             # The correct multi-exception form is `except (A, B):`.
             _LOGGER.warning("Failed to parse time: %s", time_str)
@@ -2360,7 +2360,7 @@ class FeedingManager:
             if daily_calorie_target:
                 try:
                     progress = (total_calories_today / daily_calorie_target) * 100
-                except (TypeError, ZeroDivisionError):
+                except TypeError, ZeroDivisionError:
                     # BUG FIX: Python 2 `except A, B:` → Python 3 `except (A, B):`
                     calorie_goal_progress = 0.0
                 else:
@@ -2436,7 +2436,7 @@ class FeedingManager:
                             0.0,
                             min(100.0, 100.0 - (diff / max(ideal, 1.0)) * 100.0),
                         )
-                except (TypeError, ZeroDivisionError):
+                except TypeError, ZeroDivisionError:
                     # BUG FIX: Python 2 `except A, B:` → Python 3 `except (A, B):`
                     weight_goal_progress = None
         emergency_mode: FeedingEmergencyState | None = None
@@ -2489,7 +2489,7 @@ class FeedingManager:
         elif total_calories_today is not None and daily_calorie_target:
             try:
                 ratio = total_calories_today / daily_calorie_target
-            except (TypeError, ZeroDivisionError):
+            except TypeError, ZeroDivisionError:
                 # BUG FIX: Python 2 `except A, B:` → Python 3 `except (A, B):`
                 health_status = "unknown"
             else:

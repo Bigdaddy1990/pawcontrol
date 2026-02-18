@@ -877,7 +877,7 @@ class PawControlScriptManager:
 
         try:
             automation_entries = entries_callable("automation")
-        except (AttributeError, TypeError, KeyError):
+        except AttributeError, TypeError, KeyError:
             automation_entries = []
         _register_listener(system_guard, "guard", "system_options")
         _register_listener(system_breaker, "breaker", "system_options")

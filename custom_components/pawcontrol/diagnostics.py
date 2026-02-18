@@ -185,7 +185,7 @@ try:
         "async_get_translations",
         None,
     )
-except (ModuleNotFoundError, AttributeError):
+except ModuleNotFoundError, AttributeError:
     _ASYNC_GET_TRANSLATIONS = None
 
 

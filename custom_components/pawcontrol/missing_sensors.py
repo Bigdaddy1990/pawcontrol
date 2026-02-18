@@ -124,7 +124,7 @@ def calculate_activity_level(
             calculated_index = activity_levels.index(calculated_level)
             return activity_levels[max(health_index, calculated_index)]
         return calculated_level
-    except (TypeError, ValueError, IndexError):
+    except TypeError, ValueError, IndexError:
         return "unknown"
 
 
@@ -211,7 +211,7 @@ def derive_next_feeding_time(
             return None
         next_feeding_dt = last_feeding_dt + timedelta(hours=hours_between_meals)
         return next_feeding_dt.strftime("%H:%M")
-    except (TypeError, ValueError, ZeroDivisionError):
+    except TypeError, ValueError, ZeroDivisionError:
         return None
 
 
