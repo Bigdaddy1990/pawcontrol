@@ -618,6 +618,9 @@ def record_maintenance_result(
         history = []
         store["maintenance_results"] = history
 
+    # Backward-compatibility alias used by existing diagnostics/tests.
+    store["maintenance_history"] = history
+
     entry: dict[str, Any] = {
         "task": task,
         "status": status,
@@ -627,13 +630,19 @@ def record_maintenance_result(
     if message is not None:
         entry["message"] = message
 
-    diagnostics_payload: dict[str, Any] = {}
     if diagnostics is not None:
-        diagnostics_payload["cache"] = diagnostics
+        entry["diagnostics"] = (
+            dict(diagnostics) if isinstance(diagnostics, Mapping) else diagnostics
+        )
     if metadata is not None:
-        diagnostics_payload["metadata"] = dict(metadata)
-    if diagnostics_payload:
-        entry["diagnostics"] = diagnostics_payload
+        serialised_metadata = dict(metadata)
+        entry["metadata"] = serialised_metadata
+        if (
+            task != "coordinator_maintenance"
+            and isinstance(entry.get("diagnostics"), dict)
+            and "metadata" not in entry["diagnostics"]
+        ):
+            entry["diagnostics"]["metadata"] = serialised_metadata
 
     if details is not None:
         entry["details"] = dict(details)

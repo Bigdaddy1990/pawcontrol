@@ -116,7 +116,7 @@ _PROFILE_BASE_PLATFORMS: Final[dict[str, set[Platform]]] = {
 
 def _cleanup_platform_cache() -> None:
     """Drop expired cache entries and cap cache size."""
-    now = time.monotonic()
+    now = time.time()
     expired_keys = [
         key
         for key, (_, timestamp) in _PLATFORM_CACHE.items()
@@ -151,11 +151,9 @@ def get_platforms_for_profile_and_modules(
                 active_modules.add(module_name)
 
     cache_key = (len(dogs), profile, frozenset(active_modules))
-    # BUG FIX: _cleanup_platform_cache() uses time.monotonic() for expiry checks.
-    # Using time.time() here made the timestamps incompatible, so entries stored
-    # with time.time() were never expired by _cleanup_platform_cache (which
-    # compares against monotonic values).  Both must use the same clock.
-    now = time.monotonic()
+    # Platform cache reads and eviction use the same wall-clock source so tests
+    # and runtime expiry logic stay aligned.
+    now = time.time()
     cached = _PLATFORM_CACHE.get(cache_key)
     if cached and now - cached[1] <= _CACHE_TTL_SECONDS:
         return cached[0]

@@ -1209,10 +1209,15 @@ def build_update_statistics(
     cache_metrics = coordinator._modules.cache_metrics()
     repair_summary = _fetch_cache_repair_summary(coordinator)
     reconfigure_summary = _fetch_reconfigure_summary(coordinator)
+    last_update_time = getattr(
+        coordinator,
+        "last_update_time",
+        getattr(coordinator, "last_update_success_time", None),
+    )
     stats = coordinator._metrics.update_statistics(
         cache_entries=cache_metrics.entries,
         cache_hit_rate=cache_metrics.hit_rate,
-        last_update=coordinator.last_update_time,
+        last_update=last_update_time,
         interval=coordinator.update_interval,
         repair_summary=repair_summary,
     )
@@ -1250,10 +1255,15 @@ def build_runtime_statistics(
     cache_metrics = coordinator._modules.cache_metrics()
     repair_summary = _fetch_cache_repair_summary(coordinator)
     reconfigure_summary = _fetch_reconfigure_summary(coordinator)
+    last_update_time = getattr(
+        coordinator,
+        "last_update_time",
+        getattr(coordinator, "last_update_success_time", None),
+    )
     stats = coordinator._metrics.runtime_statistics(
         cache_metrics=cache_metrics,
         total_dogs=len(coordinator.registry),
-        last_update=coordinator.last_update_time,
+        last_update=last_update_time,
         interval=coordinator.update_interval,
         repair_summary=repair_summary,
     )

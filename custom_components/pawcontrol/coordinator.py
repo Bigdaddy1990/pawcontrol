@@ -68,6 +68,13 @@ RuntimeCycleInfo = coordinator_runtime.RuntimeCycleInfo
 __all__ = ["EntityBudgetSnapshot", "PawControlCoordinator", "RuntimeCycleInfo"]
 
 
+def collect_resilience_diagnostics(
+    coordinator: PawControlCoordinator,
+) -> paw_types.CoordinatorResilienceDiagnostics:
+    """Compatibility wrapper for resilience diagnostics collection."""
+    return coordinator_tasks.collect_resilience_diagnostics(coordinator)
+
+
 class PawControlCoordinator(
     CoordinatorDataAccessMixin,
     DataUpdateCoordinator[paw_types.CoordinatorDataPayload],
@@ -555,6 +562,24 @@ class PawControlCoordinator(
         """Return True if the coordinator considers itself healthy."""
         return self.last_update_success and self._metrics.consecutive_errors < 5
 
+    @property
+    def data(self) -> paw_types.CoordinatorDataPayload:
+        """Return the latest coordinator payload."""
+        return self._data
+
+    @data.setter
+    def data(self, value: paw_types.CoordinatorDataPayload) -> None:
+        self._data = value
+
+    @property
+    def last_update_time(self) -> Any:
+        """Backwards-compatible alias for Home Assistant update timestamps."""
+        return getattr(self, "last_update_success_time", None)
+
+    @last_update_time.setter
+    def last_update_time(self, value: Any) -> None:
+        self.last_update_success_time = value
+
     def get_update_statistics(self) -> paw_types.CoordinatorStatisticsPayload:
         """Return statistics for the most recent update cycle."""
         return coordinator_tasks.build_update_statistics(self)
@@ -584,7 +609,7 @@ class PawControlCoordinator(
         # attribute was never updated after init and always returned None.
         last_update_time = getattr(self, "last_update_success_time", None)
 
-        resilience = coordinator_tasks.collect_resilience_diagnostics(self)
+        resilience = collect_resilience_diagnostics(self)
 
         base_snapshot = coordinator_observability.build_performance_snapshot(
             metrics=self._metrics,
