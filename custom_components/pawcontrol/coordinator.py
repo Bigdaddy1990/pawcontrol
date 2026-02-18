@@ -67,9 +67,6 @@ RuntimeCycleInfo = coordinator_runtime.RuntimeCycleInfo
 
 __all__ = ["EntityBudgetSnapshot", "PawControlCoordinator", "RuntimeCycleInfo"]
 
-# Backwards-compatible re-export for tests and diagnostics monkeypatching.
-collect_resilience_diagnostics = coordinator_tasks.collect_resilience_diagnostics
-
 
 def collect_resilience_diagnostics(
     coordinator: PawControlCoordinator,
