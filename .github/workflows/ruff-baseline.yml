@@ -1,7 +1,7 @@
 # .github/workflows/ruff-baseline.yml
 name: Ruff baseline (web only)
 on: { workflow_dispatch: {} }
-permissions: { contents: write, pull-requests: write }
+permissions: { contents: write, pull-requests: write, actions: write}
 env:
   PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.14' }}
 jobs:
@@ -19,23 +19,22 @@ jobs:
       - uses: actions/setup-python@v6.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - run: python -m pip install --upgrade pip ruff prek pyupgrade flake8-type-checking
+      - run: python -m pip install --upgrade pip ruff pre-commit
 
       - run: |
-
           ruff check . --fix || true
           ruff check . --fix --unsafe-fixes || true
           ruff check . --extend-select RUF100 --fix || true
           ruff check . --output-format=github || true
           ruff format
+          pre-commit run --all-files || true
+          pre-commit run --hook-stage manual python-typing-update --all-files || true
           python scripts/enforce_docstring_baseline.py --update
           python scripts.sync_contributor_guides.py --update
           python scripts.enforce_test_requirements.py --update
           python scripts.sync_localization_flags.py \
             --allowlist scripts/sync_localization_flags.allowlist \
             --check
-          pre-commit run --all-files || true
-          pre-commit run --hook-stage manual python-typing-update --all-files || true
 
       - uses: peter-evans/create-pull-request@v8
         with:
