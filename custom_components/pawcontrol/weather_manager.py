@@ -537,7 +537,14 @@ class WeatherHealthManager:
                 return resolved
             try:
                 return resolved.format(**kwargs)
-            except (KeyError, ValueError) as err:
+            except KeyError as err:
+                _LOGGER.debug(
+                    "Translation formatting failed for %s: %s",
+                    key,
+                    err,
+                )
+
+            except ValueError as err:
                 _LOGGER.debug(
                     "Translation formatting failed for %s: %s",
                     key,
@@ -564,7 +571,10 @@ class WeatherHealthManager:
             return original_key
         try:
             return resolved.format(**kwargs) if kwargs else resolved
-        except KeyError, ValueError:
+        except KeyError:
+            return resolved
+
+        except ValueError:
             return resolved
 
     @staticmethod

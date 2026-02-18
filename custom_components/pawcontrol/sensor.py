@@ -1342,7 +1342,23 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
                 if score is not None:
                     weighted_sum += score * 0.4
                     total_weight += 0.4
-            except (TypeError, ValueError, KeyError) as err:
+            except TypeError as err:
+                _LOGGER.debug(
+                    "Activity score calculation error for %s module %s: %s",
+                    self._dog_id,
+                    "walk",
+                    err,
+                )
+
+            except ValueError as err:
+                _LOGGER.debug(
+                    "Activity score calculation error for %s module %s: %s",
+                    self._dog_id,
+                    "walk",
+                    err,
+                )
+
+            except KeyError as err:
                 _LOGGER.debug(
                     "Activity score calculation error for %s module %s: %s",
                     self._dog_id,
@@ -1359,7 +1375,23 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
                 if score is not None:
                     weighted_sum += score * 0.2
                     total_weight += 0.2
-            except (TypeError, ValueError, KeyError) as err:
+            except TypeError as err:
+                _LOGGER.debug(
+                    "Activity score calculation error for %s module %s: %s",
+                    self._dog_id,
+                    "feeding",
+                    err,
+                )
+
+            except ValueError as err:
+                _LOGGER.debug(
+                    "Activity score calculation error for %s module %s: %s",
+                    self._dog_id,
+                    "feeding",
+                    err,
+                )
+
+            except KeyError as err:
                 _LOGGER.debug(
                     "Activity score calculation error for %s module %s: %s",
                     self._dog_id,
@@ -1376,7 +1408,23 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
                 if score is not None:
                     weighted_sum += score * 0.25
                     total_weight += 0.25
-            except (TypeError, ValueError, KeyError) as err:
+            except TypeError as err:
+                _LOGGER.debug(
+                    "Activity score calculation error for %s module %s: %s",
+                    self._dog_id,
+                    "gps",
+                    err,
+                )
+
+            except ValueError as err:
+                _LOGGER.debug(
+                    "Activity score calculation error for %s module %s: %s",
+                    self._dog_id,
+                    "gps",
+                    err,
+                )
+
+            except KeyError as err:
                 _LOGGER.debug(
                     "Activity score calculation error for %s module %s: %s",
                     self._dog_id,
@@ -1393,7 +1441,23 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
                 if score is not None:
                     weighted_sum += score * 0.15
                     total_weight += 0.15
-            except (TypeError, ValueError, KeyError) as err:
+            except TypeError as err:
+                _LOGGER.debug(
+                    "Activity score calculation error for %s module %s: %s",
+                    self._dog_id,
+                    "health",
+                    err,
+                )
+
+            except ValueError as err:
+                _LOGGER.debug(
+                    "Activity score calculation error for %s module %s: %s",
+                    self._dog_id,
+                    "health",
+                    err,
+                )
+
+            except KeyError as err:
                 _LOGGER.debug(
                     "Activity score calculation error for %s module %s: %s",
                     self._dog_id,
@@ -1567,7 +1631,17 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
             if activity_score > 0:
                 return "low"
             return "inactive"
-        except (TypeError, ValueError) as err:
+        except TypeError as err:
+            _LOGGER.debug(
+                "Error calculating activity level for %s: %s",
+                self._dog_id,
+                err,
+            )
+            if isinstance(activity_state, str) and activity_state:
+                return activity_state
+            return _STATE_UNKNOWN
+
+        except ValueError as err:
             _LOGGER.debug(
                 "Error calculating activity level for %s: %s",
                 self._dog_id,
@@ -2100,7 +2174,15 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
             time_delta: timedelta = now - last_feeding_dt
             hours_since = time_delta.total_seconds() / 3600
             return round(hours_since, 1)
-        except (TypeError, ValueError) as err:
+        except TypeError as err:
+            _LOGGER.debug(
+                "Error calculating hours since last feeding for %s: %s",
+                self._dog_id,
+                err,
+            )
+            return None
+
+        except ValueError as err:
             _LOGGER.debug(
                 "Error calculating hours since last feeding for %s: %s",
                 self._dog_id,
@@ -2173,7 +2255,13 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
             hours_between_meals = 24 / meals_per_day
             next_feeding = last_feeding + timedelta(hours=hours_between_meals)
             return next_feeding.isoformat()
-        except TypeError, ValueError, KeyError:
+        except TypeError:
+            return None
+
+        except ValueError:
+            return None
+
+        except KeyError:
             return None
 
 
@@ -2334,7 +2422,11 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
             if meals_per_day > 0:
                 return round(daily_amount / meals_per_day, 1)
 
-        except TypeError, ValueError, ZeroDivisionError:
+        except TypeError:
+            pass
+        except ValueError:
+            pass
+        except ZeroDivisionError:
             pass
         return None
 
@@ -2827,7 +2919,13 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
             progress = (calories_consumed / calorie_target) * 100
             # Cap at 150% to show overfeeding
             return round(min(progress, 150.0), 1)
-        except TypeError, ValueError, ZeroDivisionError:
+        except TypeError:
+            return 0.0
+
+        except ValueError:
+            return 0.0
+
+        except ZeroDivisionError:
             return 0.0
 
     @property
@@ -3483,7 +3581,15 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 
             # Calculate based on walk activity
             return self._calculate_calories_from_activity(walk_data)
-        except (TypeError, ValueError) as err:
+        except TypeError as err:
+            _LOGGER.debug(
+                "Error calculating calories burned for %s: %s",
+                self._dog_id,
+                err,
+            )
+            return 0.0
+
+        except ValueError as err:
             _LOGGER.debug(
                 "Error calculating calories burned for %s: %s",
                 self._dog_id,
@@ -3547,7 +3653,13 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                 base_calories *= intensity_factor
 
             return round(base_calories, 1)
-        except TypeError, ValueError, ZeroDivisionError:
+        except TypeError:
+            return 0.0
+
+        except ValueError:
+            return 0.0
+
+        except ZeroDivisionError:
             return 0.0
 
     @property
@@ -3650,7 +3762,15 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
                 2,
             )  # Convert to km
 
-        except (TypeError, ValueError) as err:
+        except TypeError as err:
+            _LOGGER.debug(
+                "Error calculating total walk distance for %s: %s",
+                self._dog_id,
+                err,
+            )
+            return 0.0
+
+        except ValueError as err:
             _LOGGER.debug(
                 "Error calculating total walk distance for %s: %s",
                 self._dog_id,
@@ -3742,7 +3862,15 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
 
             # Fallback: calculate from daily data if available
             return self._calculate_walks_this_week(walk_data)
-        except (TypeError, ValueError) as err:
+        except TypeError as err:
+            _LOGGER.debug(
+                "Error calculating walks this week for %s: %s",
+                self._dog_id,
+                err,
+            )
+            return 0
+
+        except ValueError as err:
             _LOGGER.debug(
                 "Error calculating walks this week for %s: %s",
                 self._dog_id,
@@ -3773,7 +3901,13 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
 
             # Fallback: just return today's count (limited info)
             return walks_today
-        except TypeError, ValueError, KeyError:
+        except TypeError:
+            return 0
+
+        except ValueError:
+            return 0
+
+        except KeyError:
             return 0
 
     @property

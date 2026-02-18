@@ -1629,9 +1629,11 @@ class FeedingManager:
                 return time(int(parts[0]), int(parts[1]))
             if len(parts) == 3:
                 return time(int(parts[0]), int(parts[1]), int(parts[2]))
-        except ValueError, AttributeError:
-            # BUG FIX: Python 2 `except A, B:` is a SyntaxError in Python 3.
-            # The correct multi-exception form is `except (A, B):`.
+        except ValueError:
+            # Python 3 compatibility: handle each parse error explicitly.
+            _LOGGER.warning("Failed to parse time: %s", time_str)
+        except AttributeError:
+            # Python 3 compatibility: handle each parse error explicitly.
             _LOGGER.warning("Failed to parse time: %s", time_str)
         return None
 
@@ -2360,8 +2362,11 @@ class FeedingManager:
             if daily_calorie_target:
                 try:
                     progress = (total_calories_today / daily_calorie_target) * 100
-                except TypeError, ZeroDivisionError:
-                    # BUG FIX: Python 2 `except A, B:` → Python 3 `except (A, B):`
+                except TypeError:
+                    # Python 3 compatibility: explicit per-exception handlers.
+                    calorie_goal_progress = 0.0
+                except ZeroDivisionError:
+                    # Python 3 compatibility: explicit per-exception handlers.
                     calorie_goal_progress = 0.0
                 else:
                     calorie_goal_progress = round(min(progress, 150.0), 1)
@@ -2436,8 +2441,11 @@ class FeedingManager:
                             0.0,
                             min(100.0, 100.0 - (diff / max(ideal, 1.0)) * 100.0),
                         )
-                except TypeError, ZeroDivisionError:
-                    # BUG FIX: Python 2 `except A, B:` → Python 3 `except (A, B):`
+                except TypeError:
+                    # Python 3 compatibility: explicit per-exception handlers.
+                    weight_goal_progress = None
+                except ZeroDivisionError:
+                    # Python 3 compatibility: explicit per-exception handlers.
                     weight_goal_progress = None
         emergency_mode: FeedingEmergencyState | None = None
         health_emergency = False
@@ -2489,8 +2497,11 @@ class FeedingManager:
         elif total_calories_today is not None and daily_calorie_target:
             try:
                 ratio = total_calories_today / daily_calorie_target
-            except TypeError, ZeroDivisionError:
-                # BUG FIX: Python 2 `except A, B:` → Python 3 `except (A, B):`
+            except TypeError:
+                # Python 3 compatibility: explicit per-exception handlers.
+                health_status = "unknown"
+            except ZeroDivisionError:
+                # Python 3 compatibility: explicit per-exception handlers.
                 health_status = "unknown"
             else:
                 if ratio < 0.85:
@@ -2882,7 +2893,15 @@ class FeedingManager:
                     meal_type_enum,
                     _normalise_health_override(health_data),
                 )
-            except (ValueError, Exception) as err:
+            except ValueError as err:
+                _LOGGER.warning(
+                    "Health-aware portion calculation failed for %s: %s",
+                    dog_id,
+                    err,
+                )
+                return None
+
+            except Exception as err:
                 _LOGGER.warning(
                     "Health-aware portion calculation failed for %s: %s",
                     dog_id,
@@ -3475,7 +3494,12 @@ class FeedingManager:
                 from .health_calculator import ActivityLevel
 
                 activity_enum = ActivityLevel(activity_level)
-            except (ImportError, ValueError) as err:
+            except ImportError as err:
+                raise ValueError(
+                    f"Invalid activity level '{activity_level}'",
+                ) from err
+
+            except ValueError as err:
                 raise ValueError(
                     f"Invalid activity level '{activity_level}'",
                 ) from err

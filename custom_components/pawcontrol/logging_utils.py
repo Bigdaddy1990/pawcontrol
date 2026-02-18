@@ -177,7 +177,9 @@ class StructuredLogger:
             # ``_LOGGER.debug("foo %s", bar)`` continue to work.
             try:
                 formatted = message % args + suffix
-            except TypeError, ValueError:
+            except TypeError:
+                formatted = str(message) + str(args) + suffix
+            except ValueError:
                 formatted = str(message) + str(args) + suffix
         else:
             formatted = message + suffix

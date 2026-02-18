@@ -55,7 +55,10 @@ def _import_optional(module_name: str) -> ModuleType | None:
     """Import a module when available, returning ``None`` in fallback mode."""
     try:
         return __import__(module_name, fromlist=["*"])
-    except ImportError, ModuleNotFoundError:
+    except ImportError:
+        return None
+
+    except ModuleNotFoundError:
         return None
 
 
