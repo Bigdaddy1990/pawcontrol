@@ -124,9 +124,7 @@ def _cleanup_platform_cache() -> None:
         # Unix wall-clock timestamps are currently ~1.7 billion while monotonic
         # clocks are usually much smaller process-relative counters.
         reference = (
-            now_wall
-            if timestamp > _WALL_CLOCK_HEURISTIC_THRESHOLD
-            else now_monotonic
+            now_wall if timestamp > _WALL_CLOCK_HEURISTIC_THRESHOLD else now_monotonic
         )
         return reference - timestamp > _CACHE_TTL_SECONDS
 
