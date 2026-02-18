@@ -48,6 +48,8 @@ show-fixes = true
 fix = true
 unsafe-fixes = true
 force-exclude = true
+exit-non-zero-on-fix= true
+output-format= "github ."
 
 [tool.ruff.analyze]
 detect-string-imports = true
@@ -69,8 +71,8 @@ preview = true
 select = ["E", "F", "I", "UP", "B", "SIM", "Q"]
 ignore = []
 fixable = ["ALL"]
-unfixable = ["F401", "E501"]
-extend-unsafe-fixes = ["E", "F401", "E501"]
+unfixable = ["F401"]
+extend-unsafe-fixes = ["E", "F401"]
 future-annotations = true
 
 [tool.ruff.lint.per-file-ignores]
