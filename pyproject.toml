@@ -76,10 +76,10 @@ future-annotations = true
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403", "E402"]
-"tests/**" = ["E402", "F401", "D"]
-"scripts/**" = ["E402", "F401", "D"]
+"tests/**" = ["E402", "F401", "D100", "D103"]
+"scripts/**" = ["E402", "F401", "D100", "D103"]
 "tests/**/*.py" = ["E111"]
-"pytest_*/**" = ["D"]
+"pytest_*/**" = ["D100", "D103"]
 "custom_components/pawcontrol/compat.py" = ["D107"]
 "custom_components/pawcontrol/validation.py" = ["D107"]
 "custom_components/pawcontrol/sensor.py" = ["D102", "D107"]
