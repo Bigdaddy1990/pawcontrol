@@ -25,13 +25,10 @@ from .const import (
     MAX_DOG_NAME_LENGTH,
     MIN_DOG_NAME_LENGTH,
 )
+from .exceptions import ValidationError as PawControlValidationError
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
-
-
-class PawControlValidationError(ServiceValidationError):  # type: ignore[misc]
-    """Base validation error for PawControl."""
 
 
 ValidationError = PawControlValidationError
@@ -1371,7 +1368,7 @@ class InputValidator:
         required: bool = True,
         field: str = "radius",
         min_value: float = MIN_GEOFENCE_RADIUS,
-        max_value: float = MAX_GEOFENCE_RADIUS,
+        max_value: float = 5000.0,
     ) -> float | None:
         """Validate geofence radius in meters.
 
