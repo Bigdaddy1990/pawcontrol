@@ -412,7 +412,15 @@ class MealSchedule:
         if scheduled <= now:
             scheduled += timedelta(days=1)
         if self.days_of_week is not None:
-            while scheduled.weekday() not in self.days_of_week:
+            # Guard: an empty days_of_week list means "no valid day" — without
+            # this check the while-loop would run forever.
+            if not self.days_of_week:
+                return scheduled
+            # Cap at 8 iterations (a full week + 1) to prevent an infinite loop
+            # if days_of_week somehow contains no valid weekday index.
+            for _ in range(8):
+                if scheduled.weekday() in self.days_of_week:
+                    break
                 scheduled += timedelta(days=1)
 
         return scheduled
@@ -735,8 +743,14 @@ class FeedingConfig:
         )  # Max 60% of daily amount (100% if single meal)
         portion = max(min_portion, min(portion, max_portion))
 
-        # Ensure minimum nutrition thresholds after safety limits
-        portion = max(portion, MINIMUM_NUTRITION_PORTION_G)
+        # FIX B6: Apply MINIMUM_NUTRITION_PORTION_G only for primary meals
+        # (breakfast / lunch / dinner).  Treats and supplements are intentionally
+        # small; forcing them to 50+ grams violates the safety factors defined
+        # by MIN_PORTION_SAFETY_FACTOR and is especially dangerous for toy/small
+        # breeds where 50 g could exceed the entire daily ration.
+        _NON_MEAL_TYPES = frozenset({MealType.TREAT, MealType.SUPPLEMENT})
+        if meal_type not in _NON_MEAL_TYPES:
+            portion = max(portion, MINIMUM_NUTRITION_PORTION_G)
 
         # Log diet validation adjustments if applied
         if self.diet_validation:

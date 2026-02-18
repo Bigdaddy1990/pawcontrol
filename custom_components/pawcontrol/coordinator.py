@@ -61,8 +61,8 @@ GARDEN_MODULE_FIELD: Final[Literal["garden"]] = cast(
     MODULE_GARDEN,
 )
 
-CACHE_TTL_SECONDS = 300
-MAINTENANCE_INTERVAL = timedelta(hours=1)
+CACHE_TTL_SECONDS: Final[int] = 300
+MAINTENANCE_INTERVAL: Final[timedelta] = timedelta(hours=1)
 
 EntityBudgetSnapshot = coordinator_runtime.EntityBudgetSnapshot
 RuntimeCycleInfo = coordinator_runtime.RuntimeCycleInfo
@@ -130,7 +130,11 @@ class PawControlCoordinator(
             config_entry=entry,
         )
         self.last_update_success = True
-        self.last_update_time = None
+        # NOTE: Do NOT set self.last_update_time — DataUpdateCoordinator provides
+        # ``last_update_success_time`` as the authoritative last-update timestamp.
+        # A custom ``last_update_time`` attribute set here would never be updated by
+        # the base class and would always remain None in performance snapshots.
+        # All callers should use ``getattr(coordinator, "last_update_success_time")``.
 
         # DataUpdateCoordinator initialises ``update_interval`` but MyPy cannot
         # determine the attribute on subclasses without an explicit assignment.
@@ -591,7 +595,9 @@ class PawControlCoordinator(
         update_interval = (
             self.update_interval.total_seconds() if self.update_interval else 0.0
         )
-        last_update_time = getattr(self, "last_update_time", None)
+        # Use HA's native last_update_success_time — the custom last_update_time
+        # attribute was never updated after init and always returned None.
+        last_update_time = getattr(self, "last_update_success_time", None)
 
         resilience = coordinator_tasks.collect_resilience_diagnostics(self)
 

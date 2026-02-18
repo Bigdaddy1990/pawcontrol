@@ -136,6 +136,17 @@ _LIST_REMOVE_DIRECTIVE = "__pc_merge_remove__"
 # PLATINUM: Enhanced timeouts for robust operations
 NETWORK_OPERATION_TIMEOUT = 10.0
 
+# Pre-compiled discovery patterns for O(n) matching without per-call re.compile().
+_SUPPORTED_DEVICE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"tractive-.*",
+        r"petnet-.*",
+        r"whistle-.*",
+        r"paw-control-.*",
+    )
+)
+
 
 class PawControlConfigFlow(
     DiscoveryFlowMixin,
@@ -436,6 +447,10 @@ class PawControlConfigFlow(
                 }
                 return result
 
+            except (ValidationError, ConfigurationError):
+                # Re-raise domain exceptions without wrapping — the outer except
+                # clause below must not re-catch and double-wrap these.
+                raise
             except Exception as err:
                 raise ValidationError(
                     "import_configuration",
@@ -456,17 +471,8 @@ class PawControlConfigFlow(
         Returns:
             True if device is supported
         """
-        # Check for known device patterns
-        supported_patterns = [
-            r"tractive-.*",
-            r"petnet-.*",
-            r"whistle-.*",
-            r"paw-control-.*",
-        ]
-
-        return any(
-            re.match(pattern, hostname, re.IGNORECASE) for pattern in supported_patterns
-        )
+        # Use module-level pre-compiled patterns for performance.
+        return any(p.match(hostname) for p in _SUPPORTED_DEVICE_PATTERNS)
 
     def _extract_device_id(
         self,

@@ -392,27 +392,44 @@ async def _async_monitor_background_tasks(runtime_data: PawControlRuntimeData) -
             if hasattr(runtime_data, "garden_manager") and runtime_data.garden_manager:
                 garden_manager = runtime_data.garden_manager
 
-                # Check if cleanup task is still running
+                # Check if cleanup task is still running and restart if dead.
                 if (
                     hasattr(garden_manager, "_cleanup_task")
-                    and garden_manager._cleanup_task
+                    and garden_manager._cleanup_task is not None
                     and garden_manager._cleanup_task.done()
                 ):
                     _LOGGER.warning(
-                        "Garden manager cleanup task died, attempting restart",
+                        "Garden manager cleanup task has stopped; attempting restart",
                     )
+                    restart_fn = getattr(garden_manager, "async_start_cleanup_task", None)
+                    if callable(restart_fn):
+                        try:
+                            await restart_fn()
+                        except Exception as restart_err:
+                            _LOGGER.error(
+                                "Failed to restart garden cleanup task: %s", restart_err
+                            )
 
-                # Check if stats update task is still running
+                # Check if stats update task is still running and restart if dead.
                 if (
                     hasattr(garden_manager, "_stats_update_task")
-                    and garden_manager._stats_update_task
+                    and garden_manager._stats_update_task is not None
                     and garden_manager._stats_update_task.done()
                 ):
                     _LOGGER.warning(
-                        "Garden manager stats update task died, attempting restart",
+                        "Garden manager stats update task has stopped; attempting restart",
                     )
+                    restart_fn = getattr(
+                        garden_manager, "async_start_stats_update_task", None
+                    )
+                    if callable(restart_fn):
+                        try:
+                            await restart_fn()
+                        except Exception as restart_err:
+                            _LOGGER.error(
+                                "Failed to restart garden stats task: %s", restart_err
+                            )
 
-            # Log task health status periodically
             _LOGGER.debug("Background task health check completed")
         except asyncio.CancelledError:
             _LOGGER.debug("Background task monitoring cancelled")
@@ -638,7 +655,16 @@ async def async_reload_entry(
         )
         return
 
-    await async_setup_entry(hass, entry)
+    try:
+        await async_setup_entry(hass, entry)
+    except Exception as err:
+        _LOGGER.error(
+            "PawControl reload failed during setup for entry %s: %s (%s)",
+            entry.entry_id,
+            err,
+            err.__class__.__name__,
+        )
+        raise
     reload_duration = time.monotonic() - reload_start_time
     _LOGGER.info(
         "PawControl reload completed in %.2f seconds",

@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from datetime import datetime
 import logging
+import time
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import callback
@@ -134,6 +135,8 @@ class PawControlEntity(
         """Expose the entity's extra state attributes payload."""
 
         attrs = getattr(self, "_attr_extra_state_attributes", None)
+        # Single normalisation pass — calling normalise_entity_attributes twice
+        # (once here and once on return) doubled the work on every poll cycle.
         attributes = normalise_entity_attributes(attrs)
 
         last_update = getattr(
@@ -160,9 +163,7 @@ class PawControlEntity(
         else:
             attributes["last_update_error"] = None
             attributes["last_update_error_type"] = None
-        # Normalise attributes to ensure all values are JSON-serialisable using the
-        # shared helper so entity attributes stay consistent with diagnostics.
-        return normalise_entity_attributes(attributes)
+        return attributes
 
     @callback
     def update_device_metadata(self, **details: Any) -> None:
@@ -271,7 +272,10 @@ class PawControlDogEntityBase(PawControlEntity):
         """Return cached dog data when available."""
 
         cache_key = f"dog_data_{self._dog_id}"
-        now = dt_util.utcnow().timestamp()
+        # Use time.monotonic() for cache TTL — it is faster than dt_util.utcnow()
+        # (which creates a TZ-aware datetime object before discarding it) and is
+        # immune to system clock adjustments.
+        now = time.monotonic()
 
         if (
             cache_key in self._dog_data_cache

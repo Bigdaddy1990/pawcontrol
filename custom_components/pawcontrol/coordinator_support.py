@@ -238,6 +238,12 @@ class DogConfigRegistry:
     configs: list[DogConfigData]
     _by_id: dict[str, DogConfigData] = field(init=False, default_factory=dict)
     _ids: list[str] = field(init=False, default_factory=list)
+    # OPT B7: Cache enabled-module lookups — coerce_dog_modules_config() is
+    # called per-entity per-update-cycle; a frozenset per dog_id eliminates the
+    # repeated iteration over config data on every coordinator refresh.
+    _modules_cache: dict[str, frozenset[str]] = field(
+        init=False, default_factory=dict
+    )
 
     def __post_init__(self) -> None:
         """Normalise the provided dog configuration list."""
@@ -270,6 +276,19 @@ class DogConfigRegistry:
             self._ids.append(normalized)
             cleaned.append(config)
         self.configs = cleaned
+
+        # OPT B7: Pre-populate the module cache so first-cycle coordinator
+        # refreshes do not pay the coerce_dog_modules_config() cost per entity.
+        for _dog_id in self._ids:
+            _cfg = self._by_id[_dog_id]
+            _modules_payload = cast(
+                Mapping[str, object] | None,
+                _cfg.get(CONF_MODULES),
+            )
+            _modules = coerce_dog_modules_config(_modules_payload)
+            self._modules_cache[_dog_id] = frozenset(
+                _m for _m, _enabled in _modules.items() if bool(_enabled)
+            )
 
     @classmethod
     def from_entry(cls, entry: PawControlConfigEntry) -> DogConfigRegistry:
@@ -311,7 +330,18 @@ class DogConfigRegistry:
         return None
 
     def enabled_modules(self, dog_id: str) -> frozenset[str]:
-        """Return the enabled modules for the specified dog."""
+        """Return the enabled modules for the specified dog.
+
+        Results are cached by dog_id after the first call.  The cache is
+        populated eagerly in ``__post_init__`` so repeated coordinator-refresh
+        lookups (one per entity) hit the dict instead of re-running
+        ``coerce_dog_modules_config`` on every invocation.
+        """
+        # OPT B7: Return pre-computed frozenset when available.
+        cached_result = self._modules_cache.get(dog_id)
+        if cached_result is not None:
+            return cached_result
+
         config = self.get(dog_id)
         if not config:
             return frozenset()
@@ -320,7 +350,11 @@ class DogConfigRegistry:
             config.get(CONF_MODULES),
         )
         modules = coerce_dog_modules_config(modules_payload)
-        return frozenset(module for module, enabled in modules.items() if bool(enabled))
+        result = frozenset(
+            module for module, enabled in modules.items() if bool(enabled)
+        )
+        self._modules_cache[dog_id] = result
+        return result
 
     def has_module(self, module: str) -> bool:
         """Return True if any dog has the requested module enabled."""

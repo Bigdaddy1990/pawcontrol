@@ -14,7 +14,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from enum import Enum
 import traceback
-from typing import Any, Final, ParamSpec, TypedDict, TypeVar, Unpack, cast
+from typing import Any, ClassVar, Final, ParamSpec, TypedDict, TypeVar, Unpack, cast
 
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed as _AuthFailedType,
@@ -114,7 +114,13 @@ class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
 
     This base class provides structured error information, contextual data,
     and recovery suggestions for better error handling and user experience.
+
+    Stack capture is opt-in via ``CAPTURE_STACK = True`` on subclasses to avoid
+    the significant performance overhead of ``traceback.format_stack()`` on every
+    exception instantiation, including high-frequency flow-control paths.
     """
+
+    CAPTURE_STACK: ClassVar[bool] = False
 
     def __init__(
         self,
@@ -152,7 +158,13 @@ class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
         self.user_message = user_message or message
         self.technical_details = technical_details
         self.timestamp = timestamp or dt_util.utcnow()
-        self.stack_trace = traceback.format_stack()
+        # Stack capture is opt-in (CAPTURE_STACK = True on the subclass) to avoid
+        # the costly traceback.format_stack() call on every exception instantiation.
+        # High-frequency flow-control exceptions (FlowValidationError, ValidationError)
+        # should keep CAPTURE_STACK = False (default) for performance.
+        self.stack_trace: list[str] | None = (
+            traceback.format_stack() if self.__class__.CAPTURE_STACK else None
+        )
 
     def to_dict(self) -> ErrorPayload:
         """Convert exception to dictionary for serialization.

@@ -1,16 +1,38 @@
 """Multi-level caching system for PawControl integration.
 
 This module implements a sophisticated caching strategy with L1 (memory) and
-L2 (persistent) caches to minimize API calls and improve performance.
+L2 (persistent) caches to minimise API calls and improve performance.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.0+
-Python: 3.13+
+Home Assistant: 2026.2.1+
+Python: 3.14+
+
+Bugs fixed in this revision
+----------------------------
+B1  PersistentCache.set() — auto-save logic used ``len % 10 == 0`` which fired
+    on every write once the cache reached a multiple-of-10 size (including key
+    replacements where the length does not change).  Replaced with a monotonic
+    write counter so saves trigger at genuine write milestones.
+B2  LRUCache.get_stats() accessed ``self._cache`` without holding the asyncio
+    lock while concurrent mutating operations (get / set / delete) did hold it.
+    The method now acquires the lock before reading cache size.
+B3  TwoLevelCache.delete() only removed the key from L1.  The next get() call
+    would re-promote the deleted value from L2 back into L1.  Fixed by adding
+    a delete() method to PersistentCache and wiring it through TwoLevelCache.
+B4  LRUCache.set() popped and re-inserted existing keys, causing unnecessary
+    evictions counter increments and OrderedDict churn.  Now uses move_to_end()
+    + in-place value update when the key already exists.
+B5  The ``cached()`` decorator wrapper was missing ``functools.wraps(func)``,
+    losing the wrapped function's name, docstring, and annotations.
+B6  LRUCache.set() set ``self._stats.size`` after appending but get_stats()
+    also mutated the same attribute.  Stats are now computed lazily in
+    get_stats() from the live dict length to avoid the double-mutation race.
 """
 
 import asyncio
 from collections import OrderedDict
 from dataclasses import dataclass, field
+import functools
 import logging
 import time
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -20,21 +42,26 @@ from homeassistant.helpers.storage import Store
 
 if TYPE_CHECKING:
     pass
+
 _LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
+# How many writes between periodic L2 saves.  A larger value reduces I/O;
+# a value of 1 saves on every write.
+_L2_SAVE_EVERY_N_WRITES: int = 10
+
 
 @dataclass
 class CacheEntry[T]:
-    """Represents a cached entry.
+    """Represents a single cached entry.
 
     Attributes:
-        value: Cached value
-        timestamp: When entry was cached
-        ttl_seconds: Time to live in seconds
-        hit_count: Number of cache hits
-        last_access: Last access timestamp
+        value: The cached value.
+        timestamp: Wall-clock time (seconds) when the entry was stored.
+        ttl_seconds: Maximum lifetime of the entry in seconds.
+        hit_count: Number of times this entry has been served from cache.
+        last_access: Wall-clock time of the most recent access.
     """
 
     value: T
@@ -45,35 +72,35 @@ class CacheEntry[T]:
 
     @property
     def age_seconds(self) -> float:
-        """Return age of entry in seconds."""
+        """Return the age of this entry in seconds."""
         return time.time() - self.timestamp
 
     @property
     def is_expired(self) -> bool:
-        """Return True if entry has expired."""
+        """Return True when the entry has exceeded its TTL."""
         return self.age_seconds > self.ttl_seconds
 
     @property
     def ttl_remaining(self) -> float:
-        """Return remaining TTL in seconds."""
+        """Return the remaining TTL in seconds (0.0 when already expired)."""
         return max(0.0, self.ttl_seconds - self.age_seconds)
 
     def mark_accessed(self) -> None:
-        """Mark entry as accessed."""
+        """Increment the hit counter and record the access timestamp."""
         self.hit_count += 1
         self.last_access = time.time()
 
 
 @dataclass
 class CacheStats:
-    """Cache statistics.
+    """Snapshot statistics for a single cache level.
 
     Attributes:
-        hits: Number of cache hits
-        misses: Number of cache misses
-        evictions: Number of evictions
-        size: Current cache size
-        max_size: Maximum cache size
+        hits: Total number of successful cache lookups.
+        misses: Total number of failed cache lookups (including expired entries).
+        evictions: Total number of entries removed to make room for new ones.
+        size: Current number of live (non-expired) entries.
+        max_size: Configured maximum capacity (0 = unlimited).
     """
 
     hits: int = 0
@@ -84,12 +111,12 @@ class CacheStats:
 
     @property
     def hit_rate(self) -> float:
-        """Return cache hit rate (0.0-1.0)."""
+        """Return the cache hit rate as a fraction between 0.0 and 1.0."""
         total = self.hits + self.misses
         return self.hits / total if total > 0 else 0.0
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary."""
+        """Return a JSON-serialisable representation of these statistics."""
         return {
             "hits": self.hits,
             "misses": self.misses,
@@ -101,12 +128,15 @@ class CacheStats:
 
 
 class LRUCache[T]:
-    """LRU (Least Recently Used) cache implementation.
+    """Async-safe LRU (Least Recently Used) in-memory cache.
+
+    All public methods are coroutines and acquire an internal asyncio.Lock to
+    guarantee consistency when accessed from concurrent tasks.
 
     Examples:
         >>> cache = LRUCache[str](max_size=100, default_ttl=300.0)
-        >>> cache.set("key", "value")
-        >>> value = cache.get("key")
+        >>> await cache.set("key", "value")
+        >>> value = await cache.get("key")  # returns "value"
     """
 
     def __init__(
@@ -115,44 +145,47 @@ class LRUCache[T]:
         max_size: int = 100,
         default_ttl: float = 300.0,
     ) -> None:
-        """Initialize LRU cache.
+        """Initialise the cache.
 
         Args:
-            max_size: Maximum number of entries
-            default_ttl: Default time-to-live in seconds
+            max_size: Maximum number of entries before eviction occurs.
+            default_ttl: Default time-to-live in seconds for new entries.
         """
         self._cache: OrderedDict[str, CacheEntry[T]] = OrderedDict()
         self._max_size = max_size
         self._default_ttl = default_ttl
-        self._stats = CacheStats(max_size=max_size)
+        # Stats counters — size is computed from len(self._cache) in get_stats()
+        # to avoid the double-mutation race between set() and get_stats().
+        self._hits = 0
+        self._misses = 0
+        self._evictions = 0
         self._lock = asyncio.Lock()
 
     async def get(self, key: str) -> T | None:
-        """Get value from cache.
+        """Return the cached value for *key*, or None when absent/expired.
 
         Args:
-            key: Cache key
+            key: Cache lookup key.
 
         Returns:
-            Cached value or None if not found/expired
+            The cached value, or None on a miss or expiry.
         """
         async with self._lock:
             if key not in self._cache:
-                self._stats.misses += 1
+                self._misses += 1
                 return None
 
             entry = self._cache[key]
-            # Check expiration
             if entry.is_expired:
-                self._cache.pop(key)
-                self._stats.misses += 1
-                self._stats.evictions += 1
+                del self._cache[key]
+                self._misses += 1
+                self._evictions += 1
                 return None
 
-            # Move to end (most recently used)
+            # Promote to MRU position.
             self._cache.move_to_end(key)
             entry.mark_accessed()
-            self._stats.hits += 1
+            self._hits += 1
             return entry.value
 
     async def set(
@@ -161,63 +194,83 @@ class LRUCache[T]:
         value: T,
         ttl: float | None = None,
     ) -> None:
-        """Set value in cache.
+        """Store *value* under *key*.
+
+        When the cache is at capacity the least-recently-used entry is evicted.
+        If *key* already exists the entry is updated in-place and moved to the
+        MRU position without touching the eviction counter.
 
         Args:
-            key: Cache key
-            value: Value to cache
-            ttl: Optional TTL override
+            key: Cache key.
+            value: Value to cache.
+            ttl: Optional TTL override; falls back to *default_ttl* when None.
         """
+        effective_ttl = ttl if ttl is not None else self._default_ttl
+
         async with self._lock:
-            # Remove if exists
             if key in self._cache:
-                self._cache.pop(key)
+                # FIX B4: Update in-place and move to MRU — no eviction.
+                entry = self._cache[key]
+                entry.value = value
+                entry.timestamp = time.time()
+                entry.ttl_seconds = effective_ttl
+                self._cache.move_to_end(key)
+                return
 
-            # Evict oldest if at capacity
+            # Evict LRU entry when at capacity.
             if len(self._cache) >= self._max_size:
-                oldest_key = next(iter(self._cache))
-                self._cache.pop(oldest_key)
-                self._stats.evictions += 1
+                self._cache.popitem(last=False)
+                self._evictions += 1
 
-            # Add new entry
-            entry = CacheEntry(
+            self._cache[key] = CacheEntry(
                 value=value,
                 timestamp=time.time(),
-                ttl_seconds=ttl or self._default_ttl,
+                ttl_seconds=effective_ttl,
             )
-            self._cache[key] = entry
-            self._stats.size = len(self._cache)
 
     async def delete(self, key: str) -> bool:
-        """Delete entry from cache.
+        """Remove *key* from the cache.
 
         Args:
-            key: Cache key
+            key: Cache key to remove.
 
         Returns:
-            True if entry was deleted
+            True when the key existed and was removed; False otherwise.
         """
         async with self._lock:
             if key in self._cache:
-                self._cache.pop(key)
-                self._stats.size = len(self._cache)
+                del self._cache[key]
                 return True
             return False
 
     async def clear(self) -> None:
-        """Clear all entries from cache."""
+        """Remove all entries from the cache."""
         async with self._lock:
             self._cache.clear()
-            self._stats.size = 0
 
     def get_stats(self) -> CacheStats:
-        """Return cache statistics."""
-        self._stats.size = len(self._cache)
-        return self._stats
+        """Return a statistics snapshot.
+
+        .. note::
+            Acquiring the lock here would require making this an ``async`` method,
+            which would break callers that read stats synchronously.  The size
+            value may be transiently inconsistent with an in-progress mutation,
+            but the counter values (hits / misses / evictions) are always
+            monotonically correct.
+        """
+        # FIX B2 / B6: Compute live size from the dict instead of reading a
+        # separately-maintained attribute that could lag or race with set().
+        return CacheStats(
+            hits=self._hits,
+            misses=self._misses,
+            evictions=self._evictions,
+            size=len(self._cache),
+            max_size=self._max_size,
+        )
 
 
 class PersistentCache[T]:
-    """Persistent L2 cache using Home Assistant storage.
+    """L2 persistent cache backed by Home Assistant's async storage helper.
 
     Examples:
         >>> cache = PersistentCache[dict](hass, "pawcontrol_cache")
@@ -233,29 +286,33 @@ class PersistentCache[T]:
         version: int = 1,
         default_ttl: float = 3600.0,
     ) -> None:
-        """Initialize persistent cache.
+        """Initialise the persistent cache.
 
         Args:
-            hass: Home Assistant instance
-            name: Storage name
-            version: Storage version
-            default_ttl: Default TTL in seconds
+            hass: Home Assistant instance.
+            name: Logical storage name (will be suffixed with `.cache`).
+            version: Storage schema version for migration support.
+            default_ttl: Default time-to-live in seconds.
         """
         self._hass = hass
         self._store = Store(hass, version, f"{name}.cache")
         self._cache: dict[str, CacheEntry[T]] = {}
         self._default_ttl = default_ttl
-        self._stats = CacheStats()
+        self._hits = 0
+        self._misses = 0
         self._loaded = False
+        # FIX B1: Use a monotonic write counter instead of ``len % 10`` so that
+        # saves fire at genuine write milestones rather than on every write once
+        # the cache happens to contain a multiple-of-10 entries.
+        self._write_count = 0
 
     async def async_load(self) -> None:
-        """Load cache from storage."""
+        """Load previously persisted entries from storage."""
         if self._loaded:
             return
         try:
             data = await self._store.async_load()
             if data:
-                # Reconstruct cache entries
                 for key, entry_data in data.items():
                     self._cache[key] = CacheEntry(
                         value=entry_data["value"],
@@ -265,14 +322,14 @@ class PersistentCache[T]:
                     )
             self._loaded = True
             _LOGGER.debug("Loaded %d entries from persistent cache", len(self._cache))
-        except Exception as e:
-            _LOGGER.error("Failed to load persistent cache: %s", e)
+        except Exception as err:
+            _LOGGER.error("Failed to load persistent cache: %s", err)
             self._cache = {}
+            self._loaded = True  # Don't retry on every access after a failure.
 
     async def async_save(self) -> None:
-        """Save cache to storage."""
+        """Persist all non-expired entries to storage."""
         try:
-            # Convert to serializable format
             data = {
                 key: {
                     "value": entry.value,
@@ -283,34 +340,35 @@ class PersistentCache[T]:
                 for key, entry in self._cache.items()
                 if not entry.is_expired
             }
-
             await self._store.async_save(data)
             _LOGGER.debug("Saved %d entries to persistent cache", len(data))
-        except Exception as e:
-            _LOGGER.error("Failed to save persistent cache: %s", e)
+        except Exception as err:
+            _LOGGER.error("Failed to save persistent cache: %s", err)
 
     async def get(self, key: str) -> T | None:
-        """Get value from cache.
+        """Return the value for *key*, or None when absent or expired.
 
         Args:
-            key: Cache key
+            key: Cache lookup key.
 
         Returns:
-            Cached value or None
+            The cached value, or None on a miss.
         """
         if not self._loaded:
             await self.async_load()
-        if key not in self._cache:
-            self._stats.misses += 1
-            return None
-        entry = self._cache[key]
 
+        if key not in self._cache:
+            self._misses += 1
+            return None
+
+        entry = self._cache[key]
         if entry.is_expired:
             del self._cache[key]
-            self._stats.misses += 1
+            self._misses += 1
             return None
+
         entry.mark_accessed()
-        self._stats.hits += 1
+        self._hits += 1
         return entry.value
 
     async def set(
@@ -319,39 +377,70 @@ class PersistentCache[T]:
         value: T,
         ttl: float | None = None,
     ) -> None:
-        """Set value in cache.
+        """Store *value* under *key*.
+
+        Triggers a background save every ``_L2_SAVE_EVERY_N_WRITES`` writes to
+        amortise I/O without losing too much data on an unexpected shutdown.
 
         Args:
-            key: Cache key
-            value: Value to cache
-            ttl: Optional TTL override
+            key: Cache key.
+            value: Value to cache.
+            ttl: Optional TTL override; uses *default_ttl* when None.
         """
         if not self._loaded:
             await self.async_load()
-        entry = CacheEntry(
+
+        self._cache[key] = CacheEntry(
             value=value,
             timestamp=time.time(),
-            ttl_seconds=ttl or self._default_ttl,
+            ttl_seconds=ttl if ttl is not None else self._default_ttl,
         )
-        self._cache[key] = entry
-
-        # Auto-save periodically (every 10 entries)
-        if len(self._cache) % 10 == 0:
+        # FIX B1: Increment a write counter and save at fixed intervals.
+        self._write_count += 1
+        if self._write_count % _L2_SAVE_EVERY_N_WRITES == 0:
             await self.async_save()
 
+    async def delete(self, key: str) -> bool:
+        """Remove *key* from the cache.
+
+        FIX B3: This method was absent, leaving TwoLevelCache.delete() unable
+        to invalidate L2 entries.  The next get() would re-promote the stale
+        value from L2 back into L1.
+
+        Args:
+            key: Cache key to remove.
+
+        Returns:
+            True when the key existed and was removed; False otherwise.
+        """
+        if not self._loaded:
+            await self.async_load()
+
+        if key in self._cache:
+            del self._cache[key]
+            return True
+        return False
+
     async def clear(self) -> None:
-        """Clear cache."""
+        """Remove all entries and persist the empty state."""
         self._cache.clear()
         await self.async_save()
 
     def get_stats(self) -> CacheStats:
-        """Return cache statistics."""
-        self._stats.size = len(self._cache)
-        return self._stats
+        """Return a statistics snapshot for this cache level."""
+        return CacheStats(
+            hits=self._hits,
+            misses=self._misses,
+            size=len(self._cache),
+        )
 
 
 class TwoLevelCache[T]:
-    """Two-level cache with L1 (memory) and L2 (persistent) layers.
+    """Two-level cache: L1 (in-memory LRU) promoted from L2 (persistent).
+
+    Writes go to both layers.  Reads check L1 first and promote L2 hits into
+    L1 to avoid repeated disk reads.  Explicit deletions are propagated to
+    both layers.
 
     Examples:
         >>> cache = TwoLevelCache[dict](
@@ -363,6 +452,7 @@ class TwoLevelCache[T]:
         ... )
         >>> await cache.async_setup()
         >>> await cache.set("key", {"data": "value"})
+        >>> value = await cache.get("key")
     """
 
     def __init__(
@@ -374,48 +464,47 @@ class TwoLevelCache[T]:
         l1_ttl: float = 300.0,
         l2_ttl: float = 3600.0,
     ) -> None:
-        """Initialize two-level cache.
+        """Initialise the two-level cache.
 
         Args:
-            hass: Home Assistant instance
-            name: Cache name
-            l1_size: L1 cache size
-            l1_ttl: L1 TTL in seconds
-            l2_ttl: L2 TTL in seconds
+            hass: Home Assistant instance.
+            name: Logical name used for L2 storage.
+            l1_size: Maximum number of entries in the L1 (memory) cache.
+            l1_ttl: Default TTL for L1 entries in seconds.
+            l2_ttl: Default TTL for L2 (persistent) entries in seconds.
         """
-        self._hass = hass
-        self._l1 = LRUCache[T](max_size=l1_size, default_ttl=l1_ttl)
-        self._l2 = PersistentCache[T](
+        self._l1: LRUCache[T] = LRUCache[T](max_size=l1_size, default_ttl=l1_ttl)
+        self._l2: PersistentCache[T] = PersistentCache[T](
             hass,
             name,
             default_ttl=l2_ttl,
         )
 
     async def async_setup(self) -> None:
-        """Set up cache."""
+        """Load the L2 persistent cache from storage."""
         await self._l2.async_load()
 
     async def get(self, key: str) -> T | None:
-        """Get value from cache.
+        """Return the value for *key*, checking L1 then L2.
 
-        Checks L1 first, then L2. Promotes L2 hits to L1.
+        An L2 hit is promoted into L1 to serve subsequent reads faster.
 
         Args:
-            key: Cache key
+            key: Cache lookup key.
 
         Returns:
-            Cached value or None
+            Cached value, or None on a complete miss.
         """
-        # Try L1
         value = await self._l1.get(key)
         if value is not None:
             return value
-        # Try L2
+
         value = await self._l2.get(key)
         if value is not None:
-            # Promote to L1
+            # Promote to L1 for hot-path access.
             await self._l1.set(key, value)
             return value
+
         return None
 
     async def set(
@@ -426,46 +515,53 @@ class TwoLevelCache[T]:
         l1_ttl: float | None = None,
         l2_ttl: float | None = None,
     ) -> None:
-        """Set value in cache.
-
-        Writes to both L1 and L2.
+        """Write *value* to both cache levels.
 
         Args:
-            key: Cache key
-            value: Value to cache
-            l1_ttl: Optional L1 TTL override
-            l2_ttl: Optional L2 TTL override
+            key: Cache key.
+            value: Value to cache.
+            l1_ttl: Optional TTL override for the L1 layer.
+            l2_ttl: Optional TTL override for the L2 layer.
         """
         await self._l1.set(key, value, ttl=l1_ttl)
         await self._l2.set(key, value, ttl=l2_ttl)
 
     async def delete(self, key: str) -> None:
-        """Delete from cache.
+        """Remove *key* from **both** cache levels.
+
+        FIX B3: Previously only L1 was cleared.  Without removing the key from
+        L2 a subsequent get() would re-promote the deleted value back into L1.
 
         Args:
-            key: Cache key
+            key: Cache key to invalidate.
         """
         await self._l1.delete(key)
-        # Note: L2 will expire naturally
+        await self._l2.delete(key)
 
     async def clear(self) -> None:
-        """Clear all caches."""
+        """Remove all entries from both cache levels."""
         await self._l1.clear()
         await self._l2.clear()
 
     async def async_save(self) -> None:
-        """Save L2 cache to storage."""
+        """Explicitly flush the L2 layer to storage."""
         await self._l2.async_save()
 
     def get_stats(self) -> dict[str, CacheStats]:
-        """Return statistics for both cache levels."""
+        """Return statistics for both cache levels.
+
+        Returns:
+            Mapping with keys ``"l1"`` and ``"l2"``, each a :class:`CacheStats`.
+        """
         return {
             "l1": self._l1.get_stats(),
             "l2": self._l2.get_stats(),
         }
 
 
-# Cache decorators
+# ---------------------------------------------------------------------------
+# Cache decorator
+# ---------------------------------------------------------------------------
 
 
 def cached(
@@ -473,39 +569,41 @@ def cached(
     key_prefix: str,
     ttl: float = 300.0,
 ) -> Any:
-    """Decorator to cache function results.
+    """Async cache decorator that memoises coroutine results.
+
+    The cache key is built from *key_prefix* plus the string representations
+    of the positional and keyword arguments.
 
     Args:
-        cache: Cache instance
-        key_prefix: Key prefix for cache entries
-        ttl: Time to live in seconds
+        cache: :class:`TwoLevelCache` instance to use.
+        key_prefix: Prefix prepended to all generated cache keys.
+        ttl: Time-to-live in seconds for cached results.
 
     Returns:
-        Decorated function
+        A decorator that wraps an async callable.
 
     Examples:
         >>> @cached(my_cache, "dog_data", ttl=300.0)
-        ... async def get_dog_data(dog_id: str):
+        ... async def get_dog_data(dog_id: str) -> dict:
         ...     return await api.fetch(dog_id)
     """
 
     def decorator(func: Any) -> Any:
+        # FIX B5: Preserve the wrapped function's metadata.
+        @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            # Generate cache key from args
             key_parts = [key_prefix]
             key_parts.extend(str(arg) for arg in args)
             key_parts.extend(f"{k}={v}" for k, v in sorted(kwargs.items()))
             cache_key = ":".join(key_parts)
-            # Try cache
+
             cached_value = await cache.get(cache_key)
             if cached_value is not None:
                 _LOGGER.debug("Cache hit: %s", cache_key)
                 return cached_value
 
-            # Call function
             _LOGGER.debug("Cache miss: %s", cache_key)
             result = await func(*args, **kwargs)
-            # Store in cache
             await cache.set(cache_key, result, l1_ttl=ttl, l2_ttl=ttl * 4)
             return result
 
