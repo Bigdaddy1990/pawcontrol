@@ -25,13 +25,11 @@ from .const import (
     MAX_DOG_NAME_LENGTH,
     MIN_DOG_NAME_LENGTH,
 )
-from .exceptions import ValidationError as PawControlValidationError
+from .exceptions import ValidationError
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-
-ValidationError = PawControlValidationError
 
 # Validation constants
 VALID_DOG_ID_PATTERN: Final[str] = r"^[a-zA-Z0-9_-]{1,50}$"
@@ -62,7 +60,7 @@ MIN_DURATION_MINUTES: Final[int] = 1
 MAX_DURATION_MINUTES: Final[int] = 480
 
 MIN_GEOFENCE_RADIUS: Final[float] = 10.0
-MAX_GEOFENCE_RADIUS: Final[float] = 10000.0
+MAX_GEOFENCE_RADIUS: Final[float] = 5000.0
 
 TNotificationTarget = TypeVar("TNotificationTarget", bound=Enum)
 
@@ -1368,7 +1366,7 @@ class InputValidator:
         required: bool = True,
         field: str = "radius",
         min_value: float = MIN_GEOFENCE_RADIUS,
-        max_value: float = 5000.0,
+        max_value: float = MAX_GEOFENCE_RADIUS,
     ) -> float | None:
         """Validate geofence radius in meters.
 
