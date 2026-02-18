@@ -620,10 +620,13 @@ def record_maintenance_result(
 
     legacy_history = store.get("maintenance_history")
     if isinstance(legacy_history, list):
-        history = legacy_history
-        store["maintenance_results"] = history
-    else:
-        store["maintenance_history"] = history
+        # Merge legacy history into maintenance_results to avoid dropping
+        # events when both keys are present during migration.
+        history.extend(item for item in legacy_history if item not in history)
+
+    # Keep both keys pointing at the same list during the compatibility window.
+    store["maintenance_results"] = history
+    store["maintenance_history"] = history
 
     entry: dict[str, Any] = {
         "task": task,
@@ -647,9 +650,6 @@ def record_maintenance_result(
             and "metadata" not in entry["diagnostics"]
         ):
             entry["diagnostics"]["metadata"] = serialised_metadata
-
-    if metadata is not None:
-        entry["metadata"] = dict(metadata)
 
     if details is not None:
         entry["details"] = dict(details)

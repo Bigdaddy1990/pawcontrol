@@ -67,6 +67,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _CACHE_TTL_SECONDS: Final[int] = 300
 _MAX_CACHE_SIZE: Final[int] = 128
+_WALL_CLOCK_HEURISTIC_THRESHOLD: Final[float] = 1_000_000.0
 _DEFAULT_PLATFORMS: Final[tuple[Platform, ...]] = tuple(
     sorted(
         {
@@ -120,13 +121,17 @@ def _cleanup_platform_cache() -> None:
     now_wall = time.time()
 
     def _is_expired(timestamp: float) -> bool:
-        reference = now_wall if timestamp > 1_000_000.0 else now_monotonic
+        # Unix wall-clock timestamps are currently ~1.7 billion while monotonic
+        # clocks are usually much smaller process-relative counters.
+        reference = (
+            now_wall
+            if timestamp > _WALL_CLOCK_HEURISTIC_THRESHOLD
+            else now_monotonic
+        )
         return reference - timestamp > _CACHE_TTL_SECONDS
 
     expired_keys = [
-        key
-        for key, (_, timestamp) in _PLATFORM_CACHE.items()
-        if _is_expired(timestamp)
+        key for key, (_, timestamp) in _PLATFORM_CACHE.items() if _is_expired(timestamp)
     ]
     for key in expired_keys:
         _PLATFORM_CACHE.pop(key, None)
