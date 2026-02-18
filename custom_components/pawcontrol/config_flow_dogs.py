@@ -109,7 +109,9 @@ try:
         "async_get_translations",
         None,
     )
-except ModuleNotFoundError, AttributeError:
+except ModuleNotFoundError:
+    _ASYNC_GET_TRANSLATIONS = None
+except AttributeError:
     _ASYNC_GET_TRANSLATIONS = None
 # Diet compatibility matrix for validation
 DIET_COMPATIBILITY_RULES = {

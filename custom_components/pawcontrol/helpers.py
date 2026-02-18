@@ -727,7 +727,18 @@ class PawControlDataStorage:
                             before,
                             len(limited_slice),
                         )
-                    except TypeError, KeyError:
+                    except TypeError:
+                        # Fallback to simple truncation
+                        before = len(value)
+                        truncated = value[-MAX_HISTORY_ITEMS:]
+                        limited_data[key] = cast(JSONValue, truncated)
+                        _LOGGER.debug(
+                            "Limited %s entries from %d to %d",
+                            key,
+                            before,
+                            len(truncated),
+                        )
+                    except KeyError:
                         # Fallback to simple truncation
                         before = len(value)
                         truncated = value[-MAX_HISTORY_ITEMS:]
@@ -1331,7 +1342,10 @@ class PawControlData:
             return
         try:
             dog_id = events[0]["dog_id"]
-        except IndexError, KeyError:
+        except IndexError:
+            _LOGGER.error("Health event batch missing dog identifier")
+            return
+        except KeyError:
             _LOGGER.error("Health event batch missing dog identifier")
             return
         try:
@@ -1403,7 +1417,10 @@ class PawControlData:
             return
         try:
             dog_id = events[0]["dog_id"]
-        except IndexError, KeyError:
+        except IndexError:
+            _LOGGER.error("Walk event batch missing dog identifier")
+            return
+        except KeyError:
             _LOGGER.error("Walk event batch missing dog identifier")
             return
         try:

@@ -14,7 +14,17 @@ from .exceptions import ConfigEntryAuthFailed, UpdateFailed
 
 try:  # pragma: no cover - prefer Home Assistant's timezone helpers when available
     from homeassistant.util import dt as dt_util
-except ImportError, ModuleNotFoundError:
+except ImportError:
+
+    class _DateTimeModule:
+        """Minimal subset of :mod:`homeassistant.util.dt` used in tests."""
+
+        @staticmethod
+        def utcnow() -> datetime:
+            return datetime.now(UTC)
+
+    dt_util = _DateTimeModule()
+except ModuleNotFoundError:
 
     class _DateTimeModule:
         """Minimal subset of :mod:`homeassistant.util.dt` used in tests."""

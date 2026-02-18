@@ -744,7 +744,9 @@ class WalkManager:
                     0.0,
                     min(float(detection_confidence), 1.0),
                 )
-            except ValueError, TypeError:
+            except ValueError:
+                confidence_value = None
+            except TypeError:
                 confidence_value = None
         detection_payload: WalkDetectionMutableMetadata | None = None
         if detection_metadata:
