@@ -41,4 +41,4 @@ jobs:
         with:
           category: ${{ inputs.category }}
           ignore: ${{ inputs.ignore }}
-          repository: ${{ github.repository }}@${{ github.sha }}
+          repository: ${{ github.repository }}

@@ -68,6 +68,7 @@ RuntimeCycleInfo = coordinator_runtime.RuntimeCycleInfo
 __all__ = ["EntityBudgetSnapshot", "PawControlCoordinator", "RuntimeCycleInfo"]
 
 
+# Backwards-compatible re-export for tests and diagnostics monkeypatching.
 def collect_resilience_diagnostics(
     coordinator: PawControlCoordinator,
 ) -> paw_types.CoordinatorResilienceDiagnostics:
@@ -135,12 +136,6 @@ class PawControlCoordinator(
             config_entry=entry,
         )
         self.last_update_success = True
-        self.last_update_time = None
-        # NOTE: Do NOT set self.last_update_time — DataUpdateCoordinator provides
-        # ``last_update_success_time`` as the authoritative last-update timestamp.
-        # A custom ``last_update_time`` attribute set here would never be updated by
-        # the base class and would always remain None in performance snapshots.
-        # All callers should use ``getattr(coordinator, "last_update_success_time")``.
 
         # DataUpdateCoordinator initialises ``update_interval`` but MyPy cannot
         # determine the attribute on subclasses without an explicit assignment.
