@@ -17,6 +17,8 @@ P26.1.1++
 Python: 3.13+
 """  # noqa: E501
 
+from __future__ import annotations
+
 from asyncio import Task
 from collections import deque
 from collections.abc import (

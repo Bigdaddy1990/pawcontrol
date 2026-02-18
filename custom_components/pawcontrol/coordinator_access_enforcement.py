@@ -332,11 +332,12 @@ def validate_coordinator_usage(
         adaptive = coordinator._adaptive_polling
         if hasattr(adaptive, "as_diagnostics"):
             diagnostics = adaptive.as_diagnostics()
-            if diagnostics.get("entity_saturation", 0) > 0.9 and log_warnings:
+            entity_saturation = diagnostics.get("entity_saturation", 0)
+            if entity_saturation > 0.9 and log_warnings:
                 _LOGGER.warning(
                     "Coordinator entity saturation is high (%.1f%%) - "
                     "consider reducing entity count",
-                    diagnostics["entity_saturation"] * 100,
+                    entity_saturation * 100,
                 )
 
     return {
