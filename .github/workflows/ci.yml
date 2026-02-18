@@ -31,7 +31,7 @@ jobs:
         with:
           category: integration
           ignore: brands
-          repository: ${{ github.repository }}@${{ github.sha }}
+          repository: ${{ github.repository }}
 
   tests:
     name: Tests (Python ${{ matrix.python-version }})
