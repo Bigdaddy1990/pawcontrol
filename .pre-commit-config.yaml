@@ -98,9 +98,11 @@ repos:
     rev: v1.19.1
     hooks:
       - id: mypy
+        args:
+          - custom_components/pawcontrol
         additional_dependencies:
           - types-pyyaml
-        types: [python]
+        pass_filenames: false
 
   - repo: local
     hooks:
