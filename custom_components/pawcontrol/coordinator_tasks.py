@@ -1382,11 +1382,14 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
                 coordinator._metrics.consecutive_errors > 0
                 and coordinator.last_update_success
             ):
-                last_update_time = getattr(
-                    coordinator,
-                    "last_update_success_time",
-                    now,
-                ) or now
+                last_update_time = (
+                    getattr(
+                        coordinator,
+                        "last_update_success_time",
+                        now,
+                    )
+                    or now
+                )
                 hours_since_last_update = (
                     now - last_update_time
                 ).total_seconds() / 3600
