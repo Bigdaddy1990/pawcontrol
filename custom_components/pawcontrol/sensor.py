@@ -26,7 +26,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .compat import MASS_GRAMS, MASS_KILOGRAMS, UnitOfMass
-from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION
+from .const import (
+    DEFAULT_MODEL,
+    DEFAULT_SW_VERSION,
+    MODULE_FEEDING,
+    MODULE_GARDEN,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .entity_factory import EntityFactory
@@ -4416,3 +4424,120 @@ class PawControlPushRejectedTotalSensor(PawControlSensorBase):
             return int(dog_tel.get("rejected_total", 0))
         except Exception:
             return 0
+
+
+
+# ---------------------------------------------------------------------------
+# _MODULE_ENTITY_RULES
+#
+# Maps each optional module key → profile → list of (entity_key, class, priority).
+# Priority 1 = highest importance (created first, kept under budget pressure).
+# All profiles fall back to "standard" inside _create_module_entities, so a
+# single "standard" entry is sufficient for full functionality; profile-
+# specific overrides can be layered in later if needed.
+#
+# This constant must be defined AFTER every sensor class it references.
+# ---------------------------------------------------------------------------
+
+_MODULE_ENTITY_RULES: ModuleEntityRules = {
+    MODULE_GARDEN: {
+        "standard": [
+            ("garden_time_today", PawControlGardenTimeTodaySensor, 1),
+            ("garden_sessions_today", PawControlGardenSessionsTodaySensor, 1),
+            ("last_garden_session", PawControlLastGardenSessionSensor, 1),
+            ("garden_poop_count_today", PawControlGardenPoopCountTodaySensor, 2),
+            ("garden_activities_today", PawControlGardenActivitiesTodaySensor, 2),
+            ("last_garden_session_hours", PawControlLastGardenSessionHoursSensor, 2),
+            ("last_garden_duration", PawControlLastGardenDurationSensor, 2),
+            ("garden_activities_count", PawControlGardenActivitiesCountSensor, 3),
+            ("avg_garden_duration", PawControlAverageGardenDurationSensor, 3),
+            ("garden_stats_weekly", PawControlGardenStatsWeeklySensor, 3),
+            ("favorite_garden_activities", PawControlFavoriteGardenActivitiesSensor, 3),
+            ("garden_activities_last_session", PawControlGardenActivitiesLastSessionSensor, 3),
+        ],
+    },
+    MODULE_FEEDING: {
+        "standard": [
+            ("last_feeding", PawControlLastFeedingSensor, 1),
+            ("last_feeding_hours", PawControlLastFeedingHoursSensor, 1),
+            ("daily_calories", PawControlDailyCaloriesSensor, 1),
+            ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 1),
+            ("feeding_schedule_adherence", PawControlFeedingScheduleAdherenceSensor, 2),
+            ("health_aware_portion", PawControlHealthAwarePortionSensor, 2),
+            ("portions_today", PawControlPortionsTodaySensor, 2),
+            ("calories_consumed_today", PawControlCaloriesConsumedTodaySensor, 2),
+            ("daily_calorie_target", PawControlDailyCalorieTargetSensor, 2),
+            ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 2),
+            ("food_consumption", PawControlFoodConsumptionSensor, 2),
+            ("feeding_recommendation", PawControlFeedingRecommendationSensor, 3),
+            ("health_feeding_status", PawControlHealthFeedingStatusSensor, 3),
+            ("daily_portions", PawControlDailyPortionsSensor, 3),
+            ("portion_adjustment_factor", PawControlPortionAdjustmentFactorSensor, 3),
+            ("diet_validation_status", PawControlDietValidationStatusSensor, 3),
+            ("diet_conflict_count", PawControlDietConflictCountSensor, 3),
+            ("diet_warning_count", PawControlDietWarningCountSensor, 3),
+            ("diet_compatibility_score", PawControlDietCompatibilityScoreSensor, 3),
+            ("diet_validation_adjustment", PawControlDietValidationAdjustmentSensor, 3),
+            ("diet_vet_consultation", PawControlDietVetConsultationSensor, 3),
+        ],
+    },
+    MODULE_WALK: {
+        "standard": [
+            ("last_walk", PawControlLastWalkSensor, 1),
+            ("last_walk_hours", PawControlLastWalkHoursSensor, 1),
+            ("walks_today", PawControlWalksTodaySensor, 1),
+            ("walk_distance_today", PawControlWalkDistanceTodaySensor, 1),
+            ("current_walk_duration", PawControlCurrentWalkDurationSensor, 2),
+            ("calories_burned_today", PawControlCaloriesBurnedTodaySensor, 2),
+            ("total_walk_time_today", PawControlTotalWalkTimeTodaySensor, 2),
+            ("last_walk_duration", PawControlLastWalkDurationSensor, 2),
+            ("last_walk_distance", PawControlLastWalkDistanceSensor, 2),
+            ("walks_this_week", PawControlWalksThisWeekSensor, 2),
+            ("walk_count_today", PawControlWalkCountTodaySensor, 3),
+            ("total_walk_distance", PawControlTotalWalkDistanceSensor, 3),
+            ("average_walk_duration", PawControlAverageWalkDurationSensor, 3),
+        ],
+    },
+    MODULE_GPS: {
+        "standard": [
+            ("current_zone", PawControlCurrentZoneSensor, 1),
+            ("current_location", PawControlCurrentLocationSensor, 1),
+            ("distance_from_home", PawControlDistanceFromHomeSensor, 1),
+            ("gps_battery_level", PawControlGPSBatteryLevelSensor, 2),
+            ("gps_accuracy", PawControlGPSAccuracySensor, 2),
+            ("current_speed", PawControlCurrentSpeedSensor, 2),
+            ("speed", PawControlSpeedSensor, 3),
+        ],
+        "gps_focus": [
+            ("current_zone", PawControlCurrentZoneSensor, 1),
+            ("current_location", PawControlCurrentLocationSensor, 1),
+            ("distance_from_home", PawControlDistanceFromHomeSensor, 1),
+            ("current_speed", PawControlCurrentSpeedSensor, 1),
+            ("speed", PawControlSpeedSensor, 2),
+            ("gps_accuracy", PawControlGPSAccuracySensor, 2),
+            ("gps_battery_level", PawControlGPSBatteryLevelSensor, 2),
+        ],
+    },
+    MODULE_HEALTH: {
+        "standard": [
+            ("health_status", PawControlHealthStatusSensor, 1),
+            ("weight", PawControlWeightSensor, 1),
+            ("last_vet_visit", PawControlLastVetVisitSensor, 1),
+            ("weight_trend", PawControlWeightTrendSensor, 2),
+            ("body_condition_score", PawControlBodyConditionScoreSensor, 2),
+            ("weight_goal_progress", PawControlWeightGoalProgressSensor, 2),
+            ("daily_activity_level", PawControlDailyActivityLevelSensor, 2),
+            ("health_conditions", PawControlHealthConditionsSensor, 3),
+        ],
+        "health_focus": [
+            ("health_status", PawControlHealthStatusSensor, 1),
+            ("weight", PawControlWeightSensor, 1),
+            ("weight_trend", PawControlWeightTrendSensor, 1),
+            ("body_condition_score", PawControlBodyConditionScoreSensor, 1),
+            ("last_vet_visit", PawControlLastVetVisitSensor, 1),
+            ("weight_goal_progress", PawControlWeightGoalProgressSensor, 2),
+            ("daily_activity_level", PawControlDailyActivityLevelSensor, 2),
+            ("health_conditions", PawControlHealthConditionsSensor, 2),
+        ],
+    },
+}
