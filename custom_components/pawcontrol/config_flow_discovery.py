@@ -196,7 +196,7 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
             "serial": serial_number,
             "vid": discovery_info.vid,
             "pid": discovery_info.pid,
-            "manufacturer": discovery_info.manufacturer,
+            "manufacturer": discovery_info.manufacturer or "",
             "description": description,
         }
 
