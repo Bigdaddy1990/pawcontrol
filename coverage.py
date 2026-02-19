@@ -1,7 +1,5 @@
 """Coverage shim used for PawControl's isolated test environment."""
 
-from __future__ import annotations
-
 from collections import defaultdict
 from collections.abc import Iterable
 from functools import lru_cache
@@ -18,7 +16,7 @@ from typing import Any, Protocol
 class TraceFunc(Protocol):
     """Protocol for trace callback functions."""
 
-    def __call__(self, frame: FrameType, event: str, arg: object) -> "TraceFunc | None":
+    def __call__(self, frame: FrameType, event: str, arg: object) -> TraceFunc | None:
         """Invoke the trace callback for the given frame and event."""
         ...
 

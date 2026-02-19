@@ -1,7 +1,5 @@
 """Home Assistant compatibility shims for PawControl's test suite."""
 
-from __future__ import annotations
-
 import asyncio
 import builtins
 from collections.abc import Callable, Iterable
@@ -44,9 +42,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 COMPONENT_ROOT = REPO_ROOT / "custom_components"
 PAWCONTROL_ROOT = COMPONENT_ROOT / "pawcontrol"
 
-_DEVICE_REGISTRY: "DeviceRegistry | None" = None
-_ENTITY_REGISTRY: "EntityRegistry | None" = None
-_ISSUE_REGISTRY: "IssueRegistry | None" = None
+_DEVICE_REGISTRY: DeviceRegistry | None = None
+_ENTITY_REGISTRY: EntityRegistry | None = None
+_ISSUE_REGISTRY: IssueRegistry | None = None
 HOME_ASSISTANT_VERSION = "2025.9.0"
 
 
@@ -126,7 +124,7 @@ class ConfigEntryState(Enum):
     SETUP_IN_PROGRESS = ("setup_in_progress", False)
     UNLOAD_IN_PROGRESS = ("unload_in_progress", False)
 
-    def __new__(cls, value: str, recoverable: bool) -> "ConfigEntryState":
+    def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:
         """Store the string value and recoverability flag."""
         obj = object.__new__(cls)
         obj._value_ = value
@@ -139,7 +137,7 @@ class ConfigEntryState(Enum):
         return self._recoverable
 
     @classmethod
-    def from_value(cls, value: str | "ConfigEntryState") -> "ConfigEntryState":
+    def from_value(cls, value: str | ConfigEntryState) -> ConfigEntryState:
         """Return the enum member matching ``value`` regardless of casing."""
         if isinstance(value, cls):
             return value

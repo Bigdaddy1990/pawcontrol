@@ -355,7 +355,7 @@ def mock_coordinator(
 def mock_feeding_manager(
     mock_dog_config: FeedingManagerDogSetupPayload,
     mock_hass: object,
-) -> "FeedingManager":
+) -> FeedingManager:
     """Mock FeedingManager for testing.
 
     Args:
@@ -375,7 +375,7 @@ def mock_feeding_manager(
 @pytest.fixture
 def mock_walk_manager(
     mock_dog_config: FeedingManagerDogSetupPayload,
-) -> "WalkManager":
+) -> WalkManager:
     """Mock WalkManager for testing.
 
     Args:
@@ -539,7 +539,7 @@ def assert_valid_dog_data():
 
 
 @pytest.fixture
-def create_feeding_event() -> Callable[..., "FeedingBatchEntry"]:
+def create_feeding_event() -> Callable[..., FeedingBatchEntry]:
     """Helper to create feeding events.
 
     Returns:
@@ -551,7 +551,7 @@ def create_feeding_event() -> Callable[..., "FeedingBatchEntry"]:
         amount: float = 200.0,
         meal_type: str = "breakfast",
         timestamp: datetime | None = None,
-    ) -> "FeedingBatchEntry":
+    ) -> FeedingBatchEntry:
         """Create feeding event data."""
         from custom_components.pawcontrol.feeding_manager import FeedingBatchEntry
 
