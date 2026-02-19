@@ -299,9 +299,7 @@ async def async_setup_entry(
             )
 
     if entities:
-        add_result = async_add_entities(entities)
-        if isawaitable(add_result):
-            await add_result
+        async_add_entities(entities)
 
 
 def _create_base_binary_sensors(
