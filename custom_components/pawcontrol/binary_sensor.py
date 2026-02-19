@@ -10,7 +10,6 @@ OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code dupl
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
-from inspect import isawaitable
 import logging
 import os
 from typing import TYPE_CHECKING, Literal, cast
