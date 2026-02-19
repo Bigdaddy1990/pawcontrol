@@ -75,7 +75,7 @@ jobs:
           python -m scripts.sync_localization_flags --check
 
       - name: Run pre-commit
-        run: pre-commit run --all-files --show-diff-on-failure  --allow-missing-config
+        run: pre-commit run --all-files --show-diff-on-failure
 
       - name: Run mypy
         run: mypy custom_components/pawcontrol --show-error-codes || true

@@ -2059,7 +2059,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
                 },
             ),
             description_placeholders={
-                "issue": self._issue_data.get("issue", "unknown"),
+                "issue": str(self._issue_data.get("issue", "unknown")),
                 "gps_enabled_dogs": str(self._issue_data.get("gps_enabled_dogs", 0)),
             },
         )
@@ -2181,7 +2181,9 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
                 },
             ),
             description_placeholders={
-                "missing_service": self._issue_data.get("missing_service", "unknown"),
+                "missing_service": str(
+                    self._issue_data.get("missing_service", "unknown")
+                ),
                 "notification_enabled_dogs": str(
                     self._issue_data.get("notification_enabled_dogs", 0),
                 ),
@@ -2536,7 +2538,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
             description_placeholders={
                 "current_retention": str(self._issue_data.get("current_retention")),
                 "recommended_max": str(self._issue_data.get("recommended_max")),
-                "suggestion": self._issue_data.get("suggestion"),
+                "suggestion": str(self._issue_data.get("suggestion")),
             },
         )
 
@@ -2589,7 +2591,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
             description_placeholders={
                 "intensive_dogs": str(self._issue_data.get("intensive_dogs")),
                 "total_dogs": str(self._issue_data.get("total_dogs")),
-                "suggestion": self._issue_data.get("suggestion"),
+                "suggestion": str(self._issue_data.get("suggestion")),
             },
         )
 
@@ -2699,9 +2701,9 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
             step_id="coordinator_error",
             data_schema=data_schema,
             description_placeholders={
-                "error": self._issue_data.get("error", "unknown"),
+                "error": str(self._issue_data.get("error", "unknown")),
                 "last_update": str(self._issue_data.get("last_update")),
-                "suggestion": self._issue_data.get("suggestion"),
+                "suggestion": str(self._issue_data.get("suggestion")),
             },
             errors=errors,
         )
