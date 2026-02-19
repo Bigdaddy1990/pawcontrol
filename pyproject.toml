@@ -206,12 +206,14 @@ omit = ["tests/*", "*/__pycache__/*"]
 show_missing = true
 skip_covered = false
 precision = 2
-ignore_errors = true
+ignore_errors = false
 
 [tool.coverage.html]
-directory = "htmlcov"
+directory = "pytestcov"
+output = "coverage.html"
 
 [tool.coverage.xml]
+directory = "pytestcov"
 output = "coverage.xml"
 
 [tool.setuptools]
