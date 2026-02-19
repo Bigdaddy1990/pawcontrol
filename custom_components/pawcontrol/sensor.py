@@ -4426,7 +4426,6 @@ class PawControlPushRejectedTotalSensor(PawControlSensorBase):
             return 0
 
 
-
 # ---------------------------------------------------------------------------
 # _MODULE_ENTITY_RULES
 #
@@ -4453,7 +4452,11 @@ _MODULE_ENTITY_RULES: ModuleEntityRules = {
             ("avg_garden_duration", PawControlAverageGardenDurationSensor, 3),
             ("garden_stats_weekly", PawControlGardenStatsWeeklySensor, 3),
             ("favorite_garden_activities", PawControlFavoriteGardenActivitiesSensor, 3),
-            ("garden_activities_last_session", PawControlGardenActivitiesLastSessionSensor, 3),
+            (
+                "garden_activities_last_session",
+                PawControlGardenActivitiesLastSessionSensor,
+                3,
+            ),
         ],
     },
     MODULE_FEEDING: {
