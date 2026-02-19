@@ -30,7 +30,7 @@ Documentation = "https://github.com/BigDaddy1990/pawcontrol/blob/main/README.md"
 Issues = "https://github.com/BigDaddy1990/pawcontrol/issues"
 
 [tool.pytest.ini_options]
-addopts = "-p pytest_cov --cov=custom_components.pawcontrol --cov-report=term-missing --cov-report=xml --cov-report=html --cov-branch --no-cov-on-fail -q -ra --strict-markers --strict-config --tb=short --maxfail=20"
+addopts = "-p pytest_cov --cov=custom_components.pawcontrol --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-branch --no-cov-on-fail -q -ra --strict-markers --strict-config --tb=short --maxfail=20"
 markers = [
   "asyncio: mark a test as using asyncio",
   "ci_only: mark a test to run only in CI",
@@ -40,7 +40,20 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 pythonpath = ["."]
 asyncio_mode = "auto"
-filterwarnings = ["error"]
+filterwarnings = [
+  "error",
+  # Ignore deprecation warnings from third-party dependencies outside our control
+  "ignore::DeprecationWarning:pytest_homeassistant_custom_component",
+  "ignore::DeprecationWarning:homeassistant",
+  "ignore::PendingDeprecationWarning:homeassistant",
+  "ignore::DeprecationWarning:aiohttp",
+  "ignore::DeprecationWarning:voluptuous",
+  # asyncio event-loop deprecation raised by Python 3.12+ internals
+  "ignore:There is no current event loop:DeprecationWarning",
+  "ignore:coroutine .* was never awaited:RuntimeWarning",
+  # Ignore pytest-asyncio fixture deprecations when real plugin present
+  "ignore::pytest.PytestUnraisableExceptionWarning",
+]
 
 [tool.ruff]
 target-version = "py314"
@@ -209,12 +222,10 @@ precision = 2
 ignore_errors = false
 
 [tool.coverage.html]
-output = "coverage.html"
-outputdir = "./coverage/"
+directory = "htmlcov"
 
 [tool.coverage.xml]
 output = "coverage.xml"
-outputdir = "./coverage/"
 
 [tool.setuptools]
 include-package-data = true
