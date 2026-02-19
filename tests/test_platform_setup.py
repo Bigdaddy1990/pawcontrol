@@ -67,7 +67,7 @@ async def test_platform_setup_adds_entities_when_configured(
 ) -> None:
     store_runtime_data(hass, mock_config_entry, runtime_data)
     module = importlib.import_module(module_path)
-    async_add_entities = AsyncMock()
+    async_add_entities = MagicMock()
 
     await module.async_setup_entry(hass, mock_config_entry, async_add_entities)
 
