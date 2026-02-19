@@ -119,7 +119,7 @@ cli:
 # Upload settings
 uploads:
   - name: "pawcontrol"
-    path: "./coverage.xml"
+    path: "coverage/coverage.xml"
     flags:
       - unittests
     report_type: "pytest"
