@@ -40,7 +40,7 @@ jobs:
       - name: Run modernization hooks
         run: |
           pre-commit run --all-files || true
-          pre-commit run --hook-stage manual python-typing-update --all-files || true
+          pre-commit run --hook-stage manual python-typing-update --all-files --py3.14 || true
 
       - name: Commit and push auto-fixes
         run: |
