@@ -33,13 +33,6 @@ jobs:
             --junitxml=junit.xml -o junit_family=legacy
           cat codecov_ats/tests_to_run.txt | xargs pytest --cov app
 
-      - name: Run tests and collect coverage
-        run: pytest --cov .
-      - name: Verify coverage artifacts exist
-        run: |
-          test -f coverage.xml
-          test -f junit.xml
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
