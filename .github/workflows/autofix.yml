@@ -66,12 +66,6 @@ jobs:
             --allowlist scripts/sync_localization_flags.allowlist \
             --check
 
-      - name: Run prek once (apply fixes)
-        run: |
-          prek install
-          prek run --all-files
-          prek run --hook-stage manual python-typing-update --all-files --keep-updates --py314-plus
-
       - name: pre-commit-ci-lite
         uses: pre-commit-ci/lite-action@v1.1.0
         if: always()
