@@ -1,20 +1,28 @@
 version: 2.1
 
-setup: true
+jobs:
+  deploy:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Plan a deploy
+          command: |
+            circleci run release plan \
+              --environment-name="pawcontrol" \
+              --component-name="pawcontrol" \
+              --target-version="<some-version-name>"
+      - run:
+          name: Update a deploy to SUCCESS
+          command: circleci run release update --status=SUCCESS
+          when: on_success
+      - run:
+          name: Update planned deploy to FAILED
+          command: circleci run release update --status=FAILED
+          when: on_fail
 
-- run:
-    name: Plan a deploy
-    command: |
-      circleci run release plan \
-        --environment-name="pawcontrol" \
-        --component-name="pawcontrol" \
-        --target-version="<some-version-name>"
-# Your job here doing the actual deployment
-- run:
-    name: Update a deploy to SUCCESS
-    command: circleci run release update --status=SUCCESS
-    when: on_success
-- run:
-    name: Update planned deploy to FAILED
-    command: circleci run release update --status=FAILED
-    when: on_fail
+workflows:
+  version: 2
+  deploy_workflow:
+    jobs:
+      - deploy
