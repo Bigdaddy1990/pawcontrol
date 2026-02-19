@@ -4426,6 +4426,7 @@ class PawControlPushRejectedTotalSensor(PawControlSensorBase):
             return 0
 
 
+
 # ---------------------------------------------------------------------------
 # _MODULE_ENTITY_RULES
 #
@@ -4438,7 +4439,7 @@ class PawControlPushRejectedTotalSensor(PawControlSensorBase):
 # This constant must be defined AFTER every sensor class it references.
 # ---------------------------------------------------------------------------
 
-_MODULE_ENTITY_RULES: ModuleEntityRules = {
+_MODULE_ENTITY_RULES: ModuleEntityRules = cast(ModuleEntityRules, {
     MODULE_GARDEN: {
         "standard": [
             ("garden_time_today", PawControlGardenTimeTodaySensor, 1),
@@ -4452,11 +4453,7 @@ _MODULE_ENTITY_RULES: ModuleEntityRules = {
             ("avg_garden_duration", PawControlAverageGardenDurationSensor, 3),
             ("garden_stats_weekly", PawControlGardenStatsWeeklySensor, 3),
             ("favorite_garden_activities", PawControlFavoriteGardenActivitiesSensor, 3),
-            (
-                "garden_activities_last_session",
-                PawControlGardenActivitiesLastSessionSensor,
-                3,
-            ),
+            ("garden_activities_last_session", PawControlGardenActivitiesLastSessionSensor, 3),
         ],
     },
     MODULE_FEEDING: {
@@ -4543,4 +4540,4 @@ _MODULE_ENTITY_RULES: ModuleEntityRules = {
             ("health_conditions", PawControlHealthConditionsSensor, 2),
         ],
     },
-}
+})
