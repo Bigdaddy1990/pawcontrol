@@ -21,6 +21,9 @@ classifiers = [
 dynamic = ["version", "dependencies", "optional-dependencies"]
 requires-python = ">=3.14"
 
+[options]
+python_requires = ">=3.14"
+
 [project.urls]
 Homepage = "https://github.com/BigDaddy1990/pawcontrol"
 Documentation = "https://github.com/BigDaddy1990/pawcontrol/blob/main/README.md"
