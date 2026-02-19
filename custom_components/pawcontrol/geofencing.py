@@ -583,7 +583,7 @@ class PawControlGeofencing:
         dog_state = self._dog_states.get(dog_id)
         location = dog_state.last_location if dog_state else None
 
-        event_data = {
+        event_data: dict[str, object] = {
             "dog_id": dog_id,
             "zone_id": zone_id,
             "zone_name": zone.name,

@@ -18,19 +18,10 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 
-# ``ConditionCheckerType`` is only used for typing. Some Home Assistant test harness
-# builds do not ship the helpers module that defines it, so we avoid importing it at
-# runtime and provide a safe fallback.
 if TYPE_CHECKING:  # pragma: no cover
-    try:
-        from homeassistant.helpers.condition import ConditionCheckerType
-    except ImportError:
-        try:
-            from homeassistant.helpers.typing import ConditionCheckerType
-        except ImportError:
-            ConditionCheckerType = Callable[..., bool]
+    from homeassistant.helpers.condition import ConditionCheckerType
 else:
-    ConditionCheckerType = Callable[..., bool]  # type: ignore[assignment]
+    ConditionCheckerType = Callable[..., bool]
 import voluptuous as vol
 
 from .const import DOMAIN
