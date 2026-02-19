@@ -25,7 +25,7 @@ from .const import (
     MAX_DOG_NAME_LENGTH,
     MIN_DOG_NAME_LENGTH,
 )
-from .exceptions import ValidationError
+from .exceptions import InvalidCoordinatesError, ValidationError
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -504,15 +504,10 @@ def validate_notify_service(
 
 
 def validate_gps_coordinates(latitude: Any, longitude: Any) -> tuple[float, float]:
-    """Compatibility helper that raises ``InvalidCoordinatesError``.
-
-    Uses a local exception import to avoid module import-order cycles.
-    """
+    """Compatibility helper that raises ``InvalidCoordinatesError``."""
     try:
         return InputValidator.validate_gps_coordinates(latitude, longitude)
     except ValidationError as err:
-        from .exceptions import InvalidCoordinatesError
-
         raise InvalidCoordinatesError(latitude, longitude) from err
 
 
