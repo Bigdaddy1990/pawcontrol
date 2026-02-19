@@ -46,7 +46,7 @@ codecov:
             - "unit"
           paths:
             - "src"
-    changes: false
+    changes: true
   precision: 2
   round: down
   range:
@@ -69,7 +69,10 @@ comment:
   require_head: true
   branches:
     - main
-
+    
+github_checks:
+    annotations: false
+    
 ignore:
   - "tests/**/*"
   - "docs/**/*"
@@ -92,9 +95,14 @@ flags:
     paths:
       - custom_components/pawcontrol
     carryforward: true
-
+    
+  tests:
+    paths:
+      - tests/
+    carryforward: false
+      
 github_checks:
-  annotations: true
+  annotations: false
 
 flag_management:
   individual_flags:
@@ -104,6 +112,7 @@ flag_management:
       statuses:
         - type: "project"
         - type: "patch"
+        - type: "tests"
 
 cli:
   plugins:
