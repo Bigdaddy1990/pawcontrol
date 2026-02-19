@@ -5,53 +5,48 @@ codecov:
   require_ci_to_pass: false
   notify:
     wait_for_ci: false
-  bot: <codecov-bot> #this is a username for Github/Gitlab/Bitbucket
   continue-on-error: true
 
-  coverage:
-    status:
-      project:
-        default: # default is the status check's name, not default settings
-          target: auto
-          threshold: 1%
-          base: auto
-          flags:
-            - unit
-          paths:
-            - custom_components/pawcontrol
-          # advanced settings
-          branches:
-            - main
-          if_not_found: success
-          if_ci_failed: error #success, failure, error, ignore
-          informational: true
-          only_pulls: false
-      tests: # declare a new status context "tests"
-        target: 100% # we always want 100% coverage here
-        paths: "tests/" # only include coverage in "tests/" folder
-      app: # declare a new status context "app"
-        paths: "!tests/" # remove all files in "tests/"
-      patch:
-        default:
-          target: 90%
-          threshold: 1%
-          base: auto
-          branches:
-            - main
-          if_not_found: success
-          if_ci_failed: error
-          informational: true
-          only_pulls: false
-          flags:
-            - "unit"
-          paths:
-            - "src"
-    changes: true
+coverage:
   precision: 2
   round: down
   range:
     - 70.0
     - 100.0
+
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        base: auto
+        flags:
+          - unittests
+        paths:
+          - custom_components/pawcontrol
+        branches:
+          - main
+        if_not_found: success
+        if_ci_failed: error
+        informational: true
+        only_pulls: false
+    patch:
+      default:
+        target: 90%
+        threshold: 1%
+        base: auto
+        branches:
+          - main
+        if_not_found: success
+        if_ci_failed: error
+        informational: true
+        only_pulls: false
+        flags:
+          - unittests
+        paths:
+          - custom_components/pawcontrol
+
+  changes: true
 
 parsers:
   gcov:
@@ -71,8 +66,9 @@ comment:
     - main
 
 github_checks:
-    annotations: false
+  annotations: false
 
+# Files to exclude from coverage analysis
 ignore:
   - "tests/**/*"
   - "docs/**/*"
@@ -81,10 +77,8 @@ ignore:
   - "**/test_*.py"
   - "**/conftest.py"
   - "**/*.md"
-  - ^tests/.*
-  - ^docs/.*
-  - ^scripts/.*
 
+# Flag definitions
 flags:
   unittests:
     paths:
@@ -96,30 +90,19 @@ flags:
       - custom_components/pawcontrol
     carryforward: true
 
-  tests:
-    paths:
-      - tests/
-    carryforward: false
-
 flag_management:
   individual_flags:
     - name: smart-tests
       carryforward: true
-      carryforward_mode: "labels"
+      carryforward_mode: labels
       statuses:
-        - type: "project"
-        - type: "patch"
-        - type: "tests"
+        - type: project
+        - type: patch
 
-cli:
-  plugins:
-    pycoverage:
-      report_type: "json"
-
-# Upload settings
+# Upload settings — coverage.xml is always written to the project root
 uploads:
-  - name: "pawcontrol"
-    path: "coverage/coverage.xml"
+  - name: pawcontrol
+    path: coverage.xml
     flags:
       - unittests
-    report_type: "pytest"
+    report_type: pytest
