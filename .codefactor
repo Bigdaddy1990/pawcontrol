@@ -40,7 +40,7 @@ rules:
 advanced:
   language_specific:
     python:
-      version: "3.13"
+      version: "3.14"
       libraries:
         - "homeassistant"
         - "pytest"
