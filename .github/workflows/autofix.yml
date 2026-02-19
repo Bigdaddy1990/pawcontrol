@@ -52,7 +52,7 @@ jobs:
           ruff check . --output-format=github || true
           ruff format
           python scripts/enforce_docstring_baseline.py --update
-          pre-commit run --all-files --allow-missing-config || true
+          pre-commit run --all-files --py3.14 || true
           pre-commit run --hook-stage manual python-typing-update --all-files --py3.14 || true
 
       - name: Verify contributor guides
