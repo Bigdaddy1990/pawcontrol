@@ -49,7 +49,5 @@ jobs:
           YAML
 
       - name: Validate installation with hass --script check_config
-        env:
-          PYTHONPATH: .
         run: |
           hass --script check_config --config smoke-config
