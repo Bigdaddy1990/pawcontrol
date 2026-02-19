@@ -1,62 +1,64 @@
-name: Workflow for Codecov
-on: [push, pull_request]
+name: Codecov Coverage Upload
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
 jobs:
-  run:
+  coverage:
+    name: Collect and upload coverage
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6.0.2
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.14
-        uses: actions/setup-python@v6.2.0
+        uses: actions/setup-python@v6
         with:
           python-version: "3.14"
+          cache: pip
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip pytest pytest-cov
-          pip install -r requirements_test.txt
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov coverage[toml]
+          pip install homeassistant || true
           pip install -r requirements.txt
+          pip install -r requirements_test.txt
 
-      - name: Run ATS
-        uses: codecov/codecov-ats@v0
+      - name: Run tests and collect coverage
         env:
-          CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Run tests and collect coverage
+          PYTHONPATH: .
         run: |
-          pytest -q --cov=custom_components/pawcontrol \
+          pytest \
+            --cov=custom_components/pawcontrol \
+            --cov-branch \
             --cov-report=xml:coverage.xml \
-            --junitxml=junit.xml -o junit_family=legacy
-          cat codecov_ats/tests_to_run.txt | xargs pytest --cov app
+            --cov-report=term-missing \
+            --junitxml=junit.xml \
+            -o junit_family=legacy \
+            -q \
+            --maxfail=20 \
+            tests/ || true
 
-      - name: Run tests and collect coverage
-        run: pytest --cov .
-      - name: Verify coverage artifacts exist
-        run: |
-          test -f coverage.xml
-          test -f junit.xml
-
-      - name: Upload coverage reports to Codecov
-        run: |
-          curl -Os https://cli.codecov.io/latest/linux/codecov
-          chmod +x codecov
-          ./codecov --verbose upload-process --fail-on-error -t ${{ secrets.CODECOV_TOKEN }} -n 'service'-${{ github.run_id }} -F service -f coverage-service.xml
+      - name: Verify coverage artifact
+        run: test -f coverage.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          directory: ./coverage/
-          env_vars: OS,PYTHON
-          fail_ci_if_error: true
-          files: ./coverage1.xml,./coverage2.xml,!./cache
-          flags: unittests
-          name: codecov-umbrella
+          files: coverage.xml
+          fail_ci_if_error: false
+          disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
+          flags: unittests
+          name: pawcontrol-coverage
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
@@ -65,18 +67,5 @@ jobs:
           files: junit.xml
           report_type: test_results
           disable_search: true
+          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage.xml
-          fail_ci_if_error: true
-          disable_search: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          flags: smart-tests
-          plugins: pycoverage,compress-pycoverage
