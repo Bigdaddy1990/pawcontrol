@@ -329,14 +329,9 @@ class PawControlCoordinator(
             )
 
         self._data = data
-        # Keep the coordinator cache available to tests and helpers that invoke
-        # _async_update_data directly without the full DataUpdateCoordinator
-        # refresh harness.
-        self.data = dict(data)
-        # NOTE: Do NOT call async_set_updated_data from _async_update_data.
-        # DataUpdateCoordinator._async_refresh broadcasts the returned payload
-        # and handles listener notification. We only mirror the local cache so
-        # direct unit calls still expose a populated coordinator.data attribute.
+        # NOTE: Do NOT assign self.data or call async_set_updated_data from
+        # _async_update_data. DataUpdateCoordinator._async_refresh broadcasts
+        # the returned payload and handles listener notification.
         return self._data
 
     async def _fetch_dog_data(self, dog_id: str) -> paw_types.CoordinatorDogData:

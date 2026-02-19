@@ -1841,7 +1841,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
                 },
             ),
             description_placeholders={
-                "dogs_count": self._issue_data.get("dogs_count", 0),
+                "dogs_count": str(self._issue_data.get("dogs_count", 0)),
             },
         )
 
@@ -2011,7 +2011,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
             ),
             description_placeholders={
                 "duplicate_ids": ", ".join(duplicate_ids),
-                "total_dogs": total_dogs,
+                "total_dogs": str(total_dogs),
             },
         )
 
@@ -2060,7 +2060,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
             ),
             description_placeholders={
                 "issue": self._issue_data.get("issue", "unknown"),
-                "gps_enabled_dogs": self._issue_data.get("gps_enabled_dogs", 0),
+                "gps_enabled_dogs": str(self._issue_data.get("gps_enabled_dogs", 0)),
             },
         )
 
@@ -2182,9 +2182,8 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
             ),
             description_placeholders={
                 "missing_service": self._issue_data.get("missing_service", "unknown"),
-                "notification_enabled_dogs": self._issue_data.get(
-                    "notification_enabled_dogs",
-                    0,
+                "notification_enabled_dogs": str(
+                    self._issue_data.get("notification_enabled_dogs", 0),
                 ),
             },
         )
@@ -2535,8 +2534,8 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
                 },
             ),
             description_placeholders={
-                "current_retention": self._issue_data.get("current_retention"),
-                "recommended_max": self._issue_data.get("recommended_max"),
+                "current_retention": str(self._issue_data.get("current_retention")),
+                "recommended_max": str(self._issue_data.get("recommended_max")),
                 "suggestion": self._issue_data.get("suggestion"),
             },
         )
@@ -2588,8 +2587,8 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
                 },
             ),
             description_placeholders={
-                "intensive_dogs": self._issue_data.get("intensive_dogs"),
-                "total_dogs": self._issue_data.get("total_dogs"),
+                "intensive_dogs": str(self._issue_data.get("intensive_dogs")),
+                "total_dogs": str(self._issue_data.get("total_dogs")),
                 "suggestion": self._issue_data.get("suggestion"),
             },
         )
@@ -2652,7 +2651,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
             ),
             description_placeholders={
                 "invalid_dogs": ", ".join(invalid_dogs),
-                "total_dogs": total_dogs,
+                "total_dogs": str(total_dogs),
             },
         )
 
@@ -2701,7 +2700,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
             data_schema=data_schema,
             description_placeholders={
                 "error": self._issue_data.get("error", "unknown"),
-                "last_update": self._issue_data.get("last_update"),
+                "last_update": str(self._issue_data.get("last_update")),
                 "suggestion": self._issue_data.get("suggestion"),
             },
             errors=errors,
