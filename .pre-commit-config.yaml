@@ -92,7 +92,6 @@ repos:
         args:
           - custom_components/pawcontrol
           - --ignore-missing-imports
-          - --py3.14
         additional_dependencies:
           - types-pyyaml
         'types_or': [python, pyi]

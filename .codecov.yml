@@ -101,9 +101,6 @@ flags:
       - tests/
     carryforward: false
 
-github_checks:
-  annotations: false
-
 flag_management:
   individual_flags:
     - name: smart-tests
