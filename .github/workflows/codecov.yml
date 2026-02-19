@@ -40,19 +40,13 @@ jobs:
           test -f coverage.xml
           test -f junit.xml
 
-      - name: Upload coverage reports to Codecov
-        run: |
-          curl -Os https://cli.codecov.io/latest/linux/codecov
-          chmod +x codecov
-          ./codecov --verbose upload-process --fail-on-error -t ${{ secrets.CODECOV_TOKEN }} -n 'service'-${{ github.run_id }} -F service -f coverage-service.xml
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          directory: ./coverage/reports/
+          directory: ./
           env_vars: OS,PYTHON
           fail_ci_if_error: true
-          files: ./coverage1.xml,./coverage2.xml,!./cache
+          files: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
           token: ${{ secrets.CODECOV_TOKEN }}
