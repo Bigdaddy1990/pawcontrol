@@ -41,8 +41,8 @@ jobs:
         continue-on-error: true
         run: |
           set -e
-          pre-commit run --all-files
-          pre-commit run --hook-stage manual python-typing-update --all-files --py3.14 || true
+          pre-commit run --all-files --allow-missing-config
+          pre-commit run --hook-stage manual python-typing-update --all-files --py3.14 --allow-missing-config || true
           python -m mypy custom_components/pawcontrol
 
       - name: Determine auto-fix eligibility
