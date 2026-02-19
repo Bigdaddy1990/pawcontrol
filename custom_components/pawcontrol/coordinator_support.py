@@ -1,5 +1,7 @@
 """Helper structures that keep :mod:`coordinator` lean and maintainable."""
 
+from __future__ import annotations
+
 from collections import deque
 from collections.abc import Mapping
 from dataclasses import dataclass, field

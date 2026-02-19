@@ -29,6 +29,8 @@ from custom_components.pawcontrol import compat as pawcontrol_compat
 pawcontrol_compat.ensure_homeassistant_config_entry_symbols()
 pawcontrol_compat.ensure_homeassistant_exception_symbols()
 
+from homeassistant.config_entries import ConfigEntry
+
 from custom_components.pawcontrol.types import (
     CoordinatorDogData,
     FeedingManagerDogSetupPayload,
@@ -37,8 +39,6 @@ from custom_components.pawcontrol.types import (
 from tests.helpers import typed_deepcopy
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
-
     from custom_components.pawcontrol.feeding_manager import (
         FeedingBatchEntry,
         FeedingManager,
@@ -149,8 +149,6 @@ def mock_config_entry(mock_dog_config: FeedingManagerDogSetupPayload) -> ConfigE
     Returns:
         Mock ConfigEntry object
     """
-    from homeassistant.config_entries import ConfigEntry
-
     entry = ConfigEntry(
         domain="pawcontrol",
         data={"dogs": [mock_dog_config]},
@@ -357,7 +355,7 @@ def mock_coordinator(
 def mock_feeding_manager(
     mock_dog_config: FeedingManagerDogSetupPayload,
     mock_hass: object,
-) -> FeedingManager:
+) -> "FeedingManager":
     """Mock FeedingManager for testing.
 
     Args:
@@ -377,7 +375,7 @@ def mock_feeding_manager(
 @pytest.fixture
 def mock_walk_manager(
     mock_dog_config: FeedingManagerDogSetupPayload,
-) -> WalkManager:
+) -> "WalkManager":
     """Mock WalkManager for testing.
 
     Args:
@@ -541,7 +539,7 @@ def assert_valid_dog_data():
 
 
 @pytest.fixture
-def create_feeding_event() -> Callable[..., FeedingBatchEntry]:
+def create_feeding_event() -> Callable[..., "FeedingBatchEntry"]:
     """Helper to create feeding events.
 
     Returns:
@@ -553,7 +551,7 @@ def create_feeding_event() -> Callable[..., FeedingBatchEntry]:
         amount: float = 200.0,
         meal_type: str = "breakfast",
         timestamp: datetime | None = None,
-    ) -> FeedingBatchEntry:
+    ) -> "FeedingBatchEntry":
         """Create feeding event data."""
         from custom_components.pawcontrol.feeding_manager import FeedingBatchEntry
 

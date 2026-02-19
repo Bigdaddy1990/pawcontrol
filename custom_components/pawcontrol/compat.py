@@ -1,5 +1,7 @@
 """Compatibility helpers that keep the integration functional without Home Assistant."""
 
+from __future__ import annotations
+
 from collections.abc import Awaitable, Callable, Coroutine, Iterable, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
