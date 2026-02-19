@@ -3,6 +3,7 @@
 from collections.abc import Callable, Mapping
 import contextlib
 from datetime import date, datetime, timedelta
+from inspect import isawaitable
 import logging
 from numbers import Real
 from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, TypedDict, cast
@@ -336,7 +337,9 @@ async def async_setup_entry(
         finally:
             entity_factory.finalize_budget(dog_id, profile)
     if all_entities:
-        async_add_entities(all_entities)
+        add_result = async_add_entities(all_entities)
+        if isawaitable(add_result):
+            await add_result
 
 
 def _create_core_entities(

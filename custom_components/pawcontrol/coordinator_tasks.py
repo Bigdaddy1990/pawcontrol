@@ -1385,7 +1385,7 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
                 last_update_time = getattr(
                     coordinator,
                     "last_update_success_time",
-                    now,
+                    getattr(coordinator, "last_update_time", now),
                 )
                 hours_since_last_update = (
                     now - last_update_time

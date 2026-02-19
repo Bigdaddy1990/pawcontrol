@@ -10,6 +10,7 @@ OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code dupl
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
+from inspect import isawaitable
 import logging
 import os
 from typing import TYPE_CHECKING, Literal, cast
@@ -298,7 +299,9 @@ async def async_setup_entry(
             )
 
     if entities:
-        async_add_entities(entities)
+        add_result = async_add_entities(entities)
+        if isawaitable(add_result):
+            await add_result
 
 
 def _create_base_binary_sensors(

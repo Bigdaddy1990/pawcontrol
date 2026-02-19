@@ -149,6 +149,7 @@ class PawControlCoordinator(
         self._data: paw_types.CoordinatorDataPayload = {
             dog_id: self.registry.empty_payload() for dog_id in self.registry.ids()
         }
+        self.data = dict(self._data)
         self._metrics = coordinator_support.CoordinatorMetrics()
         self._entity_budget = coordinator_observability.EntityBudgetTracker()
         self._setup_complete = False
@@ -328,12 +329,14 @@ class PawControlCoordinator(
             )
 
         self._data = data
-        # NOTE: Do NOT assign self.data here and do NOT call async_set_updated_data.
-        # DataUpdateCoordinator._async_refresh already sets self.data from the
-        # return value of _async_update_data and broadcasts to all listeners.
-        # A manual self.data = data (B2) caused double entity-state writes per cycle.
-        # Tests that need coordinator.data populated without the full HA harness
-        # should call coordinator.async_request_refresh() or patch _async_update_data.
+        # Keep the coordinator cache available to tests and helpers that invoke
+        # _async_update_data directly without the full DataUpdateCoordinator
+        # refresh harness.
+        self.data = dict(data)
+        # NOTE: Do NOT call async_set_updated_data from _async_update_data.
+        # DataUpdateCoordinator._async_refresh broadcasts the returned payload
+        # and handles listener notification. We only mirror the local cache so
+        # direct unit calls still expose a populated coordinator.data attribute.
         return self._data
 
     async def _fetch_dog_data(self, dog_id: str) -> paw_types.CoordinatorDogData:
