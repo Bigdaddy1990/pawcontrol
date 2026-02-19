@@ -10,7 +10,9 @@ OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code dupl
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
-from .coordinator import PawControlCoordinator
+import logging
+import os
+from typing import TYPE_CHECKING, Literal, cast
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -32,10 +34,6 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
-import logging
-import os
-from typing import TYPE_CHECKING, Literal, cast
-
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data

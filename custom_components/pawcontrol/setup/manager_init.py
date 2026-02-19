@@ -23,7 +23,6 @@ from ..feeding_manager import FeedingManager
 from ..garden_manager import GardenManager
 from ..geofencing import PawControlGeofencing
 from ..gps_manager import GPSGeofenceManager
-from ..weather_manager import WeatherHealthManager
 from ..helper_manager import PawControlHelperManager
 from ..notifications import PawControlNotificationManager
 from ..script_manager import PawControlScriptManager
@@ -38,6 +37,7 @@ from ..types import (
     PawControlRuntimeData,
 )
 from ..walk_manager import WalkManager
+from ..weather_manager import WeatherHealthManager
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -621,7 +621,9 @@ def _create_runtime_data(
     runtime_data.gps_geofence_manager = optional_managers.get("gps_geofence_manager")
     runtime_data.door_sensor_manager = optional_managers.get("door_sensor_manager")
     runtime_data.garden_manager = optional_managers.get("garden_manager")
-    runtime_data.weather_health_manager = optional_managers.get("weather_health_manager")
+    runtime_data.weather_health_manager = optional_managers.get(
+        "weather_health_manager"
+    )
     runtime_data.device_api_client = coordinator.api_client
     # Attach runtime data to script manager
     script_manager = optional_managers.get("script_manager")

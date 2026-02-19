@@ -546,11 +546,11 @@ NOTIFICATION_CHANNELS: Final[tuple[str, ...]] = (
 # PLATINUM: Update intervals with consistent key naming throughout codebase
 # B7 FIX: Do not mutate a Final dict after declaration — define all keys upfront.
 UPDATE_INTERVALS: Final[dict[str, int]] = {
-    "minimal": 300,    # 5 minutes - power saving
-    "balanced": 120,   # 2 minutes - balanced default cadence
-    "frequent": 60,    # 1 minute - responsive
-    "real_time": 30,   # 30 seconds - high performance
-    "standard": 120,   # Alias for "balanced" (backward-compat)
+    "minimal": 300,  # 5 minutes - power saving
+    "balanced": 120,  # 2 minutes - balanced default cadence
+    "frequent": 60,  # 1 minute - responsive
+    "real_time": 30,  # 30 seconds - high performance
+    "standard": 120,  # Alias for "balanced" (backward-compat)
 }
 
 # PLATINUM: Cap idle polling to stay within the <15 minute guideline
