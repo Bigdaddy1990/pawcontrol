@@ -5,12 +5,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.14
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.14"
 
@@ -22,14 +22,12 @@ jobs:
 
       - name: Run tests and collect coverage
         run: |
-          pytest \
+          python -m coverage run -m pytest \
             -o "addopts=" \
             -q \
-            --cov=custom_components/pawcontrol \
-            --cov-report=xml:coverage.xml \
-            --cov-branch \
             --junitxml=junit.xml \
             -o junit_family=legacy || true
+          python -m coverage xml -o coverage.xml
 
       - name: Verify coverage artifacts exist
         run: |
@@ -42,7 +40,7 @@ jobs:
         with:
           files: junit.xml
           report_type: test_results
-          disable_search: false
+          disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage to Codecov
@@ -50,5 +48,5 @@ jobs:
         with:
           files: coverage.xml
           fail_ci_if_error: true
-          disable_search: false
+          disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
