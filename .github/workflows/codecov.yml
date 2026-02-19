@@ -5,58 +5,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.14
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.14"
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip pytest pytest-cov
+          pip install --upgrade pip
           pip install -r requirements_test.txt
           pip install -r requirements.txt
 
-      - name: Run ATS
-        uses: codecov/codecov-ats@v0
-        env:
-          CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
       - name: Run tests and collect coverage
         run: |
-          pytest -q --cov=custom_components/pawcontrol \
+          pytest \
+            -o "addopts=" \
+            -q \
+            --cov=custom_components/pawcontrol \
             --cov-report=xml:coverage.xml \
-            --junitxml=junit.xml -o junit_family=legacy
-          cat codecov_ats/tests_to_run.txt | xargs pytest --cov app
+            --cov-branch \
+            --junitxml=junit.xml \
+            -o junit_family=legacy
 
-      - name: Run tests and collect coverage
-        run: pytest --cov .
       - name: Verify coverage artifacts exist
         run: |
           test -f coverage.xml
           test -f junit.xml
-
-      - name: Upload coverage reports to Codecov
-        run: |
-          curl -Os https://cli.codecov.io/latest/linux/codecov
-          chmod +x codecov
-          ./codecov --verbose upload-process --fail-on-error -t ${{ secrets.CODECOV_TOKEN }} -n 'service'-${{ github.run_id }} -F service -f coverage-service.xml
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          directory: ./coverage/reports/
-          env_vars: OS,PYTHON
-          fail_ci_if_error: true
-          files: ./coverage1.xml,./coverage2.xml,!./cache
-          flags: unittests
-          name: codecov-umbrella
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
@@ -66,6 +44,7 @@ jobs:
           report_type: test_results
           disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -73,10 +52,3 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          flags: smart-tests
-          plugins: pycoverage,compress-pycoverage
