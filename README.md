@@ -8,12 +8,10 @@
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
-[![Coverage](https://img.shields.io/endpoint?url=https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
 [![Tests](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml/badge.svg)](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
 [![codecov](https://codecov.io/gh/Bigdaddy1990/pawcontrol/branch/main/graph/badge.svg?token=Y8IFVQ0KDD)](https://codecov.io/gh/Bigdaddy1990/pawcontrol)
-[![Super-Linter](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/superlinter.yml/badge.svg)](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/superlinter.yml)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
-[![CircleCI](https://dl.circleci.com/status-badge/img/circleci/3HskQBj7izi19hUT9Y2n4f/E9gqkn1PBaphtcUU2n1s1P/tree/main.svg?style=svg&circle-token=CCIPRJ_PPbWYcPp1oqie1eVL3xBVY_8648b8834e075d29260d8ff526142c88f7e4a771)](https://dl.circleci.com/status-badge/redirect/circleci/3HskQBj7izi19hUT9Y2n4f/E9gqkn1PBaphtcUU2n1s1P/tree/main)
+
 
 **PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The integration **aims to comply with the Platinum quality scale** and keeps runtime data, options flow, diagnostics, and testing evidence synchronised with the Home Assistant guidance captured in this repository’s compliance reports. As a custom integration, this is an alignment target rather than an official Home Assistant badge.
 
