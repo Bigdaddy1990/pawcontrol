@@ -23,6 +23,7 @@ from ..feeding_manager import FeedingManager
 from ..garden_manager import GardenManager
 from ..geofencing import PawControlGeofencing
 from ..gps_manager import GPSGeofenceManager
+from ..weather_manager import WeatherHealthManager
 from ..helper_manager import PawControlHelperManager
 from ..notifications import PawControlNotificationManager
 from ..script_manager import PawControlScriptManager
@@ -267,6 +268,7 @@ async def _async_create_optional_managers(
         "garden_manager": None,
         "gps_geofence_manager": None,
         "geofencing_manager": None,
+        "weather_health_manager": None,
     }
 
     if skip_optional_setup:
@@ -278,6 +280,7 @@ async def _async_create_optional_managers(
     optional_managers["script_manager"] = PawControlScriptManager(hass, entry)
     optional_managers["door_sensor_manager"] = DoorSensorManager(hass, entry.entry_id)
     optional_managers["garden_manager"] = GardenManager(hass, entry.entry_id)
+    optional_managers["weather_health_manager"] = WeatherHealthManager(hass)
     # Migrate script manager options if needed
     script_manager = optional_managers["script_manager"]
     if script_manager is not None:
@@ -420,8 +423,11 @@ async def _async_initialize_all_managers(
                 ),
             )
 
-    # Wait for all initializations
-    await asyncio.gather(*initialization_tasks, return_exceptions=False)
+    # Wait for all initializations; collect exceptions instead of cancelling siblings
+    results = await asyncio.gather(*initialization_tasks, return_exceptions=True)
+    for result in results:
+        if isinstance(result, BaseException):
+            raise result
 
 
 async def _async_initialize_geofencing_manager(
@@ -554,6 +560,7 @@ def _attach_managers_to_coordinator(
         notification_manager=core_managers["notification_manager"],
         gps_geofence_manager=optional_managers.get("gps_geofence_manager"),
         geofencing_manager=optional_managers.get("geofencing_manager"),
+        weather_health_manager=optional_managers.get("weather_health_manager"),
         garden_manager=optional_managers.get("garden_manager"),
     )
 
@@ -567,6 +574,11 @@ def _attach_managers_to_coordinator(
     if notification_manager:
         notification_manager.resilience_manager = coordinator.resilience_manager
         _LOGGER.debug("Shared ResilienceManager with Notification manager")
+
+    weather_health_manager = optional_managers.get("weather_health_manager")
+    if weather_health_manager:
+        weather_health_manager.resilience_manager = coordinator.resilience_manager
+        _LOGGER.debug("Shared ResilienceManager with WeatherHealth manager")
 
 
 def _create_runtime_data(
@@ -609,6 +621,7 @@ def _create_runtime_data(
     runtime_data.gps_geofence_manager = optional_managers.get("gps_geofence_manager")
     runtime_data.door_sensor_manager = optional_managers.get("door_sensor_manager")
     runtime_data.garden_manager = optional_managers.get("garden_manager")
+    runtime_data.weather_health_manager = optional_managers.get("weather_health_manager")
     runtime_data.device_api_client = coordinator.api_client
     # Attach runtime data to script manager
     script_manager = optional_managers.get("script_manager")

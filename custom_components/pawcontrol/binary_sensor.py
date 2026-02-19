@@ -10,10 +10,7 @@ OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code dupl
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
-from inspect import isawaitable
-import logging
-import os
-from typing import TYPE_CHECKING, Literal, cast
+from .coordinator import PawControlCoordinator
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -35,6 +32,10 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
+import logging
+import os
+from typing import TYPE_CHECKING, Literal, cast
+
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
@@ -299,9 +300,7 @@ async def async_setup_entry(
             )
 
     if entities:
-        add_result = async_add_entities(entities)
-        if isawaitable(add_result):
-            await add_result
+        async_add_entities(entities)
 
 
 def _create_base_binary_sensors(

@@ -17,6 +17,8 @@ P26.1.1++
 Python: 3.13+
 """  # noqa: E501
 
+from __future__ import annotations
+
 from asyncio import Task
 from collections import deque
 from collections.abc import (
@@ -7178,6 +7180,7 @@ class PawControlRuntimeData:
     script_manager: PawControlScriptManager | None = None
     gps_geofence_manager: GPSGeofenceManager | None = None
     door_sensor_manager: DoorSensorManager | None = None
+    weather_health_manager: WeatherHealthManager | None = None
     device_api_client: PawControlDeviceClient | None = None
     # Enhanced runtime tracking for Platinum-targeted monitoring
     performance_stats: RuntimePerformanceStats = field(

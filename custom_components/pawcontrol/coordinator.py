@@ -1,8 +1,7 @@
 """Coordinator for the PawControl integration."""
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import timedelta
-from inspect import isawaitable
 import logging
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Final, Literal, cast
@@ -133,10 +132,10 @@ class PawControlCoordinator(
         )
         self.last_update_success = True
 
-        # DataUpdateCoordinator initialises ``update_interval`` but MyPy cannot
-        # determine the attribute on subclasses without an explicit assignment.
         # Re-assign the value here to make the attribute type explicit for
-        # downstream telemetry helpers.
+        # downstream telemetry helpers.  (The parent class sets update_interval in
+        # __init__ but mypy cannot verify the attribute on subclasses without an
+        # explicit assignment.)
         self.update_interval = timedelta(seconds=base_interval)
 
         self._modules = CoordinatorModuleAdapters(
@@ -153,7 +152,7 @@ class PawControlCoordinator(
         self._metrics = coordinator_support.CoordinatorMetrics()
         self._entity_budget = coordinator_observability.EntityBudgetTracker()
         self._setup_complete = False
-        self._maintenance_unsub: callback | None = None
+        self._maintenance_unsub: Callable[[], None] | None = None
 
         self.data_manager: PawControlDataManager | None = None
         self.feeding_manager: FeedingManager | None = None
@@ -329,18 +328,12 @@ class PawControlCoordinator(
             )
 
         self._data = data
-        # Keep the public coordinator payload in sync for direct-call tests and
-        # diagnostics code paths that inspect ``coordinator.data``.
-        self.data = data
-        # BUG FIX: Do NOT call async_set_updated_data here.
+        # NOTE: Do NOT assign self.data here and do NOT call async_set_updated_data.
         # DataUpdateCoordinator._async_refresh already sets self.data from the
-        # return value of _async_update_data and notifies all listeners.
-        # Calling async_set_updated_data manually caused a DOUBLE notification:
-        #   1) premature broadcast inside this method
-        #   2) second broadcast by the base class after we return
-        # This doubled every entity state-write and recorder write each cycle.
-        # Tests that call _async_update_data() directly should patch the method or
-        # invoke coordinator.async_request_refresh() through the full HA harness.
+        # return value of _async_update_data and broadcasts to all listeners.
+        # A manual self.data = data (B2) caused double entity-state writes per cycle.
+        # Tests that need coordinator.data populated without the full HA harness
+        # should call coordinator.async_request_refresh() or patch _async_update_data.
         return self._data
 
     async def _fetch_dog_data(self, dog_id: str) -> paw_types.CoordinatorDogData:
@@ -510,11 +503,11 @@ class PawControlCoordinator(
         self._data[dog_id] = cast(paw_types.CoordinatorDogData, dog_payload)
 
         updated_payload = dict(self._data)
+        # async_set_updated_data is a synchronous @callback in all HA versions.
+        # The isawaitable guard was misleading (B8) — removed.
         setter = getattr(self, "async_set_updated_data", None)
         if callable(setter):
-            result = setter(updated_payload)
-            if isawaitable(result):
-                await result
+            setter(updated_payload)
         else:  # pragma: no cover - exercised via lightweight test stubs
             self.data = updated_payload
 

@@ -25,6 +25,7 @@
     }
   ],
   "documentation": "https://github.com/BigDaddy1990/pawcontrol",
+  "homeassistant": "2026.2.0",
   "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/bigdaddy1990/pawcontrol/issues",

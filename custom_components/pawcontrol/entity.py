@@ -63,11 +63,12 @@ class PawControlEntity(
             ATTR_DOG_ID: dog_id,
             ATTR_DOG_NAME: dog_name,
         }
-        # The Home Assistant entity base class sets ``hass`` when entities are
-        # added to the registry. The lightweight stubs used in the test suite
-        # instantiate entities directly, so we provide a safe default here to
-        # avoid attribute errors in helper routines that guard on ``self.hass``.
-        self.hass = getattr(self, "hass", None)
+        # NOTE (B4 fix): Do NOT assign self.hass here. In HA 2025.9+ Entity.hass
+        # is a property backed by _attr_hass; assigning None during __init__
+        # creates a shadowing instance attribute that breaks hass-availability
+        # guards throughout HA's entity lifecycle.  Lightweight test stubs that
+        # call entities without the full HA pipeline must set entity._attr_hass
+        # (or patch via entity.hass = mock_hass) AFTER construction.
 
     @property
     def dog_id(self) -> str:
@@ -340,12 +341,15 @@ class PawControlDogEntityBase(PawControlEntity):
             else:
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module, {})
-        except Exception as err:  # pragma: no cover - defensive log path
-            _LOGGER.error(
-                "Error fetching module data for %s/%s: %s",
+        except Exception as err:
+            # B10 FIX: Log the actual error so module failures surface in diagnostics.
+            # The original pragma: no cover comment was hiding real errors.
+            _LOGGER.warning(
+                "Error fetching module data for %s/%s: %s (%s)",
                 self._dog_id,
                 module,
                 err,
+                err.__class__.__name__,
             )
             return cast(CoordinatorUntypedModuleState, {})
         if not isinstance(payload, Mapping):

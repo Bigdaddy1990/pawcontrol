@@ -6,6 +6,7 @@ Handles platform forwarding, helper creation, and script generation.
 
 import asyncio
 from collections.abc import Collection, Mapping
+import inspect
 import logging
 import time
 from typing import TYPE_CHECKING
@@ -88,8 +89,10 @@ async def _async_forward_platforms(
         try:
             forward_callable = hass.config_entries.async_forward_entry_setups
             forward_result = forward_callable(entry, PLATFORMS)
-            # Handle async result if necessary
-            if hasattr(forward_result, "__await__"):
+            # async_forward_entry_setups always returns an awaitable in HA 2024+.
+            # Use inspect.isawaitable for a correct runtime check rather than
+            # the misleading hasattr("__await__") guard that was here before.
+            if inspect.isawaitable(forward_result):
                 await asyncio.wait_for(forward_result, timeout=_PLATFORM_SETUP_TIMEOUT)
 
             platform_setup_duration = time.monotonic() - platform_setup_start

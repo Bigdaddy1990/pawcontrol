@@ -117,6 +117,11 @@ _PROFILE_BASE_PLATFORMS: Final[dict[str, set[Platform]]] = {
 
 def _cleanup_platform_cache() -> None:
     """Drop expired cache entries and cap cache size."""
+    # Short-circuit: nothing to do when cache is well under the size limit
+    # and TTL expiry is unlikely to have any material effect.
+    if len(_PLATFORM_CACHE) < _MAX_CACHE_SIZE // 2:
+        return
+
     now_monotonic = time.monotonic()
     now_wall = time.time()
 
@@ -467,10 +472,22 @@ async def async_unload_entry(
     await async_unload_external_bindings(hass, entry)
     # Get runtime data
     runtime_data = get_runtime_data(hass, entry)
-    # Get dogs config for platform determination
+
+    # B11 FIX: Unload only the platforms that were actually set up for this entry.
+    # Previously PLATFORMS (all 10) were unloaded even when only a profile-specific
+    # subset was registered, producing spurious "platform not loaded" warnings.
+    # If we can't determine which platforms were active, fall back to ALL_PLATFORMS.
+    active_platforms: tuple[Platform, ...] = PLATFORMS
+    if runtime_data is not None:
+        dogs = getattr(runtime_data, "dogs", [])
+        profile = getattr(runtime_data, "entity_profile", "standard")
+        if dogs:
+            active_platforms = get_platforms_for_profile_and_modules(dogs, profile)
 
     # Unload platforms
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unload_ok = await hass.config_entries.async_unload_platforms(
+        entry, active_platforms
+    )
     if not unload_ok:
         _LOGGER.error("One or more platforms failed to unload cleanly")
         return False
@@ -666,6 +683,23 @@ async def async_reload_entry(
 
     try:
         await async_setup_entry(hass, entry)
+    except ConfigEntryNotReady as err:
+        # B5 FIX: ConfigEntryNotReady must propagate unmodified so HA can schedule
+        # its built-in retry. Logging it as "error" before re-raising suppresses
+        # the HA "integration will retry" UI notification.
+        _LOGGER.warning(
+            "PawControl reload deferred (not ready) for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        raise
+    except ConfigEntryAuthFailed as err:
+        _LOGGER.error(
+            "PawControl reload failed (auth) for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        raise
     except Exception as err:
         _LOGGER.error(
             "PawControl reload failed during setup for entry %s: %s (%s)",
