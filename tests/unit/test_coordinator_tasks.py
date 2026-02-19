@@ -1373,6 +1373,7 @@ async def test_run_maintenance_records_success(monkeypatch) -> None:
         _metrics=metrics,
         last_update_success=True,
         last_update_time=dt_util.utcnow() - timedelta(hours=3),
+        last_update_success_time=dt_util.utcnow() - timedelta(hours=3),
         hass=object(),
         config_entry=SimpleNamespace(entry_id="entry"),
         logger=_DummyLogger(),

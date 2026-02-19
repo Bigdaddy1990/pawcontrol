@@ -76,7 +76,7 @@ async def test_async_update_data_uses_runtime(
     data = await coordinator._async_update_data()
 
     assert data == {"test_dog": {"status": "online"}}
-    assert coordinator.data == data
+    assert coordinator._data == data
     assert coordinator.update_interval.total_seconds() == pytest.approx(1.5)
 
 
