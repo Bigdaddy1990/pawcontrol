@@ -210,9 +210,11 @@ ignore_errors = false
 
 [tool.coverage.html]
 output = "coverage.html"
+outputdir = "./coverage/"
 
 [tool.coverage.xml]
 output = "coverage.xml"
+outputdir = "./coverage/"
 
 [tool.setuptools]
 include-package-data = true
