@@ -31,7 +31,6 @@ jobs:
           pytest -q --cov=custom_components/pawcontrol \
             --cov-report=xml:coverage.xml \
             --junitxml=junit.xml -o junit_family=legacy
-          cat codecov_ats/tests_to_run.txt | xargs pytest --cov app
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
