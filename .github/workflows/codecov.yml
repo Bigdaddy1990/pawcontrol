@@ -29,8 +29,8 @@ jobs:
       - name: Run tests and collect coverage
         run: |
           pytest -q --cov=custom_components/pawcontrol \
-            --cov-report=xml:coverage.xml \
-            --junitxml=junit.xml -o junit_family=legacy
+            --cov-report=xml:coverage/coverage.xml \
+            --junitxml=coverage/junit.xml -o junit_family=legacy
           cat codecov_ats/tests_to_run.txt | xargs pytest --cov app
 
       - name: Upload coverage to Codecov
@@ -39,7 +39,7 @@ jobs:
           directory: ./
           env_vars: OS,PYTHON
           fail_ci_if_error: true
-          files: ./coverage.xml
+          files: coverage/coverage.xml
           flags: unittests
           name: codecov-umbrella
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -49,14 +49,14 @@ jobs:
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
-          files: junit.xml
+          files: coverage/junit.xml
           report_type: test_results
           disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: coverage.xml
+          files: coverage/coverage.xml
           fail_ci_if_error: true
           disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
