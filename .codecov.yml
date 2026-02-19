@@ -69,10 +69,10 @@ comment:
   require_head: true
   branches:
     - main
-    
+
 github_checks:
     annotations: false
-    
+
 ignore:
   - "tests/**/*"
   - "docs/**/*"
@@ -95,12 +95,12 @@ flags:
     paths:
       - custom_components/pawcontrol
     carryforward: true
-    
+
   tests:
     paths:
       - tests/
     carryforward: false
-      
+
 github_checks:
   annotations: false
 
