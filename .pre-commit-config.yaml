@@ -19,13 +19,6 @@ repos:
     hooks:
       - id: pyupgrade
         args:
-          - --py36-plus
-          - --py37-plus
-          - --py38-plus
-          - --py39-plus
-          - --py310-plus
-          - --py311-plus
-          - --py313-plus
           - --py314-plus
 
   - repo: https://github.com/cdce8p/python-typing-update
@@ -35,7 +28,6 @@ repos:
         stages: [manual]
         args:
           - --py314-plus
-          - --full-reorder
           - --keep-updates
           - --check
           - --force
@@ -71,7 +63,6 @@ repos:
     hooks:
       - id: check-yaml
         args:
-          - --unsafe
           - --allow-multiple-documents
         exclude: ^(docs/)
       - id: check-json
