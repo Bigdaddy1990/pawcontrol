@@ -1,4 +1,4 @@
-﻿# PawControl Contributor Guide
+# PawControl Contributor Guide
 
 These instructions describe how to work on the `custom_components/pawcontrol`
 Home Assistant integration. They consolidate the authoring rules from the

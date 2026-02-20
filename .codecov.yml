@@ -98,4 +98,3 @@ flag_management:
       statuses:
         - type: project
         - type: patch
-

@@ -14,14 +14,14 @@
 
 ## ✨ Hauptfunktionen
 
-🔧 **Einfache Einrichtung** – Vollständige UI-basierte Konfiguration mit modularer Funktionsauswahl  
-🍽️ **Intelligente Fütterung** – Automatisches Mahlzeiten-Tracking mit Portionskontrolle und gesundheitsbewussten Erinnerungen  
-🗺️ **Erweitertes GPS-Tracking** – Echtzeit-Standortüberwachung mit Geofencing und Routenaufzeichnung  
-🏥 **Gesundheitsüberwachung** – Gewichtsverfolgung, Medikamentenerinnerungen und Tierarztterminverwaltung  
-📱 **Mobile Integration** – Umsetzbare Benachrichtigungen mit iOS/Android-Unterstützung  
-🏠 **Smart-Home-Integration** – Türsensorintegration, wettergesteuerte Automationen  
-📊 **Auto-generierte Dashboards** – Responsive UI mit detaillierter Analytik  
-🔔 **Intelligente Benachrichtigungen** – Kontextbewusste Alerts mit Notfallprotokollen und Ruhezeiten  
+🔧 **Einfache Einrichtung** – Vollständige UI-basierte Konfiguration mit modularer Funktionsauswahl
+🍽️ **Intelligente Fütterung** – Automatisches Mahlzeiten-Tracking mit Portionskontrolle und gesundheitsbewussten Erinnerungen
+🗺️ **Erweitertes GPS-Tracking** – Echtzeit-Standortüberwachung mit Geofencing und Routenaufzeichnung
+🏥 **Gesundheitsüberwachung** – Gewichtsverfolgung, Medikamentenerinnerungen und Tierarztterminverwaltung
+📱 **Mobile Integration** – Umsetzbare Benachrichtigungen mit iOS/Android-Unterstützung
+🏠 **Smart-Home-Integration** – Türsensorintegration, wettergesteuerte Automationen
+📊 **Auto-generierte Dashboards** – Responsive UI mit detaillierter Analytik
+🔔 **Intelligente Benachrichtigungen** – Kontextbewusste Alerts mit Notfallprotokollen und Ruhezeiten
 
 ## 📋 Anforderungen
 

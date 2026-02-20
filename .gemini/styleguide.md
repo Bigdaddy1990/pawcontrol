@@ -1,4 +1,4 @@
-﻿# PawControl Gemini Style Guide
+# PawControl Gemini Style Guide
 
 Gemini Code Assist uses the same canonical contributor guidance as GitHub
 Copilot. This file wraps the shared content from `.github/copilot-instructions.md`
@@ -7,7 +7,7 @@ Run `python -m scripts.sync_contributor_guides` after editing the canonical guid
 to refresh this view. Avoid editing the synced block manually.
 
 <!-- SYNC:START -->
-﻿# PawControl Contributor Guide
+# PawControl Contributor Guide
 
 These instructions describe how to work on the `custom_components/pawcontrol`
 Home Assistant integration. They consolidate the authoring rules from the

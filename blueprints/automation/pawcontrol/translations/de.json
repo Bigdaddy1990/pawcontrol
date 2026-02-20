@@ -1,29 +1,29 @@
 {
   "resilience_escalation_followup": {
-    "name": "PawControl Resilience-Eskalation Follow-up",
-    "description": "Follow-up-Automation für PawControl-Resilience-Ereignisse und Guard-Eskalationen. Benachrichtigt Operatoren und löst Wiederherstellungsaktionen aus, wenn manuelle Guard- oder Breaker-Events ausgelöst werden.",
+    "description": "Follow-up-Automation f\u00fcr PawControl-Resilience-Ereignisse und Guard-Eskalationen. Benachrichtigt Operatoren und l\u00f6st Wiederherstellungsaktionen aus, wenn manuelle Guard- oder Breaker-Events ausgel\u00f6st werden.",
     "input": {
-      "notify_service": {
-        "name": "Benachrichtigungsdienst",
-        "description": "Dienst, der bei einem Follow-up-Ereignis aufgerufen wird (z. B. notify.mobile_app_phone)."
+      "breaker_title": {
+        "description": "Titel der Benachrichtigung bei Ausl\u00f6sung des Circuit Breakers.",
+        "name": "Breaker-Benachrichtigungstitel"
       },
       "guard_title": {
-        "name": "Guard-Benachrichtigungstitel",
-        "description": "Titel der Benachrichtigung bei manuellen Guard-Ereignissen."
-      },
-      "breaker_title": {
-        "name": "Breaker-Benachrichtigungstitel",
-        "description": "Titel der Benachrichtigung bei Auslösung des Circuit Breakers."
-      },
-      "recovery_script": {
-        "name": "Wiederherstellungsskript (optional)",
-        "description": "Skript oder Aktion, die nach einem Breaker-Ereignis zur Wiederherstellung aufgerufen wird. Leer lassen zum Überspringen."
+        "description": "Titel der Benachrichtigung bei manuellen Guard-Ereignissen.",
+        "name": "Guard-Benachrichtigungstitel"
       },
       "logbook_entry": {
-        "name": "Logbuch-Eintrag hinzufügen",
-        "description": "Eskalationsereignisse im Home-Assistant-Logbuch protokollieren."
+        "description": "Eskalationsereignisse im Home-Assistant-Logbuch protokollieren.",
+        "name": "Logbuch-Eintrag hinzuf\u00fcgen"
+      },
+      "notify_service": {
+        "description": "Dienst, der bei einem Follow-up-Ereignis aufgerufen wird (z. B. notify.mobile_app_phone).",
+        "name": "Benachrichtigungsdienst"
+      },
+      "recovery_script": {
+        "description": "Skript oder Aktion, die nach einem Breaker-Ereignis zur Wiederherstellung aufgerufen wird. Leer lassen zum \u00dcberspringen.",
+        "name": "Wiederherstellungsskript (optional)"
       }
-    }
+    },
+    "name": "PawControl Resilience-Eskalation Follow-up"
   },
   "safe_zone_alert": {
     "description": "Benachrichtigt oder startet Aktionen, wenn ein PawControl-Hund die Sicherheitszone verl\u00e4sst oder zur\u00fcckkehrt, basierend auf dem In-Safe-Zone-Sensor.",
