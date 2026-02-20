@@ -462,7 +462,7 @@ def retry_on_error(
                     last_exception = e
                     if attempt < max_attempts - 1:
                         _LOGGER.warning(
-                            "%s failed (attempt %d/%d): %s. Retrying in %.1fs...",
+                            "%s failed (attempt %d/%d): %s Retrying in %.1fs",
                             func.__name__,
                             attempt + 1,
                             max_attempts,
@@ -495,7 +495,7 @@ def retry_on_error(
                     last_exception = e
                     if attempt < max_attempts - 1:
                         _LOGGER.warning(
-                            "%s failed (attempt %d/%d): %s. Retrying in %.1fs...",
+                            "%s failed (attempt %d/%d): %s Retrying in %.1fs",
                             func.__name__,
                             attempt + 1,
                             max_attempts,

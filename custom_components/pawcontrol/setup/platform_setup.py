@@ -109,7 +109,7 @@ async def _async_forward_platforms(
                     f"Platform setup timeout after {platform_setup_duration:.2f}s",
                 ) from err
             _LOGGER.warning(
-                "Platform setup attempt %d timed out, retrying...",
+                "Platform setup attempt %d timed out, retrying",
                 attempt + 1,
             )
             await asyncio.sleep(1)
@@ -125,7 +125,7 @@ async def _async_forward_platforms(
                     f"Platform setup failed ({err.__class__.__name__}): {err}",
                 ) from err
             _LOGGER.warning(
-                "Platform setup attempt %d failed: %s, retrying...",
+                "Platform setup attempt %d failed: %s, retrying",
                 attempt + 1,
                 err,
             )
@@ -196,16 +196,16 @@ async def _async_setup_helpers(
     except TimeoutError:
         helpers_duration = time.monotonic() - helpers_start
         _LOGGER.warning(
-            "Helper creation timed out after %.2f seconds (non-critical). "
-            "You can manually create input_boolean and input_datetime helpers if needed.",  # noqa: E501
+            "Helper creation timed out after %.2f seconds (non-critical) "
+            "You can manually create input_boolean and input_datetime helpers if needed",  # noqa: E501
             helpers_duration,
         )
 
     except Exception as helper_err:
         helpers_duration = time.monotonic() - helpers_start
         _LOGGER.warning(
-            "Helper creation failed after %.2f seconds (non-critical): %s. "
-            "You can manually create input_boolean and input_datetime helpers if needed.",  # noqa: E501
+            "Helper creation failed after %.2f seconds (non-critical): %s "
+            "You can manually create input_boolean and input_datetime helpers if needed",  # noqa: E501
             helpers_duration,
             helper_err,
         )
@@ -288,8 +288,8 @@ async def _async_setup_scripts(
     except TimeoutError:
         scripts_duration = time.monotonic() - scripts_start
         _LOGGER.warning(
-            "Script creation timed out after %.2f seconds (non-critical). "
-            "You can create the scripts manually from Home Assistant's script editor.",
+            "Script creation timed out after %.2f seconds (non-critical) "
+            "You can create the scripts manually from Home Assistant's script editor",
             scripts_duration,
         )
 
