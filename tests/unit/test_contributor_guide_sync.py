@@ -19,7 +19,7 @@ def _synced_block(path: Path) -> str:
     return _normalise_markdown(content[start:end])
 
 
-def _normalise_markdown(content: str) -> str:
+def _normalize_markdown(content: str) -> str:
     """Return markdown content with stable line endings and trailing spacing."""
     return "\n".join(line.rstrip() for line in content.strip().splitlines())
 
