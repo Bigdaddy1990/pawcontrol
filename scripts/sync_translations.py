@@ -11,6 +11,7 @@ default        Sync existing translation files only.
 --check        Validate only; exit non-zero on any mismatch or missing file.
 --list-missing   Print languages that have no translation file and exit.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -94,6 +95,7 @@ def _sync_translation(
 def _get_ha_languages() -> set[str]:
     """Import LANGUAGES set from scripts/languages.py."""
     import importlib.util
+
     spec = importlib.util.spec_from_file_location(
         "languages", ROOT / "scripts" / "languages.py"
     )
