@@ -1,7 +1,5 @@
 """Lightweight pytest-homeassistant-custom-component compatibility shim."""
 
-from __future__ import annotations
-
 
 def pytest_configure(config: object) -> None:
     """Register compatibility marker used by local tests."""

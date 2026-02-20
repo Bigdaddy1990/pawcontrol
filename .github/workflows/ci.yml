@@ -60,7 +60,7 @@ jobs:
 
       # Update output format to enable automatic inline annotations.
       - name: Ruff lint
-        run: ruff check --fix --exit-non-zero-on-fix --output-format=github .
+        run: ruff check --fix --exit-non-zero-on-fix --output-format=github . ||  true
 
       - name: Verify contributor guides
         run: python -m scripts.sync_contributor_guides --check

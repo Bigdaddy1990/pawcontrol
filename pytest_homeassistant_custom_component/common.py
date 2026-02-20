@@ -1,7 +1,5 @@
 """Common helpers mirrored from pytest-homeassistant-custom-component."""
 
-from __future__ import annotations
-
 from tests.helpers.homeassistant_test_stubs import ConfigEntry
 
 

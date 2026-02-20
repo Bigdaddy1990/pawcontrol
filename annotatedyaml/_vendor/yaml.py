@@ -1,7 +1,5 @@
 """Vendored YAML adapter compatible with annotatedyaml regression tests."""
 
-from __future__ import annotations
-
 from collections.abc import Iterator
 
 try:
