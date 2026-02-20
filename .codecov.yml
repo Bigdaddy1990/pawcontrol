@@ -26,8 +26,6 @@ coverage:
           - custom_components/pawcontrol
         branches:
           - main
-        if_not_found: success
-        if_ci_failed: error
         informational: true
         only_pulls: false
     patch:
@@ -37,8 +35,6 @@ coverage:
         base: auto
         branches:
           - main
-        if_not_found: success
-        if_ci_failed: error
         informational: true
         only_pulls: false
         flags:
@@ -50,33 +46,22 @@ coverage:
 
 parsers:
   gcov:
-    branch_detection:
+    branch_detection: true
       conditional: true
       loop: true
       method: true
       macro: false
 
-comment:
-  layout: "components,header,reach,diff,flags,files,footer"
-  behavior: default
-  require_changes: false
-  require_base: false
-  require_head: true
-  branches:
-    - main
+comment: true
 
 github_checks:
   annotations: false
 
 # Files to exclude from coverage analysis
 ignore:
-  - "tests/**/*"
-  - "docs/**/*"
-  - "scripts/**/*"
-  - "**/__pycache__/**"
-  - "**/test_*.py"
-  - "**/conftest.py"
-  - "**/*.md"
+- ^tests/.*
+- ^docs/.*
+- ^scripts/.*
 
 # Flag definitions
 flags:
