@@ -6,7 +6,7 @@ This file mirrors the canonical contributor guide that lives in
 refresh this file automatically. Do not modify the synced block below manually.
 
 <!-- SYNC:START -->
-﻿# PawControl Contributor Guide
+# PawControl Contributor Guide
 
 These instructions describe how to work on the `custom_components/pawcontrol`
 Home Assistant integration. They consolidate the authoring rules from the
