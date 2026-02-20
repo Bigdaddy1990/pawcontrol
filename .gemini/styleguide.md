@@ -1,4 +1,4 @@
-# PawControl Gemini Style Guide
+﻿# PawControl Gemini Style Guide
 
 Gemini Code Assist uses the same canonical contributor guidance as GitHub
 Copilot. This file wraps the shared content from `.github/copilot-instructions.md`
@@ -23,13 +23,10 @@ contributors consistently deliver Platinum-quality changes.
    pip install -r requirements_test.txt
    pip install -r requirements.txt
    ```
-   The repository ships shims for `pytest-asyncio` and `pytest-cov`, so avoid
-   installing the PyPI variants alongside these requirements to prevent plugin
-   clashes.【F:requirements_test.txt†L1-L25】【F:pytest.ini†L18-L27】
 2. Install the integration in editable mode if you need to exercise packaging
    hooks: `pip install -e .`. The `pyproject.toml` file configures the
    setuptools build backend and enables branch coverage reporting for
-   `custom_components/pawcontrol`.【F:pyproject.toml†L1-L62】
+   `custom_components/pawcontrol`.
 3. Export `PYTHONPATH=$(pwd)` or invoke commands via `python -m …` so the local
    `scripts/` and `pytest_*` packages resolve correctly.
 
@@ -139,52 +136,54 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 
 * `pyproject.toml` pins Python 3.14, enforces branch coverage and strict lint
   gates, and enables `pytest` warnings-as-errors, strict markers, and HTML/XML
-  coverage reports.【F:pyproject.toml†L7-L72】
+  coverage reports.
 * `scripts/enforce_docstring_baseline.py` and
   `scripts/enforce_shared_session_guard.py` run in CI to block regressions; run
   them manually when touching diagnostics or guard metrics.
 * `python -m scripts.sync_localization_flags` keeps
   `setup_flags_panel_*` translations aligned across locales; execute it after
-  editing localization strings.【F:scripts/sync_localization_flags.py†L1-L129】
+  editing localization strings.
 * `python -m scripts.enforce_test_requirements` ensures new tests add their
   third-party dependencies to `requirements_test.txt` so CI never regresses on
-  missing packages.【F:scripts/enforce_test_requirements.py†L1-L130】
+  missing packages.
 
 ## Integration architecture
 
 - The integration lives in `custom_components/pawcontrol` and is installed via
-  the UI only (`CONFIG_SCHEMA` is entry-only).【F:custom_components/pawcontrol/__init__.py†L1-L118】
+  the UI only (`CONFIG_SCHEMA` is entry-only).
 - Runtime state is stored on `ConfigEntry.runtime_data` through helpers such as
   `store_runtime_data` and the `PawControlCoordinator`, so new features must hook
-  into the coordinator rather than creating bespoke tasks.【F:custom_components/pawcontrol/__init__.py†L119-L213】
+  into the coordinator rather than creating bespoke tasks.
 - The manifest advertises discovery via DHCP, USB, HomeKit, and Zeroconf and
   declares Platinum—keep the badge, manifest, diagnostics, and docs aligned
-  whenever quality scale evidence changes.【F:custom_components/pawcontrol/manifest.json†L1-L66】
+  whenever quality scale evidence changes.
 
 ## Development standards
 
 ### Python quality bar
 
 - Target Python 3.14 syntax and typing everywhere; no untyped defs or implicit
-  optionals are allowed because MyPy is configured to fail otherwise.【F:pyproject.toml†L37-L72】
+  optionals are allowed because MyPy is configured to fail otherwise.
 - Keep modules fully typed (`py.typed` is shipped) and add type aliases in
   `types.py` when expanding runtime models.
 - Ruff supplies formatting and linting—respect 88 character lines, prefer
-  f-strings, and keep imports sorted by section.【F:pyproject.toml†L25-L46】
+  f-strings, and keep imports sorted by section.
 - Handle `ValueError` and `TypeError` explicitly in separate `except` blocks
   when coercing user/data payloads so logs and diagnostics can distinguish the
   failure mode; never use Python 2 `except ValueError, TypeError` syntax.
 - Every coroutine interacting with Home Assistant must be async. Wrap blocking
-  work with `hass.async_add_executor_job` if an async variant is unavailable.【F:custom_components/pawcontrol/utils.py†L169-L264】
+  work with `asyncio.to_thread` for pure Python blocking calls, or
+  `hass.async_add_executor_job` when the executor context or HA-managed
+  thread pool is required.
 - Use Home Assistant’s type aliases (`ConfigEntry`, `HomeAssistant`,
   `Platform`) and annotate return values so the shipped `py.typed` marker stays
-  accurate.【F:custom_components/pawcontrol/py.typed†L1-L1】
+  accurate.
 
 ### Coordinators, managers, and services
 
 - Use the existing managers (`FeedingManager`, `WalkManager`, etc.) to store
   per-dog logic; entities should subscribe to coordinator data instead of calling
-  clients directly.【F:custom_components/pawcontrol/__init__.py†L149-L213】
+  clients directly.
 - Normalise door sensor overrides with `ensure_door_sensor_settings_config` so
   timeouts, durations, delays, and confirmation toggles remain clamped before
   mutating `DoorSensorConfig`. Trim and validate sensor entity IDs before
@@ -192,65 +191,66 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
   untouched when the effective snapshot is unchanged, stored payloads must travel
   under `CONF_DOOR_SENSOR_SETTINGS`, and the normalised snapshot has to be
   persisted through `PawControlDataManager.async_update_dog_data` so config-entry
-  reloads retain the clamped values.【F:custom_components/pawcontrol/types.py†L455-L551】【F:custom_components/pawcontrol/data_manager.py†L376-L450】
+  reloads retain the clamped values.
 - Always pass the active config entry into new `DataUpdateCoordinator` instances
   and surface API errors via `UpdateFailed` or `ConfigEntryAuthFailed` as shown in
-  `coordinator.py` and `exceptions.py`.【F:custom_components/pawcontrol/coordinator.py†L1-L335】【F:custom_components/pawcontrol/exceptions.py†L1-L118】
+  `coordinator.py` and `exceptions.py`.
 - Service handlers must live in `services.py`/`script_manager.py` and be
   validated in `services.yaml`. Keep the scheduler wiring in
-  `async_setup_daily_reset_scheduler` intact when extending services.【F:custom_components/pawcontrol/services.py†L384-L1660】【F:custom_components/pawcontrol/script_manager.py†L300-L904】
+  `async_setup_daily_reset_scheduler` intact when extending services.
 
 ### Config flows, options, and reauth
 
 - `config_flow.py` implements user, discovery, reauth, and reconfigure steps.
   Add validation helpers alongside the mixins and reuse existing constants from
-  `const.py` to keep schemas consistent.【F:custom_components/pawcontrol/config_flow.py†L1-L120】
+  `const.py` to keep schemas consistent.
 - Do not allow users to rename entries during setup; titles are generated from
   the profile helpers. Always call `_abort_if_unique_id_configured` or the
-  matching helpers before creating entries.【F:custom_components/pawcontrol/config_flow.py†L121-L330】
+  matching helpers before creating entries.
 - Options flows should mirror config flow validation and store adjustments in
   `ConfigEntry.options`. Keep translation keys in `strings.json` and
-  `translations/` synchronized.【F:custom_components/pawcontrol/options_flow.py†L248-L1109】【F:custom_components/pawcontrol/translations/en.json†L1-L1350】
+  `translations/` synchronized.
 
 ### Platform guidance
 
 - Extend existing entity platforms (`sensor.py`, `switch.py`, `button.py`, etc.)
   instead of creating new modules unless Home Assistant exposes a dedicated
   platform hook. Ensure `_attr_has_entity_name = True` and `device_info`
-  metadata stay consistent across additions.【F:custom_components/pawcontrol/sensor.py†L720-L925】【F:custom_components/pawcontrol/device.py†L1-L210】
+  metadata stay consistent across additions.
 - When adding new entities, wire them through the runtime manager containers so
   coordinator payloads remain typed and diagnostics inherit guard telemetry.
   Update tests under `tests/components/pawcontrol/` to cover registration,
-  diagnostics, and service interactions.【F:tests/components/pawcontrol/test_all_platforms.py†L1451-L1494】【F:tests/unit/test_runtime_manager_container_usage.py†L82-L374】
+  diagnostics, and service interactions.
 - Document any new services or options in `services.yaml`, `strings.json`, the
   README, and the diagnostics guide; run the docstring and shared-session guard
-  scripts if you touch these areas.【F:custom_components/pawcontrol/services.yaml†L1-L200】【F:README.md†L24-L741】
+  scripts if you touch these areas.
 
 ### Logging and diagnostics
 
 - Initialise loggers with `_LOGGER = logging.getLogger(__name__)` and use lazy
   string formatting. Promote repeated failure information to repairs
-  (`repairs.py`) and diagnostics exports (`diagnostics.py`).【F:custom_components/pawcontrol/repairs.py†L1-L210】
+  (`repairs.py`) and diagnostics exports (`diagnostics.py`).
 - Diagnostics payloads must always include the `rejection_metrics` structure with
   zeroed defaults and `schema_version` so Platinum dashboards and docs can ingest
   the counters without bespoke scraping; update coordinator observability tests,
   docs, and front-end schema references together and revalidate the diagnostics
-  panel once UI updates land.【F:custom_components/pawcontrol/diagnostics.py†L688-L867】【F:docs/diagnostics.md†L24-L48】
+  panel once UI updates land.
 - Mark entities with `_attr_has_entity_name = True` and populate `device_info`
   using identifiers from `const.py`. Align diagnostic sections with
-  `docs/diagnostics.md` when telemetry changes.【F:custom_components/pawcontrol/const.py†L1-L347】
+  `docs/diagnostics.md` when telemetry changes.
 
 ## Documentation and release hygiene
 
 - Update README, `info.md`, and `docs/` when workflows change. Each file must
   link to the relevant evidence (tests, modules, or scripts) so reviewers can
   verify Platinum claims.
-- Keep `docs/compliance_gap_analysis.md` in sync with the manifest and
-  quality_scale badge so Platinum evidence stays current.【F:docs/compliance_gap_analysis.md†L1-L80】
-- Log new work in `CHANGELOG.md`/`RELEASE_NOTES.md` and refresh brand assets
-  once the Home Assistant brand repository accepts updates.【F:docs/compliance_gap_analysis.md†L59-L75】
+- Keep `quality_scale.yaml` in sync with the manifest and Platinum badge so
+  quality scale evidence stays current; update it alongside any architectural
+  changes.
+- Log new work in `CHANGELOG.md` and refresh brand assets once the Home
+  Assistant brand repository accepts updates.
 - After editing this guide, run `python -m scripts.sync_contributor_guides` so the
-  Claude and Gemini mirrors stay in sync.【F:scripts/sync_contributor_guides.py†L1-L121】
+  Claude and Gemini mirrors stay in sync.
 
 ## Review checklist
 
