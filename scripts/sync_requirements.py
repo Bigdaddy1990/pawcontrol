@@ -9,8 +9,6 @@ Usage:
     python -m scripts.sync_requirements --check   # CI-Modus: Exit 1 wenn Abweichung
 """
 
-from __future__ import annotations
-
 import argparse
 import ast
 import pathlib

@@ -12,14 +12,14 @@
 
 ## ✨ Fonctionnalités principales
 
-🔧 **Configuration facile** – Configuration complète via l'interface utilisateur  
-🍽️ **Alimentation intelligente** – Suivi des repas avec contrôle des portions et rappels adaptés à la santé  
-🗺️ **Suivi GPS avancé** – Surveillance en temps réel avec géofencing et enregistrement de parcours  
-🏥 **Surveillance de la santé** – Suivi du poids, rappels de médicaments, rendez-vous vétérinaires  
-📱 **Intégration mobile** – Notifications avec support iOS/Android  
-🏠 **Intégration domotique** – Capteurs de porte, automations météo  
-📊 **Tableaux de bord générés automatiquement** – Interface responsive avec analyses détaillées  
-🔔 **Notifications intelligentes** – Alertes contextuelles avec protocoles d'urgence  
+🔧 **Configuration facile** – Configuration complète via l'interface utilisateur
+🍽️ **Alimentation intelligente** – Suivi des repas avec contrôle des portions et rappels adaptés à la santé
+🗺️ **Suivi GPS avancé** – Surveillance en temps réel avec géofencing et enregistrement de parcours
+🏥 **Surveillance de la santé** – Suivi du poids, rappels de médicaments, rendez-vous vétérinaires
+📱 **Intégration mobile** – Notifications avec support iOS/Android
+🏠 **Intégration domotique** – Capteurs de porte, automations météo
+📊 **Tableaux de bord générés automatiquement** – Interface responsive avec analyses détaillées
+🔔 **Notifications intelligentes** – Alertes contextuelles avec protocoles d'urgence
 
 ## 🚀 Installation
 
