@@ -1,0 +1,45 @@
+# .github/labeler.yml
+# Automatically applied by .github/workflows/label.yml on pull_request_target
+
+integration:
+  - changed-files:
+    - any-glob-to-any-file: "custom_components/pawcontrol/**"
+
+tests:
+  - changed-files:
+    - any-glob-to-any-file: "tests/**"
+
+docs:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "docs/**"
+      - "*.md"
+      - "info.md"
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - ".github/**"
+      - "pyproject.toml"
+      - ".pre-commit-config.yaml"
+      - "requirements*.txt"
+
+scripts:
+  - changed-files:
+    - any-glob-to-any-file: "scripts/**"
+
+blueprints:
+  - changed-files:
+    - any-glob-to-any-file: "blueprints/**"
+
+translations:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "custom_components/pawcontrol/translations/**"
+      - "custom_components/pawcontrol/strings.json"
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "requirements.txt"
+      - "requirements_test.txt"

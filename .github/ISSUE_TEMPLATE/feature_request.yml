@@ -1,0 +1,21 @@
+name: Feature Request
+description: Suggest an idea for Paw Control
+title: "[Feature]: "
+labels: [enhancement]
+assignees: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What problem would this feature solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the feature and how it should work.
+      placeholder: I propose that...
+    validations:
+      required: true
