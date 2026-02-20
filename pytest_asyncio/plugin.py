@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 import asyncio
-import inspect
 from collections.abc import Generator
+import contextlib
+import inspect
 
 import pytest
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    try:
+    with contextlib.suppress(ValueError):
         parser.addoption(
             "--asyncio-mode", action="store", default="auto", dest="asyncio_mode"
         )
-    except ValueError:
-        pass
     parser.addini("asyncio_mode", "Select asyncio integration mode", default="auto")
 
 
@@ -35,7 +34,9 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
         loop = asyncio.new_event_loop()
         created_loop = True
 
-    kwargs = {name: pyfuncitem.funcargs[name] for name in pyfuncitem._fixtureinfo.argnames}
+    kwargs = {
+        name: pyfuncitem.funcargs[name] for name in pyfuncitem._fixtureinfo.argnames
+    }
     loop.run_until_complete(test_fn(**kwargs))
 
     if created_loop and not loop.is_closed():

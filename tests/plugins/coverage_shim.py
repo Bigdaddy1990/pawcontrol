@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import contextlib
 from functools import lru_cache
 import json
 import os
@@ -52,7 +53,9 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
         source = getattr(getattr(self, "config", None), "source", ()) or ()
         return [Path(str(item)).resolve() for item in source]
 
-    def _resolve_event_path(self: coverage.Coverage, filename: str | None) -> Path | None:
+    def _resolve_event_path(
+        self: coverage.Coverage, filename: str | None
+    ) -> Path | None:
         if filename is None or filename.startswith("<"):
             return None
         if filename in self._resolved_path_cache:
@@ -83,7 +86,9 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
         _ = now if now is not None else time.perf_counter()
         _ = thread_ident if thread_ident is not None else threading.get_ident()
 
-    def _monitoring_line_event(self: coverage.Coverage, code: CodeType, lineno: int) -> None:
+    def _monitoring_line_event(
+        self: coverage.Coverage, code: CodeType, lineno: int
+    ) -> None:
         _handle_line_event(self, _resolve_event_path(self, code.co_filename), lineno)
 
     def _trace(self: coverage.Coverage, frame: FrameType, event: str, _arg: object):
@@ -101,19 +106,19 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
             self._using_monitoring = False
             return False
         try:
-            tool_id = int(getattr(monitoring, "COVERAGE_ID"))
+            tool_id = int(monitoring.COVERAGE_ID)
             line_event = getattr(monitoring.events, "LINE", 0)
             monitoring.use_tool_id(tool_id, "coverage.py")
             monitoring.set_events(tool_id, line_event)
-            monitoring.register_callback(tool_id, line_event, self._monitoring_line_event)
+            monitoring.register_callback(
+                tool_id, line_event, self._monitoring_line_event
+            )
             self._monitor_tool_id = tool_id
             self._using_monitoring = True
             return True
-        except Exception:  # noqa: BLE001
-            try:
+        except Exception:
+            with contextlib.suppress(Exception):
                 monitoring.free_tool_id(getattr(monitoring, "COVERAGE_ID", 0))
-            except Exception:  # noqa: BLE001
-                pass
             self._monitor_tool_id = None
             self._using_monitoring = False
             return False
@@ -137,19 +142,15 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
         self._fallback_prev_trace = sys.gettrace()
         self._fallback_using_settrace = True
         sys.settrace(self._trace)
-        try:
+        with contextlib.suppress(Exception):
             _original_start(self)
-        except Exception:  # noqa: BLE001
-            pass
 
     def _shim_stop(self: coverage.Coverage) -> None:
         if getattr(self, "_using_monitoring", False):
             _stop_monitoring(self)
             return
-        try:
+        with contextlib.suppress(Exception):
             _original_stop(self)
-        except Exception:  # noqa: BLE001
-            pass
         if getattr(self, "_fallback_using_settrace", False):
             sys.settrace(self._fallback_prev_trace)
             self._fallback_using_settrace = False
@@ -162,7 +163,9 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
         root = Path.cwd()
         files = [
             {
-                "relative": str(path.relative_to(root)).replace("\\", "/") if path.is_absolute() and str(path).startswith(str(root)) else str(path).replace("\\", "/"),
+                "relative": str(path.relative_to(root)).replace("\\", "/")
+                if path.is_absolute() and str(path).startswith(str(root))
+                else str(path).replace("\\", "/"),
                 "runtime_seconds": 0.0,
                 "statements": len(lines),
                 "executed": len(lines),
@@ -191,7 +194,7 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
         _write_runtime_metrics(self)
         try:
             return _original_report(self, *args, **kwargs)
-        except (CoverageWarning, NoDataError):
+        except CoverageWarning, NoDataError:
             return 100.0
 
     coverage.Coverage.__init__ = _shim_init  # type: ignore[assignment]

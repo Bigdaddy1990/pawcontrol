@@ -1,5 +1,4 @@
-"""
-scripts/sync_requirements.py
+"""scripts/sync_requirements.py
 Scannt alle Imports im Projekt, filtert Stdlib und HA-bereitgestellte Pakete
 heraus und schreibt requirements.txt / requirements_test.txt neu.
 
@@ -8,6 +7,7 @@ Usage:
     python -m scripts.sync_requirements --write   # Schreibt Dateien
     python -m scripts.sync_requirements --check   # CI-Modus: Exit 1 wenn Abweichung
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,21 +24,100 @@ ROOT = pathlib.Path(__file__).parent.parent
 STDLIB: set[str] = set(sys.stdlib_module_names)  # type: ignore[attr-defined]
 # Ergänze bekannte Stdlib-Namen die in älteren Python-Versionen fehlen könnten
 STDLIB |= {
-    "abc", "argparse", "ast", "asyncio", "base64", "builtins", "calendar",
-    "cgi", "cmath", "code", "collections", "compileall", "contextlib",
-    "contextvars", "copy", "csv", "dataclasses", "datetime", "difflib",
-    "dis", "email", "enum", "fnmatch", "fractions", "functools", "gc",
-    "getpass", "gettext", "glob", "gzip", "hashlib", "hmac", "html",
-    "http", "importlib", "inspect", "io", "itertools", "json", "linecache",
-    "locale", "logging", "math", "mimetypes", "numbers", "operator", "os",
-    "pathlib", "pickle", "platform", "posixpath", "pprint", "py_compile",
-    "queue", "random", "re", "secrets", "shlex", "shutil", "signal",
-    "socket", "sqlite3", "ssl", "stat", "statistics", "string", "struct",
-    "subprocess", "sys", "tarfile", "tempfile", "textwrap", "threading",
-    "time", "timeit", "tomllib", "traceback", "types", "typing", "unicodedata",
-    "unittest", "urllib", "uuid", "venv", "warnings", "weakref", "xml",
-    "xmlrpc", "zipfile", "zipimport", "zlib", "zoneinfo",
-    "_thread", "__future__",
+    "abc",
+    "argparse",
+    "ast",
+    "asyncio",
+    "base64",
+    "builtins",
+    "calendar",
+    "cgi",
+    "cmath",
+    "code",
+    "collections",
+    "compileall",
+    "contextlib",
+    "contextvars",
+    "copy",
+    "csv",
+    "dataclasses",
+    "datetime",
+    "difflib",
+    "dis",
+    "email",
+    "enum",
+    "fnmatch",
+    "fractions",
+    "functools",
+    "gc",
+    "getpass",
+    "gettext",
+    "glob",
+    "gzip",
+    "hashlib",
+    "hmac",
+    "html",
+    "http",
+    "importlib",
+    "inspect",
+    "io",
+    "itertools",
+    "json",
+    "linecache",
+    "locale",
+    "logging",
+    "math",
+    "mimetypes",
+    "numbers",
+    "operator",
+    "os",
+    "pathlib",
+    "pickle",
+    "platform",
+    "posixpath",
+    "pprint",
+    "py_compile",
+    "queue",
+    "random",
+    "re",
+    "secrets",
+    "shlex",
+    "shutil",
+    "signal",
+    "socket",
+    "sqlite3",
+    "ssl",
+    "stat",
+    "statistics",
+    "string",
+    "struct",
+    "subprocess",
+    "sys",
+    "tarfile",
+    "tempfile",
+    "textwrap",
+    "threading",
+    "time",
+    "timeit",
+    "tomllib",
+    "traceback",
+    "types",
+    "typing",
+    "unicodedata",
+    "unittest",
+    "urllib",
+    "uuid",
+    "venv",
+    "warnings",
+    "weakref",
+    "xml",
+    "xmlrpc",
+    "zipfile",
+    "zipimport",
+    "zlib",
+    "zoneinfo",
+    "_thread",
+    "__future__",
 }
 
 # ---------------------------------------------------------------------------
@@ -46,31 +125,51 @@ STDLIB |= {
 #    (werden NICHT in requirements.txt aufgenommen)
 # ---------------------------------------------------------------------------
 HA_PROVIDED: set[str] = {
-    "aiohttp", "async_timeout", "attr", "attrs", "certifi", "charset_normalizer",
-    "cryptography", "homeassistant", "httpx", "jinja2", "multidict",
-    "orjson", "pydantic", "pyserial", "pytest_homeassistant_custom_component",
-    "typing_extensions", "voluptuous", "yarl", "zeroconf",
+    "aiohttp",
+    "async_timeout",
+    "attr",
+    "attrs",
+    "certifi",
+    "charset_normalizer",
+    "cryptography",
+    "homeassistant",
+    "httpx",
+    "jinja2",
+    "multidict",
+    "orjson",
+    "pydantic",
+    "pyserial",
+    "pytest_homeassistant_custom_component",
+    "typing_extensions",
+    "voluptuous",
+    "yarl",
+    "zeroconf",
     # Pytest-Stack wird vom plugin mitgebracht
-    "pytest", "pytest_asyncio", "pytest_cov", "_pytest",
+    "pytest",
+    "pytest_asyncio",
+    "pytest_cov",
+    "_pytest",
     # interne Packages
-    "custom_components", "tests", "scripts",
+    "custom_components",
+    "tests",
+    "scripts",
 }
 
 # ---------------------------------------------------------------------------
 # 3. Mapping: Import-Name → PyPI-Paketname (wenn abweichend)
 # ---------------------------------------------------------------------------
 IMPORT_TO_PYPI: dict[str, str] = {
-    "annotatedyaml":  "annotatedyaml>=1.0.2",
-    "aiofiles":       "aiofiles>=25.1.0",
-    "hypothesis":     "hypothesis",
-    "packaging":      "packaging>=26.0",
-    "pip":            "pip>=26.0",
-    "pylint":         "pylint",
-    "astroid":        "astroid",           # kommt mit pylint
-    "coverage":       "coverage[toml]>=7.5.4",
+    "annotatedyaml": "annotatedyaml>=1.0.2",
+    "aiofiles": "aiofiles>=25.1.0",
+    "hypothesis": "hypothesis",
+    "packaging": "packaging>=26.0",
+    "pip": "pip>=26.0",
+    "pylint": "pylint",
+    "astroid": "astroid",  # kommt mit pylint
+    "coverage": "coverage[toml]>=7.5.4",
     "pytest_homeassistant_custom_component": "pytest-homeassistant-custom-component",
-    "pytest_cov":     "pytest-cov",
-    "voluptuous":     "voluptuous>=0.15.2",
+    "pytest_cov": "pytest-cov",
+    "voluptuous": "voluptuous>=0.15.2",
 }
 
 # ---------------------------------------------------------------------------
@@ -145,6 +244,7 @@ def third_party(imports: set[str]) -> set[str]:
 def manifest_requirements() -> list[str]:
     """Liest requirements aus custom_components/pawcontrol/manifest.json."""
     import json
+
     manifest = ROOT / "custom_components" / "pawcontrol" / "manifest.json"
     if not manifest.exists():
         return []
@@ -156,9 +256,13 @@ def manifest_requirements() -> list[str]:
 # 7. Diff-Anzeige
 # ---------------------------------------------------------------------------
 def show_diff(label: str, current: list[str], proposed: list[str]) -> bool:
-    cur = {l.split("#")[0].strip() for l in current if l.strip() and not l.startswith("#")}
-    pro = {l.split("#")[0].strip() for l in proposed if l.strip() and not l.startswith("#")}
-    added   = pro - cur
+    cur = {
+        l.split("#")[0].strip() for l in current if l.strip() and not l.startswith("#")
+    }
+    pro = {
+        l.split("#")[0].strip() for l in proposed if l.strip() and not l.startswith("#")
+    }
+    added = pro - cur
     removed = cur - pro
     if not added and not removed:
         print(f"  {label}: keine Änderungen")
@@ -178,17 +282,19 @@ def show_diff(label: str, current: list[str], proposed: list[str]) -> bool:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true", help="Dateien schreiben")
-    parser.add_argument("--check", action="store_true", help="Exit 1 bei Abweichung (CI)")
+    parser.add_argument(
+        "--check", action="store_true", help="Exit 1 bei Abweichung (CI)"
+    )
     args = parser.parse_args(argv)
 
     # -- Scan ----------------------------------------------------------------
-    int_files    = list((ROOT / "custom_components" / "pawcontrol").rglob("*.py"))
-    test_files   = list((ROOT / "tests").rglob("*.py"))
+    int_files = list((ROOT / "custom_components" / "pawcontrol").rglob("*.py"))
+    test_files = list((ROOT / "tests").rglob("*.py"))
     script_files = list((ROOT / "scripts").rglob("*.py"))
 
-    int_tp  = third_party(scan_imports(int_files))
-    tst_tp  = third_party(scan_imports(test_files))
-    scr_tp  = third_party(scan_imports(script_files))
+    int_tp = third_party(scan_imports(int_files))
+    tst_tp = third_party(scan_imports(test_files))
+    scr_tp = third_party(scan_imports(script_files))
 
     print(f"  Integration drittanbieter-Imports: {sorted(int_tp)}")
     print(f"  Test drittanbieter-Imports:        {sorted(tst_tp)}")
@@ -197,17 +303,27 @@ def main(argv: list[str] | None = None) -> int:
     # -- requirements.txt (aus manifest.json) --------------------------------
     manifest_reqs = manifest_requirements()
     req_path = ROOT / "requirements.txt"
-    current_req = req_path.read_text(encoding="utf-8").splitlines() if req_path.exists() else []
+    current_req = (
+        req_path.read_text(encoding="utf-8").splitlines() if req_path.exists() else []
+    )
 
     print("\n[requirements.txt]")
     changed_req = show_diff("requirements.txt", current_req, manifest_reqs)
 
     # -- requirements_test.txt -----------------------------------------------
     req_test_path = ROOT / "requirements_test.txt"
-    current_test = req_test_path.read_text(encoding="utf-8").splitlines() if req_test_path.exists() else []
+    current_test = (
+        req_test_path.read_text(encoding="utf-8").splitlines()
+        if req_test_path.exists()
+        else []
+    )
 
     # Unbekannte Script-Imports warnen
-    unknown = scr_tp - {p.split(">=")[0].split("[")[0].replace("-","_") for p in ALWAYS_TEST} - {"astroid"}
+    unknown = (
+        scr_tp
+        - {p.split(">=")[0].split("[")[0].replace("-", "_") for p in ALWAYS_TEST}
+        - {"astroid"}
+    )
     if unknown:
         print(f"\n  ⚠ Undeklarierte Script-Imports: {sorted(unknown)}")
 
@@ -228,7 +344,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  OK {req_test_path} geschrieben ({len(ALWAYS_TEST)} Eintraege)")
 
     elif args.check and any_changed:
-        print("\n  ✗ requirements sind nicht synchron — bitte `python -m scripts.sync_requirements --write` ausführen")
+        print(
+            "\n  ✗ requirements sind nicht synchron — bitte `python -m scripts.sync_requirements --write` ausführen"
+        )
         return 1
 
     return 0
