@@ -2151,7 +2151,7 @@ def install_homeassistant_stubs() -> None:
     aiofiles_module = types.ModuleType("aiofiles")
 
     @dataclass(slots=True)
-    class _TranslationsCacheData:  # noqa: N801 - Home Assistant private API shim
+    class _TranslationsCacheData:
         """Minimal translation cache payload used by pytest HA fixtures."""
 
         loaded: dict[str, object]
