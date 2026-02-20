@@ -421,7 +421,7 @@ def publish(args: argparse.Namespace) -> PublishResult:
                         args.pages_prefix,
                         timedelta(days=args.prune_max_age_days),
                     )
-        except (PublishError, urllib.error.URLError):
+            except (PublishError, urllib.error.URLError):
                 published = False
                 url = None
 
