@@ -12,14 +12,14 @@
 
 ## ✨ Características principales
 
-🔧 **Configuración sencilla** – Configuración completa basada en interfaz de usuario  
-🍽️ **Alimentación inteligente** – Seguimiento de comidas con control de porciones y recordatorios adaptados a la salud  
-🗺️ **Seguimiento GPS avanzado** – Monitoreo en tiempo real con geovallas y registro de rutas  
-🏥 **Monitoreo de salud** – Seguimiento de peso, recordatorios de medicamentos, citas veterinarias  
-📱 **Integración móvil** – Notificaciones con soporte iOS/Android  
-🏠 **Integración domótica** – Sensores de puerta, automatizaciones meteorológicas  
-📊 **Paneles generados automáticamente** – Interfaz adaptable con análisis detallados  
-🔔 **Notificaciones inteligentes** – Alertas contextuales con protocolos de emergencia  
+🔧 **Configuración sencilla** – Configuración completa basada en interfaz de usuario
+🍽️ **Alimentación inteligente** – Seguimiento de comidas con control de porciones y recordatorios adaptados a la salud
+🗺️ **Seguimiento GPS avanzado** – Monitoreo en tiempo real con geovallas y registro de rutas
+🏥 **Monitoreo de salud** – Seguimiento de peso, recordatorios de medicamentos, citas veterinarias
+📱 **Integración móvil** – Notificaciones con soporte iOS/Android
+🏠 **Integración domótica** – Sensores de puerta, automatizaciones meteorológicas
+📊 **Paneles generados automáticamente** – Interfaz adaptable con análisis detallados
+🔔 **Notificaciones inteligentes** – Alertas contextuales con protocolos de emergencia
 
 ## 🚀 Instalación
 
