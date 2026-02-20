@@ -2,15 +2,50 @@ blueprint:
   name: PawControl Resilience Escalation Follow-up
   description: >
     Follow-up automation for PawControl resilience manual events and guard
-    escalations. Use this blueprint to notify operators or trigger recovery
-    actions when manual guard or breaker events are emitted.
+    escalations. Notifies operators and triggers recovery actions when manual
+    guard or breaker events are emitted. Configure separate notification
+    messages for guard and breaker escalations.
   domain: automation
+  source_url: https://github.com/BigDaddy1990/pawcontrol/blob/main/blueprints/automation/pawcontrol/resilience_escalation_followup.yaml
+  author: PawControl
   input:
     notify_service:
       name: Notification service
-      description: Service to call when a follow-up event is raised.
+      description: >
+        Service to call when a follow-up event is raised
+        (e.g. notify.mobile_app_phone).
       selector:
         text: {}
+
+    guard_title:
+      name: Guard alert title
+      description: Notification title for manual guard events.
+      default: "⚠️ PawControl Guard Escalation"
+      selector:
+        text: {}
+
+    breaker_title:
+      name: Breaker alert title
+      description: Notification title for manual breaker events.
+      default: "🔴 PawControl Circuit Breaker Triggered"
+      selector:
+        text: {}
+
+    recovery_script:
+      name: Recovery script (optional)
+      description: >
+        Script or action to call after a breaker event to attempt recovery.
+        Leave empty to skip.
+      default: {}
+      selector:
+        action: {}
+
+    logbook_entry:
+      name: Add logbook entry
+      description: Record escalation events in the Home Assistant logbook.
+      default: true
+      selector:
+        boolean: {}
 
 trigger:
   - platform: event
@@ -23,36 +58,96 @@ trigger:
     event_type: pawcontrol_manual_breaker
     id: manual_breaker_event
 
+variables:
+  notify_service: !input notify_service
+  guard_title: !input guard_title
+  breaker_title: !input breaker_title
+  logbook_entry: !input logbook_entry
+  recovery_script: !input recovery_script
+  event_dog_id: "{{ trigger.event.data.get('dog_id', 'unknown') }}"
+  event_reason: "{{ trigger.event.data.get('reason', 'no reason provided') }}"
+  event_level: "{{ trigger.event.data.get('level', 'unknown') }}"
+  event_ts: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
 action:
-  - variables:
-      valid_trigger_ids:
-        - manual_event
-        - manual_guard_event
-        - manual_breaker_event
-      guard_trigger_ids:
-        - manual_event
-        - manual_guard_event
-      breaker_trigger_ids:
-        - manual_event
-        - manual_breaker_event
-  - condition: template
-    value_template: >-
-      {{ trigger.id in valid_trigger_ids }}
   - choose:
+
+      # ── Manual guard event ──────────────────────────────────────────────
       - conditions:
-          - condition: template
-            value_template: "{{ trigger.id in guard_trigger_ids }}"
-        sequence: []
+          - condition: trigger
+            id:
+              - manual_guard_event
+              - manual_event
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ logbook_entry }}"
+            then:
+              - service: logbook.log
+                data:
+                  name: PawControl Guard
+                  message: >-
+                    Guard escalation triggered for dog '{{ event_dog_id }}'.
+                    Level: {{ event_level }}. Reason: {{ event_reason }}.
+                  entity_id: "{{ trigger.event.data.get('entity_id', '') }}"
+
+          - service: "{{ notify_service }}"
+            data:
+              title: "{{ guard_title }}"
+              message: >-
+                Guard escalation detected at {{ event_ts }}.
+                Dog: {{ event_dog_id }}.
+                Level: {{ event_level }}.
+                Reason: {{ event_reason }}.
+              data:
+                tag: pawcontrol_guard_escalation
+                group: pawcontrol_resilience
+                actions:
+                  - action: PAWCONTROL_GUARD_ACK
+                    title: Acknowledge
+                  - action: PAWCONTROL_OPEN_DIAG
+                    title: Open Diagnostics
+
+      # ── Manual breaker event ────────────────────────────────────────────
       - conditions:
-          - condition: template
-            value_template: "{{ trigger.id in breaker_trigger_ids }}"
-        sequence: []
-  - service: logbook.log
-    data:
-      name: PawControl
-      message: Resilience follow-up triggered.
-  - service: "{{ notify_service }}"
-    data:
-      message: "PawControl resilience follow-up event: {{ trigger.id }}"
+          - condition: trigger
+            id:
+              - manual_breaker_event
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ logbook_entry }}"
+            then:
+              - service: logbook.log
+                data:
+                  name: PawControl Breaker
+                  message: >-
+                    Circuit breaker triggered for dog '{{ event_dog_id }}'.
+                    Level: {{ event_level }}. Reason: {{ event_reason }}.
+                  entity_id: "{{ trigger.event.data.get('entity_id', '') }}"
+
+          - service: "{{ notify_service }}"
+            data:
+              title: "{{ breaker_title }}"
+              message: >-
+                Circuit breaker opened at {{ event_ts }}.
+                Dog: {{ event_dog_id }}.
+                Level: {{ event_level }}.
+                Reason: {{ event_reason }}.
+                Recovery may be required — check diagnostics.
+              data:
+                tag: pawcontrol_breaker
+                group: pawcontrol_resilience
+                actions:
+                  - action: PAWCONTROL_BREAKER_ACK
+                    title: Acknowledge
+                  - action: PAWCONTROL_OPEN_DIAG
+                    title: Open Diagnostics
+
+          - if:
+              - condition: template
+                value_template: "{{ recovery_script | length > 0 }}"
+            then: !input recovery_script
 
 mode: single
+max_exceeded: silent
