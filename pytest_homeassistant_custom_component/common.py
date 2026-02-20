@@ -7,4 +7,3 @@ from tests.helpers.homeassistant_test_stubs import ConfigEntry
 
 class MockConfigEntry(ConfigEntry):
     """Test helper that mirrors the upstream fixture utility class."""
-

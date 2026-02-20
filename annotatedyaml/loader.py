@@ -15,6 +15,6 @@ def load_yaml(path: str) -> object:
     content = Path(path).read_text(encoding="utf-8")
     try:
         data = safe_load(content)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise ValueError(str(exc)) from exc
     return {} if data is None else data

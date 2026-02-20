@@ -51,7 +51,9 @@ def _select_loader(
     if default_loader is not None:
         return default_loader
     if required:
-        raise TypeError(f"{func_name}() missing 1 required positional argument: 'Loader'")
+        raise TypeError(
+            f"{func_name}() missing 1 required positional argument: 'Loader'"
+        )
     return SafeLoader
 
 
@@ -86,7 +88,9 @@ def load(stream: str, Loader: object | None = None, **kwargs: object) -> object:
     return _pyyaml.load(stream, Loader=selected_loader)
 
 
-def load_all(stream: str, Loader: object | None = None, **kwargs: object) -> Iterator[object]:
+def load_all(
+    stream: str, Loader: object | None = None, **kwargs: object
+) -> Iterator[object]:
     legacy_loader = _extract_legacy_loader("load_all", kwargs)
     selected_loader = _select_loader(
         "load_all", loader_cls=Loader, legacy_loader=legacy_loader, required=True
@@ -102,9 +106,14 @@ def load_all(stream: str, Loader: object | None = None, **kwargs: object) -> Ite
 def safe_load(stream: str, Loader: object | None = None, **kwargs: object) -> object:
     legacy_loader = _extract_legacy_loader("safe_load", kwargs)
     selected_loader = _select_loader(
-        "safe_load", loader_cls=Loader, legacy_loader=legacy_loader, default_loader=SafeLoader
+        "safe_load",
+        loader_cls=Loader,
+        legacy_loader=legacy_loader,
+        default_loader=SafeLoader,
     )
-    if not isinstance(selected_loader, type) or not issubclass(selected_loader, SafeLoader):
+    if not isinstance(selected_loader, type) or not issubclass(
+        selected_loader, SafeLoader
+    ):
         raise ValueError("safe_load() custom Loader must be a subclass of SafeLoader")
     if _pyyaml is None:
         return _simple_parse(stream)
@@ -116,10 +125,17 @@ def safe_load_all(
 ) -> Iterator[object]:
     legacy_loader = _extract_legacy_loader("safe_load_all", kwargs)
     selected_loader = _select_loader(
-        "safe_load_all", loader_cls=Loader, legacy_loader=legacy_loader, default_loader=SafeLoader
+        "safe_load_all",
+        loader_cls=Loader,
+        legacy_loader=legacy_loader,
+        default_loader=SafeLoader,
     )
-    if not isinstance(selected_loader, type) or not issubclass(selected_loader, SafeLoader):
-        raise ValueError("safe_load_all() custom Loader must be a subclass of SafeLoader")
+    if not isinstance(selected_loader, type) or not issubclass(
+        selected_loader, SafeLoader
+    ):
+        raise ValueError(
+            "safe_load_all() custom Loader must be a subclass of SafeLoader"
+        )
     if _pyyaml is None:
         docs = [part for part in stream.split("---") if part.strip()]
         for doc in docs:
