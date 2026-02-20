@@ -39,10 +39,9 @@ def _load_json(path: Path) -> Any:
 
 
 def _translation_languages(translations_dir: Path) -> list[str]:
-    languages = sorted(path.stem for path in translations_dir.glob("*.json"))
-    if "en" in languages:
-        languages.remove("en")
-    return ["en", *languages]
+    available = {path.stem for path in translations_dir.glob("*.json")}
+    ordered = [code for code in _LANGUAGE_LABELS if code in available]
+    return ordered or ["en"]
 
 
 def _setup_flag_keys(strings_path: Path) -> list[str]:

@@ -252,5 +252,3 @@ class-const-naming-style = "any"
 [tool.pylint.REPORTS]
 score = false
 
-[tool.pylint.TYPING]
-runtime-typing = false
