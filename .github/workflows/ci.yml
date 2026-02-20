@@ -84,7 +84,7 @@ jobs:
 
       - name: Run hassfest shim
         run: python -m scripts.hassfest --integration-path custom_components/pawcontrol
-          
+
       - name: Run tests and collect coverage
         env:
           PYTHONPATH: .
@@ -99,7 +99,7 @@ jobs:
             -q \
             --maxfail=20 \
             tests/ || true
-            
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -119,7 +119,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
-          
+
       - name: Upload coverage to Codecov
         if: ${{ always() }}
         uses: codecov/codecov-action@v5
