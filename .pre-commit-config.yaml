@@ -159,3 +159,19 @@ repos:
         entry: python -m scripts.validate_manifest
         language: python
         files: ^custom_components/pawcontrol/manifest\.json$
+
+      - id: hass-logger-lint
+        name: HA logger style (hass_logger pylint plugin)
+        entry: env PYTHONPATH=. python -m pylint
+        language: python
+        types: [python]
+        files: ^custom_components/pawcontrol/
+        args:
+          - --load-plugins=scripts.hass_logger
+          - --disable=all
+          - --enable=hass-logger-period,hass-logger-capital
+          - --score=no
+          - --output-format=colorized
+        additional_dependencies:
+          - pylint
+          - astroid
