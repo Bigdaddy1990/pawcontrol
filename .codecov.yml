@@ -16,7 +16,7 @@ coverage:
 
   status:
     project:
-      default:
+      default: false  # disable the default status that measures entire project
         target: auto
         threshold: 1%
         base: auto
@@ -28,6 +28,12 @@ coverage:
           - main
         informational: true
         only_pulls: false
+      tests:  # declare a new status context "tests"
+        target: 100%  # we always want 100% coverage here
+        paths: "tests/"  # only include coverage in "tests/" folder
+      app:  # declare a new status context "app"
+        paths: "!tests/"  # remove all files in "tests/"
+
     patch:
       default:
         target: 90%
@@ -40,7 +46,7 @@ coverage:
         flags:
           - unittests
         paths:
-          - custom_components/pawcontrol
+          - "src"
 
   changes: true
 
@@ -73,13 +79,18 @@ flags:
   integration:
     paths:
       - custom_components/pawcontrol
-    carryforward: true
+    carryforward: false
 
 flag_management:
   individual_flags:
     - name: smart-tests
       carryforward: true
-      carryforward_mode: labels
+      carryforward_mode: "labels"
       statuses:
-        - type: project
-        - type: patch
+        - type: "project"
+        - type: "patch"
+        
+cli:
+  plugins:
+    pycoverage:
+      report_type: "json"
