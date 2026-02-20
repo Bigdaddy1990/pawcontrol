@@ -1,4 +1,4 @@
-﻿# 🐕 Paw Control – Home Assistant Companion for Multi-Dog Households
+# 🐕 Paw Control – Home Assistant Companion for Multi-Dog Households
 
 Paw Control is a custom HACS integration that focuses on reliable automation
 and monitoring for dogs that are already represented inside Home Assistant. The

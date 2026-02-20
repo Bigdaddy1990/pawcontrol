@@ -1,4 +1,4 @@
-﻿# PawControl Claude Assistant Instructions
+# PawControl Claude Assistant Instructions
 
 This file mirrors the canonical contributor guide that lives in
 `.github/copilot-instructions.md`. Run

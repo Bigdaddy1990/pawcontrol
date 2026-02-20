@@ -1,4 +1,4 @@
-﻿# PawControl Gemini Style Guide
+# PawControl Gemini Style Guide
 
 Gemini Code Assist uses the same canonical contributor guidance as GitHub
 Copilot. This file wraps the shared content from `.github/copilot-instructions.md`
