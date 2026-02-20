@@ -16,7 +16,7 @@ coverage:
 
   status:
     project:
-      default: false  # disable the default status that measures entire project
+      default:
         target: auto
         threshold: 1%
         base: auto
