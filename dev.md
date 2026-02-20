@@ -1,4 +1,4 @@
-# Developer Guide (PawControl)
+﻿# Developer Guide (PawControl)
 
 This guide covers **local development**, **testing**, and **troubleshooting** for
 the PawControl Home Assistant integration. User-facing documentation lives in
@@ -16,29 +16,16 @@ the PawControl Home Assistant integration. User-facing documentation lives in
    pip install -r requirements_test.txt
    pip install -r requirements.txt
    ```
-   The integration uses [Prek](https://prek.j178.dev/) to run the
-   hooks defined in `.pre-commit-config.yaml` instead of Python’s
-   `pre-commit`.  Prek is a drop‑in, Rust‑based replacement that
-   executes hooks in parallel.  Install it alongside the test
-   requirements if you want to run the pre‑commit checks locally:
+   Run all code quality hooks locally with:
 
    ```bash
-   pip install prek
-   ```
+   pre-commit run --all-files
+   ```\
 
-   Then run all code quality hooks by executing:
-
-   ```bash
-   prek run --all-files
-   ```
 3. Optional: install the project in editable mode for packaging hooks:
    ```bash
    pip install -e .
    ```
-
-> **Note:** The repository ships local shims in `pytest_cov/` and
-> `pytest_homeassistant_custom_component/`. Avoid installing the PyPI variants
-> alongside this repo to prevent plugin conflicts.
 
 ## Running locally with Home Assistant
 
