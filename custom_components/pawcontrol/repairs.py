@@ -126,12 +126,12 @@ def _normalise_issue_severity(
             return ir.IssueSeverity(severity.lower())
         except ValueError:
             _LOGGER.warning(
-                "Unsupported issue severity '%s'; falling back to warning.",
+                "Unsupported issue severity '%s'; falling back to warning",
                 severity,
             )
             return ir.IssueSeverity.WARNING
     _LOGGER.warning(
-        "Unexpected issue severity type %s; falling back to warning.",
+        "Unexpected issue severity type %s; falling back to warning",
         type(severity).__name__,
     )
     return ir.IssueSeverity.WARNING
