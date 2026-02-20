@@ -1,29 +1,29 @@
 {
   "resilience_escalation_followup": {
-    "name": "PawControl Resilience Escalation Follow-up",
     "description": "Follow-up automation for PawControl resilience manual events and guard escalations. Notifies operators and triggers recovery actions when manual guard or breaker events are emitted.",
     "input": {
-      "notify_service": {
-        "name": "Notification service",
-        "description": "Service to call when a follow-up event is raised (e.g. notify.mobile_app_phone)."
+      "breaker_title": {
+        "description": "Notification title for manual breaker events.",
+        "name": "Breaker alert title"
       },
       "guard_title": {
-        "name": "Guard alert title",
-        "description": "Notification title for manual guard events."
-      },
-      "breaker_title": {
-        "name": "Breaker alert title",
-        "description": "Notification title for manual breaker events."
-      },
-      "recovery_script": {
-        "name": "Recovery script (optional)",
-        "description": "Script or action to call after a breaker event to attempt recovery. Leave empty to skip."
+        "description": "Notification title for manual guard events.",
+        "name": "Guard alert title"
       },
       "logbook_entry": {
-        "name": "Add logbook entry",
-        "description": "Record escalation events in the Home Assistant logbook."
+        "description": "Record escalation events in the Home Assistant logbook.",
+        "name": "Add logbook entry"
+      },
+      "notify_service": {
+        "description": "Service to call when a follow-up event is raised (e.g. notify.mobile_app_phone).",
+        "name": "Notification service"
+      },
+      "recovery_script": {
+        "description": "Script or action to call after a breaker event to attempt recovery. Leave empty to skip.",
+        "name": "Recovery script (optional)"
       }
-    }
+    },
+    "name": "PawControl Resilience Escalation Follow-up"
   },
   "safe_zone_alert": {
     "description": "Notify or run actions when a PawControl dog leaves or returns to a safe zone using the in-safe-zone binary sensor.",

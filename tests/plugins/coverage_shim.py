@@ -1,7 +1,5 @@
 """Coverage compatibility layer used by regression tests."""
 
-from __future__ import annotations
-
 from collections import defaultdict
 import contextlib
 from functools import lru_cache

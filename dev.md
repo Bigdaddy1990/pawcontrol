@@ -1,4 +1,4 @@
-﻿# Developer Guide (PawControl)
+# Developer Guide (PawControl)
 
 This guide covers **local development**, **testing**, and **troubleshooting** for
 the PawControl Home Assistant integration. User-facing documentation lives in

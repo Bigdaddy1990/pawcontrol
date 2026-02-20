@@ -1,7 +1,5 @@
 """Compatibility pytest plugin hooks for local Home Assistant tests."""
 
-from __future__ import annotations
-
 
 def pytest_configure(config: object) -> None:
     add_line = getattr(config, "addinivalue_line", None)

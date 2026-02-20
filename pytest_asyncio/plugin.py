@@ -1,7 +1,5 @@
 """Compatibility subset of pytest-asyncio's plugin API."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Generator
 import contextlib

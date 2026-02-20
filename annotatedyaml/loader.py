@@ -1,7 +1,5 @@
 """Tiny YAML loader shim compatible with the local regression tests."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 try:

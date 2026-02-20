@@ -1,4 +1,5 @@
-"""scripts/sync_requirements.py
+"""scripts/sync_requirements.py.
+
 Scannt alle Imports im Projekt, filtert Stdlib und HA-bereitgestellte Pakete
 heraus und schreibt requirements.txt / requirements_test.txt neu.
 
@@ -8,13 +9,13 @@ Usage:
     python -m scripts.sync_requirements --check   # CI-Modus: Exit 1 wenn Abweichung
 """
 
-from __future__ import annotations
-
 import argparse
 import ast
 import pathlib
 import sys
 import tomllib
+
+from packaging.requirements import Requirement
 
 ROOT = pathlib.Path(__file__).parent.parent
 
@@ -228,9 +229,8 @@ def scan_imports(files: list[pathlib.Path]) -> set[str]:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     imports.add(alias.name.split(".")[0])
-            elif isinstance(node, ast.ImportFrom):
-                if node.module and node.level == 0:
-                    imports.add(node.module.split(".")[0])
+            elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+                imports.add(node.module.split(".")[0])
     return imports
 
 
@@ -257,10 +257,14 @@ def manifest_requirements() -> list[str]:
 # ---------------------------------------------------------------------------
 def show_diff(label: str, current: list[str], proposed: list[str]) -> bool:
     cur = {
-        l.split("#")[0].strip() for l in current if l.strip() and not l.startswith("#")
+        line.split("#")[0].strip()
+        for line in current
+        if line.strip() and not line.startswith("#")
     }
     pro = {
-        l.split("#")[0].strip() for l in proposed if l.strip() and not l.startswith("#")
+        line.split("#")[0].strip()
+        for line in proposed
+        if line.strip() and not line.startswith("#")
     }
     added = pro - cur
     removed = cur - pro
@@ -283,7 +287,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true", help="Dateien schreiben")
     parser.add_argument(
-        "--check", action="store_true", help="Exit 1 bei Abweichung (CI)"
+        "--check",
+        action="store_true",
+        help="Exit 1 bei Abweichung (CI)",
     )
     args = parser.parse_args(argv)
 
@@ -321,7 +327,11 @@ def main(argv: list[str] | None = None) -> int:
     # Unbekannte Script-Imports warnen
     unknown = (
         scr_tp
-        - {p.split(">=")[0].split("[")[0].replace("-", "_") for p in ALWAYS_TEST}
+        - {
+            Requirement(requirement.split("#")[0].strip()).name.replace("-", "_")
+            for requirement in ALWAYS_TEST
+            if requirement.split("#")[0].strip()
+        }
         - {"astroid"}
     )
     if unknown:
@@ -345,7 +355,8 @@ def main(argv: list[str] | None = None) -> int:
 
     elif args.check and any_changed:
         print(
-            "\n  ✗ requirements sind nicht synchron — bitte `python -m scripts.sync_requirements --write` ausführen"
+            "\n  ✗ requirements sind nicht synchron — "
+            "bitte `python -m scripts.sync_requirements --write` ausführen"
         )
         return 1
 
