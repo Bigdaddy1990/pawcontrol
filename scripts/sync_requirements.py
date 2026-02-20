@@ -17,6 +17,8 @@ import pathlib
 import sys
 import tomllib
 
+from packaging.requirements import Requirement
+
 ROOT = pathlib.Path(__file__).parent.parent
 
 # ---------------------------------------------------------------------------
@@ -327,7 +329,11 @@ def main(argv: list[str] | None = None) -> int:
     # Unbekannte Script-Imports warnen
     unknown = (
         scr_tp
-        - {p.split(">=")[0].split("[")[0].replace("-", "_") for p in ALWAYS_TEST}
+        - {
+            Requirement(requirement.split("#")[0].strip()).name.replace("-", "_")
+            for requirement in ALWAYS_TEST
+            if requirement.split("#")[0].strip()
+        }
         - {"astroid"}
     )
     if unknown:
