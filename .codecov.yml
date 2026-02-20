@@ -89,7 +89,7 @@ flag_management:
       statuses:
         - type: "project"
         - type: "patch"
-        
+
 cli:
   plugins:
     pycoverage:

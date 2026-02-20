@@ -92,7 +92,7 @@ jobs:
             --junitxml=testreport.junit.xml
           pytest --cov --junitxml=junit.xml -o junit_family=legacy
           pytest --cov=./ --cov-report=xml
-          
+
       - name: Upload coverage to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
@@ -100,20 +100,20 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: junit.xml
           fail_ci_if_error: false
-          
+
       - name: Upload coverage to Codecov
         if: ${{ always() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          
+
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/test-results-action@v5
         with:
            token: ${{ secrets.CODECOV_TOKEN }}
            report-type: test_results
-           
+
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/test-results-action@v5
