@@ -2150,14 +2150,32 @@ def install_homeassistant_stubs() -> None:
     data_entry_flow_module = types.ModuleType("homeassistant.data_entry_flow")
     aiofiles_module = types.ModuleType("aiofiles")
 
+    class _TranslationsCacheData:  # noqa: N801 - Home Assistant private API shim
+        """Minimal translation cache payload used by pytest HA fixtures."""
+
+        def __init__(self, loaded: dict[str, object], loading: dict[str, object]) -> None:
+            self.loaded = loaded
+            self.loading = loading
+
+    async def _async_get_component_strings(
+        hass: HomeAssistant,
+        language: str | None,
+        category: str,
+        components: set[str],
+        integrations: dict[str, object],
+    ) -> dict[str, str]:
+        return {}
+
     async def _async_get_translations(
         hass: HomeAssistant,
         language: str | None,
         category: str,
         domains: set[str],
     ) -> dict[str, str]:
-        return {}
+        return await _async_get_component_strings(hass, language, category, domains, {})
 
+    translation_module._TranslationsCacheData = _TranslationsCacheData
+    translation_module._async_get_component_strings = _async_get_component_strings
     translation_module.async_get_translations = _async_get_translations
 
     const_module.Platform = Platform
