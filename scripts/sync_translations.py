@@ -15,8 +15,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
+import sys
 from typing import Any
 
 # Resolve project root independent of CWD
@@ -32,8 +32,11 @@ def _dump_json(data: Any) -> str:
 
 
 def _sync_tree(source: Any, existing: Any) -> Any:
-    """Recursively merge *source* structure into *existing*, preserving
-    existing translations and back-filling missing keys with English strings."""
+    """Recursively merge *source* structure into *existing*.
+
+    Preserve existing translations and back-fill missing keys with English
+    strings.
+    """
     if isinstance(source, dict):
         existing_map = existing if isinstance(existing, dict) else {}
         return {
