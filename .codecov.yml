@@ -28,11 +28,13 @@ coverage:
           - main
         informational: true
         only_pulls: false
-      tests:  # declare a new status context "tests"
-        target: 100%  # we always want 100% coverage here
-        paths: "tests/"  # only include coverage in "tests/" folder
-      app:  # declare a new status context "app"
-        paths: "!tests/"  # remove all files in "tests/"
+      tests:
+        target: 100%
+        paths:
+          - tests/
+      app:
+        paths:
+          - custom_components/pawcontrol
 
     patch:
       default:
@@ -46,7 +48,7 @@ coverage:
         flags:
           - unittests
         paths:
-          - "src"
+          - custom_components/pawcontrol
 
   changes: true
 
@@ -61,9 +63,9 @@ github_checks:
 
 # Files to exclude from coverage analysis
 ignore:
-- ^tests/.*
-- ^docs/.*
-- ^scripts/.*
+  - ^tests/.*
+  - ^docs/.*
+  - ^scripts/.*
 
 # Flag definitions
 flags:
