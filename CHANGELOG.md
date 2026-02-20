@@ -5,6 +5,30 @@ All notable changes to PawControl will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.0 (2026-02-20)
+
+
+### Features
+
+* apply code changes ([041a4e1](https://github.com/Bigdaddy1990/pawcontrol/commit/041a4e10691042256cd7a2df0c5c74b12a020e3d))
+
+
+### Bug Fixes
+
+* allow blueprint !input tags in YAML pre-commit checks ([48580f8](https://github.com/Bigdaddy1990/pawcontrol/commit/48580f8fecc7119eb2d2553bdce1d7763ba8e889))
+* allow Home Assistant !input tags in YAML hook ([533b4ff](https://github.com/Bigdaddy1990/pawcontrol/commit/533b4ff9e9431220a1387d087f39a310d642fed1))
+* **ci:** align README wording and enforce reusable HA guard ([d955ff9](https://github.com/Bigdaddy1990/pawcontrol/commit/d955ff9dc7e3faaadf095eccb6cc08202f1b2285))
+* **ci:** tighten HA guard flow and translate README CI docs ([951cb9f](https://github.com/Bigdaddy1990/pawcontrol/commit/951cb9fc01c32f6229ca97c2189c671115773e87))
+* relax mypy codes for HA typing compatibility ([96fcc2c](https://github.com/Bigdaddy1990/pawcontrol/commit/96fcc2cbf45c6b42e871445f79d9390c6bbfd55f))
+* replace multi-exception tuples with explicit handlers ([fc1bfbc](https://github.com/Bigdaddy1990/pawcontrol/commit/fc1bfbc71e9818299fb1eb13fa4c0d6b0395ad5d))
+* resolve Ruff action lint failures ([9155a03](https://github.com/Bigdaddy1990/pawcontrol/commit/9155a03e20980d58d8d81431a006b5068669b1a5))
+* resolve Ruff CI failures ([d9cbcd1](https://github.com/Bigdaddy1990/pawcontrol/commit/d9cbcd10f5069a83bc8bf8f0fdd6f1a39246b091))
+* resolve Ruff E111 indentation warnings in test imports ([4b19f90](https://github.com/Bigdaddy1990/pawcontrol/commit/4b19f90e278c737d3051023447e98a0fbf49a10b))
+* silence remaining E111 lint violations in tests ([87e985e](https://github.com/Bigdaddy1990/pawcontrol/commit/87e985e0f6c085036594f3b33f792a24253ddfe9))
+* stabilize coordinator telemetry and cache ttl behavior ([bb78a85](https://github.com/Bigdaddy1990/pawcontrol/commit/bb78a85bf4c227ee754bc00dbca4de9553baf744))
+* stabilize coordinator telemetry and platform cache TTL ([ad794e6](https://github.com/Bigdaddy1990/pawcontrol/commit/ad794e6b9b0945022f5fb7b85eabce05d7d06850))
+* wrap long export filename line for ruff ([2bd8716](https://github.com/Bigdaddy1990/pawcontrol/commit/2bd8716919fe8587ad2c14a0f974129142eadeef))
+
 ## [Unreleased]
 
 ### Breaking Changes
