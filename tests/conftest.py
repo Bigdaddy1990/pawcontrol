@@ -50,6 +50,7 @@ pytest_plugins = (
     "pytest_homeassistant_custom_component",
     "pytest_asyncio",
     "tests.plugins.asyncio_stub",
+    "tests.plugins.coverage_shim",
 )
 
 
