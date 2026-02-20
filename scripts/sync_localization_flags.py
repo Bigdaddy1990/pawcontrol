@@ -17,9 +17,6 @@ _SOURCE_PREFIX = "setup_flags_panel_source_"
 
 _LANGUAGE_LABELS = {
     "en": "Englisch",
-    "de": "Deutsch",
-    "es": "Spanisch",
-    "fr": "Französisch",
 }
 
 
@@ -39,9 +36,10 @@ def _load_json(path: Path) -> Any:
 
 
 def _translation_languages(translations_dir: Path) -> list[str]:
-    available = {path.stem for path in translations_dir.glob("*.json")}
-    ordered = [code for code in _LANGUAGE_LABELS if code in available]
-    return ordered or ["en"]
+    available = sorted(path.stem for path in translations_dir.glob("*.json"))
+    if "en" in available:
+        available.remove("en")
+    return ["en", *available] if available else ["en"]
 
 
 def _setup_flag_keys(strings_path: Path) -> list[str]:
