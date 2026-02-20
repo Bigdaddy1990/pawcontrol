@@ -1,5 +1,10 @@
 # 🐾 Paw Control - Smart Dog Management for Home Assistant
 
+**🌍 Language / Sprache / Idioma / Langue:**
+[🇬🇧 English](../README.md) · [🇩🇪 Deutsch](docs/README.de.md) · [🇫🇷 Français](docs/README.fr.md) · [🇪🇸 Español](docs/README.es.md)
+
+---
+
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9.0%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Ready-41BDF5.svg)](https://hacs.xyz/)
 [![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20aligned-e5e4e2.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
@@ -1230,24 +1235,26 @@ cd pawcontrol
 # Set up development environment
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
-venv\\Scripts\\activate     # Windows
+venv\Scripts\activate     # Windows
 
 # Install development dependencies
-pip install -r requirements-dev.txt
+pip install -r requirements.txt -r requirements_test.txt
 
 # Install pre-commit hooks
+pre-commit install
+pre-commit install --hook-type pre-push
 
-This project uses **Prek** instead of the Python-based `pre-commit` to run
-linting and formatting hooks.  Prek is a fast, Rust‑based drop‑in replacement
-that executes the same hooks defined in `.pre-commit-config.yaml` in
-parallel.  To install and set up the hooks locally, run:
+```
+
+The hooks defined in `.pre-commit-config.yaml` run automatically on commit and push. They include ruff (format + lint), mypy, the HA logger style checker (`hass-logger-lint` via pylint plugin in `scripts/hass_logger.py` — checks that logger messages start with a capital letter and don't end with a period), and the `homeassistant-push-guard` on push.
+
+Run all hooks manually at any time:
 
 ```bash
-pip install prek
-prek install
+pre-commit run --all-files
 
 # optional: trigger push-stage checks immediately
-prek run --hook-stage push homeassistant-push-guard
+pre-commit run --hook-stage push homeassistant-push-guard
 ```
 
 The push stage includes the `homeassistant-push-guard` hook. This hook automatically checks for known Home Assistant migration patterns before each push, fetches the latest Home Assistant version from PyPI, and applies known auto-fixes directly to the code (`python -m scripts.homeassistant_push_guard --fix`).
@@ -1282,7 +1289,7 @@ pytest --cov=custom_components.pawcontrol --cov-report=html
    so the Claude and Gemini assistants stay aligned. Follow up with
    `python -m scripts.sync_localization_flags --check` to confirm that the
    `setup_flags_panel_*` translations in every language mirror `strings.json`.
-   The contributor guide hook is executed via **Prek** in `--check`
+   The contributor guide hook is executed via `pre-commit` in `--check`
    mode so wrappers never drift from the canonical text. CI also enforces the
    localization flag sync check to block outdated translations before review.
 6. **Submit PR**: Detailed description with test results
