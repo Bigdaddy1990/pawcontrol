@@ -99,10 +99,3 @@ flag_management:
         - type: project
         - type: patch
 
-# Upload settings — coverage.xml is always written to the project root
-uploads:
-  - name: pawcontrol
-    path: coverage.xml
-    flags:
-      - unittests
-    report_type: pytest
