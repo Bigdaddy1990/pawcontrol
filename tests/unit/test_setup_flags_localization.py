@@ -72,7 +72,7 @@ def _parse_localization_table(
 
     languages: list[str] = []
     for cell in header[1:]:
-        match = re.search(r"\(`([a-z0-9_-]+)`\)", cell)
+        match = re.search(r"\(`([A-Za-z0-9_-]+)`\)", cell)
         if match is None:
             raise AssertionError(f"Missing language code in header cell '{cell}'")
         languages.append(match.group(1))

@@ -11,12 +11,13 @@ default        Sync existing translation files only.
 --check        Validate only; exit non-zero on any mismatch or missing file.
 --list-missing   Print languages that have no translation file and exit.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
+import sys
 from typing import Any
 
 # Resolve project root independent of CWD
@@ -33,7 +34,8 @@ def _dump_json(data: Any) -> str:
 
 def _sync_tree(source: Any, existing: Any) -> Any:
     """Recursively merge *source* structure into *existing*, preserving
-    existing translations and back-filling missing keys with English strings."""
+    existing translations and back-filling missing keys with English strings.
+    """
     if isinstance(source, dict):
         existing_map = existing if isinstance(existing, dict) else {}
         return {
@@ -91,6 +93,7 @@ def _sync_translation(
 def _get_ha_languages() -> set[str]:
     """Import LANGUAGES set from scripts/languages.py."""
     import importlib.util
+
     spec = importlib.util.spec_from_file_location(
         "languages", ROOT / "scripts" / "languages.py"
     )
