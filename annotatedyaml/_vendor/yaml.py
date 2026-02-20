@@ -87,7 +87,7 @@ def load(stream: str, loader_cls: object | None = None, **kwargs: object) -> obj
 
 
 def load_all(
-    stream: str, Loader: object | None = None, **kwargs: object
+    stream: str, loader_cls: object | None = None, **kwargs: object
 ) -> Iterator[object]:
     legacy_loader = _extract_legacy_loader("load_all", kwargs)
     selected_loader = _select_loader(
@@ -107,7 +107,7 @@ def safe_load(
     legacy_loader = _extract_legacy_loader("safe_load", kwargs)
     selected_loader = _select_loader(
         "safe_load",
-        loader_cls=Loader,
+        loader_cls=loader_cls,
         legacy_loader=legacy_loader,
         default_loader=SafeLoader,
     )
@@ -126,7 +126,7 @@ def safe_load_all(
     legacy_loader = _extract_legacy_loader("safe_load_all", kwargs)
     selected_loader = _select_loader(
         "safe_load_all",
-        loader_cls=Loader,
+        loader_cls=loader_cls,
         legacy_loader=legacy_loader,
         default_loader=SafeLoader,
     )
