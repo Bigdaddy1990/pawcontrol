@@ -64,6 +64,15 @@ variables:
   breaker_title: !input breaker_title
   logbook_entry: !input logbook_entry
   recovery_script: !input recovery_script
+  valid_trigger_ids:
+    - manual_event
+    - manual_guard_event
+    - manual_breaker_event
+  guard_trigger_ids:
+    - manual_event
+    - manual_guard_event
+  breaker_trigger_ids:
+    - manual_breaker_event
   event_dog_id: "{{ trigger.event.data.get('dog_id', 'unknown') }}"
   event_reason: "{{ trigger.event.data.get('reason', 'no reason provided') }}"
   event_level: "{{ trigger.event.data.get('level', 'unknown') }}"
@@ -74,10 +83,10 @@ action:
 
       # ── Manual guard event ──────────────────────────────────────────────
       - conditions:
-          - condition: trigger
-            id:
-              - manual_guard_event
-              - manual_event
+          - condition: template
+            value_template: "{{ trigger.id in valid_trigger_ids }}"
+          - condition: template
+            value_template: "{{ trigger.id in guard_trigger_ids }}"
         sequence:
           - if:
               - condition: template
@@ -110,9 +119,10 @@ action:
 
       # ── Manual breaker event ────────────────────────────────────────────
       - conditions:
-          - condition: trigger
-            id:
-              - manual_breaker_event
+          - condition: template
+            value_template: "{{ trigger.id in valid_trigger_ids }}"
+          - condition: template
+            value_template: "{{ trigger.id in breaker_trigger_ids }}"
         sequence:
           - if:
               - condition: template

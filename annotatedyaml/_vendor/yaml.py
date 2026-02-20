@@ -75,10 +75,10 @@ def _simple_parse(doc: str) -> dict[str, object]:
     return result
 
 
-def load(stream: str, Loader: object | None = None, **kwargs: object) -> object:
+def load(stream: str, loader_cls: object | None = None, **kwargs: object) -> object:
     legacy_loader = _extract_legacy_loader("load", kwargs)
     selected_loader = _select_loader(
-        "load", loader_cls=Loader, legacy_loader=legacy_loader, required=True
+        "load", loader_cls=loader_cls, legacy_loader=legacy_loader, required=True
     )
     if _pyyaml is None:
         _ = selected_loader
@@ -91,7 +91,7 @@ def load_all(
 ) -> Iterator[object]:
     legacy_loader = _extract_legacy_loader("load_all", kwargs)
     selected_loader = _select_loader(
-        "load_all", loader_cls=Loader, legacy_loader=legacy_loader, required=True
+        "load_all", loader_cls=loader_cls, legacy_loader=legacy_loader, required=True
     )
     if _pyyaml is None:
         docs = [part for part in stream.split("---") if part.strip()]
@@ -101,7 +101,9 @@ def load_all(
     yield from _pyyaml.load_all(stream, Loader=selected_loader)
 
 
-def safe_load(stream: str, Loader: object | None = None, **kwargs: object) -> object:
+def safe_load(
+    stream: str, loader_cls: object | None = None, **kwargs: object
+) -> object:
     legacy_loader = _extract_legacy_loader("safe_load", kwargs)
     selected_loader = _select_loader(
         "safe_load",
@@ -119,7 +121,7 @@ def safe_load(stream: str, Loader: object | None = None, **kwargs: object) -> ob
 
 
 def safe_load_all(
-    stream: str, Loader: object | None = None, **kwargs: object
+    stream: str, loader_cls: object | None = None, **kwargs: object
 ) -> Iterator[object]:
     legacy_loader = _extract_legacy_loader("safe_load_all", kwargs)
     selected_loader = _select_loader(
@@ -142,14 +144,14 @@ def safe_load_all(
     yield from _pyyaml.load_all(stream, Loader=selected_loader)
 
 
-def dump(data: object, Dumper: object | None = None, **kwargs: object) -> str:
+def dump(data: object, dumper_cls: object | None = None, **kwargs: object) -> str:
     legacy_dumper = kwargs.pop("Dumper", None)
     if kwargs:
         key = next(iter(kwargs))
         raise TypeError(f"dump() got unexpected keyword argument '{key}'")
-    if Dumper is not None and legacy_dumper is not None:
+    if dumper_cls is not None and legacy_dumper is not None:
         raise TypeError("dump() received both 'Dumper' and its replacement")
-    selected_dumper = Dumper or legacy_dumper or globals()["Dumper"]
+    selected_dumper = dumper_cls or legacy_dumper or globals()["Dumper"]
     if _pyyaml is None:
         if isinstance(data, dict):
             return "\n".join(f"{k}: {v}" for k, v in data.items()) + "\n"
