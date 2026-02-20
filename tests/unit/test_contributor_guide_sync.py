@@ -16,7 +16,7 @@ def _synced_block(path: Path) -> str:
     content = path.read_text(encoding="utf-8")
     start = content.index(MARKER_START) + len(MARKER_START)
     end = content.index(MARKER_END)
-    return _normalise_markdown(content[start:end])
+    return _normalize_markdown(content[start:end])
 
 
 def _normalize_markdown(content: str) -> str:
@@ -25,6 +25,6 @@ def _normalize_markdown(content: str) -> str:
 
 
 def test_assistant_guides_match_canonical() -> None:
-    canonical = _normalise_markdown(CANONICAL_PATH.read_text(encoding="utf-8"))
+    canonical = _normalize_markdown(CANONICAL_PATH.read_text(encoding="utf-8"))
     for target in TARGETS:
         assert _synced_block(target) == canonical, target
