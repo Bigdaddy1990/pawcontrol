@@ -8,7 +8,7 @@ Thank you for your interest in improving the PawControl integration. This guide 
 - When you finish a requirement or claim an exemption, update the quality scale file and include a short comment that explains the change.
 
 ## Set up your environment
-1. Use Python 3.13 or newer.
+1. Use Python 3.14 or newer.
 2. Fork the repository and create a feature branch for each contribution.
 3. Create a virtual environment and install the dependencies:
 
