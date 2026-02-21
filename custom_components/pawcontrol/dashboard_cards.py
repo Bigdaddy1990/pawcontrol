@@ -78,12 +78,12 @@ CARD_GENERATION_TIMEOUT: Final[float] = 15.0
 VALIDATION_CACHE_SIZE: Final[int] = 200
 
 # OPTIMIZED: Type definitions for better performance
-CardConfigType = CardConfig
-EntityListType = list[str]
-ModulesConfigType = DogModulesConfig
-DogConfigType = DogConfigData
-ThemeConfigType = Mapping[str, str]
-OptionsConfigType = DashboardCardOptions
+CardConfigType: Final = CardConfig
+EntityListType: Final = list[str]
+ModulesConfigType: Final = DogModulesConfig
+DogConfigType: Final = DogConfigData
+ThemeConfigType: Final = Mapping[str, str]
+OptionsConfigType: Final = DashboardCardOptions
 
 # OPTIMIZED: Entity validation cache for performance
 _entity_validation_cache: dict[str, tuple[float, bool]] = {}
