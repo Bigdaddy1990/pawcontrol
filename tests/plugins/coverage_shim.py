@@ -114,8 +114,10 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
             self._monitor_tool_id = tool_id
             self._using_monitoring = True
             return True
-        except Exception:
-            with contextlib.suppress(Exception):
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            with contextlib.suppress(
+                AttributeError, RuntimeError, TypeError, ValueError
+            ):
                 monitoring.free_tool_id(getattr(monitoring, "COVERAGE_ID", 0))
             self._monitor_tool_id = None
             self._using_monitoring = False
@@ -140,14 +142,14 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
         self._fallback_prev_trace = sys.gettrace()
         self._fallback_using_settrace = True
         sys.settrace(self._trace)
-        with contextlib.suppress(Exception):
+        with contextlib.suppress(AttributeError, RuntimeError, TypeError, ValueError):
             _original_start(self)
 
     def _shim_stop(self: coverage.Coverage) -> None:
         if getattr(self, "_using_monitoring", False):
             _stop_monitoring(self)
             return
-        with contextlib.suppress(Exception):
+        with contextlib.suppress(AttributeError, RuntimeError, TypeError, ValueError):
             _original_stop(self)
         if getattr(self, "_fallback_using_settrace", False):
             sys.settrace(self._fallback_prev_trace)
