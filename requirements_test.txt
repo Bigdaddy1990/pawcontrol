@@ -10,6 +10,7 @@ packaging>=26.0
 pip>=26.0.1
 pylint
 pytest
+pytest-cov
 pytest-github-actions-annotate-failures>=0.3.0
 pytest-homeassistant-custom-component  # follows daily HA version
 pyyaml
