@@ -1,7 +1,11 @@
-name: Codecov Coverage Upload
+name: Manual Codecov Coverage Upload
 
 on:
   workflow_dispatch:
+
+# This manual workflow is an on-demand fallback for coverage uploads.
+# Push/PR automation remains in .github/workflows/ci.yml, which also calls
+# the shared coverage upload steps to avoid drift.
 
 permissions:
   contents: read
