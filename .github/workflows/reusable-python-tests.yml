@@ -126,6 +126,7 @@ jobs:
       PAGES_BRANCH: ${{ inputs.pages-branch }}
       PAGES_PREFIX: ${{ inputs.pages-prefix }}
       PAGES_ARTIFACT_DIR: ${{ inputs.pages-artifact-directory }}
+      CODECOV_UPLOAD_ENABLED: ${{ inputs.run-codecov == true && (secrets.CODECOV_TOKEN != '' || github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -226,10 +227,11 @@ jobs:
 
       - name: Upload coverage to Codecov
         id: codecov_coverage_upload
-        if: inputs.run-codecov == true
+        if: env.CODECOV_UPLOAD_ENABLED == 'true'
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: true
+          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ env.COVERAGE_XML }}
           fail_ci_if_error: false
           disable_search: true
@@ -237,10 +239,11 @@ jobs:
           name: pawcontrol-coverage
 
       - name: Retry coverage upload to Codecov when primary upload fails
-        if: ${{ always() && inputs.run-codecov == true && !cancelled() && steps.codecov_coverage_upload.outcome == 'failure' }}
+        if: ${{ always() && !cancelled() && env.CODECOV_UPLOAD_ENABLED == 'true' && steps.codecov_coverage_upload.outcome == 'failure' }}
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: true
+          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ env.COVERAGE_XML }}
           fail_ci_if_error: false
           disable_search: true
@@ -248,10 +251,11 @@ jobs:
           name: pawcontrol-coverage-retry
 
       - name: Upload test results to Codecov
-        if: inputs.run-codecov == true
+        if: env.CODECOV_UPLOAD_ENABLED == 'true'
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: true
+          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ env.JUNIT_PATH }}
           report_type: test_results
           disable_search: true
