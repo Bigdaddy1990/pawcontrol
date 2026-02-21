@@ -3,6 +3,7 @@
 import argparse
 import base64
 from collections.abc import Iterable, Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import importlib.util
@@ -152,14 +153,10 @@ def _rmtree(path: Path) -> None:
         if child.is_file() or child.is_symlink():
             child.unlink(missing_ok=True)
         elif child.is_dir():
-            try:
+            with suppress(OSError):
                 child.rmdir()
-            except OSError:
-                pass  # non-empty; will be removed in a later pass
-    try:
+    with suppress(OSError):
         path.rmdir()
-    except OSError:
-        pass
 
 
 def _write_bundle(
