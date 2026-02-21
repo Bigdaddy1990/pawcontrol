@@ -30,7 +30,7 @@ Documentation = "https://github.com/BigDaddy1990/pawcontrol/blob/main/README.md"
 Issues = "https://github.com/BigDaddy1990/pawcontrol/issues"
 
 [tool.pytest.ini_options]
-addopts = "-p pytest_cov.plugin --cov=custom_components/pawcontrol --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-branch --no-cov-on-fail -q -ra --strict-markers --strict-config --tb=short --maxfail=20"
+addopts = "-p pytest_cov.plugin --cov=custom_components/pawcontrol --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-branch -q -ra --strict-markers --strict-config --tb=short --maxfail=20"
 markers = [
   "asyncio: mark a test as using asyncio",
   "ci_only: mark a test to run only in CI",
