@@ -1,6 +1,7 @@
 name: Python Tests with Coverage
 
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       python-version:
