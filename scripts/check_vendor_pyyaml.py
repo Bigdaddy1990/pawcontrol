@@ -196,7 +196,11 @@ def load_vendor_version() -> Version:
             "be inspected."
         )
     content = source_path.read_text(encoding="utf-8")
-    match = re.search(r"__version__\s*=\s*[\"']([^\"']+)[\"']", content)
+    match = re.search(
+        r"^\s*__version__\s*=\s*[\"']([^\"']+)[\"']",
+        content,
+        re.MULTILINE,
+    )
     if match is None:
         raise MonitoringError(
             "Could not locate __version__ assignment in vendored PyYAML module."

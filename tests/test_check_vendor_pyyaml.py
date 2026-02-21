@@ -124,3 +124,20 @@ def test_load_vendor_version_falls_back_to_module_file(tmp_path, monkeypatch) ->
     monkeypatch.setattr(module, "ANNOTATEDYAML_MODULE", module_file)
 
     assert str(module.load_vendor_version()) == "6.0.2"
+
+
+def test_load_vendor_version_ignores_commented_assignment(
+    tmp_path, monkeypatch
+) -> None:
+    """Only real assignment statements should be parsed for ``__version__``."""
+    module_file = tmp_path / "annotatedyaml/_vendor/yaml.py"
+    module_file.parent.mkdir(parents=True)
+    module_file.write_text(
+        '# __version__ = "0.0.0"\n  __version__ = "6.0.3"\n',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(module, "ANNOTATEDYAML_INIT", tmp_path / "missing/__init__.py")
+    monkeypatch.setattr(module, "ANNOTATEDYAML_MODULE", module_file)
+
+    assert str(module.load_vendor_version()) == "6.0.3"
