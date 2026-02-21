@@ -25,6 +25,7 @@ else:
     class ClientSession:  # pragma: no cover - exercised only in minimal envs
         """Fallback type used when aiohttp is unavailable during test bootstrap."""
 
+
 from tests.helpers.homeassistant_test_stubs import (
     HomeAssistant as StubHomeAssistant,
     install_homeassistant_stubs,
