@@ -114,7 +114,7 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
             self._monitor_tool_id = tool_id
             self._using_monitoring = True
             return True
-        except (AttributeError, RuntimeError, TypeError, ValueError):
+        except AttributeError, RuntimeError, TypeError, ValueError:
             with contextlib.suppress(
                 AttributeError, RuntimeError, TypeError, ValueError
             ):
