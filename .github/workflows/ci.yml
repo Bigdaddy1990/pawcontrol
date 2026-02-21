@@ -63,9 +63,8 @@ jobs:
           pip install homeassistant || true
           pip install -r requirements.txt
 
-      # Update output format to enable automatic inline annotations.
       - name: Ruff lint
-        run: ruff check --fix --exit-non-zero-on-fix --output-format=github . ||  true
+        run: ruff check --fix --exit-non-zero-on-fix --output-format=github . || true
 
       - name: Verify contributor guides
         run: python -m scripts.sync_contributor_guides --check
@@ -88,6 +87,12 @@ jobs:
       - name: Run hassfest shim
         run: python -m scripts.hassfest --integration-path custom_components/pawcontrol
 
+      - name: Prepare coverage directories
+        run: |
+          mkdir -p "$(dirname 'coverage.xml')"
+          mkdir -p htmlcov
+          mkdir -p "$(dirname 'junit.xml')"
+
       - name: Run tests and collect coverage
         env:
           PYTHONPATH: .
@@ -108,8 +113,8 @@ jobs:
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: ${{ env.CODECOV_TOKEN == '' }}
-          token: ${{ env.CODECOV_TOKEN }}
+          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           fail_ci_if_error: false
           disable_search: true
@@ -120,8 +125,8 @@ jobs:
         if: ${{ always() && !cancelled() && steps.codecov_coverage_upload.outcome == 'failure' }}
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: ${{ env.CODECOV_TOKEN == '' }}
-          token: ${{ env.CODECOV_TOKEN }}
+          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           fail_ci_if_error: false
           disable_search: true
@@ -132,8 +137,8 @@ jobs:
         if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: ${{ env.CODECOV_TOKEN == '' }}
-          token: ${{ env.CODECOV_TOKEN }}
+          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: junit.xml
           report_type: test_results
           disable_search: true

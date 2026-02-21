@@ -43,8 +43,10 @@ jobs:
             COMMITS=$(git log "$PREVIOUS_TAG"..HEAD --pretty=format:"- %s (%h)" --reverse)
           fi
 
-          # Create changelog
-          cat > CHANGELOG.md << EOF
+          # Write release body to a dedicated temp file – never overwrite CHANGELOG.md
+          # (the repo CHANGELOG.md is maintained by release-please and must not be
+          # clobbered here).
+          cat > RELEASE_BODY.md << EOF
           # Release ${{ steps.version.outputs.version }}
 
           ## Changes
@@ -70,7 +72,7 @@ jobs:
           SHA256: \$(sha256sum dist/pawcontrol.tar.gz | cut -d' ' -f1)
           EOF
 
-          cat CHANGELOG.md
+          cat RELEASE_BODY.md
 
       - name: Create package
         run: |
@@ -84,7 +86,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: Release ${{ steps.version.outputs.version }}
-          body_path: CHANGELOG.md
+          body_path: RELEASE_BODY.md
           files: |
             dist/pawcontrol.tar.gz
             dist/pawcontrol.tar.gz.sha256

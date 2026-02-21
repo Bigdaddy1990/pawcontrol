@@ -39,7 +39,12 @@ jobs:
 
   scheduled-pytest:
     needs: guard-manual-dispatch
-    if: ${{ github.event_name != 'workflow_dispatch' || needs.guard-manual-dispatch.result == 'success' }}
+    # GitHub Actions skips a job whose `needs` dependency is skipped, even when
+    # the `if:` condition would allow it. The `always()` wrapper prevents the
+    # implicit skip so that schedule-triggered runs (which skip the guard job
+    # entirely) still reach this job. The explicit result check then keeps
+    # manual-dispatch runs gated on the guard passing.
+    if: always() && (github.event_name != 'workflow_dispatch' || needs.guard-manual-dispatch.result == 'success')
     name: Weekly pytest quality gate
     uses: ./.github/workflows/reusable-python-tests.yml
     with:
