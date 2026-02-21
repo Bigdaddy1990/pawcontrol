@@ -9,6 +9,8 @@ import pytest
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
+    # Some pytest/plugin combinations can register the same option twice.
+    # Mirror pytest-asyncio's permissive behaviour in that scenario.
     with contextlib.suppress(ValueError):
         parser.addoption(
             "--asyncio-mode", action="store", default="auto", dest="asyncio_mode"
@@ -32,9 +34,16 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
         loop = asyncio.new_event_loop()
         created_loop = True
 
-    kwargs = {
-        name: pyfuncitem.funcargs[name] for name in pyfuncitem._fixtureinfo.argnames
-    }
+    fixture_info = getattr(pyfuncitem, "_fixtureinfo", None)
+    fixture_names = getattr(fixture_info, "argnames", ())
+    kwargs: dict[str, object] = {}
+    for name in fixture_names:
+        value = pyfuncitem.funcargs[name]
+        if inspect.isawaitable(value):
+            value = loop.run_until_complete(value)
+            pyfuncitem.funcargs[name] = value
+        kwargs[name] = value
+
     loop.run_until_complete(test_fn(**kwargs))
 
     if created_loop and not loop.is_closed():

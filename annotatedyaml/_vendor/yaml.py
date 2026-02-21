@@ -1,6 +1,7 @@
 """Vendored YAML adapter compatible with annotatedyaml regression tests."""
 
 from collections.abc import Iterator
+from typing import Any
 
 try:
     import yaml as _pyyaml
@@ -15,13 +16,27 @@ if _pyyaml is not None:
     Dumper = _pyyaml.Dumper
 else:  # pragma: no cover - exercised when yaml is hidden
 
-    class FullLoader: ...
+    class _PyYamlMissing:
+        """Base class that fails fast when PyYAML-dependent classes are used."""
 
-    class SafeLoader(FullLoader): ...
+        _class_name = "PyYAML helper"
 
-    class UnsafeLoader(FullLoader): ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            raise RuntimeError(
+                f"PyYAML is not installed, cannot use {self._class_name}"
+            )
 
-    class Dumper: ...
+    class FullLoader(_PyYamlMissing):
+        _class_name = "FullLoader"
+
+    class SafeLoader(FullLoader):
+        _class_name = "SafeLoader"
+
+    class UnsafeLoader(FullLoader):
+        _class_name = "UnsafeLoader"
+
+    class Dumper(_PyYamlMissing):
+        _class_name = "Dumper"
 
 
 def _extract_legacy_loader(func_name: str, kwargs: dict[str, object]) -> object | None:

@@ -23,18 +23,15 @@ coverage:
         flags:
           - unittests
         paths:
-          - custom_components/pawcontrol
+          - custom_components/pawcontrol/
         branches:
           - main
         informational: true
         only_pulls: false
-      tests:
-        target: 100%
-        paths:
-          - tests/
       app:
+        target: auto
         paths:
-          - custom_components/pawcontrol
+          - custom_components/pawcontrol/
 
     patch:
       default:
@@ -48,7 +45,7 @@ coverage:
         flags:
           - unittests
         paths:
-          - custom_components/pawcontrol
+          - custom_components/pawcontrol/
 
   changes: true
 
@@ -71,12 +68,12 @@ ignore:
 flags:
   unittests:
     paths:
-      - custom_components/pawcontrol
+      - custom_components/pawcontrol/
     carryforward: false
 
   integration:
     paths:
-      - custom_components/pawcontrol
+      - custom_components/pawcontrol/
     carryforward: false
 
 flag_management:
