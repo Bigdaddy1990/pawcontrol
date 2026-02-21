@@ -62,7 +62,6 @@ def validate_manifest() -> bool:
         "cloud_push",
         "local_polling",
         "local_push",
-        "calculated",
     ]
 
     if manifest.get("iot_class") not in valid_iot_classes:
@@ -70,7 +69,7 @@ def validate_manifest() -> bool:
 
     # Check for quality scale
     if "quality_scale" in manifest:
-        valid_scales = ["internal", "silver", "gold", "platinum"]
+        valid_scales = ["internal", "bronze", "silver", "gold", "platinum"]
         if manifest["quality_scale"] not in valid_scales:
             errors.append(f"Invalid quality_scale: {manifest['quality_scale']}")
 

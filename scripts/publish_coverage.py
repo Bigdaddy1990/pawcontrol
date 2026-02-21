@@ -85,7 +85,7 @@ def _parse_coverage_percent(coverage_xml: Path) -> float:
     line_rate = root.attrib.get("line-rate")
     try:
         return float(line_rate) * 100.0
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return 0.0
 
 
@@ -144,6 +144,24 @@ def _render_prefixes(
     return resolved
 
 
+def _rmtree(path: Path) -> None:
+    """Recursively remove a directory tree, tolerating missing entries."""
+    if not path.exists():
+        return
+    for child in sorted(path.rglob("*"), reverse=True):
+        if child.is_file() or child.is_symlink():
+            child.unlink(missing_ok=True)
+        elif child.is_dir():
+            try:
+                child.rmdir()
+            except OSError:
+                pass  # non-empty; will be removed in a later pass
+    try:
+        path.rmdir()
+    except OSError:
+        pass
+
+
 def _write_bundle(
     *,
     bundle_root: Path,
@@ -159,17 +177,10 @@ def _write_bundle(
         for item in html_dir.iterdir():
             target_path = target_root / item.name
             if item.is_dir():
-                if target_path.exists():
-                    for child in target_path.iterdir():
-                        if child.is_dir():
-                            pass
-                if target_path.exists():
-                    for child in list(target_path.iterdir()):
-                        if child.is_dir():
-                            child.rmdir()
-                if target_path.exists():
-                    for child in list(target_path.iterdir()):
-                        child.unlink()
+                # BUG FIX: removed dead-code no-op loop and replaced the
+                # unsafe child.rmdir() calls (which raised OSError for
+                # non-empty dirs) with a proper recursive tree removal.
+                _rmtree(target_path)
                 target_path.mkdir(parents=True, exist_ok=True)
                 for child in item.iterdir():
                     if child.is_file():
@@ -421,7 +432,7 @@ def publish(args: argparse.Namespace) -> PublishResult:
                         args.pages_prefix,
                         timedelta(days=args.prune_max_age_days),
                     )
-            except PublishError, urllib.error.URLError:
+            except (PublishError, urllib.error.URLError):
                 published = False
                 url = None
 
