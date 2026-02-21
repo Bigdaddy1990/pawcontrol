@@ -1,6 +1,17 @@
 """Minimal pytest-cov plugin shim for the local test environment."""
 
+from __future__ import annotations
+
+from pathlib import Path
+
 import coverage
+from coverage.exceptions import NoDataError
+
+
+def _split_report_target(value: str) -> tuple[str, str | None]:
+    report, _, target = value.partition(":")
+    cleaned_target = target or None
+    return report, cleaned_target
 
 
 def pytest_addoption(parser: object) -> None:
@@ -9,6 +20,7 @@ def pytest_addoption(parser: object) -> None:
         addoption("--cov", action="append", default=[])
         addoption("--cov-report", action="append", default=[])
         addoption("--cov-branch", action="store_true", default=False)
+        addoption("--cov-fail-under", action="store", default=None, type=float)
         addoption("--no-cov-on-fail", action="store_true", default=False)
 
 
@@ -37,3 +49,68 @@ class _CoverageController:
         if self._coverage is not None:
             self._coverage.stop()
             self._coverage.save()
+
+
+def pytest_sessionstart(session: object) -> None:
+    options = getattr(getattr(session, "config", None), "option", None)
+    if options is None:
+        return
+
+    source = list(getattr(options, "cov", []) or [])
+    branch = bool(getattr(options, "cov_branch", False))
+    cov = coverage.Coverage(source=source or None, branch=branch)
+    cov.start()
+    session.config._pawcontrol_cov = cov
+
+
+def pytest_sessionfinish(session: object, exitstatus: int) -> None:
+    config = getattr(session, "config", None)
+    if config is None:
+        return
+
+    cov: coverage.Coverage | None = getattr(config, "_pawcontrol_cov", None)
+    if cov is None:
+        return
+
+    cov.stop()
+    cov.save()
+
+    option = getattr(config, "option", None)
+    if option is None:
+        return
+
+    reports = list(getattr(option, "cov_report", []) or ["term"])
+    total_percent = None
+    for report in reports:
+        report_type, report_target = _split_report_target(str(report))
+        if report_type in {"term", "term-missing", "term-missing:skip-covered"}:
+            try:
+                total_percent = cov.report(show_missing="missing" in report_type)
+            except NoDataError:
+                total_percent = 0.0
+        elif report_type == "xml":
+            try:
+                cov.xml_report(outfile=report_target or "coverage.xml")
+            except NoDataError:
+                Path(report_target or "coverage.xml").write_text(
+                    '<coverage line-rate="0"/>\n', encoding="utf-8"
+                )
+        elif report_type == "html":
+            try:
+                cov.html_report(directory=report_target or "htmlcov")
+            except NoDataError:
+                Path(report_target or "htmlcov").mkdir(parents=True, exist_ok=True)
+
+    fail_under = getattr(option, "cov_fail_under", None)
+    no_cov_on_fail = bool(getattr(option, "no_cov_on_fail", False))
+    if fail_under is None or total_percent is None:
+        return
+    if no_cov_on_fail and exitstatus != 0:
+        return
+    if total_percent < float(fail_under):
+        session.exitstatus = 1
+
+
+def pytest_unconfigure(config: object) -> None:
+    if hasattr(config, "_pawcontrol_cov"):
+        delattr(config, "_pawcontrol_cov")
