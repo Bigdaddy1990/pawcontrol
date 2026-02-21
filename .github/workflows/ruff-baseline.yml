@@ -28,8 +28,8 @@ jobs:
           ruff check . --extend-select RUF100 --fix || true
           ruff check . --output-format=github || true
           ruff format
-          pre-commit run --all-files --allow-missing-config || true
-          pre-commit run --hook-stage manual python-typing-update --all-files --allow-missing-config || true
+          pre-commit run --all-files || true
+          pre-commit run --hook-stage manual python-typing-update --all-files || true
           python scripts/enforce_docstring_baseline.py --update
           python -m scripts.sync_contributor_guides --check
           python -m scripts.enforce_test_requirements

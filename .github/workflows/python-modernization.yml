@@ -41,11 +41,10 @@ jobs:
         continue-on-error: true
         run: |
           set -e
-          pre-commit run --all-files --allow-missing-config
+          pre-commit run --all-files
           # python-typing-update is a manual-stage hook; its --py314-plus flag is
           # declared under args: in .pre-commit-config.yaml and must NOT be passed
-          # on the CLI.  The --allow-missing-config guard is also omitted here
-          # because pre-commit run with a hook-id does not accept that flag.
+          # on the CLI.
           pre-commit run --hook-stage manual python-typing-update --all-files || true
           python -m mypy custom_components/pawcontrol
 
