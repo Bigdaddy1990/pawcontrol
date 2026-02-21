@@ -114,7 +114,7 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
             self._monitor_tool_id = tool_id
             self._using_monitoring = True
             return True
-        except AttributeError, RuntimeError, TypeError, ValueError:
+        except (AttributeError, RuntimeError, TypeError, ValueError):
             with contextlib.suppress(
                 AttributeError, RuntimeError, TypeError, ValueError
             ):
@@ -161,6 +161,13 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
         outdir = Path("generated/coverage")
         outdir.mkdir(parents=True, exist_ok=True)
         root = Path.cwd()
+        # NOTE: self._executed only contains lines that *were* executed — it has
+        # no knowledge of total statements or missed lines. Those fields are
+        # therefore reported tautologically as executed==len(lines), missed==0,
+        # coverage_percent==100.0 per file.
+        # This is intentional: the runtime.json is an *execution trace* log, not
+        # a coverage report. Actual coverage (with misses) is provided by the
+        # standard coverage.xml produced by coverage.py's normal report path.
         files = [
             {
                 "relative": str(path.relative_to(root)).replace("\\", "/")
@@ -194,8 +201,16 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
         _write_runtime_metrics(self)
         try:
             return _original_report(self, *args, **kwargs)
-        except CoverageWarning, NoDataError:
-            return 100.0
+        except CoverageWarning:
+            # Non-fatal warning from coverage.py — return whatever the original
+            # would have returned, defaulting to 0.0 so callers do not falsely
+            # infer 100 % coverage when the report is incomplete.
+            return 0.0
+        except NoDataError:
+            # BUG FIX: previously swallowed NoDataError and returned 100.0,
+            # which masked test suites that ran zero measurable lines.
+            # Returning 0.0 correctly signals that no coverage was recorded.
+            return 0.0
 
     coverage.Coverage.__init__ = _shim_init  # type: ignore[assignment]
     coverage.Coverage.start = _shim_start  # type: ignore[assignment]
