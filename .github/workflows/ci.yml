@@ -38,6 +38,8 @@ jobs:
     name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -103,11 +105,11 @@ jobs:
 
       - name: Upload coverage to Codecov
         id: codecov_coverage_upload
-        if: ${{ secrets.CODECOV_TOKEN != '' || github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        if: ${{ env.CODECOV_TOKEN != '' || github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: ${{ env.CODECOV_TOKEN == '' }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: coverage.xml
           fail_ci_if_error: false
           disable_search: true
@@ -118,8 +120,8 @@ jobs:
         if: ${{ always() && !cancelled() && steps.codecov_coverage_upload.outcome == 'failure' }}
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: ${{ env.CODECOV_TOKEN == '' }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: coverage.xml
           fail_ci_if_error: false
           disable_search: true
@@ -127,11 +129,11 @@ jobs:
           name: pawcontrol-coverage-retry
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() && (secrets.CODECOV_TOKEN != '' || github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        if: ${{ !cancelled() && (env.CODECOV_TOKEN != '' || github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: ${{ env.CODECOV_TOKEN == '' }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: junit.xml
           report_type: test_results
           disable_search: true
