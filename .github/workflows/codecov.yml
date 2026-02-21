@@ -50,9 +50,11 @@ jobs:
 
       - name: Upload coverage to Codecov
         id: codecov_coverage_upload
+        if: ${{ secrets.CODECOV_TOKEN != '' || github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: true
+          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           fail_ci_if_error: false
           disable_search: true
@@ -63,7 +65,8 @@ jobs:
         if: ${{ always() && !cancelled() && steps.codecov_coverage_upload.outcome == 'failure' }}
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: true
+          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           fail_ci_if_error: false
           disable_search: true
@@ -71,10 +74,11 @@ jobs:
           name: pawcontrol-coverage-retry
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && (secrets.CODECOV_TOKEN != '' || github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: codecov/codecov-action@v5
         with:
-          use_oidc: true
+          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: junit.xml
           report_type: test_results
           disable_search: true
