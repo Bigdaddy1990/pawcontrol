@@ -100,3 +100,27 @@ def test_build_metadata_document_serialises_versions() -> None:
     assert first_wheel["release"] == "6.0.2"
     assert first_wheel["url"] == "https://files.pythonhosted.org/demo"
     assert metadata["wheel_matches"][1]["release"] is None
+
+
+def test_load_vendor_version_from_package_init(tmp_path, monkeypatch) -> None:
+    """The monitor reads __version__ from the vendored package init file."""
+    package_init = tmp_path / "annotatedyaml/_vendor/yaml/__init__.py"
+    package_init.parent.mkdir(parents=True)
+    package_init.write_text('__version__ = "6.0.1"\n', encoding="utf-8")
+
+    monkeypatch.setattr(module, "ANNOTATEDYAML_INIT", package_init)
+    monkeypatch.setattr(module, "ANNOTATEDYAML_MODULE", tmp_path / "missing.py")
+
+    assert str(module.load_vendor_version()) == "6.0.1"
+
+
+def test_load_vendor_version_falls_back_to_module_file(tmp_path, monkeypatch) -> None:
+    """The monitor supports the single-file yaml.py vendor layout."""
+    module_file = tmp_path / "annotatedyaml/_vendor/yaml.py"
+    module_file.parent.mkdir(parents=True)
+    module_file.write_text('__version__ = "6.0.2"\n', encoding="utf-8")
+
+    monkeypatch.setattr(module, "ANNOTATEDYAML_INIT", tmp_path / "missing/__init__.py")
+    monkeypatch.setattr(module, "ANNOTATEDYAML_MODULE", module_file)
+
+    assert str(module.load_vendor_version()) == "6.0.2"

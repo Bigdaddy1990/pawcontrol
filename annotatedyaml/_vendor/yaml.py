@@ -10,11 +10,13 @@ except ModuleNotFoundError:  # pragma: no cover
 
 
 if _pyyaml is not None:
+    __version__ = getattr(_pyyaml, "__version__", "0")
     FullLoader = _pyyaml.FullLoader
     SafeLoader = _pyyaml.SafeLoader
     UnsafeLoader = getattr(_pyyaml, "UnsafeLoader", _pyyaml.FullLoader)
     Dumper = _pyyaml.Dumper
 else:  # pragma: no cover - exercised when yaml is hidden
+    __version__ = "0"
 
     class _PyYamlMissing:
         """Base class that fails fast when PyYAML-dependent classes are used."""
