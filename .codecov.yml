@@ -1,18 +1,17 @@
 # Codecov configuration for PawControl Integration
-# https://docs.codecov.io/docs/codecov-yaml
+# Reference: https://docs.codecov.com/docs/codecovyml-reference
+# Validate: curl -X POST --data-binary @.codecov.yml https://api.codecov.io/validate
 
 codecov:
   require_ci_to_pass: false
   notify:
     wait_for_ci: false
-  continue-on-error: true
 
 coverage:
   precision: 2
   round: down
-  range:
-    - 70.0
-    - 100.0
+  # FIX: range must be a string "start...end", not a YAML list
+  range: "70...100"
 
   status:
     project:
@@ -30,6 +29,7 @@ coverage:
         only_pulls: false
       app:
         target: auto
+        threshold: 1%
         paths:
           - custom_components/pawcontrol/
 
@@ -47,45 +47,42 @@ coverage:
         paths:
           - custom_components/pawcontrol/
 
-  changes: true
+    # FIX: `changes` belongs under coverage.status, not under coverage directly
+    changes: false
 
-parsers:
-  gcov:
-    branch_detection: true
+# FIX: `parsers.gcov` is for C/C++ (GCC gcov tool) and is irrelevant for
+# Python projects. pytest-cov/coverage.py produces Cobertura XML which
+# Codecov parses correctly by default - no explicit parsers block needed.
 
-comment: true
+comment:
+  # FIX: `comment: true` (boolean) is not a valid value; comment is a map.
+  layout: "diff, flags, files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  hide_project_coverage: false
 
 github_checks:
   annotations: false
 
-# Files to exclude from coverage analysis
+# Exclude non-integration paths from coverage analysis
 ignore:
-  - ^tests/.*
-  - ^docs/.*
-  - ^scripts/.*
+  - "tests/**"
+  - "docs/**"
+  - "scripts/**"
 
-# Flag definitions
+# Flag definitions - only define flags that are actually uploaded by CI.
+# The CI uploads with `flags: unittests` only.
 flags:
   unittests:
     paths:
       - custom_components/pawcontrol/
     carryforward: false
 
-  integration:
-    paths:
-      - custom_components/pawcontrol/
-    carryforward: false
-
-flag_management:
-  individual_flags:
-    - name: smart-tests
-      carryforward: true
-      carryforward_mode: "labels"
-      statuses:
-        - type: "project"
-        - type: "patch"
-
-cli:
-  plugins:
-    pycoverage:
-      report_type: "json"
+# FIX: Removed `integration` flag (defined but never uploaded by CI → dead entry).
+# FIX: Removed `flag_management` with `carryforward_mode: "labels"` - that
+# setting requires Codecov ATS (Automated Test Selection) with a separate
+# CODECOV_STATIC_TOKEN and codecov/codecov-ats Action, none of which are
+# configured. For a single-module HA integration without partial test runs,
+# flag_management adds no value and creates misleading dashboard entries.
