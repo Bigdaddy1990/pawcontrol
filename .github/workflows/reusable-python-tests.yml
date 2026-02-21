@@ -104,6 +104,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   tests:
@@ -227,9 +228,10 @@ jobs:
         if: inputs.run-codecov == true
         uses: codecov/codecov-action@v5
         with:
+          use_oidc: true
           files: ${{ env.COVERAGE_XML }}
           fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+          disable_search: true
           flags: unittests
           name: pawcontrol-coverage
 
@@ -237,8 +239,11 @@ jobs:
         if: inputs.run-codecov == true
         uses: codecov/codecov-action@v5
         with:
+          use_oidc: true
           files: ${{ env.JUNIT_PATH }}
-          token: ${{ secrets.CODECOV_TOKEN }}
+          report_type: test_results
+          disable_search: true
+          fail_ci_if_error: false
 
       - name: Upload coverage artifact
         if: inputs.upload-coverage-artifact == true

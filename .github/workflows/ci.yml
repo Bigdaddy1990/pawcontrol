@@ -11,6 +11,7 @@ concurrency:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   hassfest:
@@ -103,10 +104,10 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
+          use_oidc: true
           files: coverage.xml
           fail_ci_if_error: false
           disable_search: true
-          token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
           name: pawcontrol-coverage
 
@@ -114,14 +115,8 @@ jobs:
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
+          use_oidc: true
           files: junit.xml
           report_type: test_results
           disable_search: true
           fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov
-        if: ${{ always() }}
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
