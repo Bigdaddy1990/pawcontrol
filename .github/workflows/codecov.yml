@@ -49,6 +49,7 @@ jobs:
             tests/ || true
 
       - name: Upload coverage to Codecov
+        id: codecov_coverage_upload
         uses: codecov/codecov-action@v5
         with:
           use_oidc: true
@@ -57,6 +58,17 @@ jobs:
           disable_search: true
           flags: unittests
           name: pawcontrol-coverage
+
+      - name: Retry coverage upload to Codecov when primary upload fails
+        if: ${{ always() && !cancelled() && steps.codecov_coverage_upload.outcome == 'failure' }}
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: coverage.xml
+          fail_ci_if_error: false
+          disable_search: true
+          flags: unittests
+          name: pawcontrol-coverage-retry
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
