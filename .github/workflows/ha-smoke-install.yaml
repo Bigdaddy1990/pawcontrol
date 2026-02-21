@@ -36,6 +36,9 @@ jobs:
           HA_SPEC: ${{ format('=={0}', vars.HA_VERSION != '' && vars.HA_VERSION || '2026.1.1') }}
         run: |
           python -m pip install --no-cache-dir "homeassistant${HA_SPEC}"
+          # `hass --script check_config` imports colorlog directly on Python 3.14.
+          # Install it eagerly so the smoke gate does not rely on runtime auto-install.
+          python -m pip install --no-cache-dir "colorlog==6.10.1"
           python -m pip install --no-cache-dir -e .
 
       - name: Prepare Home Assistant config
