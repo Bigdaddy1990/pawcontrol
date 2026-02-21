@@ -43,8 +43,8 @@ jobs:
 
       - name: install depencies
         run: |
-           pip install --system -r requirements.txt
-           pip install --system -r requirements_test.txt --prerelease=allow
+           pip install -r requirements.txt
+           pip install -r requirements_test.txt --prerelease=allow
 
       - name: Evaluate vendored PyYAML drift
         run: |
