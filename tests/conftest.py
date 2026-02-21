@@ -11,11 +11,19 @@ diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 import asyncio
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from importlib import import_module
+from importlib.util import find_spec
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock
 
-from aiohttp import ClientSession
 import pytest
+
+if find_spec("aiohttp") is not None:
+    ClientSession = import_module("aiohttp").ClientSession
+else:
+
+    class ClientSession:  # pragma: no cover - exercised only in minimal envs
+        """Fallback type used when aiohttp is unavailable during test bootstrap."""
 
 from tests.helpers.homeassistant_test_stubs import (
     HomeAssistant as StubHomeAssistant,

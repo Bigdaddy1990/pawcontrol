@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from enum import Enum, StrEnum
 import importlib
+from importlib import import_module
+from importlib.util import find_spec
 import inspect
 from pathlib import Path
 import re
@@ -17,7 +19,34 @@ import types
 from typing import Any, Generic, TypeVar
 from unittest.mock import AsyncMock, Mock
 
-import voluptuous as vol
+if find_spec("voluptuous") is not None:
+    vol = import_module("voluptuous")
+else:
+
+    class _VolFallback:
+        """Small voluptuous-compatible shim for dependency-light test runs."""
+
+        @staticmethod
+        def Any(*_choices: object) -> Callable[[Any], Any]:
+            return lambda value: value
+
+        @staticmethod
+        def Coerce(target_type: type[Any]) -> Callable[[Any], Any]:
+            return target_type
+
+        @staticmethod
+        def Required(value: str) -> str:
+            return value
+
+        @staticmethod
+        def Schema(schema_definition: dict[Any, Any]) -> Callable[[Any], Any]:
+            def _validator(value: Any) -> Any:
+                return value
+
+            _validator.schema = schema_definition  # type: ignore[attr-defined]
+            return _validator
+
+    vol = _VolFallback()
 
 __all__ = [
     "ConfigEntry",
