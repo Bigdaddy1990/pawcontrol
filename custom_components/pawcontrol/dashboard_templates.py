@@ -60,7 +60,7 @@ from .types import (
     coerce_dog_modules_config,
 )
 
-TranslationLookup: Final = tuple[Mapping[str, str], Mapping[str, str]]
+type TranslationLookup = tuple[Mapping[str, str], Mapping[str, str]]
 
 STATISTICS_LABEL_KEYS: Final[tuple[str, ...]] = (
     "statistics_header",
@@ -302,8 +302,8 @@ class MapCardOptions(TypedDict, total=False):
     hours_to_show: int
 
 
-_MapOptionPairs: Final = Iterable[tuple[str, object]]
-MapOptionsInput: Final = MapCardOptions | Mapping[str, object] | _MapOptionPairs | None
+type _MapOptionPairs = Iterable[tuple[str, object]]
+type MapOptionsInput = MapCardOptions | Mapping[str, object] | _MapOptionPairs | None
 
 
 class NotificationLastEvent(TypedDict, total=False):
@@ -519,7 +519,7 @@ MAP_OPTION_KEYS: Final[frozenset[str]] = frozenset(
 )
 
 
-CardTemplatePayload: Final = CardConfig | CardCollection
+type CardTemplatePayload = CardConfig | CardCollection
 
 
 PayloadT = TypeVar("PayloadT", bound=CardTemplatePayload)
