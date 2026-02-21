@@ -104,6 +104,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   tests:
@@ -224,21 +225,37 @@ jobs:
           echo "coverage_percent=${percent}" >> "$GITHUB_OUTPUT"
 
       - name: Upload coverage to Codecov
+        id: codecov_coverage_upload
         if: inputs.run-codecov == true
         uses: codecov/codecov-action@v5
         with:
+          use_oidc: true
           files: ${{ env.COVERAGE_XML }}
           fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+          disable_search: true
           flags: unittests
           name: pawcontrol-coverage
+
+      - name: Retry coverage upload to Codecov when primary upload fails
+        if: ${{ always() && inputs.run-codecov == true && !cancelled() && steps.codecov_coverage_upload.outcome == 'failure' }}
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: ${{ env.COVERAGE_XML }}
+          fail_ci_if_error: false
+          disable_search: true
+          flags: unittests
+          name: pawcontrol-coverage-retry
 
       - name: Upload test results to Codecov
         if: inputs.run-codecov == true
         uses: codecov/codecov-action@v5
         with:
+          use_oidc: true
           files: ${{ env.JUNIT_PATH }}
-          token: ${{ secrets.CODECOV_TOKEN }}
+          report_type: test_results
+          disable_search: true
+          fail_ci_if_error: false
 
       - name: Upload coverage artifact
         if: inputs.upload-coverage-artifact == true
