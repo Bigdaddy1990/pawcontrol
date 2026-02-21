@@ -20,6 +20,7 @@ from packaging.version import InvalidVersion, Version
 from pip._vendor import requests
 
 ANNOTATEDYAML_INIT = Path("annotatedyaml/_vendor/yaml/__init__.py")
+ANNOTATEDYAML_MODULE = Path("annotatedyaml/_vendor/yaml.py")
 PYPI_URL = "https://pypi.org/pypi/PyYAML/json"
 OSV_URL = "https://api.osv.dev/v1/query"
 
@@ -185,12 +186,16 @@ def parse_arguments() -> argparse.Namespace:
 
 def load_vendor_version() -> Version:
     """Extract the vendored PyYAML version from annotatedyaml."""
-    if not ANNOTATEDYAML_INIT.exists():
+    source_path = ANNOTATEDYAML_INIT
+    if not source_path.exists():
+        source_path = ANNOTATEDYAML_MODULE
+    if not source_path.exists():
         raise MonitoringError(
-            "annotatedyaml/_vendor/yaml/__init__.py is missing; vendored PyYAML "
-            "cannot be inspected."
+            "annotatedyaml/_vendor/yaml/__init__.py and "
+            "annotatedyaml/_vendor/yaml.py are missing; vendored PyYAML cannot "
+            "be inspected."
         )
-    content = ANNOTATEDYAML_INIT.read_text(encoding="utf-8")
+    content = source_path.read_text(encoding="utf-8")
     match = re.search(r"__version__\s*=\s*[\"']([^\"']+)[\"']", content)
     if match is None:
         raise MonitoringError(
