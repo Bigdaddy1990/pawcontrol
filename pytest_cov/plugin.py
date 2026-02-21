@@ -1,7 +1,5 @@
 """Minimal pytest-cov plugin shim for the local test environment."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import coverage
