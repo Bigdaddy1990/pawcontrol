@@ -105,7 +105,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         id: codecov_coverage_upload
-        if: ${{ env.CODECOV_TOKEN != '' || github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         uses: codecov/codecov-action@v5
         with:
           use_oidc: ${{ env.CODECOV_TOKEN == '' }}
@@ -129,7 +129,7 @@ jobs:
           name: pawcontrol-coverage-retry
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() && (env.CODECOV_TOKEN != '' || github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: codecov/codecov-action@v5
         with:
           use_oidc: ${{ env.CODECOV_TOKEN == '' }}
