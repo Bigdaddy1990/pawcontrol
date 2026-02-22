@@ -35,111 +35,14 @@ jobs:
           repository: ${{ github.repository }}
 
   tests:
-    name: Tests (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    env:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.14"]
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements_test.txt
-          python -m pip install --upgrade ruff mypy pre-commit pytest pytest-cov coverage[toml]
-          pip install homeassistant || true
-          pip install -r requirements.txt
-
-      - name: Ruff lint
-        run: ruff check --fix --exit-non-zero-on-fix --output-format=github . || true
-
-      - name: Verify contributor guides
-        run: python -m scripts.sync_contributor_guides --check
-
-      - name: Check legacy exception syntax
-        run: python -m scripts.check_legacy_exception_syntax custom_components/pawcontrol
-
-      - name: Run policy scripts
-        run: |
-          python -m scripts.enforce_docstring_baseline --update
-          python -m scripts.enforce_test_requirements
-          python -m scripts.sync_localization_flags --check
-
-      - name: Run pre-commit
-        run: pre-commit run --all-files --show-diff-on-failure
-
-      - name: Run mypy
-        run: mypy custom_components/pawcontrol --show-error-codes || true
-
-      - name: Run hassfest shim
-        run: python -m scripts.hassfest --integration-path custom_components/pawcontrol
-
-      - name: Prepare coverage directories
-        run: |
-          mkdir -p "$(dirname 'coverage.xml')"
-          mkdir -p htmlcov
-          mkdir -p "$(dirname 'junit.xml')"
-
-      - name: Run tests and collect coverage
-        env:
-          PYTHONPATH: .
-        run: |
-          pytest \
-            --cov=custom_components/pawcontrol \
-            --cov-branch \
-            --cov-report=xml:coverage.xml \
-            --cov-report=term-missing \
-            --junitxml=junit.xml \
-            -o junit_family=legacy \
-            -q \
-            --maxfail=20 \
-            tests/ || true
-
-      - name: Upload coverage to Codecov
-        id: codecov_coverage_upload
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: codecov/codecov-action@v5
-        with:
-          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.xml
-          fail_ci_if_error: false
-          disable_search: true
-          flags: unittests
-          name: pawcontrol-coverage
-
-      - name: Retry coverage upload to Codecov when primary upload fails
-        if: ${{ always() && !cancelled() && steps.codecov_coverage_upload.outcome == 'failure' }}
-        uses: codecov/codecov-action@v5
-        with:
-          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.xml
-          fail_ci_if_error: false
-          disable_search: true
-          flags: unittests
-          name: pawcontrol-coverage-retry
-
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: codecov/codecov-action@v5
-        with:
-          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: junit.xml
-          report_type: test_results
-          disable_search: true
-          fail_ci_if_error: false
+    name: Tests (Python 3.14)
+    uses: ./.github/workflows/reusable-python-tests.yml
+    secrets: inherit
+    with:
+      python-version: "3.14"
+      run-codecov: true
+      upload-coverage-artifact: true
+      coverage-artifact-name: ci-coverage-report
+      upload-junit-artifact: true
+      junit-artifact-name: ci-junit-report
+      publish-pages: false
