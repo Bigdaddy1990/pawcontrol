@@ -316,3 +316,44 @@ jobs:
           name: ${{ inputs.pages-artifact-name }}
           path: ${{ env.PAGES_ARTIFACT_DIR }}
           retention-days: 7
+
+      - name: Enforce pytest and coverage gates
+        if: always() && !cancelled()
+        env:
+          PYTEST_OUTCOME: ${{ steps.pytest.outcome }}
+          COVERAGE_PERCENT: ${{ steps.coverage_summary.outputs.coverage_percent }}
+          COVERAGE_MIN: ${{ env.COVERAGE_MIN }}
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          from decimal import Decimal, InvalidOperation
+          import os
+
+          pytest_outcome = os.environ["PYTEST_OUTCOME"]
+          coverage_percent_raw = os.environ.get("COVERAGE_PERCENT", "")
+          coverage_min_raw = os.environ["COVERAGE_MIN"]
+
+          if pytest_outcome != "success":
+              raise SystemExit(
+                  "pytest failed (or coverage threshold was not met). "
+                  f"Outcome: {pytest_outcome}."
+              )
+
+          try:
+              coverage_percent = Decimal(coverage_percent_raw)
+              coverage_min = Decimal(coverage_min_raw)
+          except InvalidOperation as exc:
+              raise SystemExit(
+                  "unable to parse coverage gate values: "
+                  f"percent={coverage_percent_raw!r}, min={coverage_min_raw!r}"
+              ) from exc
+
+          if coverage_percent < coverage_min:
+              raise SystemExit(
+                  "coverage is below the configured threshold: "
+                  f"{coverage_percent}% < {coverage_min}%"
+              )
+
+          print(f"coverage gate passed: {coverage_percent}% >= {coverage_min}%")
+          PY
