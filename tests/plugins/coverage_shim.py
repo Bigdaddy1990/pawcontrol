@@ -115,7 +115,7 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
             self._monitor_tool_id = tool_id
             self._using_monitoring = True
             return True
-        except AttributeError, RuntimeError, TypeError, ValueError:
+        except (AttributeError, RuntimeError, TypeError, ValueError):
             with contextlib.suppress(
                 AttributeError, RuntimeError, TypeError, ValueError
             ):
@@ -154,6 +154,9 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
             warnings.simplefilter("ignore", CoverageWarning)
             data = self.get_data()
         if data.has_arcs():
+            # The shim only records executed line events, not control-flow
+            # transitions. We persist self-loop arcs so branch-mode data remains
+            # writable without pretending to know real jump targets.
             arcs = {
                 path.as_posix(): {(line, line) for line in executed}
                 for path, executed in self._executed.items()
