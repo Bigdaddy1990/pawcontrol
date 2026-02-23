@@ -356,7 +356,7 @@ def _create_core_entities(
             coordinator,
             dog_id,
             dog_name,
-        ),  # NEW: Critical missing sensor
+        ),
         PawControlPushLastAcceptedSensor(coordinator, dog_id, dog_name),
         PawControlPushRejectedTotalSensor(coordinator, dog_id, dog_name),
     ]
@@ -371,10 +371,8 @@ def _create_module_entities(
     profile: str,
 ) -> list[PawControlSensorBase]:
     """Create module-specific entities based on profile and enabled modules."""
-    entities = []
+    entities: list[PawControlSensorBase] = []
     budget = entity_factory.get_budget(dog_id, profile)
-    # O4 FIX: Use the module-level constant instead of recreating the dict per call.
-    # _MODULE_ENTITY_RULES is populated after all sensor classes are defined (below).
     module_entity_rules: ModuleEntityRules = _MODULE_ENTITY_RULES
 
     # Create entities based on rules
