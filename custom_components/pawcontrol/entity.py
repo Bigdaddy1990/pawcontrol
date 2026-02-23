@@ -336,14 +336,13 @@ class PawControlDogEntityBase(PawControlEntity):
         if not isinstance(module, str) or not module:
             return cast(CoordinatorUntypedModuleState, {})
         try:
-            if hasattr(self.coordinator, "get_module_data"):
-                payload = self.coordinator.get_module_data(self._dog_id, module)
+            module_lookup = getattr(self.coordinator, "get_module_data", None)
+            if callable(module_lookup):
+                payload = module_lookup(self._dog_id, module)
             else:
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module, {})
         except Exception as err:
-            # B10 FIX: Log the actual error so module failures surface in diagnostics.
-            # The original pragma: no cover comment was hiding real errors.
             _LOGGER.warning(
                 "Error fetching module data for %s/%s: %s (%s)",
                 self._dog_id,
