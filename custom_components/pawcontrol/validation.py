@@ -356,7 +356,6 @@ def validate_dog_name(
             max_value=max_length,
         )
 
-
     if not trimmed:
         if required:
             raise ValidationError(
