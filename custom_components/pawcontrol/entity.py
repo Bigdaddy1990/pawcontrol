@@ -348,7 +348,7 @@ class PawControlDogEntityBase(PawControlEntity):
                 )
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module, {})
-        except (AttributeError, LookupError, TypeError, ValueError) as err:
+        except AttributeError, LookupError, TypeError, ValueError:
             _LOGGER.warning(
                 "Error fetching module data for %s/%s",
                 self._dog_id,
