@@ -35,13 +35,13 @@ coverage:
         informational: true
         only_pulls: false
         paths:
-          - "custom_components/pawcontrol/**"
+          - "custom_components/pawcontrol/"
         target: 90.0
         threshold: 1.0
     project:
       app:
         paths:
-          - "custom_components/pawcontrol/**"
+          - "custom_components/pawcontrol/"
         target: auto
         threshold: 1.0
       default:
@@ -53,7 +53,7 @@ coverage:
         informational: true
         only_pulls: false
         paths:
-          - "custom_components/pawcontrol/**"
+          - "custom_components/pawcontrol/"
         target: auto
         threshold: 1.0
 
@@ -61,7 +61,7 @@ flags:
   unittests:
     carryforward: false
     paths:
-      - "custom_components/pawcontrol/**"
+      - "custom_components/pawcontrol/"
 
 github_checks:
   annotations: false

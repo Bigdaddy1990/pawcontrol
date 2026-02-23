@@ -341,15 +341,28 @@ class PawControlDogEntityBase(PawControlEntity):
             if callable(module_lookup):
                 payload = module_lookup(self._dog_id, module)
             else:
+                _LOGGER.debug(
+                    "Coordinator for dog %s has no callable get_module_data; "
+                    "using get_dog_data fallback",
+                    self._dog_id,
+                )
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module, {})
-        except Exception:
-            # Keep this broad guard because coordinator implementations can differ
-            # between production and tests; always include exception type in logs.
+        except (AttributeError, LookupError, TypeError, ValueError) as err:
             _LOGGER.warning(
                 "Error fetching module data for %s/%s",
                 self._dog_id,
                 module,
+                exc_info=True,
+            )
+            return cast(CoordinatorUntypedModuleState, {})
+        except Exception as err:
+            _LOGGER.error(
+                "Unexpected module lookup failure for %s/%s: %s (%s)",
+                self._dog_id,
+                module,
+                err,
+                err.__class__.__name__,
                 exc_info=True,
             )
             return cast(CoordinatorUntypedModuleState, {})
