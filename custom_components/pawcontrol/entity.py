@@ -343,8 +343,8 @@ class PawControlDogEntityBase(PawControlEntity):
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module, {})
         except Exception as err:
-            # Keep module failures visible in diagnostics
-            # while preserving entity updates.
+            # Keep this broad guard because coordinator implementations can differ
+            # between production and tests; always include exception type in logs.
             _LOGGER.warning(
                 "Error fetching module data for %s/%s: %s (%s)",
                 self._dog_id,
