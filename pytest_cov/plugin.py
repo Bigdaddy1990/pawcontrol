@@ -111,10 +111,13 @@ class _CoverageController:
 def _build_include_patterns(raw_sources: tuple[str, ...]) -> tuple[str, ...] | None:
     """Translate `--cov` sources to include patterns that survive temp paths."""
     patterns: list[str] = []
-    for source in raw_sources:
+    for source in _expand_source_aliases(raw_sources):
         source_path = Path(source)
         if source_path.suffix == ".py":
             patterns.append(f"*{source_path.as_posix()}")
+            continue
+        if "." in source and "/" not in source and "\\" not in source:
+            patterns.append(f"*{source.replace('.', '/')}/*")
             continue
         normalized = "/".join(
             part for part in source_path.parts if part not in {"", "."}

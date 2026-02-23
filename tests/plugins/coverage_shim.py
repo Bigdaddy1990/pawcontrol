@@ -155,13 +155,15 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
             data = self.get_data()
         if data.has_arcs():
             arcs = {
-                str(path): {(line, line) for line in executed}
+                path.as_posix(): {(line, line) for line in executed}
                 for path, executed in self._executed.items()
             }
             data.add_arcs(arcs)
             return
 
-        lines = {str(path): set(executed) for path, executed in self._executed.items()}
+        lines = {
+            path.as_posix(): set(executed) for path, executed in self._executed.items()
+        }
         data.add_lines(lines)
 
     def _shim_stop(self: coverage.Coverage) -> None:
