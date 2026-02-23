@@ -140,10 +140,10 @@ def pytest_sessionstart(session: object) -> None:
         return
 
     raw_source_list = tuple(getattr(options, "cov", []) or ())
-    source = _expand_source_aliases(raw_source_list)
-    source_roots, _ = _normalize_sources(source)
+    expanded_sources = _expand_source_aliases(raw_source_list)
+    source_roots, _ = _normalize_sources(expanded_sources)
     branch = bool(getattr(options, "cov_branch", False))
-    include = _build_include_patterns(source)
+    include = _build_include_patterns(expanded_sources)
     cov = coverage.Coverage(
         branch=branch,
         source=source_roots or None,
