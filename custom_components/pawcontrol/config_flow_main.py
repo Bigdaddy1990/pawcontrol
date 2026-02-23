@@ -365,7 +365,7 @@ class PawControlConfigFlow(
 
                     dog_id_raw = validated_dog.get(DOG_ID_FIELD)
                     dog_name_raw = validated_dog.get(DOG_NAME_FIELD)
-                    # MYPY FIX: Type guard before adding to set
+                    # Narrow optional values before updating set[str] collections.
                     if isinstance(dog_id_raw, str):
                         seen_ids.add(dog_id_raw)
                     if isinstance(dog_name_raw, str):
@@ -554,7 +554,7 @@ class PawControlConfigFlow(
             elif value not in (None, ""):
                 normalised[field] = str(value)
 
-        # MYPY FIX: Type guard for port value
+        # Accept both integer and numeric-string ports from discovery payloads.
         port_value = data.get("port")
         if isinstance(port_value, int):
             normalised["port"] = port_value
@@ -885,7 +885,7 @@ class PawControlConfigFlow(
         """
         config_flow_monitor.record_validation("dog_input_attempt")
 
-        # MYPY FIX: Safe string conversion
+        # Normalize optional user input to stable strings for cache key creation.
         dog_id = user_input.get("dog_id")
         dog_name = user_input.get("dog_name")
         dog_weight = user_input.get("dog_weight")
