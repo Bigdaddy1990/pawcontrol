@@ -272,7 +272,7 @@ jobs:
       - name: Upload coverage to Codecov
         id: codecov_coverage_upload
         if: >-
-          !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
+          always() && !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
           hashFiles(env.COVERAGE_XML) != ''
         uses: codecov/codecov-action@v5
         with:
@@ -286,8 +286,9 @@ jobs:
 
       - name: Retry coverage upload to Codecov when primary upload fails
         if: >-
-          !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
-          steps.codecov_coverage_upload.outcome == 'failure'
+          always() && !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
+          (steps.codecov_coverage_upload.outcome == 'failure' ||
+          steps.codecov_coverage_upload.outcome == 'skipped')
         uses: codecov/codecov-action@v5
         with:
           use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
@@ -300,7 +301,7 @@ jobs:
 
       - name: Upload test results to Codecov
         if: >-
-          !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
+          always() && !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
           hashFiles(env.JUNIT_PATH) != ''
         uses: codecov/codecov-action@v5
         with:
