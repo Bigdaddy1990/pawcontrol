@@ -83,14 +83,12 @@ def test_get_module_data_falls_back_when_lookup_attribute_is_not_callable() -> N
     class _AttributeCoordinator(_CoordinatorStub):
         get_module_data = cast(Any, "not-callable")
 
-    coordinator = _AttributeCoordinator(
-        {
-            "alpha": cast(
-                CoordinatorDogData,
-                {"gps": {"status": "fallback", "last_fix": "2025-01-01T12:00:00"}},
-            )
-        }
-    )
+    coordinator = _AttributeCoordinator({
+        "alpha": cast(
+            CoordinatorDogData,
+            {"gps": {"status": "fallback", "last_fix": "2025-01-01T12:00:00"}},
+        )
+    })
     sensor = _DummySensor(coordinator)
 
     payload = sensor._get_module_data("gps")
