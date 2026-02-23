@@ -7,6 +7,12 @@ from coverage.exceptions import NoDataError
 
 
 def _split_report_target(value: str) -> tuple[str, str | None]:
+    """Split cov report values while preserving terminal report modifiers."""
+    # pytest-cov allows terminal modifiers like ``term-missing:skip-covered``
+    # that are part of the report type rather than a filesystem target.
+    if value.startswith("term"):
+        return value, None
+
     report, _, target = value.partition(":")
     cleaned_target = target or None
     return report, cleaned_target
@@ -178,7 +184,9 @@ def pytest_sessionfinish(session: object, exitstatus: int) -> None:
         if report_type in {"term", "term-missing", "term-missing:skip-covered"}:
             try:
                 total_percent = cov.report(
-                    show_missing="missing" in report_type, include=include
+                    show_missing="missing" in report_type,
+                    skip_covered=report_type.endswith(":skip-covered"),
+                    include=include,
                 )
             except NoDataError:
                 total_percent = 0.0
