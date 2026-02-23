@@ -343,23 +343,26 @@ class PawControlDogEntityBase(PawControlEntity):
             else:
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module, {})
-        except Exception as err:
+        except Exception:
             # Keep this broad guard because coordinator implementations can differ
             # between production and tests; always include exception type in logs.
             _LOGGER.warning(
-                "Error fetching module data for %s/%s: %s (%s)",
+                "Error fetching module data for %s/%s",
                 self._dog_id,
                 module,
-                err,
-                err.__class__.__name__,
+                exc_info=True,
             )
             return cast(CoordinatorUntypedModuleState, {})
         if not isinstance(payload, Mapping):
             _LOGGER.warning(
-                "Invalid module payload for %s/%s: expected mapping, got %s",
+                (
+                    "Invalid module payload for %s/%s: expected mapping, got %s "
+                    "(value=%r)"
+                ),
                 self._dog_id,
                 module,
                 type(payload).__name__,
+                str(payload)[:100],
             )
             return cast(CoordinatorUntypedModuleState, {})
         return cast(CoordinatorModuleLookupResult, payload)
