@@ -133,7 +133,7 @@ def pytest_sessionstart(session: object) -> None:
     source = tuple(getattr(options, "cov", []) or ())
     branch = bool(getattr(options, "cov_branch", False))
     include = _build_include_patterns(source)
-    cov = coverage.Coverage(branch=branch)
+    cov = coverage.Coverage(branch=branch, include=include)
     cov.start()
     session.config._pawcontrol_cov = cov
     session.config._pawcontrol_cov_include = include
