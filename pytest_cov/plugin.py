@@ -45,7 +45,8 @@ def _normalize_sources(
     return tuple(source_roots), tuple(include_files)
 
 
-def _expand_source_aliases(raw_sources: tuple[str, ...]) -> tuple[str, ...]:
+raw_source_list = getattr(options, "cov", []) or []
+source = _expand_source_aliases(tuple(raw_source_list))
     """Add import-style aliases for relative package paths.
 
     Tests may import `custom_components.pawcontrol` from temporary directories,
