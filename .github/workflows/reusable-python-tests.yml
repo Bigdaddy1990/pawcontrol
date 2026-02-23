@@ -185,8 +185,8 @@ jobs:
         id: pytest
         # continue-on-error so that coverage artifacts and Codecov upload steps
         # always run, even when tests fail or coverage falls below the threshold.
-        # The real gate is enforced by the Extract-coverage-summary step below,
-        # which will fail the job when the threshold is not met.
+        # Coverage threshold enforcement happens in the final gate so this step
+        # only fails for pytest/runtime errors.
         continue-on-error: true
         env:
           PYTHONPATH: .
@@ -197,7 +197,6 @@ jobs:
             --cov-report=xml:"${{ env.COVERAGE_XML }}" \
             --cov-report=term-missing:skip-covered \
             --cov-report=html:"${{ env.COVERAGE_HTML_DIR }}" \
-            --cov-fail-under="${{ env.COVERAGE_MIN }}" \
             --junitxml="${{ env.JUNIT_PATH }}" \
             -o junit_family=legacy \
             --maxfail="${{ env.PYTEST_MAXFAIL }}" \
