@@ -76,6 +76,44 @@ def test_pytest_cov_plugin_registers_marker() -> None:
     assert ("markers", "cov: dummy marker for pytest-cov shim") in config.markers
 
 
+def test_pytest_cov_source_aliases_include_dotted_packages() -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    expanded = pytest_cov_plugin._expand_source_aliases((
+        "custom_components/pawcontrol",
+        "tests/unit",
+        "/tmp/absolute",
+    ))
+
+    assert "custom_components/pawcontrol" in expanded
+    assert "custom_components.pawcontrol" in expanded
+    assert "tests.unit" in expanded
+    assert "/tmp/absolute" in expanded
+
+
+def test_pytest_cov_include_patterns_cover_path_and_dotted_sources() -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    include = pytest_cov_plugin._build_include_patterns((
+        "custom_components/pawcontrol",
+        "custom_components.pawcontrol",
+    ))
+
+    assert include is not None
+    assert "*custom_components/pawcontrol/*" in include
+
+
+def test_pytest_cov_include_patterns_keep_python_file_targets() -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    include = pytest_cov_plugin._build_include_patterns((
+        "custom_components/pawcontrol/validation.py",
+    ))
+
+    assert include is not None
+    assert "custom_components/pawcontrol/validation.py" in include
+
+
 def test_pytest_homeassistant_shim_registers_marker() -> None:
     plugin = _reload("pytest_homeassistant_custom_component")
 

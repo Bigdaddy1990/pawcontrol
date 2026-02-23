@@ -348,14 +348,13 @@ def validate_dog_name(
         )
 
     trimmed = name.strip()
-    if len(trimmed) > max_length:
+    if len(name) > max_length:
         raise ValidationError(
             field,
-            name,
+            trimmed,
             "dog_name_too_long",
             max_value=max_length,
         )
-
     if not trimmed:
         if required:
             raise ValidationError(
@@ -371,14 +370,6 @@ def validate_dog_name(
             trimmed,
             "dog_name_too_short",
             min_value=min_length,
-        )
-
-    if len(trimmed) > max_length:
-        raise ValidationError(
-            field,
-            trimmed,
-            "dog_name_too_long",
-            max_value=max_length,
         )
 
     return trimmed

@@ -45,6 +45,34 @@ def _normalize_sources(
     return tuple(source_roots), tuple(include_files)
 
 
+def _expand_source_aliases(raw_sources: tuple[str, ...]) -> tuple[str, ...]:
+    """Add import-style aliases for relative package paths.
+
+    Tests may import `custom_components.pawcontrol` from temporary directories,
+    so collecting against only `custom_components/pawcontrol` can miss executed
+    files. Including dotted import aliases keeps coverage source filtering stable
+    without affecting explicit file targets.
+    """
+    expanded: list[str] = []
+    for source in raw_sources:
+        expanded.append(source)
+        source_path = Path(source)
+        if source_path.is_absolute() or source_path.suffix == ".py":
+            continue
+        if "." in source and "/" not in source and "\\" not in source:
+            alias = source.replace(".", "/")
+            if alias not in expanded:
+                expanded.append(alias)
+            continue
+        parts = [part for part in source_path.parts if part not in {"", "."}]
+        if not parts:
+            continue
+        alias = ".".join(parts)
+        if alias not in expanded:
+            expanded.append(alias)
+    return tuple(expanded)
+
+
 class _CoverageController:
     """Small subset of pytest-cov's controller API used in unit tests."""
 
@@ -85,16 +113,45 @@ class _CoverageController:
             self._coverage.save()
 
 
+def _build_include_patterns(raw_sources: tuple[str, ...]) -> tuple[str, ...] | None:
+    """Translate `--cov` sources to include patterns that survive temp paths."""
+    patterns: list[str] = []
+    for source in _expand_source_aliases(raw_sources):
+        source_path = Path(source)
+        if source_path.suffix == ".py":
+            patterns.append(source_path.as_posix())
+            patterns.append(f"*{source_path.as_posix()}")
+            continue
+        if "." in source and "/" not in source and "\\" not in source:
+            patterns.append(f"*{source.replace('.', '/')}/*")
+            continue
+        normalized = "/".join(
+            part for part in source_path.parts if part not in {"", "."}
+        )
+        if not normalized:
+            continue
+        patterns.append(f"*{normalized}/*")
+    return tuple(dict.fromkeys(patterns)) or None
+
+
 def pytest_sessionstart(session: object) -> None:
     options = getattr(getattr(session, "config", None), "option", None)
     if options is None:
         return
 
-    source = list(getattr(options, "cov", []) or [])
+    raw_source_list = tuple(getattr(options, "cov", []) or ())
+    expanded_sources = _expand_source_aliases(raw_source_list)
+    source_roots, _ = _normalize_sources(expanded_sources)
     branch = bool(getattr(options, "cov_branch", False))
-    cov = coverage.Coverage(source=source or None, branch=branch)
+    include = _build_include_patterns(expanded_sources)
+    cov = coverage.Coverage(
+        branch=branch,
+        source=source_roots or None,
+        include=include,
+    )
     cov.start()
     session.config._pawcontrol_cov = cov
+    session.config._pawcontrol_cov_include = include
 
 
 def pytest_sessionfinish(session: object, exitstatus: int) -> None:
@@ -114,24 +171,27 @@ def pytest_sessionfinish(session: object, exitstatus: int) -> None:
         return
 
     reports = list(getattr(option, "cov_report", []) or ["term"])
+    include = getattr(config, "_pawcontrol_cov_include", None)
     total_percent = None
     for report in reports:
         report_type, report_target = _split_report_target(str(report))
         if report_type in {"term", "term-missing", "term-missing:skip-covered"}:
             try:
-                total_percent = cov.report(show_missing="missing" in report_type)
+                total_percent = cov.report(
+                    show_missing="missing" in report_type, include=include
+                )
             except NoDataError:
                 total_percent = 0.0
         elif report_type == "xml":
             try:
-                cov.xml_report(outfile=report_target or "coverage.xml")
+                cov.xml_report(outfile=report_target or "coverage.xml", include=include)
             except NoDataError:
                 Path(report_target or "coverage.xml").write_text(
                     '<coverage line-rate="0"/>\n', encoding="utf-8"
                 )
         elif report_type == "html":
             try:
-                cov.html_report(directory=report_target or "htmlcov")
+                cov.html_report(directory=report_target or "htmlcov", include=include)
             except NoDataError:
                 Path(report_target or "htmlcov").mkdir(parents=True, exist_ok=True)
 
@@ -148,3 +208,5 @@ def pytest_sessionfinish(session: object, exitstatus: int) -> None:
 def pytest_unconfigure(config: object) -> None:
     if hasattr(config, "_pawcontrol_cov"):
         delattr(config, "_pawcontrol_cov")
+    if hasattr(config, "_pawcontrol_cov_include"):
+        delattr(config, "_pawcontrol_cov_include")
