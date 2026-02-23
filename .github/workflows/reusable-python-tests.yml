@@ -332,6 +332,7 @@ jobs:
           PYTEST_OUTCOME: ${{ steps.pytest.outcome }}
           COVERAGE_PERCENT: ${{ steps.coverage_summary.outputs.coverage_percent }}
           COVERAGE_DATA_AVAILABLE: ${{ steps.coverage_summary.outputs.coverage_data_available }}
+          COVERAGE_XML: ${{ env.COVERAGE_XML }}
           COVERAGE_MIN: ${{ env.COVERAGE_MIN }}
         run: |
           python - <<'PY'
@@ -339,16 +340,22 @@ jobs:
 
           from decimal import Decimal, InvalidOperation
           import os
+          from pathlib import Path
 
           pytest_outcome = os.environ["PYTEST_OUTCOME"]
           coverage_percent_raw = os.environ.get("COVERAGE_PERCENT", "")
-          coverage_data_available = os.environ.get("COVERAGE_DATA_AVAILABLE", "true")
+          coverage_data_available = os.environ.get("COVERAGE_DATA_AVAILABLE", "")
+          coverage_xml = Path(os.environ["COVERAGE_XML"])
           coverage_min_raw = os.environ["COVERAGE_MIN"]
+
+          if coverage_data_available not in {"true", "false"}:
+              coverage_data_available = "true" if coverage_xml.is_file() else "false"
+          elif coverage_data_available == "true" and not coverage_xml.is_file():
+              coverage_data_available = "false"
 
           if pytest_outcome != "success":
               raise SystemExit(
-                  "pytest failed (or coverage threshold was not met). "
-                  f"Outcome: {pytest_outcome}."
+                  f"pytest failed. Outcome: {pytest_outcome}."
               )
 
           try:
