@@ -59,13 +59,14 @@ def test_get_module_data_preserves_typed_payload() -> None:
     sensor = _build_sensor({
         "alpha": cast(
             CoordinatorDogData,
-            {"gps": {"status": "active"}},
+            {"gps": {"status": "active", "last_fix": "2025-01-01T12:00:00"}},
         )
     })
 
     payload = sensor._get_module_data("gps")
 
     assert payload["status"] == "active"
+    assert payload["last_fix"] == "2025-01-01T12:00:00"
 
 
 def test_get_module_data_returns_empty_mapping_for_unknown_module() -> None:
@@ -132,17 +133,23 @@ def test_get_module_data_filters_invalid_payload_types() -> None:
     assert payload == {}
 
 
-def test_get_module_data_uses_dog_payload_when_accessor_is_not_callable() -> None:
-    """Fallback path should use ``get_dog_data`` when accessor is non-callable."""
+def test_get_module_data_uses_dog_payload_when_accessor_is_missing() -> None:
+    """Fallback path should use ``get_dog_data`` when accessor is absent."""
 
-    class _NonCallableAccessorCoordinator(_CoordinatorStub):
-        get_module_data = cast(Any, "unavailable")
+    class _MissingAccessorCoordinator:
+        """Coordinator stub exposing only ``get_dog_data`` accessor."""
 
-    coordinator = _NonCallableAccessorCoordinator({
-        "alpha": cast(
-            CoordinatorDogData,
-            {"gps": {"status": "active"}},
-        )
+        def __init__(self, payload: dict[str, CoordinatorDogData]) -> None:
+            self.available = True
+            self._data = payload
+            self.last_update_success_time = None
+
+        def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
+            """Return coordinator dog payload for ``dog_id``."""
+            return self._data.get(dog_id)
+
+    coordinator = _MissingAccessorCoordinator({
+        "alpha": cast(CoordinatorDogData, {"gps": {"status": "active"}})
     })
     sensor = _DummySensor(coordinator)
 
