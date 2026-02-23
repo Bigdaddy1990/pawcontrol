@@ -337,9 +337,9 @@ class PawControlDogEntityBase(PawControlEntity):
             return cast(CoordinatorUntypedModuleState, {})
         payload: object
         try:
-            get_module_data = getattr(self.coordinator, "get_module_data", None)
-            if callable(get_module_data):
-                payload = get_module_data(self._dog_id, module)
+            module_lookup = getattr(self.coordinator, "get_module_data", None)
+            if callable(module_lookup):
+                payload = module_lookup(self._dog_id, module)
             else:
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module, {})
