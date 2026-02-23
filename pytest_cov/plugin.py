@@ -45,8 +45,7 @@ def _normalize_sources(
     return tuple(source_roots), tuple(include_files)
 
 
-raw_source_list = getattr(options, "cov", []) or []
-source = _expand_source_aliases(tuple(raw_source_list))
+def _expand_source_aliases(raw_sources: tuple[str, ...]) -> tuple[str, ...]:
     """Add import-style aliases for relative package paths.
 
     Tests may import `custom_components.pawcontrol` from temporary directories,
@@ -59,6 +58,11 @@ source = _expand_source_aliases(tuple(raw_source_list))
         expanded.append(source)
         source_path = Path(source)
         if source_path.is_absolute() or source_path.suffix == ".py":
+            continue
+        if "." in source and "/" not in source and "\\" not in source:
+            alias = source.replace(".", "/")
+            if alias not in expanded:
+                expanded.append(alias)
             continue
         parts = [part for part in source_path.parts if part not in {"", "."}]
         if not parts:
@@ -115,6 +119,7 @@ def _build_include_patterns(raw_sources: tuple[str, ...]) -> tuple[str, ...] | N
     for source in _expand_source_aliases(raw_sources):
         source_path = Path(source)
         if source_path.suffix == ".py":
+            patterns.append(source_path.as_posix())
             patterns.append(f"*{source_path.as_posix()}")
             continue
         if "." in source and "/" not in source and "\\" not in source:
@@ -134,10 +139,16 @@ def pytest_sessionstart(session: object) -> None:
     if options is None:
         return
 
-    source = tuple(getattr(options, "cov", []) or ())
+    raw_source_list = tuple(getattr(options, "cov", []) or ())
+    source = _expand_source_aliases(raw_source_list)
+    source_roots, _ = _normalize_sources(source)
     branch = bool(getattr(options, "cov_branch", False))
     include = _build_include_patterns(source)
-    cov = coverage.Coverage(branch=branch, include=include)
+    cov = coverage.Coverage(
+        branch=branch,
+        source=source_roots or None,
+        include=include,
+    )
     cov.start()
     session.config._pawcontrol_cov = cov
     session.config._pawcontrol_cov_include = include
