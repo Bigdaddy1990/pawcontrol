@@ -336,8 +336,9 @@ class PawControlDogEntityBase(PawControlEntity):
         if not isinstance(module, str) or not module:
             return cast(CoordinatorUntypedModuleState, {})
         try:
-            if hasattr(self.coordinator, "get_module_data"):
-                payload = self.coordinator.get_module_data(self._dog_id, module)
+            module_lookup = getattr(self.coordinator, "get_module_data", None)
+            if callable(module_lookup):
+                payload = module_lookup(self._dog_id, module)
             else:
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module, {})
