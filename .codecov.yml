@@ -7,21 +7,20 @@ codecov:
   notify:
     wait_for_ci: false
   require_ci_to_pass: false
+
 comment:
   behavior: default
   hide_project_coverage: false
-  layout: diff, flags, files
+  layout: "diff, flags, files"
   require_base: false
-  require_changes:
-  - 0
+  require_changes: false
   require_head: true
   show_carryforward_flags: false
+
 coverage:
   precision: 2
-  range:
-  - 70.0
-  - 100.0
   round: down
+  range: [70.0, 100.0]
   status:
     changes: false
     default_rules:
@@ -30,42 +29,44 @@ coverage:
       default:
         base: auto
         branches:
-        - ^main$
+          - main
         flags:
-        - unittests
+          - unittests
         informational: true
         only_pulls: false
         paths:
-        - ^custom_components/pawcontrol/.*
+          - "custom_components/pawcontrol"
         target: 90.0
         threshold: 1.0
     project:
       app:
         paths:
-        - ^custom_components/pawcontrol/.*
+          - "custom_components/pawcontrol"
         target: auto
         threshold: 1.0
       default:
         base: auto
         branches:
-        - ^main$
+          - main
         flags:
-        - unittests
+          - unittests
         informational: true
         only_pulls: false
         paths:
-        - ^custom_components/pawcontrol/.*
+          - "custom_components/pawcontrol"
         target: auto
         threshold: 1.0
+
 flags:
   unittests:
     carryforward: false
     paths:
-    - ^custom_components/pawcontrol/.*
+      - "custom_components/pawcontrol"
+
 github_checks:
   annotations: false
+
 ignore:
-- (?s:tests/.*)\Z
-- (?s:docs/.*)\Z
-- (?s:scripts/.*)\Z
-to_string: "codecov: \n  bot: Bigdaddy1990"
+  - "tests/**"
+  - "docs/**"
+  - "scripts/**"
