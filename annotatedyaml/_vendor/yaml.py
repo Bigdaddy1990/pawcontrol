@@ -19,7 +19,7 @@ if _pyyaml is not None:
     UnsafeLoader = getattr(_pyyaml, "UnsafeLoader", _pyyaml.FullLoader)
     Dumper = _pyyaml.Dumper
 else:  # pragma: no cover - exercised when yaml is hidden
-
+    class _PyYamlMissing:
     class _PyYamlMissing:
         """Base class that fails fast when PyYAML-dependent classes are used."""
 
