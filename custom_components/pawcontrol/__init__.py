@@ -9,7 +9,7 @@ Refactored: ~300 lines (80% reduction)
 
 import asyncio
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
-import logging  # BUG FIX: removed unused `import importlib` (ruff F401)
+import logging
 import time
 from typing import Any, Final, cast
 
@@ -473,10 +473,8 @@ async def async_unload_entry(
     # Get runtime data
     runtime_data = get_runtime_data(hass, entry)
 
-    # B11 FIX: Unload only the platforms that were actually set up for this entry.
-    # Previously PLATFORMS (all 10) were unloaded even when only a profile-specific
-    # subset was registered, producing spurious "platform not loaded" warnings.
-    # If we can't determine which platforms were active, fall back to ALL_PLATFORMS.
+    # Unload only platforms that were set up for the active profile/module set.
+    # When runtime data is unavailable, fall back to the full platform tuple.
     active_platforms: tuple[Platform, ...] = PLATFORMS
     if runtime_data is not None:
         dogs = getattr(runtime_data, "dogs", [])
@@ -498,7 +496,7 @@ async def async_unload_entry(
 
     # Remove from runtime storage
     pop_runtime_data(hass, entry)
-    # Platform selection cache depends on active dog modules/profile snapshots.  # noqa: E501
+    # Platform selection cache depends on active dog modules/profile snapshots.
     _PLATFORM_CACHE.clear()
     # Cleanup service manager if last entry
     domain_data = hass.data.get(DOMAIN, {})
@@ -684,9 +682,7 @@ async def async_reload_entry(
     try:
         await async_setup_entry(hass, entry)
     except ConfigEntryNotReady as err:
-        # B5 FIX: ConfigEntryNotReady must propagate unmodified so HA can schedule
-        # its built-in retry. Logging it as "error" before re-raising suppresses
-        # the HA "integration will retry" UI notification.
+        # Propagate ConfigEntryNotReady so Home Assistant can schedule retries.
         _LOGGER.warning(
             "PawControl reload deferred (not ready) for entry %s: %s",
             entry.entry_id,
