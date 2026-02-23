@@ -11,6 +11,7 @@ import threading
 import time
 from types import CodeType, FrameType
 from typing import Any
+import warnings
 
 import coverage
 from coverage.exceptions import CoverageWarning, NoDataError
@@ -146,15 +147,34 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
         with contextlib.suppress(AttributeError, RuntimeError, TypeError, ValueError):
             _original_start(self)
 
+    def _add_recorded_lines_to_data(self: coverage.Coverage) -> None:
+        if not self._executed:
+            return
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", CoverageWarning)
+            data = self.get_data()
+        if data.has_arcs():
+            arcs = {
+                str(path): {(line, line) for line in executed}
+                for path, executed in self._executed.items()
+            }
+            data.add_arcs(arcs)
+            return
+
+        lines = {str(path): set(executed) for path, executed in self._executed.items()}
+        data.add_lines(lines)
+
     def _shim_stop(self: coverage.Coverage) -> None:
         if getattr(self, "_using_monitoring", False):
             _stop_monitoring(self)
+            _add_recorded_lines_to_data(self)
             return
         with contextlib.suppress(AttributeError, RuntimeError, TypeError, ValueError):
             _original_stop(self)
         if getattr(self, "_fallback_using_settrace", False):
             sys.settrace(self._fallback_prev_trace)
             self._fallback_using_settrace = False
+        _add_recorded_lines_to_data(self)
 
     def _write_runtime_metrics(self: coverage.Coverage) -> None:
         if os.getenv("PAWCONTROL_DISABLE_RUNTIME_METRICS"):
@@ -223,3 +243,4 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
     coverage.Coverage._start_monitoring = _start_monitoring  # type: ignore[attr-defined]
     coverage.Coverage._stop_monitoring = _stop_monitoring  # type: ignore[attr-defined]
     coverage.Coverage._trace = _trace  # type: ignore[attr-defined]
+    coverage.Coverage._add_recorded_lines_to_data = _add_recorded_lines_to_data  # type: ignore[attr-defined]

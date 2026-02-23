@@ -76,6 +76,19 @@ def test_pytest_cov_plugin_registers_marker() -> None:
     assert ("markers", "cov: dummy marker for pytest-cov shim") in config.markers
 
 
+def test_pytest_cov_source_aliases_include_dotted_packages() -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    expanded = pytest_cov_plugin._expand_source_aliases(
+        ("custom_components/pawcontrol", "tests/unit", "/tmp/absolute")
+    )
+
+    assert "custom_components/pawcontrol" in expanded
+    assert "custom_components.pawcontrol" in expanded
+    assert "tests.unit" in expanded
+    assert "/tmp/absolute" in expanded
+
+
 def test_pytest_homeassistant_shim_registers_marker() -> None:
     plugin = _reload("pytest_homeassistant_custom_component")
 
