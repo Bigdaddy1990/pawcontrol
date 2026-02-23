@@ -102,7 +102,22 @@ def load(stream: str, loader_cls: object | None = None, **kwargs: object) -> obj
     if _pyyaml is None:
         _ = selected_loader
         return _simple_parse(stream)
-    return _pyyaml.load(stream, Loader=selected_loader)
+
+    if selected_loader is SafeLoader:
+        return _pyyaml.safe_load(stream)
+    if selected_loader is FullLoader:
+        return _pyyaml.full_load(stream)
+    if selected_loader is UnsafeLoader:
+        return _pyyaml.unsafe_load(stream)
+
+    if not isinstance(selected_loader, type):
+        raise TypeError("load() Loader must be a class")
+
+    loader = selected_loader(stream)
+    try:
+        return loader.get_single_data()
+    finally:
+        loader.dispose()
 
 
 def load_all(
@@ -136,7 +151,15 @@ def safe_load(
         raise ValueError("safe_load() custom Loader must be a subclass of SafeLoader")
     if _pyyaml is None:
         return _simple_parse(stream)
-    return _pyyaml.load(stream, Loader=selected_loader)
+
+    if selected_loader is SafeLoader:
+        return _pyyaml.safe_load(stream)
+
+    loader = selected_loader(stream)
+    try:
+        return loader.get_single_data()
+    finally:
+        loader.dispose()
 
 
 def safe_load_all(

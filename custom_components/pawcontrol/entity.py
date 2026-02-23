@@ -335,9 +335,11 @@ class PawControlDogEntityBase(PawControlEntity):
         """Return coordinator module data with strict mapping validation."""
         if not isinstance(module, str) or not module:
             return cast(CoordinatorUntypedModuleState, {})
+        payload: object
         try:
-            if hasattr(self.coordinator, "get_module_data"):
-                payload = self.coordinator.get_module_data(self._dog_id, module)
+            module_lookup = getattr(self.coordinator, "get_module_data", None)
+            if callable(module_lookup):
+                payload = module_lookup(self._dog_id, module)
             else:
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module, {})

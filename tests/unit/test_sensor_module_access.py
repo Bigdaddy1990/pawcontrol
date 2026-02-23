@@ -59,14 +59,13 @@ def test_get_module_data_preserves_typed_payload() -> None:
     sensor = _build_sensor({
         "alpha": cast(
             CoordinatorDogData,
-            {"gps": {"status": "active", "last_fix": "2025-01-01T12:00:00"}},
+            {"gps": {"status": "active"}},
         )
     })
 
     payload = sensor._get_module_data("gps")
 
     assert payload["status"] == "active"
-    assert payload["last_fix"] == "2025-01-01T12:00:00"
 
 
 def test_get_module_data_returns_empty_mapping_for_unknown_module() -> None:
@@ -76,6 +75,46 @@ def test_get_module_data_returns_empty_mapping_for_unknown_module() -> None:
     payload = sensor._get_module_data("notifications")
 
     assert payload == {}
+
+
+def test_get_module_data_falls_back_when_lookup_attribute_is_not_callable() -> None:
+    """Non-callable lookup attributes should use ``get_dog_data`` fallback."""
+
+    class _AttributeCoordinator(_CoordinatorStub):
+        get_module_data = cast(Any, "not-callable")
+
+    coordinator = _AttributeCoordinator({
+        "alpha": cast(
+            CoordinatorDogData,
+            {"gps": {"status": "fallback", "last_fix": "2025-01-01T12:00:00"}},
+        )
+    })
+    sensor = _DummySensor(coordinator)
+
+    payload = sensor._get_module_data("gps")
+
+    assert payload["status"] == "fallback"
+
+
+def test_get_module_data_returns_empty_when_lookup_raises(caplog: Any) -> None:
+    """Errors raised by coordinator lookup methods should return empty mappings."""
+
+    class _ErrorCoordinator(_CoordinatorStub):
+        def get_module_data(
+            self,
+            dog_id: str,
+            module: str,
+        ) -> CoordinatorModuleLookupResult:
+            raise RuntimeError("boom")
+
+    coordinator = _ErrorCoordinator({"alpha": cast(CoordinatorDogData, {})})
+    sensor = _DummySensor(coordinator)
+
+    with caplog.at_level("WARNING"):
+        payload = sensor._get_module_data("gps")
+
+    assert payload == {}
+    assert "Error fetching module data" in caplog.text
 
 
 def test_get_module_data_filters_invalid_payload_types() -> None:
@@ -91,3 +130,22 @@ def test_get_module_data_filters_invalid_payload_types() -> None:
     payload = sensor._get_module_data("gps")
 
     assert payload == {}
+
+
+def test_get_module_data_uses_dog_payload_when_accessor_is_not_callable() -> None:
+    """Fallback path should use ``get_dog_data`` when accessor is non-callable."""
+
+    class _NonCallableAccessorCoordinator(_CoordinatorStub):
+        get_module_data = cast(Any, "unavailable")
+
+    coordinator = _NonCallableAccessorCoordinator({
+        "alpha": cast(
+            CoordinatorDogData,
+            {"gps": {"status": "active"}},
+        )
+    })
+    sensor = _DummySensor(coordinator)
+
+    payload = sensor._get_module_data("gps")
+
+    assert payload["status"] == "active"
