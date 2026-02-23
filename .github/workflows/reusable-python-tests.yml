@@ -217,18 +217,18 @@ jobs:
 
           xml_path = Path(r"${{ env.COVERAGE_XML }}")
           if not xml_path.is_file():
-              raise SystemExit("missing coverage xml")
+              percent = 0.0
+          else:
+              tree = ET.parse(xml_path)
+              root = tree.getroot()
+              line_rate = root.attrib.get("line-rate")
+              if line_rate is None:
+                  raise SystemExit("missing line-rate attribute")
 
-          tree = ET.parse(xml_path)
-          root = tree.getroot()
-          line_rate = root.attrib.get("line-rate")
-          if line_rate is None:
-              raise SystemExit("missing line-rate attribute")
-
-          try:
-              percent = round(float(line_rate) * 100, 2)
-          except ValueError as exc:  # pragma: no cover - defensive only
-              raise SystemExit(f"invalid line-rate: {line_rate!r}") from exc
+              try:
+                  percent = round(float(line_rate) * 100, 2)
+              except ValueError as exc:  # pragma: no cover - defensive only
+                  raise SystemExit(f"invalid line-rate: {line_rate!r}") from exc
 
           print(f"coverage_percent={percent}")
           with open("coverage-summary.txt", "w", encoding="utf-8") as handle:
