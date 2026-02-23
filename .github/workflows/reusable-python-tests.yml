@@ -356,6 +356,7 @@ jobs:
           from decimal import Decimal, InvalidOperation
           import os
           from pathlib import Path
+          import xml.etree.ElementTree as ET
 
           pytest_outcome = os.environ["PYTEST_OUTCOME"]
           coverage_percent_raw = os.environ.get("COVERAGE_PERCENT", "")
@@ -367,6 +368,19 @@ jobs:
               coverage_data_available = "true" if coverage_xml.is_file() else "false"
           elif coverage_data_available == "true" and not coverage_xml.is_file():
               coverage_data_available = "false"
+
+          if coverage_data_available == "true" and coverage_xml.is_file():
+              root = ET.parse(coverage_xml).getroot()
+              lines_valid = root.attrib.get("lines-valid")
+              if lines_valid is not None:
+                  try:
+                      measured_lines = int(lines_valid)
+                  except ValueError as exc:
+                      raise SystemExit(
+                          f"invalid lines-valid attribute in coverage.xml: {lines_valid!r}"
+                      ) from exc
+                  if measured_lines == 0:
+                      coverage_data_available = "false"
 
           if pytest_outcome != "success":
               raise SystemExit(
