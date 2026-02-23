@@ -127,6 +127,7 @@ jobs:
       PAGES_BRANCH: ${{ inputs.pages-branch }}
       PAGES_PREFIX: ${{ inputs.pages-prefix }}
       PAGES_ARTIFACT_DIR: ${{ inputs.pages-artifact-directory }}
+      CODECOV_UPLOAD_ALLOWED: ${{ inputs.run-codecov && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -271,8 +272,7 @@ jobs:
       - name: Upload coverage to Codecov
         id: codecov_coverage_upload
         if: >-
-          always() && !cancelled() && inputs.run-codecov &&
-          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+          !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
           hashFiles(env.COVERAGE_XML) != ''
         uses: codecov/codecov-action@v5
         with:
@@ -286,9 +286,7 @@ jobs:
 
       - name: Retry coverage upload to Codecov when primary upload fails
         if: >-
-          always() && !cancelled() && inputs.run-codecov &&
-          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-          hashFiles(env.COVERAGE_XML) != '' &&
+          !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
           steps.codecov_coverage_upload.outcome == 'failure'
         uses: codecov/codecov-action@v5
         with:
@@ -302,8 +300,7 @@ jobs:
 
       - name: Upload test results to Codecov
         if: >-
-          always() && !cancelled() && inputs.run-codecov &&
-          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+          !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
           hashFiles(env.JUNIT_PATH) != ''
         uses: codecov/codecov-action@v5
         with:
