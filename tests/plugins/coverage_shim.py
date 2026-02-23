@@ -130,9 +130,10 @@ if not hasattr(coverage.Coverage, "_resolve_event_path"):
             self._using_monitoring = False
             return
         line_event = getattr(getattr(monitoring, "events", None), "LINE", 0)
-        monitoring.set_events(tool_id, 0)
-        monitoring.register_callback(tool_id, line_event, None)
-        monitoring.free_tool_id(tool_id)
+        with contextlib.suppress(AttributeError, RuntimeError, TypeError, ValueError):
+            monitoring.set_events(tool_id, 0)
+            monitoring.register_callback(tool_id, line_event, None)
+            monitoring.free_tool_id(tool_id)
         self._monitor_tool_id = None
         self._using_monitoring = False
 
