@@ -114,6 +114,26 @@ def test_pytest_cov_include_patterns_keep_python_file_targets() -> None:
     assert "custom_components/pawcontrol/validation.py" in include
 
 
+def test_pytest_cov_split_report_target_preserves_terminal_modifier() -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    report_type, report_target = pytest_cov_plugin._split_report_target(
+        "term-missing:skip-covered"
+    )
+
+    assert report_type == "term-missing:skip-covered"
+    assert report_target is None
+
+
+def test_pytest_cov_split_report_target_keeps_file_target() -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    report_type, report_target = pytest_cov_plugin._split_report_target("xml:cov.xml")
+
+    assert report_type == "xml"
+    assert report_target == "cov.xml"
+
+
 def test_pytest_homeassistant_shim_registers_marker() -> None:
     plugin = _reload("pytest_homeassistant_custom_component")
 
