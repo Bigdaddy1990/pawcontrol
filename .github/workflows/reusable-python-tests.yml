@@ -227,6 +227,7 @@ jobs:
               tree = ET.parse(xml_path)
               root = tree.getroot()
               line_rate = root.attrib.get("line-rate")
+              lines_valid = root.attrib.get("lines-valid")
               if line_rate is None:
                   raise SystemExit("missing line-rate attribute")
 
@@ -234,6 +235,20 @@ jobs:
                   percent = round(float(line_rate) * 100, 2)
               except ValueError as exc:  # pragma: no cover - defensive only
                   raise SystemExit(f"invalid line-rate: {line_rate!r}") from exc
+
+              if lines_valid is not None:
+                  try:
+                      measured_lines = int(lines_valid)
+                  except ValueError as exc:  # pragma: no cover - defensive only
+                      raise SystemExit(f"invalid lines-valid: {lines_valid!r}") from exc
+
+                  if measured_lines == 0:
+                      coverage_data_available = "false"
+                      percent = 0.0
+                      print(
+                          "Warning: coverage.xml reported zero measurable lines; "
+                          "treating coverage data as unavailable"
+                      )
 
           print(f"coverage_percent={percent}")
           with open("coverage-summary.txt", "w", encoding="utf-8") as handle:
