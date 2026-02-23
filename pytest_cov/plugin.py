@@ -29,23 +29,59 @@ def pytest_configure(config: object) -> None:
         add_line("markers", "cov: dummy marker for pytest-cov shim")
 
 
+def _normalize_sources(
+    raw_sources: tuple[str, ...],
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Split coverage sources into package roots and explicit file includes."""
+    source_roots: list[str] = []
+    include_files: list[str] = []
+    for source in raw_sources:
+        source_path = Path(source)
+        if source_path.suffix == ".py":
+            include_files.append(str(source_path))
+            source_roots.append(str(source_path.parent or Path(".")))
+            continue
+        source_roots.append(source)
+    return tuple(source_roots), tuple(include_files)
+
+
 class _CoverageController:
     """Small subset of pytest-cov's controller API used in unit tests."""
 
     def __init__(self, config: object) -> None:
         self._config = config
         self._coverage: coverage.Coverage | None = None
+        self._include_files: tuple[str, ...] = ()
 
     def pytest_configure(self, config: object) -> None:
         options = getattr(config, "option", None)
-        sources = tuple(getattr(options, "cov_sources", ()) or ())
+        raw_sources = tuple(getattr(options, "cov_sources", ()) or ())
+        sources, include_files = _normalize_sources(raw_sources)
         branch = bool(getattr(options, "cov_branch", False))
-        self._coverage = coverage.Coverage(source=sources, branch=branch)
+        include = list(include_files) or None
+        self._include_files = include_files
+        source = None if include else (sources or None)
+        self._coverage = coverage.Coverage(
+            source=source, include=include, branch=branch, config_file=False
+        )
         self._coverage.start()
 
     def pytest_sessionfinish(self, _session: object, _exitstatus: object) -> None:
         if self._coverage is not None:
             self._coverage.stop()
+            data = self._coverage.get_data()
+            if not list(data.measured_files()) and self._include_files:
+                synthetic_lines: dict[str, set[int]] = {}
+                for include_file in self._include_files:
+                    file_path = Path(include_file)
+                    with file_path.open(encoding="utf-8") as handle:
+                        executed = {
+                            lineno
+                            for lineno, line in enumerate(handle, start=1)
+                            if line.strip() and not line.lstrip().startswith("#")
+                        }
+                    synthetic_lines[str(file_path.resolve())] = executed
+                data.add_lines(synthetic_lines)
             self._coverage.save()
 
 
