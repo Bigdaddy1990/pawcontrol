@@ -249,6 +249,13 @@ jobs:
                           "Warning: coverage.xml reported zero measurable lines; "
                           "treating coverage data as unavailable"
                       )
+              elif not root.findall(".//class"):
+                  coverage_data_available = "false"
+                  percent = 0.0
+                  print(
+                      "Warning: coverage.xml reported no class coverage entries; "
+                      "treating coverage data as unavailable"
+                  )
 
           print(f"coverage_percent={percent}")
           with open("coverage-summary.txt", "w", encoding="utf-8") as handle:
@@ -381,6 +388,8 @@ jobs:
                       ) from exc
                   if measured_lines == 0:
                       coverage_data_available = "false"
+              elif not root.findall(".//class"):
+                  coverage_data_available = "false"
 
           if pytest_outcome != "success":
               raise SystemExit(
