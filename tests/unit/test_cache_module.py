@@ -71,7 +71,9 @@ def test_cached_decorator_preserves_metadata_and_sorts_kwargs() -> None:
         async def get(self, key: str) -> object | None:
             return self.storage.get(key)
 
-        async def set(self, key: str, value: object, *, l1_ttl: float, l2_ttl: float) -> None:
+        async def set(
+            self, key: str, value: object, *, l1_ttl: float, l2_ttl: float
+        ) -> None:
             self.storage[key] = value
             self.set_calls.append((key, value, l1_ttl, l2_ttl))
 

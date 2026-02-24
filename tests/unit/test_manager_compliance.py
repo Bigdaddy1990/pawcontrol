@@ -1,7 +1,5 @@
 """Tests for manager compliance helpers."""
 
-from __future__ import annotations
-
 import logging
 from unittest.mock import Mock
 
