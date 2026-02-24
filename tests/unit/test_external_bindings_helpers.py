@@ -31,14 +31,12 @@ def test_extract_coords_handles_valid_and_invalid_payloads() -> None:
     def _state(attributes: Any) -> SimpleNamespace:
         return SimpleNamespace(attributes=attributes)
 
-    state = _state(
-        {
-            "latitude": 50,
-            "longitude": 8.5,
-            "gps_accuracy": 12,
-            "altitude": 99,
-        }
-    )
+    state = _state({
+        "latitude": 50,
+        "longitude": 8.5,
+        "gps_accuracy": 12,
+        "altitude": 99,
+    })
 
     assert external_bindings._extract_coords(state) == (50.0, 8.5, 12.0, 99.0)
     invalid = _state({"latitude": "x", "longitude": 1})
