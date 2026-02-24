@@ -3,6 +3,7 @@
 from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 import logging
+from typing import Any, cast
 from typing import Final
 
 from homeassistant.core import HomeAssistant
@@ -57,8 +58,22 @@ def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     """Return runtime data extracted from ``value`` when possible."""
     if isinstance(value, PawControlRuntimeData):
         return value
+
+    runtime_container = cast(Any, value)
+    unwrap = getattr(runtime_container, "unwrap", None)
+    if callable(unwrap):
+        return _coerce_runtime_data(unwrap())
+
     if isinstance(value, DomainRuntimeStoreEntry):
         return value.unwrap()
+    if isinstance(value, Mapping):
+        runtime_data = value.get("runtime_data")
+        if runtime_data is not None:
+            return _coerce_runtime_data(runtime_data)
+
+    runtime_candidate = cast(Any, value)
+    if getattr(runtime_candidate, "coordinator", None) is not None:
+        return cast(PawControlRuntimeData, runtime_candidate)
     return None
 
 

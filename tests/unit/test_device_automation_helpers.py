@@ -68,6 +68,14 @@ def test_coerce_runtime_data_supports_store_entries() -> None:
     assert _coerce_runtime_data(object()) is None
 
 
+def test_coerce_runtime_data_supports_legacy_and_duck_typed_entries() -> None:
+    """Runtime data coercion should support legacy and duck-typed containers."""
+    runtime_data = _runtime_data_with_coordinator(SimpleNamespace())
+
+    assert _coerce_runtime_data({"runtime_data": runtime_data}) is runtime_data
+    assert _coerce_runtime_data(SimpleNamespace(coordinator=SimpleNamespace())) is not None
+
+
 def test_resolve_device_context_and_entity_id(monkeypatch) -> None:
     """Device context and entity-id lookups should use registries and runtime store."""
     runtime_data = _runtime_data_with_coordinator(SimpleNamespace())
