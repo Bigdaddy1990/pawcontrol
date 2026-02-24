@@ -348,9 +348,33 @@ class PawControlDogEntityBase(PawControlEntity):
                 )
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module, {})
-        except AttributeError, LookupError, TypeError, ValueError:
+        except AttributeError:
             _LOGGER.warning(
-                "Error fetching module data for %s/%s",
+                "Coordinator lookup failed for %s/%s (missing attribute)",
+                self._dog_id,
+                module,
+                exc_info=True,
+            )
+            return cast(CoordinatorUntypedModuleState, {})
+        except LookupError:
+            _LOGGER.warning(
+                "Coordinator lookup failed for %s/%s (missing key/index)",
+                self._dog_id,
+                module,
+                exc_info=True,
+            )
+            return cast(CoordinatorUntypedModuleState, {})
+        except TypeError:
+            _LOGGER.warning(
+                "Coordinator lookup failed for %s/%s (type mismatch)",
+                self._dog_id,
+                module,
+                exc_info=True,
+            )
+            return cast(CoordinatorUntypedModuleState, {})
+        except ValueError:
+            _LOGGER.warning(
+                "Coordinator lookup failed for %s/%s (invalid value)",
                 self._dog_id,
                 module,
                 exc_info=True,
