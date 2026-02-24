@@ -96,6 +96,14 @@ def test_get_module_data_validates_payload_shape_for_typed_and_untyped_modules()
     assert coordinator.get_module_data("alpha", "notifications") == {"enabled": True}
 
 
+def test_get_module_data_returns_empty_dict_for_invalid_untyped_payload() -> None:
+    """Untyped modules fall back to an empty dict when stored value is invalid."""
+    coordinator = _DummyCoordinator()
+    coordinator._data["alpha"]["notifications"] = cast(Any, ["invalid"])
+
+    assert coordinator.get_module_data("alpha", "notifications") == {}
+
+
 def test_get_dog_info_prefers_runtime_mapping_then_registry_then_empty_dict() -> None:
     """Dog info helper prioritizes runtime data and has deterministic fallback."""
     coordinator = _DummyCoordinator()
