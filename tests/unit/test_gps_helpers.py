@@ -1,7 +1,5 @@
 """Unit tests for GPS flow helper utilities."""
 
-from __future__ import annotations
-
 from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.flow_steps.gps_helpers import (
     build_gps_source_options,

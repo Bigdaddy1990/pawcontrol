@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
@@ -67,6 +65,8 @@ def test_normalize_value_skips_dataclass_type_objects() -> None:
         enabled: bool
 
     assert normalize_value(_Config).startswith("<class")
+
+
 class DeviceSnapshot:
     dog_name: str
     feed_count: int

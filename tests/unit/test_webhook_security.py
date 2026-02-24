@@ -1,7 +1,5 @@
 """Unit tests for webhook security helpers."""
 
-from __future__ import annotations
-
 import json
 from types import SimpleNamespace
 
@@ -18,8 +16,8 @@ from custom_components.pawcontrol.webhook_security import (
     WebhookAuthenticator,
     WebhookRateLimiter,
     WebhookRequest,
-    WebhookSecurityManager,
     WebhookSecurityError,
+    WebhookSecurityManager,
     WebhookValidator,
 )
 
@@ -158,6 +156,8 @@ async def test_security_manager_processes_valid_request() -> None:
 
     assert result["dog_id"] == "buddy"
     assert manager.get_security_stats()["rate_limiter"]["total_requests"] == 1
+
+
 def test_webhook_authenticator_rejects_invalid_algorithm() -> None:
     auth = WebhookAuthenticator("secret", algorithm="sha999")
 
