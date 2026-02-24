@@ -7,12 +7,16 @@ from custom_components.pawcontrol.device_automation_helpers import (
     _coerce_runtime_data,
     _extract_dog_id,
     build_device_automation_metadata,
+    build_unique_id,
     resolve_device_context,
     resolve_dog_data,
     resolve_entity_id,
     resolve_status_snapshot,
 )
-from custom_components.pawcontrol.types import DomainRuntimeStoreEntry, PawControlRuntimeData
+from custom_components.pawcontrol.types import (
+    DomainRuntimeStoreEntry,
+    PawControlRuntimeData,
+)
 
 
 def _runtime_data_with_coordinator(coordinator: object) -> PawControlRuntimeData:
@@ -40,12 +44,27 @@ def test_extract_dog_id_uses_domain_identifier() -> None:
     assert _extract_dog_id(None) is None
 
 
+def test_extract_dog_id_returns_none_without_domain_match() -> None:
+    """Non-PawControl identifiers should not resolve a dog id."""
+    device_entry = SimpleNamespace(identifiers={("other", "abc")})
+
+    assert _extract_dog_id(device_entry) is None
+
+
+def test_build_unique_id_formats_expected_pattern() -> None:
+    """Unique ids should follow the shared PawControl naming convention."""
+    assert build_unique_id("buddy", "sensor") == "pawcontrol_buddy_sensor"
+
+
 def test_coerce_runtime_data_supports_store_entries() -> None:
     """Runtime data should be unwrapped from domain store entry containers."""
     runtime_data = _runtime_data_with_coordinator(SimpleNamespace())
 
     assert _coerce_runtime_data(runtime_data) is runtime_data
-    assert _coerce_runtime_data(DomainRuntimeStoreEntry(runtime_data=runtime_data)) is runtime_data
+    assert (
+        _coerce_runtime_data(DomainRuntimeStoreEntry(runtime_data=runtime_data))
+        is runtime_data
+    )
     assert _coerce_runtime_data(object()) is None
 
 
@@ -93,8 +112,49 @@ def test_resolve_device_context_and_entity_id(monkeypatch) -> None:
     assert context.device_id == "device-1"
     assert context.dog_id == "buddy"
     assert context.runtime_data is runtime_data
-    assert resolve_entity_id(hass, "device-1", "pawcontrol_buddy_sensor", "sensor") == "sensor.buddy"
+    assert (
+        resolve_entity_id(hass, "device-1", "pawcontrol_buddy_sensor", "sensor")
+        == "sensor.buddy"
+    )
     assert resolve_entity_id(hass, "device-1", "missing", "sensor") is None
+
+
+def test_resolve_device_context_handles_missing_store_or_device(monkeypatch) -> None:
+    """Lookup should return empty context when registries/stores are incomplete."""
+    device_registry = SimpleNamespace(async_get=lambda _device_id: None)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.device_automation_helpers.dr.async_get",
+        lambda _hass: device_registry,
+    )
+
+    hass = SimpleNamespace(data={DOMAIN: "not-a-mapping"})
+
+    context = resolve_device_context(hass, "device-2")
+
+    assert context.device_id == "device-2"
+    assert context.dog_id is None
+    assert context.runtime_data is None
+
+
+def test_resolve_device_context_returns_none_when_entry_ids_missing(
+    monkeypatch,
+) -> None:
+    """Runtime data should stay ``None`` when domain store has no matching entry ids."""
+    device_entry = SimpleNamespace(
+        identifiers={(DOMAIN, "buddy")},
+        config_entries=["entry_missing"],
+    )
+    device_registry = SimpleNamespace(async_get=lambda _device_id: device_entry)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.device_automation_helpers.dr.async_get",
+        lambda _hass: device_registry,
+    )
+
+    hass = SimpleNamespace(data={DOMAIN: {"other_entry": object()}})
+
+    context = resolve_device_context(hass, "device-3")
+
+    assert context.runtime_data is None
 
 
 def test_resolve_dog_data_and_status_snapshot_paths() -> None:
@@ -111,7 +171,9 @@ def test_resolve_dog_data_and_status_snapshot_paths() -> None:
     }
     coordinator = SimpleNamespace(
         get_dog_data=lambda dog_id: (
-            dog_payload_with_snapshot if dog_id == "buddy" else dog_payload_without_snapshot
+            dog_payload_with_snapshot
+            if dog_id == "buddy"
+            else dog_payload_without_snapshot
         )
     )
     runtime_data = _runtime_data_with_coordinator(coordinator)
@@ -124,3 +186,13 @@ def test_resolve_dog_data_and_status_snapshot_paths() -> None:
     assert fallback_snapshot is not None
     assert fallback_snapshot.get("dog_id") == "max"
     assert fallback_snapshot.get("state") == "at_park"
+
+
+def test_resolve_dog_data_rejects_non_mapping_and_none_snapshot() -> None:
+    """Non-mapping dog payloads should be ignored by helper lookups."""
+    runtime_data = _runtime_data_with_coordinator(
+        SimpleNamespace(get_dog_data=lambda _dog_id: "invalid"),
+    )
+
+    assert resolve_dog_data(runtime_data, "buddy") is None
+    assert resolve_status_snapshot(runtime_data, "buddy") is None
