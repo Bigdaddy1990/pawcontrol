@@ -1,5 +1,6 @@
 """Unit tests for performance module helper utilities."""
 
+import asyncio
 from types import SimpleNamespace
 
 from custom_components.pawcontrol import performance
@@ -115,3 +116,106 @@ def test_record_maintenance_result_merges_legacy_history_and_metadata() -> None:
     assert history[0]["details"] == {"removed": 2}
     assert history[1]["task"] == "second"
     assert store["last_maintenance_result"]["task"] == "second"
+
+
+def test_capture_cache_diagnostics_handles_snapshot_errors_and_empty_runtime() -> None:
+    class _DataManagerBrokenSnapshots:
+        def cache_snapshots(self) -> dict[str, object]:
+            raise RuntimeError("broken")
+
+    runtime_data = SimpleNamespace(data_manager=_DataManagerBrokenSnapshots())
+
+    assert performance.capture_cache_diagnostics(runtime_data) is None
+    assert performance.capture_cache_diagnostics(None) is None
+
+
+def test_performance_helpers_and_monitor_lifecycle() -> None:
+    performance.reset_performance_metrics()
+    performance.enable_performance_monitoring()
+
+    performance._performance_monitor.record("fast_op", 12.0)
+    performance._performance_monitor.record("slow_op", 200.0)
+
+    summary = performance.get_performance_summary()
+    assert summary["enabled"] is True
+    assert summary["metric_count"] == 2
+    assert summary["total_calls"] == 2
+
+    slow = performance.get_slow_operations(100.0)
+    assert [metric["name"] for metric in slow] == ["slow_op"]
+
+    performance.disable_performance_monitoring()
+    performance._performance_monitor.record("ignored", 1000.0)
+    assert performance._performance_monitor.get_metric("ignored") is None
+
+    performance.enable_performance_monitoring()
+    performance.reset_performance_metrics()
+    assert performance.get_performance_summary()["metric_count"] == 0
+
+
+def test_track_performance_decorator_records_sync_and_async_calls() -> None:
+    async def _exercise() -> None:
+        performance.reset_performance_metrics()
+        performance.enable_performance_monitoring()
+
+        @performance.track_performance("sync_metric", log_slow=False)
+        def sync_call(value: int) -> int:
+            return value + 1
+
+        @performance.track_performance("async_metric", log_slow=False)
+        async def async_call(value: int) -> int:
+            await asyncio.sleep(0)
+            return value + 2
+
+        assert sync_call(3) == 4
+        assert await async_call(3) == 5
+
+        assert performance._performance_monitor.get_metric("sync_metric") is not None
+        assert performance._performance_monitor.get_metric("async_metric") is not None
+
+    asyncio.run(_exercise())
+
+
+def test_debounce_throttle_and_batch_calls() -> None:
+    async def _exercise() -> None:
+        calls: list[str] = []
+
+        @performance.debounce(0.05)
+        async def debounced(marker: str) -> str:
+            calls.append(f"debounced:{marker}")
+            return marker
+
+        first = await debounced("first")
+        second = await debounced("second")
+        await asyncio.sleep(0.07)
+
+        assert first == "first"
+        assert second is None
+        assert calls == ["debounced:first", "debounced:second"]
+
+        throttle_calls: list[float] = []
+
+        @performance.throttle(50.0)
+        async def throttled() -> None:
+            throttle_calls.append(asyncio.get_running_loop().time())
+
+        await throttled()
+        await throttled()
+        assert len(throttle_calls) == 2
+        assert throttle_calls[1] >= throttle_calls[0]
+
+        batched: list[int] = []
+
+        @performance.batch_calls(max_batch_size=2, max_wait_ms=20.0)
+        async def batch_target(value: int) -> None:
+            if value == 2:
+                raise RuntimeError("boom")
+            batched.append(value)
+
+        await batch_target(1)
+        await batch_target(2)
+        await asyncio.sleep(0.05)
+
+        assert batched == [1]
+
+    asyncio.run(_exercise())
