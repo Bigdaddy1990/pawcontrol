@@ -84,7 +84,9 @@ def test_get_module_data_missing_dog_returns_typed_or_untyped_fallback() -> None
     assert coordinator.get_module_data("unknown", "notifications") == {}
 
 
-def test_get_module_data_validates_payload_shape_for_typed_and_untyped_modules() -> None:
+def test_get_module_data_validates_payload_shape_for_typed_and_untyped_modules() -> (
+    None
+):
     """Typed payloads require a mapping while untyped payloads allow any mapping."""
     coordinator = _DummyCoordinator()
     coordinator._data["alpha"]["gps"] = cast(Any, "invalid")

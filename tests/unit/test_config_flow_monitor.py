@@ -43,7 +43,9 @@ def test_get_stats_ignores_empty_operation_buckets() -> None:
 
 
 @pytest.mark.asyncio
-async def test_timed_operation_records_duration(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_timed_operation_records_duration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Timed operations should persist the measured duration in the shared monitor."""
     from custom_components.pawcontrol import config_flow_monitor as monitor_module
 
