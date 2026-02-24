@@ -3,8 +3,7 @@
 from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 import logging
-from typing import Any, cast
-from typing import Final
+from typing import Any, Final, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
@@ -56,12 +55,28 @@ def _extract_dog_id(device_entry: dr.DeviceEntry | None) -> str | None:
 
 def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     """Return runtime data extracted from ``value`` when possible."""
+    if value is None:
+        return None
+
     if isinstance(value, PawControlRuntimeData):
         return value
-    if value is not None and value.__class__.__name__ == "PawControlRuntimeData":
-        return cast(PawControlRuntimeData, value)
+
     if isinstance(value, DomainRuntimeStoreEntry):
         return value.unwrap()
+
+    value_cls = value.__class__
+    if (
+        value_cls.__name__ == PawControlRuntimeData.__name__
+        and value_cls.__module__ == PawControlRuntimeData.__module__
+    ):
+        return cast(PawControlRuntimeData, value)
+
+    if (
+        value_cls.__name__ == DomainRuntimeStoreEntry.__name__
+        and value_cls.__module__ == DomainRuntimeStoreEntry.__module__
+    ):
+        return _coerce_runtime_data(getattr(value, "runtime_data", None))
+
     if isinstance(value, Mapping):
         runtime_data = value.get("runtime_data")
         if runtime_data is not None:
