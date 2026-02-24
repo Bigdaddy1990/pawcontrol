@@ -83,6 +83,26 @@ def test_validate_coordinate_pair_and_service_wrapper() -> None:
         validate_service_coordinates("abc", 2.3522)
 
 
+def test_validate_coordinate_pair_rejects_out_of_range_values() -> None:
+    """Coordinate helper should reject latitude and longitude outside valid bounds."""
+    with pytest.raises(ValidationError, match="coordinate_out_of_range"):
+        validate_coordinate_pair(91, 2.3522)
+
+    with pytest.raises(ValidationError, match="coordinate_out_of_range"):
+        validate_coordinate_pair(48.8566, 181)
+
+
+def test_validate_service_coordinates_formats_custom_field_names() -> None:
+    """Service validation should format custom field names in raised errors."""
+    with pytest.raises(ServiceValidationError, match="gps latitude is required"):
+        validate_service_coordinates(
+            None,
+            2.3522,
+            latitude_field="gps_latitude",
+            longitude_field="gps_longitude",
+        )
+
+
 def test_safe_validate_interval_returns_default_on_validation_errors() -> None:
     """safe_validate_interval should return validated value or default fallback."""
     assert (
@@ -107,6 +127,35 @@ def test_safe_validate_interval_returns_default_on_validation_errors() -> None:
             field="interval",
             clamp=False,
             required=False,
+        )
+        == 15
+    )
+
+
+def test_safe_validate_interval_clamps_or_falls_back() -> None:
+    """Interval helper should clamp when asked and use fallback for hard failures."""
+    assert (
+        safe_validate_interval(
+            1,
+            default=15,
+            minimum=5,
+            maximum=20,
+            field="interval",
+            clamp=True,
+            required=False,
+        )
+        == 5
+    )
+
+    assert (
+        safe_validate_interval(
+            None,
+            default=15,
+            minimum=5,
+            maximum=20,
+            field="interval",
+            clamp=False,
+            required=True,
         )
         == 15
     )
