@@ -3,7 +3,8 @@
 from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 import logging
-from typing import Final, cast
+from typing import Any, cast
+from typing import Final
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
@@ -61,6 +62,14 @@ def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
         return cast(PawControlRuntimeData, value)
     if isinstance(value, DomainRuntimeStoreEntry):
         return value.unwrap()
+    if isinstance(value, Mapping):
+        runtime_data = value.get("runtime_data")
+        if runtime_data is not None:
+            return _coerce_runtime_data(runtime_data)
+
+    runtime_candidate = cast(Any, value)
+    if getattr(runtime_candidate, "coordinator", None) is not None:
+        return cast(PawControlRuntimeData, runtime_candidate)
     return None
 
 

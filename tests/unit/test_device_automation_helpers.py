@@ -65,7 +65,42 @@ def test_coerce_runtime_data_supports_store_entries() -> None:
         _coerce_runtime_data(DomainRuntimeStoreEntry(runtime_data=runtime_data))
         is runtime_data
     )
+    assert _coerce_runtime_data({"runtime_data": runtime_data}) is runtime_data
     assert _coerce_runtime_data(object()) is None
+
+
+def test_coerce_runtime_data_supports_legacy_and_duck_typed_entries() -> None:
+    """Runtime data coercion should support legacy and duck-typed containers."""
+    runtime_data = _runtime_data_with_coordinator(SimpleNamespace())
+
+    assert _coerce_runtime_data({"runtime_data": runtime_data}) is runtime_data
+    assert _coerce_runtime_data(SimpleNamespace(coordinator=SimpleNamespace())) is not None
+def test_coerce_runtime_data_supports_reloaded_runtime_classes() -> None:
+    """Reloaded runtime dataclass instances should still be accepted."""
+    reloaded_runtime_type = type(
+        "PawControlRuntimeData",
+        (),
+        {},
+    )
+    reloaded_runtime_type.__module__ = PawControlRuntimeData.__module__
+    reloaded_runtime_data = reloaded_runtime_type()
+
+    assert _coerce_runtime_data(reloaded_runtime_data) is reloaded_runtime_data
+
+
+def test_coerce_runtime_data_supports_reloaded_store_entries() -> None:
+    """Reloaded store entry containers should still unwrap runtime data."""
+    runtime_data = _runtime_data_with_coordinator(SimpleNamespace())
+    reloaded_store_entry_type = type(
+        "DomainRuntimeStoreEntry",
+        (),
+        {},
+    )
+    reloaded_store_entry_type.__module__ = DomainRuntimeStoreEntry.__module__
+    reloaded_store_entry = reloaded_store_entry_type()
+    reloaded_store_entry.runtime_data = runtime_data
+
+    assert _coerce_runtime_data(reloaded_store_entry) is runtime_data
 
 
 def test_resolve_device_context_and_entity_id(monkeypatch) -> None:
