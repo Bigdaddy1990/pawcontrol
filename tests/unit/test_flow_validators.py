@@ -179,3 +179,73 @@ def test_flow_validators_exports_validation_error_symbol() -> None:
     """Public exports should expose ValidationError for flow modules."""
     assert flow_validators.ValidationError is ValidationError
     assert "ValidationError" in flow_validators.__all__
+
+
+def test_flow_validator_wrappers_validate_inputs_end_to_end() -> None:
+    """Wrappers should enforce core validation constraints without monkeypatching."""
+    assert flow_validators.validate_flow_dog_name("  Luna  ") == "Luna"
+    assert flow_validators.validate_flow_gps_coordinates("52.5", "13.4") == (
+        52.5,
+        13.4,
+    )
+    assert (
+        flow_validators.validate_flow_gps_accuracy(
+            "25",
+            field="gps_accuracy",
+            min_value=10,
+            max_value=50,
+        )
+        == 25.0
+    )
+    assert (
+        flow_validators.validate_flow_geofence_radius(
+            "150",
+            field="radius",
+            min_value=50,
+            max_value=500,
+        )
+        == 150.0
+    )
+    assert (
+        flow_validators.validate_flow_gps_interval(
+            "60",
+            field="gps_interval",
+            minimum=30,
+            maximum=300,
+            required=True,
+        )
+        == 60
+    )
+    assert (
+        flow_validators.validate_flow_timer_interval(
+            "15",
+            field="timer_interval",
+            minimum=10,
+            maximum=120,
+            required=True,
+        )
+        == 15
+    )
+    assert flow_validators.validate_flow_time_window(
+        "08:00:00",
+        "10:30:00",
+        start_field="start",
+        end_field="end",
+    ) == ("08:00:00", "10:30:00")
+
+
+def test_flow_validator_wrappers_raise_validation_error_for_invalid_values() -> None:
+    """Wrappers should surface validation errors from the shared validator API."""
+    with pytest.raises(ValidationError):
+        flow_validators.validate_flow_dog_name("", required=True)
+
+    with pytest.raises(ValidationError):
+        flow_validators.validate_flow_gps_coordinates("200", "13.4")
+
+    with pytest.raises(ValidationError):
+        flow_validators.validate_flow_time_window(
+            "not-a-time",
+            "09:00:00",
+            start_field="start",
+            end_field="end",
+        )
