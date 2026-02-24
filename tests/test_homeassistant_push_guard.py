@@ -173,7 +173,7 @@ def test_fetch_latest_homeassistant_version_rejects_malformed_payload(
         def __enter__(self):
             return self
 
-        def __exit__(self, *_args):
+        def __exit__(self, *_args) -> bool:
             return False
 
         def read(self) -> bytes:
