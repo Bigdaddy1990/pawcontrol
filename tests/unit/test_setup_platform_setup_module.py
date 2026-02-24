@@ -3,8 +3,8 @@
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 from homeassistant.exceptions import ConfigEntryNotReady
+import pytest
 
 from custom_components.pawcontrol.setup import platform_setup
 
@@ -24,7 +24,9 @@ def test_resolve_enabled_modules(options: object | None, expected: object) -> No
 
 
 @pytest.mark.asyncio
-async def test_async_forward_platforms_retries_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_async_forward_platforms_retries_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Forwarding should retry once when the first attempt times out."""
     attempts = 0
 
@@ -66,7 +68,9 @@ async def test_async_forward_platforms_import_error_raises_not_ready() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_setup_platforms_skips_optional_setup(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_async_setup_platforms_skips_optional_setup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Optional helper/script setup should be skipped when configured."""
     forward_mock = AsyncMock()
     helpers_mock = AsyncMock()
@@ -97,7 +101,9 @@ async def test_async_setup_helpers_calls_manager_with_resolved_modules() -> None
         notification_manager=None,
     )
 
-    await platform_setup._async_setup_helpers(SimpleNamespace(), SimpleNamespace(), runtime_data)
+    await platform_setup._async_setup_helpers(
+        SimpleNamespace(), SimpleNamespace(), runtime_data
+    )
 
     create_helpers.assert_awaited_once_with(
         runtime_data.dogs,
