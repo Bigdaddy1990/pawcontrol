@@ -357,8 +357,8 @@ class PawControlDogEntityBase(PawControlEntity):
             )
             return cast(CoordinatorUntypedModuleState, {})
         except Exception as err:
-            _LOGGER.error(
-                "Unexpected module lookup failure for %s/%s: %s (%s)",
+            _LOGGER.warning(
+                "Error fetching module data for %s/%s: %s (%s)",
                 self._dog_id,
                 module,
                 err,
@@ -368,10 +368,8 @@ class PawControlDogEntityBase(PawControlEntity):
             return cast(CoordinatorUntypedModuleState, {})
         if not isinstance(payload, Mapping):
             _LOGGER.warning(
-                (
-                    "Invalid module payload for %s/%s: expected mapping, got %s "
-                    "(value=%r)"
-                ),
+                "Invalid module payload for %s/%s: expected mapping, got %s "
+                "(value=%r)",
                 self._dog_id,
                 module,
                 type(payload).__name__,
