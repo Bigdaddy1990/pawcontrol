@@ -181,3 +181,42 @@ def test_flow_validators_exports_validation_error_symbol() -> None:
     """Public exports should expose ValidationError for flow modules."""
     assert flow_validators.ValidationError is ValidationError
     assert "ValidationError" in flow_validators.__all__
+
+
+def test_validate_flow_wrappers_enforce_validation_rules() -> None:
+    """Wrapper helpers should surface underlying validation failures."""
+    with pytest.raises(ValidationError) as dog_error:
+        flow_validators.validate_flow_dog_name("   ", required=True)
+    assert dog_error.value.field == "dog_name"
+
+    with pytest.raises(ValidationError) as gps_error:
+        flow_validators.validate_flow_gps_interval(
+            1,
+            field="gps_interval",
+            minimum=10,
+            maximum=60,
+            clamp=False,
+            required=True,
+        )
+    assert gps_error.value.field == "gps_interval"
+
+
+def test_validate_flow_time_window_supports_defaults_and_missing_values() -> None:
+    """Time window wrapper should default missing values and reject empty windows."""
+    assert flow_validators.validate_flow_time_window(
+        None,
+        None,
+        start_field="quiet_start",
+        end_field="quiet_end",
+        default_start="22:00",
+        default_end="06:00",
+    ) == ("22:00:00", "06:00:00")
+
+    with pytest.raises(ValidationError) as time_error:
+        flow_validators.validate_flow_time_window(
+            None,
+            None,
+            start_field="quiet_start",
+            end_field="quiet_end",
+        )
+    assert time_error.value.field == "quiet_start"
