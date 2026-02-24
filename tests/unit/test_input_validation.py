@@ -117,6 +117,39 @@ def test_validator_integer_float_and_dict_paths() -> None:
     }
 
 
+def test_validator_numeric_bounds_and_dict_optional_fields() -> None:
+    validator = InputValidator()
+
+    integer_bounds = validator.validate_integer("10", min_value=12, max_value=8)
+    assert not integer_bounds.is_valid
+    assert "minimum" in integer_bounds.errors[0]
+    assert "maximum" in integer_bounds.errors[1]
+
+    float_type_error = validator.validate_float(None)
+    assert not float_type_error.is_valid
+    assert float_type_error.errors == ["Cannot convert to float: None"]
+
+    float_value_error = validator.validate_float("not-a-float")
+    assert not float_value_error.is_valid
+    assert float_value_error.errors == ["Cannot convert to float: not-a-float"]
+
+    float_bounds = validator.validate_float("9.5", max_value=1.0)
+    assert not float_bounds.is_valid
+    assert "maximum" in float_bounds.errors[0]
+
+    schema = {
+        "optional": {"type": "str"},
+        "weight": {"type": "float", "min_value": 1.0, "max_value": 50.0},
+        "email": {"type": "email"},
+    }
+    result = validator.validate_dict(
+        {"weight": "6.5", "email": "owner@example.com"},
+        schema,
+    )
+    assert result.is_valid
+    assert result.sanitized_value == {"weight": 6.5, "email": "owner@example.com"}
+
+
 def test_validator_email_phone_string_and_invalid_dict() -> None:
     validator = InputValidator()
 
