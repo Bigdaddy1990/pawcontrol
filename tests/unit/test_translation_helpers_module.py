@@ -154,8 +154,8 @@ def test_cached_lookup_for_english_reuses_same_mapping() -> None:
     english = {"component.pawcontrol.common.title": "Title"}
     hass = SimpleNamespace(data={"pawcontrol": {"translations": {"en": english}}})
 
-    translations, fallback = translation_helpers.get_cached_component_translation_lookup(
-        hass, "en"
+    translations, fallback = (
+        translation_helpers.get_cached_component_translation_lookup(hass, "en")
     )
 
     assert translations is fallback
