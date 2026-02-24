@@ -102,6 +102,19 @@ async def test_async_ensure_webhook_config_generates_credentials(
     assert options[CONF_WEBHOOK_SECRET] == "secret-1"
     assert CONF_WEBHOOK_REQUIRE_SIGNATURE in options
 
+    mixed = _make_entry(data={CONF_DOGS: ["dog", {"gps_config": {}}]})
+    assert webhooks._any_dog_expects_webhook(mixed) is False
+
+
+def test_new_webhook_credentials_use_token_urlsafe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Credential generators should delegate to secrets.token_urlsafe."""
+    monkeypatch.setattr("secrets.token_urlsafe", lambda length: f"token-{length}")
+
+    assert webhooks._new_webhook_id() == "token-24"
+    assert webhooks._new_webhook_secret() == "token-32"
+
 
 @pytest.mark.asyncio
 async def test_async_ensure_webhook_config_keeps_existing_credentials(
@@ -142,6 +155,41 @@ async def test_register_unregister_webhook(
     ):
         await async_register_entry_webhook(hass, config_entry)
         await async_unregister_entry_webhook(hass, config_entry)
+async def test_async_ensure_webhook_config_skips_when_disabled_or_present() -> None:
+    """No update should happen when webhooks are disabled or already configured."""
+    disabled_hass = _make_hass()
+    disabled_entry = _make_entry(
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={CONF_WEBHOOK_ENABLED: False},
+    )
+    await webhooks.async_ensure_webhook_config(disabled_hass, disabled_entry)
+    assert disabled_hass.config_entries.updated_options is None
+
+    configured_hass = _make_hass()
+    configured_entry = _make_entry(
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={
+            CONF_WEBHOOK_ENABLED: True,
+            CONF_WEBHOOK_ID: "existing-id",
+            CONF_WEBHOOK_SECRET: "existing-secret",
+        },
+    )
+    await webhooks.async_ensure_webhook_config(configured_hass, configured_entry)
+    assert configured_hass.config_entries.updated_options is None
+
+
+@pytest.mark.asyncio
+async def test_register_and_unregister_webhook(monkeypatch: pytest.MonkeyPatch) -> None:
+    entry = _make_entry(
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={
+            CONF_WEBHOOK_ENABLED: True,
+            CONF_WEBHOOK_ID: "abc",
+            CONF_WEBHOOK_SECRET: "secret",
+        },
+    )
+    hass = _make_hass([entry])
+    calls: list[tuple[str, str]] = []
 
     unregister.assert_called_with(hass, "webhook-1")
     assert register.call_count == 1
@@ -160,6 +208,70 @@ def test_get_entry_webhook_url(hass: MagicMock, config_entry: MagicMock) -> None
     config_entry.options = {}
     assert get_entry_webhook_url(hass, config_entry) is None
 
+@pytest.mark.asyncio
+async def test_register_and_unregister_short_circuit_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Register/unregister should no-op when prerequisites are not met."""
+    calls: list[str] = []
+
+    async def _noop(*_args: Any) -> None:
+        return None
+
+    monkeypatch.setattr(webhooks, "async_ensure_webhook_config", _noop)
+    monkeypatch.setattr(webhooks, "async_unregister", lambda *_args: calls.append("u"))
+    monkeypatch.setattr(webhooks, "async_register", lambda *_args: calls.append("r"))
+
+    disabled_entry = _make_entry(
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={CONF_WEBHOOK_ENABLED: False, CONF_WEBHOOK_ID: "abc"},
+    )
+    await webhooks.async_register_entry_webhook(
+        _make_hass([disabled_entry]),
+        disabled_entry,
+    )
+
+    missing_id_entry = _make_entry(
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={CONF_WEBHOOK_ENABLED: True},
+    )
+    await webhooks.async_register_entry_webhook(
+        _make_hass([missing_id_entry]), missing_id_entry
+    )
+
+    await webhooks.async_unregister_entry_webhook(
+        _make_hass([missing_id_entry]), missing_id_entry
+    )
+
+    assert calls == []
+
+
+def test_get_entry_webhook_url_handles_missing_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Webhook URL helper should return None without IDs and use HA helper otherwise."""
+    hass = _make_hass()
+    missing = _make_entry(options={})
+    assert webhooks.get_entry_webhook_url(hass, missing) is None
+
+    entry = _make_entry(options={CONF_WEBHOOK_ID: "hook-id"})
+    from homeassistant.components import webhook as webhook_component
+
+    monkeypatch.setattr(
+        webhook_component,
+        "async_generate_url",
+        lambda _hass, webhook_id: f"https://example/{webhook_id}",
+        raising=False,
+    )
+    assert webhooks.get_entry_webhook_url(hass, entry) == "https://example/hook-id"
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_requires_signature_and_valid_json() -> None:
+    entry = _make_entry(
+        options={CONF_WEBHOOK_ID: "abc", CONF_WEBHOOK_REQUIRE_SIGNATURE: True}
+    )
+    hass = _make_hass([entry])
 
 def test_resolve_entry_for_webhook_id(hass: MagicMock, config_entry: MagicMock) -> None:
     config_entry.options = {CONF_WEBHOOK_ID: "id-1"}
