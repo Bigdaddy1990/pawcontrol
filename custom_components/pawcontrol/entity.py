@@ -368,8 +368,7 @@ class PawControlDogEntityBase(PawControlEntity):
             return cast(CoordinatorUntypedModuleState, {})
         if not isinstance(payload, Mapping):
             _LOGGER.warning(
-                "Invalid module payload for %s/%s: expected mapping, got %s "
-                "(value=%r)",
+                "Invalid module payload for %s/%s: expected mapping, got %s (value=%r)",
                 self._dog_id,
                 module,
                 type(payload).__name__,
