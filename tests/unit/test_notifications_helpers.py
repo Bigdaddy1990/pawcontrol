@@ -35,7 +35,10 @@ def test_string_default_uses_fallback_for_non_strings() -> None:
     """String defaults should ignore numeric payload values."""
     current = {NOTIFICATION_QUIET_START_FIELD: 2300}
 
-    assert _string_default(current, NOTIFICATION_QUIET_START_FIELD, "22:00:00") == "22:00:00"
+    assert (
+        _string_default(current, NOTIFICATION_QUIET_START_FIELD, "22:00:00")
+        == "22:00:00"
+    )
     assert _string_default({}, NOTIFICATION_QUIET_END_FIELD, "07:00:00") == "07:00:00"
 
 
@@ -55,7 +58,9 @@ def test_validate_time_input_rejects_invalid_values() -> None:
     with pytest.raises(FlowValidationError) as err:
         _validate_time_input("25:00", NOTIFICATION_QUIET_START_FIELD)
 
-    assert err.value.field_errors == {NOTIFICATION_QUIET_START_FIELD: "quiet_start_invalid"}
+    assert err.value.field_errors == {
+        NOTIFICATION_QUIET_START_FIELD: "quiet_start_invalid"
+    }
 
 
 @pytest.mark.unit
@@ -74,7 +79,9 @@ def test_build_notification_settings_payload_uses_current_defaults() -> None:
         user_input,
         current,
         coerce_bool=lambda value, fallback: fallback if value is None else bool(value),
-        coerce_time_string=lambda value, fallback: fallback if value is None else str(value),
+        coerce_time_string=lambda value, fallback: (
+            fallback if value is None else str(value)
+        ),
     )
 
     assert result[NOTIFICATION_QUIET_HOURS_FIELD] is False
