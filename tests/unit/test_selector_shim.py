@@ -1,5 +1,7 @@
 """Regression tests for the Home Assistant selector compatibility shim."""
 
+from types import SimpleNamespace
+
 import pytest
 
 from custom_components.pawcontrol import selector_shim
@@ -79,3 +81,41 @@ def test_selector_namespace_is_callable() -> None:
     """The selector namespace should also accept schema shorthand calls."""
     config = {"boolean": {}}
     assert selector(config) == config
+
+
+def test_selector_namespace_returns_config_when_factory_missing() -> None:
+    """Namespace should return raw config when no callable factory exists."""
+    namespace = selector_shim._SelectorNamespace(selector=None)
+
+    config = {"text": {"type": "email"}}
+    assert namespace(config) == config
+
+
+def test_supports_selector_callables_success() -> None:
+    """Detect callable selector helpers when instances are validators."""
+
+    class _DummySelector:
+        def __init__(self, _config: object) -> None:
+            pass
+
+        def __call__(self, value: object) -> object:
+            return value
+
+    module = SimpleNamespace(
+        TextSelector=_DummySelector,
+        TextSelectorConfig=lambda: {"multiple": False},
+    )
+
+    assert selector_shim._supports_selector_callables(module)
+
+
+def test_supports_selector_callables_rejects_invalid_module() -> None:
+    """Reject modules that cannot produce callable selector instances."""
+    missing_attrs = SimpleNamespace()
+    assert not selector_shim._supports_selector_callables(missing_attrs)
+
+    exploding_module = SimpleNamespace(
+        TextSelector=lambda _config: (_ for _ in ()).throw(TypeError("boom")),
+        TextSelectorConfig=lambda: {},
+    )
+    assert not selector_shim._supports_selector_callables(exploding_module)

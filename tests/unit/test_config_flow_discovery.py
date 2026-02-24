@@ -212,6 +212,27 @@ async def test_zeroconf_supported_device_includes_optional_metadata() -> None:
 
 
 @pytest.mark.asyncio
+async def test_usb_discovery_continues_to_confirmation_form() -> None:
+    """USB discovery proceeds to confirmation when no existing entry matches."""
+    flow = _DiscoveryFlowHarness()
+
+    result = await flow.async_step_usb(
+        SimpleNamespace(
+            description="USB Tracker",
+            serial_number="SN123",
+            manufacturer="PawControl",
+            vid=1234,
+            pid=5678,
+            device="/dev/ttyUSB0",
+        )
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "discovery_confirm"
+    assert flow.prepared_payloads[0][1] == "usb"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("step", "payload"),
     [
@@ -247,3 +268,55 @@ async def test_discovery_steps_abort_for_unsupported_devices(
     result = await getattr(flow, step)(payload)
 
     assert result == {"type": FlowResultType.ABORT, "reason": "not_supported"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("step", "payload"),
+    [
+        (
+            "async_step_zeroconf",
+            SimpleNamespace(
+                hostname="paw.local",
+                properties={"id": "tracker"},
+                host="192.0.2.11",
+                port=8123,
+                type="_pawcontrol._tcp.local.",
+                name="PawControl Tracker",
+            ),
+        ),
+        (
+            "async_step_dhcp",
+            SimpleNamespace(hostname="paw.local", macaddress="AA:BB", ip="10.0.0.2"),
+        ),
+        (
+            "async_step_usb",
+            SimpleNamespace(
+                description="USB Tracker",
+                serial_number="SN123",
+                manufacturer="PawControl",
+                vid=1234,
+                pid=5678,
+                device="/dev/ttyUSB0",
+            ),
+        ),
+        (
+            "async_step_bluetooth",
+            SimpleNamespace(name="PawTag", address="00:11", service_uuids=["abcd"]),
+        ),
+    ],
+)
+async def test_discovery_steps_return_existing_entry_result(
+    step: str,
+    payload: SimpleNamespace,
+) -> None:
+    """All discovery transports should short-circuit on existing entry results."""
+    flow = _DiscoveryFlowHarness()
+    flow.existing_result = {
+        "type": FlowResultType.ABORT,
+        "reason": "already_configured",
+    }
+
+    result = await getattr(flow, step)(payload)
+
+    assert result == {"type": FlowResultType.ABORT, "reason": "already_configured"}
