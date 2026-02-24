@@ -229,6 +229,7 @@ async def test_usb_discovery_continues_to_confirmation_form() -> None:
 
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "discovery_confirm"
+    assert flow.prepared_payloads[0][1] == "usb"
 
 
 @pytest.mark.asyncio
@@ -289,16 +290,27 @@ async def test_discovery_steps_abort_for_unsupported_devices(
             SimpleNamespace(hostname="paw.local", macaddress="AA:BB", ip="10.0.0.2"),
         ),
         (
+            "async_step_usb",
+            SimpleNamespace(
+                description="USB Tracker",
+                serial_number="SN123",
+                manufacturer="PawControl",
+                vid=1234,
+                pid=5678,
+                device="/dev/ttyUSB0",
+            ),
+        ),
+        (
             "async_step_bluetooth",
             SimpleNamespace(name="PawTag", address="00:11", service_uuids=["abcd"]),
         ),
     ],
 )
-async def test_discovery_steps_return_existing_entry_result_when_available(
+async def test_discovery_steps_return_existing_entry_result(
     step: str,
     payload: SimpleNamespace,
 ) -> None:
-    """Discovery handlers return the existing-entry result without confirmation."""
+    """All discovery transports should short-circuit on existing entry results."""
     flow = _DiscoveryFlowHarness()
     flow.existing_result = {
         "type": FlowResultType.ABORT,
