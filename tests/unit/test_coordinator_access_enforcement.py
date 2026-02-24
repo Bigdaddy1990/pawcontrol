@@ -60,6 +60,18 @@ class TestRequireCoordinator:
         with pytest.raises(CoordinatorAccessViolation, match="Coordinator is None"):
             EmptyCoordinator().wrapped()
 
+    def test_require_coordinator_allows_access_when_coordinator_exists(self) -> None:
+        """Return wrapped value when coordinator is available."""
+
+        class WithCoordinator:
+            coordinator = SimpleNamespace(data={})
+
+            @require_coordinator
+            def wrapped(self, value: str) -> str:
+                return value
+
+        assert WithCoordinator().wrapped("ok") == "ok"
+
 
 class TestRequireCoordinatorData:
     """Tests for require_coordinator_data decorator."""
@@ -92,6 +104,62 @@ class TestRequireCoordinatorData:
 
         assert AllowMissing().wrapped() == "ok"
 
+    def test_require_coordinator_data_missing_args(self) -> None:
+        """Raise when wrapped method is called without self."""
+
+        @require_coordinator_data()
+        def wrapped() -> str:
+            return "ok"
+
+        with pytest.raises(CoordinatorAccessViolation, match="requires self"):
+            wrapped()
+
+    def test_require_coordinator_data_missing_coordinator_attribute(self) -> None:
+        """Raise when instance has no coordinator attribute."""
+
+        class NoCoordinator:
+            entity_id = "sensor.paw"
+            dog_id = "buddy"
+
+            @require_coordinator_data()
+            def wrapped(self) -> str:
+                return "ok"
+
+        with pytest.raises(CoordinatorAccessViolation, match="coordinator") as err:
+            NoCoordinator().wrapped()
+
+        assert err.value.entity_id == "sensor.paw"
+
+    def test_require_coordinator_data_none_coordinator(self) -> None:
+        """Raise when coordinator attribute exists but is None."""
+
+        class NoneCoordinator:
+            entity_id = "sensor.paw"
+            dog_id = "buddy"
+            coordinator = None
+
+            @require_coordinator_data()
+            def wrapped(self) -> str:
+                return "ok"
+
+        with pytest.raises(CoordinatorAccessViolation, match="Coordinator is None"):
+            NoneCoordinator().wrapped()
+
+    def test_require_coordinator_data_missing_dog_data_not_allowed(self) -> None:
+        """Raise when dog data is missing and allow_missing is False."""
+
+        class MissingDogData:
+            entity_id = "sensor.paw"
+            dog_id = "buddy"
+            coordinator = SimpleNamespace(data={})
+
+            @require_coordinator_data()
+            def wrapped(self) -> str:
+                return "ok"
+
+        with pytest.raises(CoordinatorAccessViolation, match="no data for dog"):
+            MissingDogData().wrapped()
+
 
 def test_coordinator_only_property_wraps_validation() -> None:
     """Property should enforce coordinator access checks."""
@@ -105,6 +173,19 @@ def test_coordinator_only_property_wraps_validation() -> None:
 
     with pytest.raises(CoordinatorAccessViolation):
         _ = Entity().status
+
+
+def test_coordinator_only_property_returns_value_when_valid() -> None:
+    """Property should return wrapped function value when coordinator exists."""
+
+    class Entity:
+        coordinator = SimpleNamespace(data={})
+
+        @coordinator_only_property
+        def status(self) -> str:
+            return "ready"
+
+    assert Entity().status == "ready"
 
 
 def test_log_direct_access_warning_includes_recommendation() -> None:
@@ -164,6 +245,19 @@ def test_create_coordinator_access_guard_strict_mode_logs_info() -> None:
 
     assert isinstance(guard, CoordinatorDataProxy)
     logger.info.assert_called_once()
+
+
+def test_create_coordinator_access_guard_monitoring_mode_logs_debug() -> None:
+    """Monitoring mode should emit a debug log and return proxy."""
+    coordinator = SimpleNamespace(data={"buddy": {}})
+
+    with patch(
+        "custom_components.pawcontrol.coordinator_access_enforcement._LOGGER"
+    ) as logger:
+        guard = create_coordinator_access_guard(coordinator, strict_mode=False)
+
+    assert isinstance(guard, CoordinatorDataProxy)
+    logger.debug.assert_called_once()
 
 
 def test_print_access_guidelines_logs_expected_text() -> None:
