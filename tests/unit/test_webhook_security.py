@@ -19,6 +19,7 @@ from custom_components.pawcontrol.webhook_security import (
     WebhookRateLimiter,
     WebhookRequest,
     WebhookSecurityManager,
+    WebhookSecurityError,
     WebhookValidator,
 )
 
@@ -309,3 +310,34 @@ async def test_webhook_security_manager_missing_signature() -> None:
         await manager.async_process_webhook(
             WebhookRequest(payload=b"{}", signature=None, timestamp=0)
         )
+
+
+def test_rate_limiter_enforces_hour_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Rate limiter should also ban when the per-hour threshold is exceeded."""
+    limiter = WebhookRateLimiter(
+        RateLimitConfig(
+            requests_per_minute=10,
+            requests_per_hour=1,
+            ban_duration_seconds=60.0,
+        )
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhook_security.time.time", lambda: 300.0
+    )
+
+    limiter.check_limit("hour-source")
+
+    with pytest.raises(RateLimitError, match="requests/hour"):
+        limiter.check_limit("hour-source")
+
+
+def test_webhook_security_error_and_validator_preserve_scalar_values() -> None:
+    """Webhook-specific errors and scalar payload fields should keep context."""
+    error = WebhookSecurityError("invalid webhook payload")
+    assert "webhook" in str(error)
+
+    validator = WebhookValidator(required_fields=["dog_id"])
+    assert validator.validate_payload({"dog_id": "dog-1", "attempts": 2}) == {
+        "dog_id": "dog-1",
+        "attempts": 2,
+    }
