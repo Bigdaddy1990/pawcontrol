@@ -71,3 +71,142 @@ async def test_async_unload_external_bindings_cleans_up_registered_bindings() ->
     assert unsub_called is True
     assert task.cancelling() > 0
     assert "entry-id" not in hass.data[DOMAIN][external_bindings._STORE_KEY]
+
+
+@pytest.mark.asyncio
+async def test_async_setup_external_bindings_registers_listener_and_forwards_gps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup should subscribe to entity updates and forward valid location data."""
+
+    class _GPSManager:
+        def __init__(self) -> None:
+            self.add_calls: list[dict[str, Any]] = []
+
+        async def async_get_current_location(self, dog_id: str) -> None:
+            return None
+
+        async def async_add_gps_point(self, **kwargs: Any) -> bool:
+            self.add_calls.append(kwargs)
+            return True
+
+    class _Coordinator:
+        def __init__(self, manager: _GPSManager) -> None:
+            self.gps_geofence_manager = manager
+            self.patch_calls: list[str] = []
+
+        async def async_patch_gps_update(self, dog_id: str) -> None:
+            self.patch_calls.append(dog_id)
+
+    gps_manager = _GPSManager()
+    coordinator = _Coordinator(gps_manager)
+    runtime_data = SimpleNamespace(
+        coordinator=coordinator,
+        gps_geofence_manager=None,
+    )
+    monkeypatch.setattr(
+        external_bindings,
+        "require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+
+    async def _no_sleep(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(external_bindings.asyncio, "sleep", _no_sleep)
+
+    callback_box: dict[str, Any] = {}
+    unsub_called = False
+
+    def _track(_hass: Any, entities: list[str], callback: Any) -> Any:
+        nonlocal unsub_called
+        callback_box["entities"] = entities
+        callback_box["callback"] = callback
+
+        def _unsub() -> None:
+            nonlocal unsub_called
+            unsub_called = True
+
+        return _unsub
+
+    monkeypatch.setattr(
+        external_bindings.event_helper,
+        "async_track_state_change_event",
+        _track,
+    )
+
+    hass = SimpleNamespace(data={}, async_create_task=asyncio.create_task)
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={
+            "dogs": [
+                {
+                    "dog_id": "fido",
+                    "gps_config": {"gps_source": "device_tracker.fido"},
+                }
+            ]
+        },
+    )
+
+    await external_bindings.async_setup_external_bindings(hass, entry)
+
+    assert callback_box["entities"] == ["device_tracker.fido"]
+    binding = hass.data[DOMAIN][external_bindings._STORE_KEY]["entry-id"]["fido"]
+    event = SimpleNamespace(
+        data={
+            "new_state": SimpleNamespace(
+                attributes={"latitude": 51.0, "longitude": 7.0, "accuracy": 15}
+            )
+        }
+    )
+    callback_box["callback"](event)
+    assert binding.task is not None
+    await binding.task
+
+    assert gps_manager.add_calls and gps_manager.add_calls[0]["dog_id"] == "fido"
+    assert coordinator.patch_calls == ["fido"]
+
+    await external_bindings.async_unload_external_bindings(hass, entry)
+    assert unsub_called is True
+
+
+@pytest.mark.asyncio
+async def test_async_setup_external_bindings_skips_non_entity_and_manual_sources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Only entity_id-like GPS sources should register listeners."""
+
+    manager = SimpleNamespace()
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(gps_geofence_manager=manager),
+        gps_geofence_manager=manager,
+    )
+    monkeypatch.setattr(
+        external_bindings,
+        "require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+
+    track_calls: list[list[str]] = []
+    monkeypatch.setattr(
+        external_bindings.event_helper,
+        "async_track_state_change_event",
+        lambda _hass, entities, _callback: track_calls.append(entities),
+    )
+
+    hass = SimpleNamespace(data={}, async_create_task=asyncio.create_task)
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={
+            "dogs": [
+                {"dog_id": "d1", "gps_config": {"gps_source": "manual"}},
+                {"dog_id": "d2", "gps_config": {"gps_source": "mqtt"}},
+                {"dog_id": "d3", "gps_config": {"gps_source": "webhook"}},
+                {"dog_id": "d4", "gps_config": {"gps_source": "rawsource"}},
+            ]
+        },
+    )
+
+    await external_bindings.async_setup_external_bindings(hass, entry)
+
+    assert track_calls == []
