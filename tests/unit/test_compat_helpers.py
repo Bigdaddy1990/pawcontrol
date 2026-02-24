@@ -41,8 +41,7 @@ async def test_support_hooks_return_false_for_unknown_or_partial_handlers() -> N
 def test_config_entry_state_from_value_supports_name_and_raw_value() -> None:
     """ConfigEntryState conversion should handle both enum names and values."""
     assert (
-        compat.ConfigEntryState.from_value("loaded")
-        is compat.ConfigEntryState.LOADED
+        compat.ConfigEntryState.from_value("loaded") is compat.ConfigEntryState.LOADED
     )
     assert (
         compat.ConfigEntryState.from_value("SETUP_RETRY")
