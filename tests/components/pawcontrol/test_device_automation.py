@@ -29,6 +29,7 @@ from custom_components.pawcontrol.device_action import (
 from custom_components.pawcontrol.device_automation_helpers import build_unique_id
 from custom_components.pawcontrol.device_condition import (
     async_condition_from_config,
+    async_get_condition_capabilities,
     async_get_conditions,
 )
 from custom_components.pawcontrol.device_trigger import (
@@ -200,6 +201,81 @@ async def test_condition_missing_entity_returns_false(
             CONF_DOMAIN: DOMAIN,
             CONF_TYPE: "needs_walk",
             CONF_ENTITY_ID: "binary_sensor.pawcontrol_buddy_needs_walk",
+        },
+    )
+
+    assert not condition(hass, {})
+
+
+@pytest.mark.asyncio
+async def test_condition_capabilities_status_is_requires_status(
+    hass: HomeAssistant,
+) -> None:
+    """Ensure status conditions expose and validate the status field."""
+    capabilities = await async_get_condition_capabilities(
+        hass,
+        {CONF_TYPE: "status_is"},
+    )
+
+    fields = capabilities["extra_fields"]
+    fields({"status": "sleeping"})
+    with pytest.raises(vol.Invalid):
+        fields({})
+
+    assert await async_get_condition_capabilities(hass, {CONF_TYPE: "needs_walk"}) == {}
+
+
+@pytest.mark.asyncio
+async def test_condition_status_is_uses_runtime_snapshot(
+    hass: HomeAssistant,
+) -> None:
+    """Prefer runtime status snapshot values when evaluating status_is conditions."""
+    device_entry = _register_device(hass)
+    coordinator = Mock()
+    coordinator.get_dog_data.return_value = {
+        "status_snapshot": {"state": "sleeping"},
+    }
+    runtime_data = PawControlRuntimeData(
+        coordinator=coordinator,
+        data_manager=Mock(),
+        notification_manager=Mock(),
+        feeding_manager=AsyncMock(),
+        walk_manager=AsyncMock(),
+        entity_factory=Mock(),
+        entity_profile="standard",
+        dogs=[{"dog_id": DOG_ID, "dog_name": "Buddy"}],
+    )
+    entry = ConfigEntry(entry_id=ENTRY_ID, domain=DOMAIN, data={"dogs": []})
+    store_runtime_data(hass, entry, runtime_data)
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "status_is",
+            "status": "sleeping",
+        },
+    )
+
+    assert condition(hass, {})
+
+
+@pytest.mark.asyncio
+async def test_condition_status_is_missing_status_returns_false(
+    hass: HomeAssistant,
+) -> None:
+    """Return false when status_is does not provide an expected status value."""
+    device_entry = _register_device(hass)
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "status_is",
         },
     )
 
