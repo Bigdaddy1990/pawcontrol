@@ -59,3 +59,37 @@ async def test_api_validation_reports_auth_failure(hass, mock_session) -> None:
     assert result.valid is False
     assert result.authenticated is False
     assert result.error_message == "API token authentication failed"
+
+
+@pytest.mark.asyncio
+async def test_api_validation_reports_timeout(hass, mock_session) -> None:
+    """Timeout failures should map to the dedicated timeout error message."""
+    validator = APIValidator(hass, mock_session)
+    # type: ignore[method-assign]
+    validator._validate_endpoint_format = lambda _endpoint: True
+    validator._test_endpoint_reachability = AsyncMock(  # type: ignore[method-assign]
+        side_effect=TimeoutError,
+    )
+
+    result = await validator.async_validate_api_connection("https://example.com")
+
+    assert result.valid is False
+    assert result.reachable is False
+    assert result.error_message == "API connection timeout"
+
+
+@pytest.mark.asyncio
+async def test_api_validation_reports_unexpected_error(hass, mock_session) -> None:
+    """Unexpected exceptions should be wrapped into a validation error."""
+    validator = APIValidator(hass, mock_session)
+    # type: ignore[method-assign]
+    validator._validate_endpoint_format = lambda _endpoint: True
+    validator._test_endpoint_reachability = AsyncMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError("boom"),
+    )
+
+    result = await validator.async_validate_api_connection("https://example.com")
+
+    assert result.valid is False
+    assert result.reachable is False
+    assert result.error_message == "Validation error: boom"
