@@ -46,14 +46,12 @@ def test_normalize_value_temporal_types() -> None:
 
 def test_normalize_value_recursive_mapping_and_iterables() -> None:
     """Nested mappings, sets, and iterables should normalize recursively."""
-    normalized = normalize_value(
-        {
-            1: ["ok", timedelta(seconds=3)],
-            "set_data": {2, 4},
-            "tuple_data": (date(2024, 12, 31),),
-            "byte_payload": b"ab",
-        }
-    )
+    normalized = normalize_value({
+        1: ["ok", timedelta(seconds=3)],
+        "set_data": {2, 4},
+        "tuple_data": (date(2024, 12, 31),),
+        "byte_payload": b"ab",
+    })
 
     assert normalized["1"] == ["ok", 3.0]
     assert sorted(normalized["set_data"]) == [2, 4]
