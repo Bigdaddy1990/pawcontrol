@@ -74,7 +74,12 @@ def test_coerce_runtime_data_supports_legacy_and_duck_typed_entries() -> None:
     runtime_data = _runtime_data_with_coordinator(SimpleNamespace())
 
     assert _coerce_runtime_data({"runtime_data": runtime_data}) is runtime_data
-    assert _coerce_runtime_data(SimpleNamespace(coordinator=SimpleNamespace())) is not None
+    assert (
+        _coerce_runtime_data(SimpleNamespace(coordinator=SimpleNamespace()))
+        is not None
+    )
+
+
 def test_coerce_runtime_data_supports_reloaded_runtime_classes() -> None:
     """Reloaded runtime dataclass instances should still be accepted."""
     reloaded_runtime_type = type(
@@ -221,14 +226,6 @@ def test_resolve_dog_data_and_status_snapshot_paths() -> None:
     assert fallback_snapshot is not None
     assert fallback_snapshot.get("dog_id") == "max"
     assert fallback_snapshot.get("state") == "at_park"
-
-
-def test_coerce_runtime_data_supports_reloaded_runtime_classes() -> None:
-    """Runtime data coercion should tolerate module reload class identity mismatches."""
-    ReloadedRuntimeData = type("PawControlRuntimeData", (), {})
-    runtime_data = ReloadedRuntimeData()
-
-    assert _coerce_runtime_data(runtime_data) is runtime_data
 
 
 def test_resolve_dog_data_returns_none_when_coordinator_errors() -> None:
