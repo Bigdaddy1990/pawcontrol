@@ -30,6 +30,12 @@ def test_service_guard_result_to_mapping() -> None:
     assert payload["executed"] is False
 
 
+def test_service_guard_result_bool_protocol() -> None:
+    """Guard result instances should mirror the executed boolean state."""
+    assert bool(ServiceGuardResult("notify", "mobile_app", True)) is True
+    assert bool(ServiceGuardResult("notify", "mobile_app", False)) is False
+
+
 def test_service_guard_snapshot_summary_and_metrics() -> None:
     """Snapshots should summarise guard telemetry consistently."""
     results = (
@@ -66,6 +72,43 @@ def test_service_guard_snapshot_summary_and_metrics() -> None:
     assert payload["last_results"][-1]["service"] == "turn_on"
 
 
+def test_service_guard_snapshot_accumulate_handles_invalid_metric_types() -> None:
+    """Accumulate should coerce mixed metric payload values safely."""
+    snapshot = ServiceGuardSnapshot.from_sequence(
+        [
+            ServiceGuardResult("notify", "mobile_app", True),
+            ServiceGuardResult("script", "turn_on", False),
+            ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+        ]
+    )
+
+    metrics: JSONMutableMapping = {
+        "executed": "2",
+        "skipped": True,
+        "reasons": {"cooldown": "bad", "other": 1.5},
+        "last_results": "not-a-list",
+    }
+
+    payload = snapshot.accumulate(metrics)
+
+    assert payload == {
+        "executed": 3,
+        "skipped": 3,
+        "reasons": {"cooldown": 1, "other": 1, "unknown": 1},
+        "last_results": snapshot.history(),
+    }
+
+
+def test_service_guard_snapshot_zero_metrics_shape() -> None:
+    """Zero metrics should include all expected diagnostic keys."""
+    assert ServiceGuardSnapshot.zero_metrics() == {
+        "executed": 0,
+        "skipped": 0,
+        "reasons": {},
+        "last_results": [],
+    }
+
+
 @pytest.mark.parametrize(
     "raw_payload, expected",
     [
@@ -95,3 +138,9 @@ def test_normalise_guard_history_handles_mixed_entries() -> None:
     assert history[0]["executed"] is True
     assert history[1]["domain"] == "script"
     assert history[1]["executed"] is False
+
+
+@pytest.mark.parametrize("payload", ["history", b"history", bytearray(b"history"), 42])
+def test_normalise_guard_history_rejects_non_sequence_payloads(payload: object) -> None:
+    """History normalisation should reject unsupported payload types."""
+    assert normalise_guard_history(payload) == []
