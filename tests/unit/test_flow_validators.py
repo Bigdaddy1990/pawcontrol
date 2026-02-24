@@ -99,10 +99,26 @@ def test_validate_flow_gps_helpers_delegate(monkeypatch: pytest.MonkeyPatch) -> 
         "200", field="radius", min_value=10.0, max_value=500.0
     ) == 200.0
 
-    assert captured["coords"]["latitude"] == 1
-    assert captured["coords"]["longitude_field"] == "longitude"
-    assert captured["accuracy"]["required"] is False
-    assert captured["radius"]["max_value"] == 500.0
+    assert captured["coords"] == {
+        "latitude": 1,
+        "longitude": 2,
+        "latitude_field": "latitude",
+        "longitude_field": "longitude",
+    }
+    assert captured["accuracy"] == {
+        "value": "10",
+        "field": "acc",
+        "min_value": 1.0,
+        "max_value": 20.0,
+        "required": False,
+    }
+    assert captured["radius"] == {
+        "value": "200",
+        "field": "radius",
+        "min_value": 10.0,
+        "max_value": 500.0,
+        "required": True,
+    }
 
 
 def test_validate_flow_interval_helpers_delegate(
@@ -141,9 +157,32 @@ def test_validate_flow_interval_helpers_delegate(
         end_field="end_time",
     ) == ("08:00", "09:00")
 
-    assert captured["gps"]["required"] is True
-    assert captured["interval"]["default"] == 60
-    assert captured["window"]["start_field"] == "start_time"
+    assert captured["gps"] == {
+        "value": "15",
+        "field": "gps_interval",
+        "minimum": 5,
+        "maximum": 60,
+        "required": True,
+        "default": None,
+        "clamp": False,
+    }
+    assert captured["interval"] == {
+        "value": "30",
+        "field": "timer",
+        "minimum": 10,
+        "maximum": 120,
+        "default": 60,
+        "required": False,
+        "clamp": False,
+    }
+    assert captured["window"] == {
+        "start": "08:00",
+        "end": "09:00",
+        "start_field": "start_time",
+        "end_field": "end_time",
+        "default_start": None,
+        "default_end": None,
+    }
 
 
 def test_flow_validators_exports_validation_error() -> None:
