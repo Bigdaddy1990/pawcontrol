@@ -118,6 +118,14 @@ class _UnknownClosedStateSession:
         return "ok"
 
 
+class _InstanceOnlyRequestSession:
+    """Session-like object with only an instance-level sync request method."""
+
+    def __init__(self) -> None:
+        self.closed = False
+        self.request = Mock()
+
+
 @pytest.mark.unit
 def test_ensure_shared_client_session_accepts_wrapped_request(
     http_client_module: ModuleType,
@@ -157,3 +165,16 @@ def test_ensure_shared_client_session_ignores_non_bool_closed_state(
     validated = ensure_shared(session, owner="TestHelper")
 
     assert validated is session
+
+
+@pytest.mark.unit
+def test_ensure_shared_client_session_rejects_instance_only_sync_request(
+    http_client_module: ModuleType,
+) -> None:
+    """Sync request callables without class coroutine metadata must be rejected."""
+    ensure_shared = http_client_module.ensure_shared_client_session
+
+    with pytest.raises(ValueError) as excinfo:
+        ensure_shared(_InstanceOnlyRequestSession(), owner="TestHelper")
+
+    assert "aiohttp-compatible 'request' coroutine" in str(excinfo.value)
