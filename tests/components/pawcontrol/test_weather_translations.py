@@ -1,6 +1,7 @@
 """Tests for weather translation helpers."""
 
 from collections.abc import Mapping
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from custom_components.pawcontrol.weather_translations import (
@@ -43,6 +44,42 @@ def test_get_weather_translations_contains_all_declared_keys() -> None:
 
     assert set(translations["alerts"]) == set(WEATHER_ALERT_KEYS)
     assert set(translations["recommendations"]) == set(WEATHER_RECOMMENDATION_KEYS)
+
+
+def test_load_static_common_translations_returns_empty_when_files_are_missing() -> None:
+    """Missing translation files should produce an empty common lookup."""
+    with patch.object(Path, "exists", return_value=False):
+        from custom_components.pawcontrol import weather_translations as module
+
+        common = module._load_static_common_translations("fr")
+
+    assert common == {}
+
+
+def test_load_static_common_translations_handles_oserror() -> None:
+    """File read errors should be swallowed and treated as missing translations."""
+    with (
+        patch.object(Path, "exists", return_value=True),
+        patch.object(Path, "read_text", side_effect=OSError),
+    ):
+        from custom_components.pawcontrol import weather_translations as module
+
+        common = module._load_static_common_translations("fr")
+
+    assert common == {}
+
+
+def test_load_static_common_translations_handles_invalid_json() -> None:
+    """Invalid translation JSON should fall back to an empty payload."""
+    with (
+        patch.object(Path, "exists", return_value=True),
+        patch.object(Path, "read_text", return_value="{"),
+    ):
+        from custom_components.pawcontrol import weather_translations as module
+
+        common = module._load_static_common_translations("fr")
+
+    assert common == {}
 
 
 async def test_async_get_weather_translations_prefers_requested_then_fallback() -> None:
