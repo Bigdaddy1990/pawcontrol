@@ -218,6 +218,8 @@ def test_validate_flow_time_window_supports_defaults_and_missing_values() -> Non
             end_field="quiet_end",
         )
     assert time_error.value.field == "quiet_start"
+
+
 def test_flow_validator_wrappers_validate_inputs_end_to_end() -> None:
     """Wrappers should enforce core validation constraints without monkeypatching."""
     assert flow_validators.validate_flow_dog_name("  Luna  ") == "Luna"
