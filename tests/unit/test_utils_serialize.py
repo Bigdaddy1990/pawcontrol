@@ -100,6 +100,17 @@ def test_serialize_dataclass_not_dataclass() -> None:
         serialize_dataclass({"name": "Buddy"})
 
 
+def test_serialize_dataclass_rejects_dataclass_type() -> None:
+    """Passing a dataclass type instead of an instance should raise TypeError."""
+
+    @dataclass
+    class Dog:
+        name: str
+
+    with pytest.raises(TypeError, match="received a class"):
+        serialize_dataclass(Dog)
+
+
 def test_serialize_entity_attributes_mixed() -> None:
     """Test entity attributes with mixed types."""
     attrs = {
