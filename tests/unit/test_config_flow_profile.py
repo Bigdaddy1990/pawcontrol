@@ -34,7 +34,9 @@ def test_validate_profile_selection_rejects_profile_missing_from_registry(
     monkeypatch.setattr(config_flow_profile, "ENTITY_PROFILES", patched_profiles)
 
     with pytest.raises(vol.Invalid, match="invalid_profile"):
-        config_flow_profile.validate_profile_selection({"entity_profile": known_profile})
+        config_flow_profile.validate_profile_selection({
+            "entity_profile": known_profile
+        })
 
 
 def test_profile_selector_options_include_value_and_label() -> None:

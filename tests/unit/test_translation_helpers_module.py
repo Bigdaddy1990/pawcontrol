@@ -106,6 +106,17 @@ async def test_async_get_component_translations_handles_ha_exceptions(
     }
 
 
+@pytest.mark.asyncio
+async def test_async_get_component_translations_returns_cached_empty_mapping() -> None:
+    """An explicitly cached empty mapping should be returned without refetching."""
+    cached: dict[str, str] = {}
+    hass = SimpleNamespace(data={"pawcontrol": {"translations": {"de": cached}}})
+
+    result = await translation_helpers.async_get_component_translations(hass, "de")
+
+    assert result is cached
+
+
 def test_cached_lookup_uses_english_fallback() -> None:
     """Synchronous lookup should use English fallback for non-English language."""
     hass = SimpleNamespace(
@@ -120,6 +131,34 @@ def test_cached_lookup_uses_english_fallback() -> None:
 
     assert translations == {"k": "v"}
     assert fallback == {"fallback": "v"}
+
+
+def test_get_cached_component_translations_uses_bundled_when_cache_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing cache entries should fall back to bundled translations."""
+    hass = SimpleNamespace(data={"pawcontrol": {"translations": {}}})
+    monkeypatch.setattr(
+        translation_helpers,
+        "_load_bundled_component_translations",
+        lambda language: {f"component.pawcontrol.common.{language}": "Bundled"},
+    )
+
+    assert translation_helpers.get_cached_component_translations(hass, "de") == {
+        "component.pawcontrol.common.de": "Bundled"
+    }
+
+
+def test_cached_lookup_for_english_reuses_same_mapping() -> None:
+    """English lookup should return the same mapping as fallback."""
+    english = {"component.pawcontrol.common.title": "Title"}
+    hass = SimpleNamespace(data={"pawcontrol": {"translations": {"en": english}}})
+
+    translations, fallback = translation_helpers.get_cached_component_translation_lookup(
+        hass, "en"
+    )
+
+    assert translations is fallback
 
 
 @pytest.mark.asyncio
@@ -207,6 +246,30 @@ def test_load_bundled_component_translations_handles_missing_or_invalid_payload(
     assert translation_helpers._load_bundled_component_translations("es") == {}
     assert translation_helpers._load_bundled_component_translations("fr") == {}
     assert translation_helpers._load_bundled_component_translations("it") == {}
+
+
+def test_load_bundled_component_translations_handles_oserror(
+    tmp_path: pytest.TempPathFactory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """I/O errors while reading bundled files should return an empty mapping."""
+    translation_helpers._load_bundled_component_translations.cache_clear()
+    module_file = tmp_path / "translation_helpers.py"
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "de.json").write_text(
+        '{"common": {"action": "Aktion"}}',
+        encoding="utf-8",
+    )
+    module_file.write_text("", encoding="utf-8")
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    def _raise_oserror(self: object, *_args: object, **_kwargs: object) -> str:
+        raise OSError("denied")
+
+    monkeypatch.setattr(translation_helpers.Path, "read_text", _raise_oserror)
+
+    assert translation_helpers._load_bundled_component_translations("de") == {}
 
 
 def test_component_translation_helpers_resolve_component_key() -> None:
