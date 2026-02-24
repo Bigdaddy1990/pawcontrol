@@ -34,7 +34,9 @@ async def test_async_get_component_translations_uses_ha_then_cache(
     hass = SimpleNamespace(data={})
     calls = 0
 
-    async def fake_async_get_translations(*_args: object, **_kwargs: object) -> dict[str, str]:
+    async def fake_async_get_translations(
+        *_args: object, **_kwargs: object
+    ) -> dict[str, str]:
         nonlocal calls
         calls += 1
         return {"component.pawcontrol.common.title": "Titel"}
@@ -59,10 +61,14 @@ async def test_async_get_component_translations_falls_back_to_bundle(
     """Bundled translations should be used when HA returns no entries."""
     hass = SimpleNamespace(data={})
 
-    async def fake_async_get_translations(*_args: object, **_kwargs: object) -> dict[str, str]:
+    async def fake_async_get_translations(
+        *_args: object, **_kwargs: object
+    ) -> dict[str, str]:
         return {}
 
-    monkeypatch.setattr(translation_helpers, "async_get_translations", fake_async_get_translations)
+    monkeypatch.setattr(
+        translation_helpers, "async_get_translations", fake_async_get_translations
+    )
     monkeypatch.setattr(
         translation_helpers,
         "_load_bundled_component_translations",
@@ -81,10 +87,14 @@ async def test_async_get_component_translations_handles_ha_exceptions(
     """HA exceptions should also route to bundled fallback."""
     hass = SimpleNamespace(data={})
 
-    async def fake_async_get_translations(*_args: object, **_kwargs: object) -> dict[str, str]:
+    async def fake_async_get_translations(
+        *_args: object, **_kwargs: object
+    ) -> dict[str, str]:
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(translation_helpers, "async_get_translations", fake_async_get_translations)
+    monkeypatch.setattr(
+        translation_helpers, "async_get_translations", fake_async_get_translations
+    )
     monkeypatch.setattr(
         translation_helpers,
         "_load_bundled_component_translations",
@@ -99,10 +109,14 @@ async def test_async_get_component_translations_handles_ha_exceptions(
 def test_cached_lookup_uses_english_fallback() -> None:
     """Synchronous lookup should use English fallback for non-English language."""
     hass = SimpleNamespace(
-        data={"pawcontrol": {"translations": {"de": {"k": "v"}, "en": {"fallback": "v"}}}}
+        data={
+            "pawcontrol": {"translations": {"de": {"k": "v"}, "en": {"fallback": "v"}}}
+        }
     )
 
-    translations, fallback = translation_helpers.get_cached_component_translation_lookup(hass, "de")
+    translations, fallback = (
+        translation_helpers.get_cached_component_translation_lookup(hass, "de")
+    )
 
     assert translations == {"k": "v"}
     assert fallback == {"fallback": "v"}
@@ -120,7 +134,10 @@ async def test_async_translation_lookup_reuses_english_mapping(
 
     monkeypatch.setattr(translation_helpers, "async_get_translations", fake_get)
 
-    translations, fallback = await translation_helpers.async_get_component_translation_lookup(hass, "en")
+    (
+        translations,
+        fallback,
+    ) = await translation_helpers.async_get_component_translation_lookup(hass, "en")
 
     assert translations == fallback
 
@@ -133,7 +150,9 @@ async def test_async_preload_component_translations_calls_each_language(
     hass = SimpleNamespace(data={})
     seen: list[str | None] = []
 
-    async def fake_get_component_translations(_hass: object, language: str | None) -> dict[str, str]:
+    async def fake_get_component_translations(
+        _hass: object, language: str | None
+    ) -> dict[str, str]:
         seen.append(language)
         return {}
 
@@ -143,7 +162,9 @@ async def test_async_preload_component_translations_calls_each_language(
         fake_get_component_translations,
     )
 
-    await translation_helpers.async_preload_component_translations(hass, ["de", None, "en"])
+    await translation_helpers.async_preload_component_translations(
+        hass, ["de", None, "en"]
+    )
 
     assert seen == ["de", None, "en"]
 
@@ -193,5 +214,7 @@ def test_component_translation_helpers_resolve_component_key() -> None:
     key = translation_helpers.component_translation_key("action")
     assert key == "component.pawcontrol.common.action"
 
-    resolved = translation_helpers.resolve_component_translation({key: "Aktion"}, {}, "action")
+    resolved = translation_helpers.resolve_component_translation(
+        {key: "Aktion"}, {}, "action"
+    )
     assert resolved == "Aktion"
