@@ -10,6 +10,10 @@ from collections.abc import Generator
 import importlib
 from pathlib import Path
 import sys
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
+import coverage
 
 
 class _DummyParser:
@@ -34,6 +38,12 @@ class _DummyConfig:
 
     def addinivalue_line(self, name: str, line: str) -> None:
         self.markers.append((name, line))
+
+
+class _DummySession:
+    def __init__(self, option: SimpleNamespace) -> None:
+        self.config = SimpleNamespace(option=option)
+        self.exitstatus = 0
 
 
 def _reload(module_name: str):
@@ -74,6 +84,22 @@ def test_pytest_cov_plugin_registers_marker() -> None:
     pytest_cov_plugin.pytest_configure(config)
 
     assert ("markers", "cov: dummy marker for pytest-cov shim") in config.markers
+
+
+def test_pytest_cov_plugin_registers_options() -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    parser = _DummyParser()
+    pytest_cov_plugin.pytest_addoption(parser)
+
+    option_names = {name for name, _kwargs in parser.options}
+    assert {
+        "--cov",
+        "--cov-report",
+        "--cov-branch",
+        "--cov-fail-under",
+        "--no-cov-on-fail",
+    } <= option_names
 
 
 def test_pytest_cov_source_aliases_include_dotted_packages() -> None:
@@ -132,6 +158,83 @@ def test_pytest_cov_split_report_target_keeps_file_target() -> None:
 
     assert report_type == "xml"
     assert report_target == "cov.xml"
+
+
+def test_pytest_cov_session_hooks_generate_xml_and_cleanup(tmp_path: Path) -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    measured_file = tmp_path / "sample.py"
+    measured_file.write_text("VALUE = 1\n", encoding="utf-8")
+
+    option = SimpleNamespace(
+        cov=[str(measured_file)],
+        cov_branch=False,
+        cov_report=[f"xml:{tmp_path / 'cov.xml'}"],
+        cov_fail_under=0.0,
+        no_cov_on_fail=False,
+    )
+    session = _DummySession(option)
+
+    cov = Mock(spec=coverage.Coverage)
+    cov.xml_report.side_effect = lambda outfile, include=None: Path(outfile).write_text(
+        "<coverage/>", encoding="utf-8"
+    )
+    with patch.object(pytest_cov_plugin.coverage, "Coverage", return_value=cov):
+        pytest_cov_plugin.pytest_sessionstart(session)
+        pytest_cov_plugin.pytest_sessionfinish(session, 0)
+
+    xml_path = tmp_path / "cov.xml"
+    assert xml_path.exists()
+
+    pytest_cov_plugin.pytest_unconfigure(session.config)
+    assert not hasattr(session.config, "_pawcontrol_cov")
+
+
+def test_pytest_cov_controller_synthesizes_lines_for_explicit_files(
+    tmp_path: Path,
+) -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    measured_file = tmp_path / "standalone.py"
+    measured_file.write_text("X = 1\n# comment\nY = 2\n", encoding="utf-8")
+    option = SimpleNamespace(cov_sources=[str(measured_file)], cov_branch=False)
+    config = SimpleNamespace(option=option)
+
+    fake_data = Mock()
+    fake_data.measured_files.return_value = []
+    fake_cov = Mock(spec=coverage.Coverage)
+    fake_cov.get_data.return_value = fake_data
+
+    with patch.object(pytest_cov_plugin.coverage, "Coverage", return_value=fake_cov):
+        controller = pytest_cov_plugin._CoverageController(config)
+        controller.pytest_configure(config)
+        controller.pytest_sessionfinish(object(), 0)
+
+    assert fake_data.add_lines.called
+    added_lines = fake_data.add_lines.call_args.args[0]
+    assert str(measured_file.resolve()) in added_lines
+    assert added_lines[str(measured_file.resolve())] == {1, 3}
+
+
+def test_pytest_cov_fail_under_sets_session_failure() -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    option = SimpleNamespace(
+        cov=[],
+        cov_branch=False,
+        cov_report=["term"],
+        cov_fail_under=100.0,
+        no_cov_on_fail=False,
+    )
+    session = _DummySession(option)
+    cov = Mock(spec=coverage.Coverage)
+    cov.report.return_value = 0.0
+    session.config._pawcontrol_cov = cov
+    session.config._pawcontrol_cov_include = None
+
+    pytest_cov_plugin.pytest_sessionfinish(session, 0)
+
+    assert session.exitstatus == 1
 
 
 def test_pytest_homeassistant_shim_registers_marker() -> None:
