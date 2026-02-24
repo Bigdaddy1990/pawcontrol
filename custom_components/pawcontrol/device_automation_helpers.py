@@ -71,17 +71,12 @@ def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
 
     if isinstance(value, DomainRuntimeStoreEntry):
         return value.unwrap()
-
-    if value_cls is None:
-        return None
-
-    if (
-        getattr(value_cls, "__name__", "") == "DomainRuntimeStoreEntry"
-        and getattr(value_cls, "__module__", "") == DomainRuntimeStoreEntry.__module__
-    ):
-        runtime_value = getattr(value, "runtime_data", None)
-        return _coerce_runtime_data(runtime_value)
-
+    if isinstance(value, Mapping):
+        legacy_runtime_data = value.get("runtime_data")
+        if isinstance(legacy_runtime_data, PawControlRuntimeData):
+            return legacy_runtime_data
+    if getattr(value, "coordinator", None) is not None:
+        return value  # type: ignore[return-value]
     return None
 
 
