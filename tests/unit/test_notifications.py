@@ -17,8 +17,8 @@ from unittest.mock import AsyncMock, Mock, call
 
 import pytest
 
-from custom_components.pawcontrol.coordinator_support import CacheMonitorRegistrar
 from custom_components.pawcontrol import notifications as notifications_module
+from custom_components.pawcontrol.coordinator_support import CacheMonitorRegistrar
 from custom_components.pawcontrol.notifications import (
     RETRY_DELAY_SECONDS,
     NotificationChannel,

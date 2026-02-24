@@ -175,7 +175,6 @@ async def test_async_setup_external_bindings_skips_non_entity_and_manual_sources
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Only entity_id-like GPS sources should register listeners."""
-
     manager = SimpleNamespace()
     runtime_data = SimpleNamespace(
         coordinator=SimpleNamespace(gps_geofence_manager=manager),
