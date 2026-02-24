@@ -213,7 +213,7 @@ async def test_zeroconf_supported_device_includes_optional_metadata() -> None:
 
 @pytest.mark.asyncio
 async def test_usb_discovery_continues_to_confirmation_form() -> None:
-    """USB discovery should continue to the confirmation form when entry is new."""
+    """USB discovery proceeds to confirmation when no existing entry matches."""
     flow = _DiscoveryFlowHarness()
 
     result = await flow.async_step_usb(
