@@ -75,8 +75,7 @@ def test_coerce_runtime_data_supports_legacy_and_duck_typed_entries() -> None:
 
     assert _coerce_runtime_data({"runtime_data": runtime_data}) is runtime_data
     assert (
-        _coerce_runtime_data(SimpleNamespace(coordinator=SimpleNamespace()))
-        is not None
+        _coerce_runtime_data(SimpleNamespace(coordinator=SimpleNamespace())) is not None
     )
 
 

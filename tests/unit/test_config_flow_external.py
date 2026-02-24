@@ -6,7 +6,6 @@ from types import MappingProxyType, SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
 
 from custom_components.pawcontrol.config_flow_external import (
     ExternalEntityConfigurationMixin,
@@ -24,6 +23,7 @@ from custom_components.pawcontrol.types import (
     DogModulesConfig,
     ExternalEntityConfig,
 )
+from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
 
 
 class _FakeStates(dict[str, SimpleNamespace]):

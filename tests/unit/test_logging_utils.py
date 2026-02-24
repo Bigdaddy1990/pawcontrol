@@ -1,7 +1,5 @@
 """Tests for logging utility helpers."""
 
-from __future__ import annotations
-
 import logging
 import sys
 import types
@@ -34,7 +32,9 @@ def test_redact_value_masks_sensitive_key() -> None:
     assert logging_utils.redact_value("dog_name", "Milo") == "Milo"
 
 
-def test_structured_logger_emits_formatted_context_and_redacts(caplog: pytest.LogCaptureFixture) -> None:
+def test_structured_logger_emits_formatted_context_and_redacts(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Structured context should be appended and sensitive keys masked."""
     logger = logging_utils.StructuredLogger("pawcontrol.test.logging")
 
@@ -46,7 +46,9 @@ def test_structured_logger_emits_formatted_context_and_redacts(caplog: pytest.Lo
     assert "age=4" in caplog.text
 
 
-def test_structured_logger_fallback_for_type_error(caplog: pytest.LogCaptureFixture) -> None:
+def test_structured_logger_fallback_for_type_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Bad %-style formatting should fall back without raising."""
     logger = logging_utils.StructuredLogger("pawcontrol.test.typeerror")
 
@@ -57,7 +59,9 @@ def test_structured_logger_fallback_for_type_error(caplog: pytest.LogCaptureFixt
     assert "field='x'" in caplog.text
 
 
-def test_structured_logger_fallback_for_value_error(caplog: pytest.LogCaptureFixture) -> None:
+def test_structured_logger_fallback_for_value_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Invalid formatting string should be handled via fallback path."""
     logger = logging_utils.StructuredLogger("pawcontrol.test.valueerror")
 
@@ -95,7 +99,6 @@ def test_strip_url_credentials_fallback_on_parse_error(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Unexpected parser failures should keep URL and emit debug telemetry."""
-
     yarl_stub = types.ModuleType("yarl")
 
     def _boom(_url: str) -> object:
@@ -104,7 +107,9 @@ def test_strip_url_credentials_fallback_on_parse_error(
     yarl_stub.URL = _boom
     monkeypatch.setitem(sys.modules, "yarl", yarl_stub)
 
-    with caplog.at_level(logging.DEBUG, logger="custom_components.pawcontrol.logging_utils"):
+    with caplog.at_level(
+        logging.DEBUG, logger="custom_components.pawcontrol.logging_utils"
+    ):
         result = logging_utils._strip_url_credentials("https://example.com")
 
     assert result == "https://example.com"

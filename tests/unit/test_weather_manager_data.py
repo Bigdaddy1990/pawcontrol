@@ -13,7 +13,6 @@ import homeassistant.const as ha_const
 from homeassistant.core import HomeAssistant
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from tests.weather_test_support import ensure_weather_module_compat
 
 from custom_components.pawcontrol import weather_translations
 from custom_components.pawcontrol.const import (
@@ -27,6 +26,7 @@ from custom_components.pawcontrol.const import (
 from custom_components.pawcontrol.module_adapters import WeatherModuleAdapter
 from custom_components.pawcontrol.types import PawControlConfigEntry
 from custom_components.pawcontrol.weather_translations import WeatherTranslations
+from tests.weather_test_support import ensure_weather_module_compat
 
 UnitOfTemperature = ensure_weather_module_compat()
 STATE_UNAVAILABLE = ha_const.STATE_UNAVAILABLE

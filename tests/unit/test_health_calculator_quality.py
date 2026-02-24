@@ -3,13 +3,13 @@
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
+
+from custom_components.pawcontrol.types import DietValidationResult, FeedingHistoryEvent
 from tests.unit.test_health_metrics import (
     HealthCalculator,
     HealthMetrics,
     health_calculator,
 )
-
-from custom_components.pawcontrol.types import DietValidationResult, FeedingHistoryEvent
 
 dt_util = health_calculator.dt_util  # type: ignore[attr-defined]
 ActivityLevel = health_calculator.ActivityLevel

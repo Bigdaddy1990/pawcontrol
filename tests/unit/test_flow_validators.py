@@ -1,7 +1,5 @@
 """Tests for flow-level validation wrapper helpers."""
 
-from __future__ import annotations
-
 from typing import Any
 
 import pytest
@@ -11,7 +9,6 @@ from custom_components.pawcontrol import flow_validators
 
 def test_validate_flow_dog_name_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
     """Dog-name flow helper should delegate to validate_dog_name."""
-
     captured: dict[str, Any] = {}
 
     def _fake_validate(name: Any, *, field: str, required: bool) -> str | None:
@@ -29,7 +26,6 @@ def test_validate_flow_dog_name_delegates(monkeypatch: pytest.MonkeyPatch) -> No
 
 def test_validate_flow_gps_helpers_delegate(monkeypatch: pytest.MonkeyPatch) -> None:
     """GPS flow helpers should pass through arguments to InputValidator."""
-
     captured: dict[str, Any] = {}
 
     def _fake_coords(
@@ -92,12 +88,18 @@ def test_validate_flow_gps_helpers_delegate(monkeypatch: pytest.MonkeyPatch) -> 
     )
 
     assert flow_validators.validate_flow_gps_coordinates(1, 2) == (51.5, -0.1)
-    assert flow_validators.validate_flow_gps_accuracy(
-        "10", field="acc", min_value=1.0, max_value=20.0, required=False
-    ) == 10.5
-    assert flow_validators.validate_flow_geofence_radius(
-        "200", field="radius", min_value=10.0, max_value=500.0
-    ) == 200.0
+    assert (
+        flow_validators.validate_flow_gps_accuracy(
+            "10", field="acc", min_value=1.0, max_value=20.0, required=False
+        )
+        == 10.5
+    )
+    assert (
+        flow_validators.validate_flow_geofence_radius(
+            "200", field="radius", min_value=10.0, max_value=500.0
+        )
+        == 200.0
+    )
 
     assert captured["coords"] == {
         "latitude": 1,
@@ -125,7 +127,6 @@ def test_validate_flow_interval_helpers_delegate(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Interval and time-window helpers should delegate to validation module."""
-
     captured: dict[str, Any] = {}
 
     def _fake_gps_interval(value: Any, **kwargs: Any) -> int | None:
@@ -144,12 +145,18 @@ def test_validate_flow_interval_helpers_delegate(
     monkeypatch.setattr(flow_validators, "validate_interval", _fake_interval)
     monkeypatch.setattr(flow_validators, "validate_time_window", _fake_time_window)
 
-    assert flow_validators.validate_flow_gps_interval(
-        "15", field="gps_interval", minimum=5, maximum=60, required=True
-    ) == 15
-    assert flow_validators.validate_flow_timer_interval(
-        "30", field="timer", minimum=10, maximum=120, default=60
-    ) == 30
+    assert (
+        flow_validators.validate_flow_gps_interval(
+            "15", field="gps_interval", minimum=5, maximum=60, required=True
+        )
+        == 15
+    )
+    assert (
+        flow_validators.validate_flow_timer_interval(
+            "30", field="timer", minimum=10, maximum=120, default=60
+        )
+        == 30
+    )
     assert flow_validators.validate_flow_time_window(
         "08:00",
         "09:00",
@@ -187,6 +194,5 @@ def test_validate_flow_interval_helpers_delegate(
 
 def test_flow_validators_exports_validation_error() -> None:
     """The compatibility export list should include ValidationError."""
-
     assert "ValidationError" in flow_validators.__all__
     assert flow_validators.ValidationError.__name__ == "ValidationError"
