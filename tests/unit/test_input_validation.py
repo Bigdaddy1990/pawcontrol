@@ -30,6 +30,20 @@ def test_sanitize_sql_escapes_quotes_and_blocks_injection() -> None:
         sanitizer.sanitize_sql("users; DELETE FROM accounts")
 
 
+def test_sanitize_html_and_string_filters() -> None:
+    sanitizer = InputSanitizer()
+
+    assert sanitizer.sanitize_html("<b>Hi</b>") == "&lt;b&gt;Hi&lt;/b&gt;"
+    assert (
+        sanitizer.sanitize_string(
+            "  abc$%\x01\n  ",
+            allowed_chars=r"a-zA-Z ",
+            strip_whitespace=False,
+        )
+        == "  abc  "
+    )
+
+
 def test_sanitize_url_rejects_invalid_protocols() -> None:
     sanitizer = InputSanitizer()
 
@@ -43,6 +57,18 @@ def test_sanitize_url_rejects_invalid_protocols() -> None:
 
     with pytest.raises(ValidationError, match="JavaScript protocol"):
         sanitizer.sanitize_url("https://example.com/javascript:alert(1)")
+
+
+def test_sanitize_url_wraps_parse_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    sanitizer = InputSanitizer()
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.input_validation.urllib.parse.urlparse",
+        lambda _: (_ for _ in ()).throw(ValueError("broken parser")),
+    )
+
+    with pytest.raises(ValidationError, match="URL could not be parsed"):
+        sanitizer.sanitize_url("https://example.com")
 
 
 def test_sanitize_path_rejects_traversal_and_normalizes() -> None:
@@ -89,6 +115,41 @@ def test_validator_integer_float_and_dict_paths() -> None:
         "website": "https://example.com",
         "passthrough": "value",
     }
+
+
+def test_validator_email_phone_string_and_invalid_dict() -> None:
+    validator = InputValidator()
+
+    assert validator.validate_email("user@example.com").is_valid
+    invalid_email = validator.validate_email("user@@bad")
+    assert not invalid_email.is_valid
+
+    valid_phone = validator.validate_phone("+1 (555) 123-1234")
+    assert valid_phone.is_valid
+    assert valid_phone.sanitized_value == "+1 (555) 123-1234"
+    invalid_phone = validator.validate_phone("12")
+    assert not invalid_phone.is_valid
+
+    string_result = validator.validate_string(
+        " a1 ",
+        min_length=3,
+        max_length=4,
+        pattern=r"^[a-z]+$",
+    )
+    assert not string_result.is_valid
+    assert len(string_result.errors) == 2
+
+    invalid_schema = {
+        "required_field": {"type": "int", "required": True},
+        "website": {"type": "url"},
+    }
+    dict_result = validator.validate_dict(
+        {"website": "ftp://example.com"},
+        invalid_schema,
+    )
+    assert not dict_result.is_valid
+    assert "Missing required field: required_field" in dict_result.errors
+    assert any(error.startswith("website:") for error in dict_result.errors)
 
 
 def test_validate_and_sanitize_success_and_failure() -> None:
