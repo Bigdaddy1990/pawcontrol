@@ -77,6 +77,13 @@ RuntimeDataUnavailableError = runtime_module.RuntimeDataUnavailableError
 RuntimeDataIncompatibleError = runtime_module.RuntimeDataIncompatibleError
 pop_runtime_data = runtime_module.pop_runtime_data
 _cleanup_domain_store = runtime_module._cleanup_domain_store
+_get_domain_store = runtime_module._get_domain_store
+_as_runtime_data = runtime_module._as_runtime_data
+_as_store_entry = runtime_module._as_store_entry
+_coerce_version = runtime_module._coerce_version
+_detach_runtime_from_entry = runtime_module._detach_runtime_from_entry
+_stamp_runtime_schema = runtime_module._stamp_runtime_schema
+_normalise_store_entry = runtime_module._normalise_store_entry
 describe_runtime_store_status = runtime_module.describe_runtime_store_status
 
 
@@ -731,8 +738,8 @@ def test_get_runtime_data_upgrades_legacy_runtime_schema(
     entry = _entry("legacy-runtime-schema")
     hass = _build_hass(entries={entry.entry_id: entry}, data={})
 
-    delattr(runtime_data, "schema_version")
-    delattr(runtime_data, "schema_created_version")
+    runtime_data.schema_version = None
+    runtime_data.schema_created_version = None
     entry.runtime_data = runtime_data
 
     resolved = get_runtime_data(hass, entry.entry_id)
@@ -787,3 +794,303 @@ def test_get_runtime_data_detects_future_runtime_schema_in_store(
     domain_store = hass.data.get(DOMAIN)
     if isinstance(domain_store, dict):
         assert entry.entry_id not in domain_store
+
+
+def test_private_helpers_handle_unexpected_shapes(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """Private coercion helpers should reject unsupported payload shapes."""
+
+    class _NoClassAccess:
+        def __getattribute__(self, name: str) -> object:
+            if name == "__class__":
+                return None
+            return super().__getattribute__(name)
+
+    class _WrongModuleRuntime:
+        pass
+
+    _WrongModuleRuntime.__name__ = "PawControlRuntimeData"
+    _WrongModuleRuntime.__module__ = "not.pawcontrol.types"
+
+    wrong_runtime = _WrongModuleRuntime()
+    wrong_runtime.coordinator = runtime_data.coordinator
+
+    assert _as_runtime_data(_NoClassAccess()) is None
+    assert _as_runtime_data(wrong_runtime) is None
+
+    assert _as_store_entry(_NoClassAccess()) is None
+    assert _as_store_entry({"runtime_data": object()}) is None
+    assert _as_store_entry("plain-string") is None
+
+    class _WrongStoreModule:
+        runtime_data = runtime_data
+
+    _WrongStoreModule.__name__ = "DomainRuntimeStoreEntry"
+    _WrongStoreModule.__module__ = "not.pawcontrol.types"
+
+    assert _as_store_entry(_WrongStoreModule()) is None
+
+    class _StoreWithoutRuntime:
+        runtime_data = object()
+
+    _StoreWithoutRuntime.__name__ = "DomainRuntimeStoreEntry"
+    _StoreWithoutRuntime.__module__ = DomainRuntimeStoreEntryType.__module__
+
+    assert _as_store_entry(_StoreWithoutRuntime()) is None
+
+    class _StoreWithoutVersion:
+        pass
+
+    _StoreWithoutVersion.__name__ = "DomainRuntimeStoreEntry"
+    _StoreWithoutVersion.__module__ = DomainRuntimeStoreEntryType.__module__
+    store_without_version = _StoreWithoutVersion()
+    store_without_version.runtime_data = runtime_data
+
+    coerced = _as_store_entry(store_without_version)
+    assert coerced is not None
+    assert coerced.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
+
+
+def test_get_domain_store_initializes_missing_hass_data() -> None:
+    """Domain-store lookup should initialise mutable hass.data when requested."""
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_get_entry=lambda _id: None)
+    )
+
+    assert _get_domain_store(hass, create=False) is None
+
+    store = _get_domain_store(hass, create=True)
+    assert store == {}
+    assert isinstance(hass.data, dict)
+
+
+def test_coerce_version_rejects_bool_values() -> None:
+    """Boolean values should never be accepted as schema versions."""
+    assert _coerce_version(True) is None
+    assert _coerce_version(False) is None
+
+
+def test_detach_runtime_from_entry_handles_none() -> None:
+    """Detaching runtime metadata should be a no-op for missing entries."""
+    _detach_runtime_from_entry(None)
+
+
+def test_get_runtime_data_raises_on_future_entry_schema_when_requested(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """get_runtime_data should re-raise incompatible entry schemas on demand."""
+    future_version = DomainRuntimeStoreEntryType.CURRENT_VERSION + 1
+    entry = _entry("future-entry-raise")
+    hass = _build_hass(entries={entry.entry_id: entry}, data={})
+
+    entry.runtime_data = runtime_data
+    runtime_data.schema_version = future_version
+    runtime_data.schema_created_version = future_version
+
+    with pytest.raises(RuntimeDataIncompatibleError):
+        get_runtime_data(hass, entry.entry_id, raise_on_incompatible=True)
+
+
+def test_get_runtime_data_raises_on_normalization_failure(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """Raised incompatibilities should propagate when normalization fails."""
+    future_version = DomainRuntimeStoreEntryType.CURRENT_VERSION + 2
+    entry = _entry("future-normalization-raise")
+    hass = _build_hass(entries={entry.entry_id: entry}, data={})
+
+    entry.runtime_data = runtime_data
+    entry._pawcontrol_runtime_store_version = future_version
+    entry._pawcontrol_runtime_store_created_version = future_version
+
+    with pytest.raises(RuntimeDataIncompatibleError):
+        get_runtime_data(hass, entry.entry_id, raise_on_incompatible=True)
+
+
+def test_describe_runtime_store_status_handles_mapping_store_payload(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """Mapping-based store payloads should be reflected in status snapshots."""
+    entry = _entry("mapping-status")
+    hass = _build_hass(
+        entries={entry.entry_id: entry},
+        data={
+            DOMAIN: {
+                entry.entry_id: {
+                    "runtime_data": runtime_data,
+                    "version": DomainRuntimeStoreEntryType.MINIMUM_COMPATIBLE_VERSION,
+                    "created_version": (
+                        DomainRuntimeStoreEntryType.MINIMUM_COMPATIBLE_VERSION
+                    ),
+                },
+            },
+        },
+    )
+
+    snapshot = describe_runtime_store_status(hass, entry.entry_id)
+
+    assert snapshot["store"]["available"] is True
+    assert snapshot["store"]["status"] == "upgrade_pending"
+    assert snapshot["status"] == "needs_migration"
+
+
+def test_describe_runtime_store_status_detached_store(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """Entry-only runtime data should report a detached-store condition."""
+    entry = _entry("detached-store")
+    hass = _build_hass(entries={entry.entry_id: entry}, data={})
+
+    entry.runtime_data = runtime_data
+    entry._pawcontrol_runtime_store_version = (
+        DomainRuntimeStoreEntryType.CURRENT_VERSION
+    )
+    entry._pawcontrol_runtime_store_created_version = (
+        DomainRuntimeStoreEntryType.CURRENT_VERSION
+    )
+
+    snapshot = describe_runtime_store_status(hass, entry.entry_id)
+
+    assert snapshot["entry"]["status"] == "current"
+    assert snapshot["store"]["status"] == "missing"
+    assert snapshot["status"] == "detached_store"
+
+
+def test_pop_runtime_data_handles_incompatible_entry_and_store(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """Pop should clear incompatible payloads without bubbling errors."""
+    future_version = DomainRuntimeStoreEntryType.CURRENT_VERSION + 4
+    entry = _entry("pop-incompatible")
+    hass = _build_hass(
+        entries={entry.entry_id: entry},
+        data={
+            DOMAIN: {
+                entry.entry_id: {
+                    "runtime_data": runtime_data,
+                    "version": future_version,
+                    "created_version": future_version,
+                },
+            },
+        },
+    )
+
+    entry.runtime_data = runtime_data
+    entry._pawcontrol_runtime_store_version = future_version
+    entry._pawcontrol_runtime_store_created_version = future_version
+
+    assert pop_runtime_data(hass, entry.entry_id) is None
+    assert DOMAIN not in hass.data
+
+
+def test_stamp_runtime_schema_defaults_and_upgrades_legacy_values(
+    runtime_data: PawControlRuntimeDataType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Schema stamping should backfill missing fields and upgrade legacy values."""
+    runtime_data.schema_version = None
+    runtime_data.schema_created_version = None
+
+    schema_version, created_version = _stamp_runtime_schema(
+        "legacy-default", runtime_data
+    )
+
+    assert schema_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
+    assert created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
+
+    runtime_data.schema_version = DomainRuntimeStoreEntryType.MINIMUM_COMPATIBLE_VERSION
+    runtime_data.schema_created_version = 1
+
+    schema_version, created_version = _stamp_runtime_schema(
+        "legacy-upgrade", runtime_data
+    )
+
+    assert schema_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
+    assert created_version == DomainRuntimeStoreEntryType.MINIMUM_COMPATIBLE_VERSION
+
+
+def test_describe_runtime_store_status_reports_legacy_upgrade_required(
+    runtime_data: PawControlRuntimeDataType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Created-version drift below minimum should report legacy upgrade status."""
+    monkeypatch.setattr(
+        runtime_module.DomainRuntimeStoreEntry,
+        "MINIMUM_COMPATIBLE_VERSION",
+        DomainRuntimeStoreEntryType.CURRENT_VERSION + 1,
+    )
+    entry = _entry("legacy-upgrade-required")
+    hass = _build_hass(
+        entries={entry.entry_id: entry},
+        data={
+            DOMAIN: {
+                entry.entry_id: {
+                    "runtime_data": runtime_data,
+                    "version": DomainRuntimeStoreEntryType.CURRENT_VERSION,
+                    "created_version": 1,
+                },
+            },
+        },
+    )
+
+    snapshot = describe_runtime_store_status(hass, entry.entry_id)
+
+    assert snapshot["store"]["status"] == "legacy_upgrade_required"
+    assert snapshot["status"] == "needs_migration"
+
+
+def test_get_runtime_data_cleans_up_invalid_store_entries() -> None:
+    """Invalid store values should be evicted from hass.data on lookup."""
+    entry_id = "invalid-store-value"
+    hass = _build_hass(data={DOMAIN: {entry_id: object()}}, entries={})
+
+    assert get_runtime_data(hass, entry_id) is None
+    assert DOMAIN not in hass.data
+
+
+def test_pop_runtime_data_handles_incompatible_entry_payload(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """Incompatible entry payloads should be swallowed by pop helper."""
+    future_version = DomainRuntimeStoreEntryType.CURRENT_VERSION + 5
+    entry = _entry("pop-incompatible-entry")
+    hass = _build_hass(entries={entry.entry_id: entry}, data={})
+
+    entry.runtime_data = runtime_data
+    runtime_data.schema_version = future_version
+    runtime_data.schema_created_version = future_version
+
+    assert pop_runtime_data(hass, entry) is None
+
+
+def test_normalise_store_entry_respects_minimum_compatibility_override(
+    runtime_data: PawControlRuntimeDataType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Normalization should clamp created-version to the compatibility floor."""
+    minimum = DomainRuntimeStoreEntryType.CURRENT_VERSION + 1
+    monkeypatch.setattr(
+        runtime_module.DomainRuntimeStoreEntry,
+        "MINIMUM_COMPATIBLE_VERSION",
+        minimum,
+    )
+    monkeypatch.setattr(
+        runtime_module,
+        "_stamp_runtime_schema",
+        lambda _entry_id, _runtime_data: (
+            DomainRuntimeStoreEntryType.CURRENT_VERSION,
+            DomainRuntimeStoreEntryType.CURRENT_VERSION,
+        ),
+    )
+
+    store_entry = DomainRuntimeStoreEntryType(
+        runtime_data=runtime_data,
+        version=DomainRuntimeStoreEntryType.CURRENT_VERSION,
+        created_version=DomainRuntimeStoreEntryType.CURRENT_VERSION,
+    )
+
+    normalized = _normalise_store_entry("compat-override", store_entry)
+
+    assert normalized.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
+    assert normalized.created_version == minimum
