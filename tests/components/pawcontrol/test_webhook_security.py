@@ -17,6 +17,15 @@ from custom_components.pawcontrol.webhook_security import (
 )
 
 
+def test_webhook_security_error_is_validation_error() -> None:
+    """Webhook-specific errors should expose the webhook validation field."""
+    from custom_components.pawcontrol.webhook_security import WebhookSecurityError
+
+    error = WebhookSecurityError("bad payload")
+
+    assert error.field == "webhook"
+
+
 def test_webhook_authenticator_validates_signature() -> None:
     """Authenticator should accept the generated HMAC signature."""
     auth = WebhookAuthenticator(secret="test-secret")
@@ -24,6 +33,14 @@ def test_webhook_authenticator_validates_signature() -> None:
     signature, timestamp = auth.generate_signature(b'{"event":"walk"}')
 
     assert auth.verify_signature(b'{"event":"walk"}', signature, timestamp)
+
+
+def test_webhook_authenticator_rejects_unknown_hash_algorithm() -> None:
+    """Authenticator should fail fast for unsupported digest algorithms."""
+    auth = WebhookAuthenticator(secret="test-secret", algorithm="sha999")
+
+    with pytest.raises(ValueError, match="Unsupported HMAC algorithm"):
+        auth.generate_signature(b"{}", 100.0)
 
 
 def test_webhook_authenticator_rejects_old_timestamp(
@@ -137,3 +154,46 @@ def test_webhook_authenticator_missing_signature_is_rejected() -> None:
 
     with pytest.raises(AuthenticationError, match="Missing signature"):
         auth.verify_request(request)
+
+
+def test_webhook_authenticator_rejects_invalid_signature(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid signatures should fail verification."""
+    auth = WebhookAuthenticator(secret="test-secret")
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhook_security.time.time",
+        lambda: 100.0,
+    )
+
+    with pytest.raises(AuthenticationError, match="Invalid signature"):
+        auth.verify_signature(b"{}", "not-a-real-signature", 100.0)
+
+
+def test_webhook_rate_limiter_enforces_hour_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Hour-based limits should ban sources once the threshold is exceeded."""
+    now = [1000.0]
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhook_security.time.time",
+        lambda: now[0],
+    )
+    limiter = WebhookRateLimiter(
+        RateLimitConfig(requests_per_minute=10, requests_per_hour=1),
+    )
+
+    limiter.check_limit("8.8.8.8")
+
+    with pytest.raises(RateLimitError, match="requests/hour"):
+        limiter.check_limit("8.8.8.8")
+
+
+def test_webhook_validator_preserves_non_string_scalar_values() -> None:
+    """Sanitization should keep non-string scalar payload values unchanged."""
+    validator = WebhookValidator(required_fields=["event"])
+
+    payload = validator.validate_payload({"event": "walk", "count": 2, "ok": True})
+
+    assert payload["count"] == 2
+    assert payload["ok"] is True
