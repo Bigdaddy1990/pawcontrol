@@ -12,6 +12,13 @@ from custom_components.pawcontrol.config_flow_dashboard_extension import (
 class _DashboardFlowHarness(DashboardFlowMixin):
     def __init__(self, dog_count: int) -> None:
         self._dogs = [{} for _ in range(dog_count)]
+        self._enabled_modules = {}
+
+    async def async_step_configure_external_entities(self) -> dict[str, str]:
+        return {"step_id": "configure_external_entities"}
+
+    async def async_step_final_setup(self) -> dict[str, str]:
+        return {"step_id": "final_setup"}
 
 
 @pytest.mark.unit
@@ -57,3 +64,17 @@ def test_build_dashboard_features_string_adds_optional_features() -> None:
 
     assert "location maps" in features
     assert "multi-dog overview" in features
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_dashboard_step_routes_to_external_entities_with_gps() -> None:
+    """The dashboard step should continue to external entities when GPS is on."""
+    flow = _DashboardFlowHarness(dog_count=1)
+    flow._enabled_modules = {"gps": True}
+
+    result = await flow.async_step_configure_dashboard({"show_maps": False})
+
+    assert result == {"step_id": "configure_external_entities"}
+    assert flow._dashboard_config["show_maps"] is False
+    assert flow._dashboard_config["dashboard_enabled"] is True
