@@ -126,6 +126,14 @@ async def test_async_get_actions_returns_metadata(
 
 
 @pytest.mark.asyncio
+async def test_async_get_actions_missing_device_returns_empty(
+    hass: HomeAssistant,
+) -> None:
+    """Return no actions when the device cannot be resolved."""
+    assert await async_get_actions(hass, "missing-device") == []
+
+
+@pytest.mark.asyncio
 async def test_async_get_conditions_returns_metadata(
     hass: HomeAssistant,
 ) -> None:
@@ -255,6 +263,32 @@ async def test_action_capabilities_require_amount(
 
 
 @pytest.mark.asyncio
+async def test_action_capabilities_for_walk_actions(
+    hass: HomeAssistant,
+) -> None:
+    """Ensure walk action capability schemas validate expected inputs."""
+    start_capabilities = await async_get_action_capabilities(
+        hass,
+        {CONF_TYPE: "start_walk"},
+    )
+    start_capabilities["fields"]({"walk_type": "exercise"})
+
+    end_capabilities = await async_get_action_capabilities(
+        hass,
+        {CONF_TYPE: "end_walk"},
+    )
+    end_capabilities["fields"]({"walk_notes": "quick walk", "save_route": True})
+
+
+@pytest.mark.asyncio
+async def test_action_capabilities_unknown_type_returns_empty(
+    hass: HomeAssistant,
+) -> None:
+    """Return an empty capability map for unknown action types."""
+    assert (await async_get_action_capabilities(hass, {CONF_TYPE: "unknown"})) == {}
+
+
+@pytest.mark.asyncio
 async def test_trigger_capabilities_status_changed(
     hass: HomeAssistant,
 ) -> None:
@@ -285,3 +319,85 @@ async def test_action_missing_runtime_data_raises(
             },
             {},
         )
+
+
+@pytest.mark.asyncio
+async def test_action_log_feeding_requires_amount(
+    hass: HomeAssistant,
+) -> None:
+    """Validate log_feeding raises when amount is omitted."""
+    device_entry = _register_device(hass)
+    runtime_data = PawControlRuntimeData(
+        coordinator=Mock(),
+        data_manager=Mock(),
+        notification_manager=Mock(),
+        feeding_manager=AsyncMock(),
+        walk_manager=AsyncMock(),
+        entity_factory=Mock(),
+        entity_profile="standard",
+        dogs=[{"dog_id": DOG_ID, "dog_name": "Buddy"}],
+    )
+    entry = ConfigEntry(entry_id=ENTRY_ID, domain=DOMAIN, data={"dogs": []})
+    store_runtime_data(hass, entry, runtime_data)
+
+    with pytest.raises(HomeAssistantError):
+        await async_call_action(
+            hass,
+            {
+                CONF_DEVICE_ID: device_entry.id,
+                CONF_DOMAIN: DOMAIN,
+                CONF_TYPE: "log_feeding",
+            },
+            {},
+        )
+
+
+@pytest.mark.asyncio
+async def test_action_calls_walk_manager_for_start_and_end(
+    hass: HomeAssistant,
+) -> None:
+    """Ensure walk actions call async_start_walk and async_end_walk."""
+    device_entry = _register_device(hass)
+
+    walk_manager = AsyncMock()
+    runtime_data = PawControlRuntimeData(
+        coordinator=Mock(),
+        data_manager=Mock(),
+        notification_manager=Mock(),
+        feeding_manager=AsyncMock(),
+        walk_manager=walk_manager,
+        entity_factory=Mock(),
+        entity_profile="standard",
+        dogs=[{"dog_id": DOG_ID, "dog_name": "Buddy"}],
+    )
+    entry = ConfigEntry(entry_id=ENTRY_ID, domain=DOMAIN, data={"dogs": []})
+    store_runtime_data(hass, entry, runtime_data)
+
+    await async_call_action(
+        hass,
+        {
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "start_walk",
+            "walk_type": "training",
+        },
+        {},
+    )
+    await async_call_action(
+        hass,
+        {
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "end_walk",
+            "walk_notes": "great pace",
+            "save_route": False,
+        },
+        {},
+    )
+
+    walk_manager.async_start_walk.assert_awaited_once_with(DOG_ID, "training")
+    walk_manager.async_end_walk.assert_awaited_once_with(
+        DOG_ID,
+        notes="great pace",
+        save_route=False,
+    )
