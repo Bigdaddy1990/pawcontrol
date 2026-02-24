@@ -35,6 +35,8 @@ def test_validate_profile_selection_rejects_profiles_removed_after_schema_valida
         config_flow_profile.validate_profile_selection(
             {"entity_profile": known_profile},
         )
+
+
 def test_validate_profile_selection_rejects_profile_missing_from_registry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

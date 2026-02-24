@@ -67,6 +67,18 @@ async def test_async_validate_entry_config_empty_dogs(mock_config_entry) -> None
 
 
 @pytest.mark.asyncio
+async def test_async_validate_entry_config_none_dogs(mock_config_entry) -> None:
+    """Test validation normalizes None dogs config to an empty list."""
+    mock_config_entry.data = {CONF_DOGS: None}
+
+    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
+
+    assert dogs == []
+    assert profile == "standard"
+    assert modules == frozenset()
+
+
+@pytest.mark.asyncio
 async def test_async_validate_entry_config_invalid_dogs_type(mock_config_entry) -> None:
     """Test validation fails with invalid dogs type."""
     mock_config_entry.data = {CONF_DOGS: "invalid"}
