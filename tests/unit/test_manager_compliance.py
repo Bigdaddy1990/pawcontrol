@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from unittest.mock import Mock
 
+from custom_components.pawcontrol import manager_compliance as manager_compliance_module
 from custom_components.pawcontrol.base_manager import BaseManager
 from custom_components.pawcontrol.manager_compliance import (
     ComplianceIssue,
@@ -51,6 +52,21 @@ class WrongSignatureManager(BaseManager):
 
     def get_diagnostics(self, full: bool = False) -> dict[str, bool]:  # type: ignore[override]
         return {"full": full}
+
+
+class NonCallableMethodManager(BaseManager):
+    """Manager that shadows required methods with non-callable attributes."""
+
+    MANAGER_NAME = "non_callable"
+    MANAGER_VERSION = "1.0"
+    async_setup = "not callable"
+
+    async def async_shutdown(self) -> None:
+        """Shut down."""
+
+    def get_diagnostics(self) -> dict[str, str]:
+        """Return diagnostics."""
+        return {"status": "ok"}
 
 
 def test_compliance_issue_and_report_serialization() -> None:
@@ -110,6 +126,18 @@ def test_validate_manager_compliance_checks_signatures_and_doc_lengths() -> None
     assert "Missing docstring for get_diagnostics" in messages
 
 
+def test_validate_manager_compliance_flags_non_callable_required_method() -> None:
+    """Validation should reject required methods that are present but not callable."""
+    report = ComplianceReport("non_callable")
+    manager_compliance_module.check_required_methods(
+        NonCallableMethodManager,
+        report,
+    )
+
+    messages = {issue.message for issue in report.issues}
+    assert "async_setup is not callable" in messages
+
+
 def test_validate_all_managers_and_summary_support_instances() -> None:
     """Aggregate validation and summary stats should include compliant managers."""
     good_instance = object.__new__(GoodManager)
@@ -148,6 +176,22 @@ def test_print_compliance_report_logs_expected_levels() -> None:
     assert logger.info.call_count >= 3
     logger.error.assert_called_once()
     logger.warning.assert_called_once()
+
+
+def test_print_compliance_report_defaults_to_module_logger() -> None:
+    """Printing without explicit logger should fall back to module logger."""
+    report = ComplianceReport("demo")
+    report.add_issue("info", "documentation", "heads-up")
+
+    logger = Mock(spec=logging.Logger)
+    previous_logger = manager_compliance_module._LOGGER
+    manager_compliance_module._LOGGER = logger
+    try:
+        print_compliance_report(report)
+    finally:
+        manager_compliance_module._LOGGER = previous_logger
+
+    logger.info.assert_called()
 
 
 def test_get_compliance_level_thresholds() -> None:
