@@ -13,7 +13,6 @@ from datetime import UTC, datetime, timedelta
 from typing import cast
 
 import pytest
-from tests.helpers import typed_deepcopy
 
 from custom_components.pawcontrol.feeding_manager import (
     FeedingBatchEntry,
@@ -29,6 +28,7 @@ from custom_components.pawcontrol.types import (
     FeedingSnapshot,
     JSONMutableMapping,
 )
+from tests.helpers import typed_deepcopy
 
 
 def _mutable_feeding_config(

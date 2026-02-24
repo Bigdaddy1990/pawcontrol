@@ -1,7 +1,5 @@
 """Unit tests for input validation sanitizers and validators."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
@@ -18,7 +16,9 @@ from custom_components.pawcontrol.input_validation import (
 
 def test_validation_result_bool_uses_valid_flag() -> None:
     assert bool(ValidationResult(is_valid=True, sanitized_value="x", errors=[]))
-    assert not bool(ValidationResult(is_valid=False, sanitized_value=None, errors=["e"]))
+    assert not bool(
+        ValidationResult(is_valid=False, sanitized_value=None, errors=["e"])
+    )
 
 
 def test_sanitize_sql_escapes_quotes_and_blocks_injection() -> None:
@@ -33,7 +33,10 @@ def test_sanitize_sql_escapes_quotes_and_blocks_injection() -> None:
 def test_sanitize_url_rejects_invalid_protocols() -> None:
     sanitizer = InputSanitizer()
 
-    assert sanitizer.sanitize_url("https://example.com/path?q=1") == "https://example.com/path?q=1"
+    assert (
+        sanitizer.sanitize_url("https://example.com/path?q=1")
+        == "https://example.com/path?q=1"
+    )
 
     with pytest.raises(ValidationError, match="Only http and https"):
         sanitizer.sanitize_url("ftp://example.com")

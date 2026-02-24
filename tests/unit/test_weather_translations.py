@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 
 from homeassistant.core import HomeAssistant
 import pytest
+
 from tests.weather_test_support import ensure_weather_module_compat
 
 ensure_weather_module_compat()

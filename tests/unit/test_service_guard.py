@@ -74,13 +74,11 @@ def test_service_guard_snapshot_summary_and_metrics() -> None:
 
 def test_service_guard_snapshot_accumulate_handles_invalid_metric_types() -> None:
     """Accumulate should coerce mixed metric payload values safely."""
-    snapshot = ServiceGuardSnapshot.from_sequence(
-        [
-            ServiceGuardResult("notify", "mobile_app", True),
-            ServiceGuardResult("script", "turn_on", False),
-            ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
-        ]
-    )
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("notify", "mobile_app", True),
+        ServiceGuardResult("script", "turn_on", False),
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+    ])
 
     metrics: JSONMutableMapping = {
         "executed": "2",
