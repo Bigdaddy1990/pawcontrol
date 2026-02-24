@@ -58,12 +58,8 @@ def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     """Return runtime data extracted from ``value`` when possible."""
     if isinstance(value, PawControlRuntimeData):
         return value
-
-    runtime_container = cast(Any, value)
-    unwrap = getattr(runtime_container, "unwrap", None)
-    if callable(unwrap):
-        return _coerce_runtime_data(unwrap())
-
+    if value is not None and value.__class__.__name__ == "PawControlRuntimeData":
+        return cast(PawControlRuntimeData, value)
     if isinstance(value, DomainRuntimeStoreEntry):
         return value.unwrap()
     if isinstance(value, Mapping):

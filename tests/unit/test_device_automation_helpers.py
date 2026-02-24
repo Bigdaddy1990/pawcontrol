@@ -223,6 +223,27 @@ def test_resolve_dog_data_and_status_snapshot_paths() -> None:
     assert fallback_snapshot.get("state") == "at_park"
 
 
+def test_coerce_runtime_data_supports_reloaded_runtime_classes() -> None:
+    """Runtime data coercion should tolerate module reload class identity mismatches."""
+    ReloadedRuntimeData = type("PawControlRuntimeData", (), {})
+    runtime_data = ReloadedRuntimeData()
+
+    assert _coerce_runtime_data(runtime_data) is runtime_data
+
+
+def test_resolve_dog_data_returns_none_when_coordinator_errors() -> None:
+    """Coordinator exceptions should be swallowed and reported as missing dog data."""
+
+    def _raise(_dog_id: str) -> None:
+        raise RuntimeError("boom")
+
+    runtime_data = _runtime_data_with_coordinator(
+        SimpleNamespace(get_dog_data=_raise),
+    )
+
+    assert resolve_dog_data(runtime_data, "buddy") is None
+
+
 def test_resolve_dog_data_rejects_non_mapping_and_none_snapshot() -> None:
     """Non-mapping dog payloads should be ignored by helper lookups."""
     runtime_data = _runtime_data_with_coordinator(
