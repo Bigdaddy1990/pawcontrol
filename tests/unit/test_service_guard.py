@@ -107,6 +107,45 @@ def test_service_guard_snapshot_zero_metrics_shape() -> None:
     }
 
 
+def test_service_guard_snapshot_to_metrics_exports_expected_payload() -> None:
+    """to_metrics should mirror snapshot counters and serialised history."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("notify", "mobile_app", True),
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+    ])
+
+    assert snapshot.to_metrics() == {
+        "executed": 1,
+        "skipped": 1,
+        "reasons": {"cooldown": 1},
+        "last_results": snapshot.history(),
+    }
+
+
+def test_service_guard_snapshot_accumulate_replaces_invalid_reasons_payload() -> None:
+    """Accumulate should reset reasons when the incoming value is not a mapping."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+        ServiceGuardResult("script", "turn_on", False),
+    ])
+    metrics: JSONMutableMapping = {
+        "executed": "invalid",
+        "skipped": None,
+        "reasons": "invalid",
+        "last_results": [],
+    }
+
+    payload = snapshot.accumulate(metrics)
+
+    assert payload == {
+        "executed": 0,
+        "skipped": 2,
+        "reasons": {"cooldown": 1, "unknown": 1},
+        "last_results": snapshot.history(),
+    }
+    assert metrics["reasons"] == {"cooldown": 1, "unknown": 1}
+
+
 @pytest.mark.parametrize(
     "raw_payload, expected",
     [
