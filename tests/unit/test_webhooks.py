@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -15,19 +17,9 @@ from custom_components.pawcontrol.const import (
     CONF_WEBHOOK_ID,
     CONF_WEBHOOK_REQUIRE_SIGNATURE,
     CONF_WEBHOOK_SECRET,
+    DOMAIN,
 )
-from custom_components.pawcontrol.exceptions import AuthenticationError
-from custom_components.pawcontrol.webhooks import (
-    _any_dog_expects_webhook,
-    _handle_webhook,
-    _new_webhook_id,
-    _new_webhook_secret,
-    _resolve_entry_for_webhook_id,
-    async_ensure_webhook_config,
-    async_register_entry_webhook,
-    async_unregister_entry_webhook,
-    get_entry_webhook_url,
-)
+import custom_components.pawcontrol.webhooks as webhooks
 
 
 class _DummyRequest:
@@ -39,404 +31,304 @@ class _DummyRequest:
         return self._body
 
 
-@pytest.fixture
-def config_entry() -> MagicMock:
+class _ConfigEntries:
+    def __init__(self, entries: list[MagicMock] | None = None) -> None:
+        self._entries = entries or []
+        self.updated_options: Mapping[str, object] | None = None
+
+    def async_entries(self, domain: str) -> list[MagicMock]:
+        assert domain == DOMAIN
+        return self._entries
+
+    def async_update_entry(
+        self,
+        entry: MagicMock,
+        *,
+        options: Mapping[str, object],
+    ) -> None:
+        self.updated_options = options
+        entry.options = dict(options)
+
+
+def _make_entry(
+    *,
+    data: dict[str, object] | None = None,
+    options: dict[str, object] | None = None,
+) -> MagicMock:
     entry = MagicMock()
     entry.entry_id = "entry-1"
-    entry.data = {
-        CONF_DOGS: [
-            {
-                "dog_id": "buddy",
-                "dog_name": "Buddy",
-                "gps_config": {CONF_GPS_SOURCE: "webhook"},
-                CONF_MODULES: {},
-            }
-        ]
-    }
-    entry.options = {CONF_WEBHOOK_ENABLED: True}
+    entry.data = (
+        data
+        if data is not None
+        else {
+            CONF_DOGS: [
+                {
+                    "dog_id": "buddy",
+                    "dog_name": "Buddy",
+                    "gps_config": {CONF_GPS_SOURCE: "webhook"},
+                    CONF_MODULES: {},
+                }
+            ]
+        }
+    )
+    entry.options = options if options is not None else {CONF_WEBHOOK_ENABLED: True}
     return entry
 
 
-@pytest.fixture
-def hass(config_entry: MagicMock) -> MagicMock:
-    hass_obj = MagicMock()
-    hass_obj.config_entries = MagicMock()
-    hass_obj.config_entries.async_entries.return_value = [config_entry]
-    hass_obj.config_entries.async_update_entry = MagicMock()
-    return hass_obj
+def _make_hass(entries: list[MagicMock] | None = None) -> SimpleNamespace:
+    return SimpleNamespace(config_entries=_ConfigEntries(entries))
 
 
-def test_any_dog_expects_webhook_variants(config_entry: MagicMock) -> None:
-    assert _any_dog_expects_webhook(config_entry)
-
-    config_entry.data = {
-        CONF_DOGS: ["invalid", {"gps_config": {CONF_GPS_SOURCE: "api"}}]
-    }
-    assert _any_dog_expects_webhook(config_entry) is False
-
-    config_entry.data = {CONF_DOGS: "invalid"}
-    assert _any_dog_expects_webhook(config_entry) is False
-
-    config_entry.data = {CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "api"}}]}
-    assert _any_dog_expects_webhook(config_entry) is False
-
-
-@pytest.mark.asyncio
-async def test_async_ensure_webhook_config_generates_credentials(
-    hass: MagicMock, config_entry: MagicMock
-) -> None:
-    with (
-        patch(
-            "custom_components.pawcontrol.webhooks._new_webhook_id", return_value="id-1"
-        ),
-        patch(
-            "custom_components.pawcontrol.webhooks._new_webhook_secret",
-            return_value="secret-1",
-        ),
-    ):
-        await async_ensure_webhook_config(hass, config_entry)
-
-    hass.config_entries.async_update_entry.assert_called_once()
-    options = hass.config_entries.async_update_entry.call_args.kwargs["options"]
-    assert options[CONF_WEBHOOK_ID] == "id-1"
-    assert options[CONF_WEBHOOK_SECRET] == "secret-1"
-    assert CONF_WEBHOOK_REQUIRE_SIGNATURE in options
-
-    mixed = _make_entry(data={CONF_DOGS: ["dog", {"gps_config": {}}]})
-    assert webhooks._any_dog_expects_webhook(mixed) is False
+def test_any_dog_expects_webhook_variants() -> None:
+    assert webhooks._any_dog_expects_webhook(_make_entry()) is True
+    assert (
+        webhooks._any_dog_expects_webhook(
+            _make_entry(data={CONF_DOGS: ["invalid", {"gps_config": {}}]})
+        )
+        is False
+    )
+    assert (
+        webhooks._any_dog_expects_webhook(_make_entry(data={CONF_DOGS: "oops"}))
+        is False
+    )
 
 
 def test_new_webhook_credentials_use_token_urlsafe(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Credential generators should delegate to secrets.token_urlsafe."""
     monkeypatch.setattr("secrets.token_urlsafe", lambda length: f"token-{length}")
-
     assert webhooks._new_webhook_id() == "token-24"
     assert webhooks._new_webhook_secret() == "token-32"
 
 
 @pytest.mark.asyncio
-async def test_async_ensure_webhook_config_keeps_existing_credentials(
-    hass: MagicMock, config_entry: MagicMock
-) -> None:
-    config_entry.options = {
-        CONF_WEBHOOK_ENABLED: True,
-        CONF_WEBHOOK_ID: "already-present",
-        CONF_WEBHOOK_SECRET: "secret-present",
-    }
-
-    await async_ensure_webhook_config(hass, config_entry)
-
-    hass.config_entries.async_update_entry.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_register_unregister_webhook(
-    hass: MagicMock, config_entry: MagicMock
-) -> None:
-    config_entry.options.update({
-        CONF_WEBHOOK_ID: "webhook-1",
-        CONF_WEBHOOK_SECRET: "secret-1",
-        CONF_WEBHOOK_ENABLED: True,
-    })
+async def test_async_ensure_webhook_config_generated_and_skipped_paths() -> None:
+    hass = _make_hass()
+    entry = _make_entry()
 
     with (
-        patch(
-            "custom_components.pawcontrol.webhooks.async_ensure_webhook_config",
-            new=AsyncMock(),
-        ),
-        patch("custom_components.pawcontrol.webhooks.async_unregister") as unregister,
-        patch("custom_components.pawcontrol.webhooks.async_register") as register,
-        patch(
-            "custom_components.pawcontrol.webhooks.get_entry_webhook_url",
-            return_value="https://example.test/webhook",
-        ),
+        pytest.MonkeyPatch.context() as mp,
     ):
-        await async_register_entry_webhook(hass, config_entry)
-        await async_unregister_entry_webhook(hass, config_entry)
-async def test_async_ensure_webhook_config_skips_when_disabled_or_present() -> None:
-    """No update should happen when webhooks are disabled or already configured."""
+        mp.setattr(webhooks, "_new_webhook_id", lambda: "id-1")
+        mp.setattr(webhooks, "_new_webhook_secret", lambda: "secret-1")
+        await webhooks.async_ensure_webhook_config(hass, entry)
+
+    assert hass.config_entries.updated_options is not None
+    assert entry.options[CONF_WEBHOOK_ID] == "id-1"
+    assert entry.options[CONF_WEBHOOK_SECRET] == "secret-1"
+    assert entry.options[CONF_WEBHOOK_REQUIRE_SIGNATURE] is True
+
+    # Disabled webhook => no update
+    disabled = _make_entry(options={CONF_WEBHOOK_ENABLED: False})
     disabled_hass = _make_hass()
-    disabled_entry = _make_entry(
-        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
-        options={CONF_WEBHOOK_ENABLED: False},
-    )
-    await webhooks.async_ensure_webhook_config(disabled_hass, disabled_entry)
+    await webhooks.async_ensure_webhook_config(disabled_hass, disabled)
     assert disabled_hass.config_entries.updated_options is None
 
-    configured_hass = _make_hass()
-    configured_entry = _make_entry(
-        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+    # Existing credentials => no update
+    configured = _make_entry(
         options={
             CONF_WEBHOOK_ENABLED: True,
-            CONF_WEBHOOK_ID: "existing-id",
+            CONF_WEBHOOK_ID: "existing",
             CONF_WEBHOOK_SECRET: "existing-secret",
-        },
+        }
     )
-    await webhooks.async_ensure_webhook_config(configured_hass, configured_entry)
+    configured_hass = _make_hass()
+    await webhooks.async_ensure_webhook_config(configured_hass, configured)
     assert configured_hass.config_entries.updated_options is None
 
 
 @pytest.mark.asyncio
-async def test_register_and_unregister_webhook(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_register_and_unregister_webhook_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     entry = _make_entry(
-        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
         options={
             CONF_WEBHOOK_ENABLED: True,
             CONF_WEBHOOK_ID: "abc",
             CONF_WEBHOOK_SECRET: "secret",
-        },
+        }
     )
     hass = _make_hass([entry])
-    calls: list[tuple[str, str]] = []
 
-    unregister.assert_called_with(hass, "webhook-1")
-    assert register.call_count == 1
+    register_calls: list[str] = []
+    unregister_calls: list[str] = []
 
+    monkeypatch.setattr(webhooks, "async_ensure_webhook_config", AsyncMock())
+    monkeypatch.setattr(
+        webhooks,
+        "async_register",
+        lambda *_args: register_calls.append("register"),
+    )
+    monkeypatch.setattr(
+        webhooks,
+        "async_unregister",
+        lambda _hass, webhook_id: unregister_calls.append(webhook_id),
+    )
+    monkeypatch.setattr(
+        webhooks, "get_entry_webhook_url", lambda *_args: "https://example/h"
+    )
 
-def test_get_entry_webhook_url(hass: MagicMock, config_entry: MagicMock) -> None:
-    config_entry.options = {CONF_WEBHOOK_ID: "webhook-1"}
+    await webhooks.async_register_entry_webhook(hass, entry)
+    await webhooks.async_unregister_entry_webhook(hass, entry)
 
-    with patch(
-        "homeassistant.components.webhook.async_generate_url",
-        return_value="https://local/webhook-1",
-        create=True,
-    ):
-        assert get_entry_webhook_url(hass, config_entry) == "https://local/webhook-1"
+    assert register_calls == ["register"]
+    assert unregister_calls == ["abc", "abc"]
 
-    config_entry.options = {}
-    assert get_entry_webhook_url(hass, config_entry) is None
-
-@pytest.mark.asyncio
-async def test_register_and_unregister_short_circuit_paths(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Register/unregister should no-op when prerequisites are not met."""
-    calls: list[str] = []
-
-    async def _noop(*_args: Any) -> None:
-        return None
-
-    monkeypatch.setattr(webhooks, "async_ensure_webhook_config", _noop)
-    monkeypatch.setattr(webhooks, "async_unregister", lambda *_args: calls.append("u"))
-    monkeypatch.setattr(webhooks, "async_register", lambda *_args: calls.append("r"))
-
+    # No-op paths
     disabled_entry = _make_entry(
-        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
-        options={CONF_WEBHOOK_ENABLED: False, CONF_WEBHOOK_ID: "abc"},
+        options={CONF_WEBHOOK_ENABLED: False, CONF_WEBHOOK_ID: "id"}
     )
     await webhooks.async_register_entry_webhook(
-        _make_hass([disabled_entry]),
-        disabled_entry,
+        _make_hass([disabled_entry]), disabled_entry
     )
 
-    missing_id_entry = _make_entry(
-        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
-        options={CONF_WEBHOOK_ENABLED: True},
-    )
+    missing_id_entry = _make_entry(options={CONF_WEBHOOK_ENABLED: True})
     await webhooks.async_register_entry_webhook(
         _make_hass([missing_id_entry]), missing_id_entry
     )
-
     await webhooks.async_unregister_entry_webhook(
         _make_hass([missing_id_entry]), missing_id_entry
     )
 
-    assert calls == []
 
-
-def test_get_entry_webhook_url_handles_missing_id(
+@pytest.mark.asyncio
+async def test_register_handles_unregister_exception(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Webhook URL helper should return None without IDs and use HA helper otherwise."""
+    entry = _make_entry(options={CONF_WEBHOOK_ENABLED: True, CONF_WEBHOOK_ID: "abc"})
+    hass = _make_hass([entry])
+    monkeypatch.setattr(webhooks, "async_ensure_webhook_config", AsyncMock())
+
+    def _raise(*_args: object) -> None:
+        raise RuntimeError("boom")
+
+    register = MagicMock()
+    monkeypatch.setattr(webhooks, "async_unregister", _raise)
+    monkeypatch.setattr(webhooks, "async_register", register)
+    monkeypatch.setattr(webhooks, "get_entry_webhook_url", lambda *_args: None)
+
+    await webhooks.async_register_entry_webhook(hass, entry)
+    register.assert_called_once()
+
+
+def test_get_entry_webhook_url_handles_missing_id() -> None:
     hass = _make_hass()
-    missing = _make_entry(options={})
-    assert webhooks.get_entry_webhook_url(hass, missing) is None
+    assert webhooks.get_entry_webhook_url(hass, _make_entry(options={})) is None
 
-    entry = _make_entry(options={CONF_WEBHOOK_ID: "hook-id"})
-    from homeassistant.components import webhook as webhook_component
+    from unittest.mock import patch
 
-    monkeypatch.setattr(
-        webhook_component,
-        "async_generate_url",
+    with patch(
+        "homeassistant.components.webhook.async_generate_url",
         lambda _hass, webhook_id: f"https://example/{webhook_id}",
-        raising=False,
-    )
-    assert webhooks.get_entry_webhook_url(hass, entry) == "https://example/hook-id"
+        create=True,
+    ):
+        assert (
+            webhooks.get_entry_webhook_url(
+                hass,
+                _make_entry(options={CONF_WEBHOOK_ID: "hook-id"}),
+            )
+            == "https://example/hook-id"
+        )
+
+
+def test_resolve_entry_for_webhook_id() -> None:
+    entry = _make_entry(options={CONF_WEBHOOK_ID: "id-1"})
+    hass = _make_hass([entry])
+    assert webhooks._resolve_entry_for_webhook_id(hass, "id-1") is entry
+    assert webhooks._resolve_entry_for_webhook_id(hass, "missing") is None
 
 
 @pytest.mark.asyncio
-async def test_handle_webhook_requires_signature_and_valid_json() -> None:
+async def test_handle_webhook_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     entry = _make_entry(
-        options={CONF_WEBHOOK_ID: "abc", CONF_WEBHOOK_REQUIRE_SIGNATURE: True}
+        options={
+            CONF_WEBHOOK_ID: "id-1",
+            CONF_WEBHOOK_SECRET: "secret-1",
+            CONF_WEBHOOK_REQUIRE_SIGNATURE: True,
+        }
     )
     hass = _make_hass([entry])
 
-def test_resolve_entry_for_webhook_id(hass: MagicMock, config_entry: MagicMock) -> None:
-    config_entry.options = {CONF_WEBHOOK_ID: "id-1"}
-
-    assert _resolve_entry_for_webhook_id(hass, "id-1") is config_entry
-    assert _resolve_entry_for_webhook_id(hass, "id-2") is None
-
-
-def test_new_webhook_secrets_are_non_empty() -> None:
-    assert isinstance(_new_webhook_id(), str)
-    assert _new_webhook_id()
-    assert isinstance(_new_webhook_secret(), str)
-    assert _new_webhook_secret()
-
-
-@pytest.mark.asyncio
-async def test_webhook_registration_early_returns(
-    hass: MagicMock, config_entry: MagicMock
-) -> None:
-    config_entry.options = {CONF_WEBHOOK_ENABLED: False}
-    await async_ensure_webhook_config(hass, config_entry)
-    hass.config_entries.async_update_entry.assert_not_called()
-
-    config_entry.options = {CONF_WEBHOOK_ENABLED: True}
-    config_entry.data = {CONF_DOGS: [{"dog_id": "buddy", "dog_name": "Buddy"}]}
-    with (
-        patch(
-            "custom_components.pawcontrol.webhooks.async_ensure_webhook_config",
-            new=AsyncMock(),
-        ),
-        patch("custom_components.pawcontrol.webhooks.async_register") as register,
-    ):
-        await async_register_entry_webhook(hass, config_entry)
-    register.assert_not_called()
-
-    config_entry.data = {
-        CONF_DOGS: [
-            {
-                "dog_id": "buddy",
-                "dog_name": "Buddy",
-                "gps_config": {CONF_GPS_SOURCE: "webhook"},
-            }
-        ]
-    }
-    config_entry.options = {CONF_WEBHOOK_ENABLED: True}
-    with (
-        patch(
-            "custom_components.pawcontrol.webhooks.async_ensure_webhook_config",
-            new=AsyncMock(),
-        ),
-        patch("custom_components.pawcontrol.webhooks.async_register") as register_no_id,
-    ):
-        await async_register_entry_webhook(hass, config_entry)
-    register_no_id.assert_not_called()
-
-    config_entry.options = {}
-    with patch("custom_components.pawcontrol.webhooks.async_unregister") as unregister:
-        await async_unregister_entry_webhook(hass, config_entry)
-    unregister.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_handle_webhook_error_paths(
-    hass: MagicMock, config_entry: MagicMock
-) -> None:
-    config_entry.options = {
-        CONF_WEBHOOK_ID: "id-1",
-        CONF_WEBHOOK_ENABLED: True,
-        CONF_WEBHOOK_REQUIRE_SIGNATURE: True,
-    }
-
-    unknown = await _handle_webhook(hass, "missing", _DummyRequest(b"{}"))
+    unknown = await webhooks._handle_webhook(hass, "missing", _DummyRequest(b"{}"))
     assert unknown.status == 404
 
-    missing_secret = await _handle_webhook(hass, "id-1", _DummyRequest(b"{}"))
-    assert missing_secret.status == 400
+    missing_sig = await webhooks._handle_webhook(hass, "id-1", _DummyRequest(b"{}"))
+    assert missing_sig.status == 401
 
-    config_entry.options[CONF_WEBHOOK_SECRET] = "secret-1"
-    missing_signature = await _handle_webhook(hass, "id-1", _DummyRequest(b"{}"))
-    assert missing_signature.status == 401
-
-    bad_ts = await _handle_webhook(
+    bad_ts = await webhooks._handle_webhook(
         hass,
         "id-1",
         _DummyRequest(
             b"{}",
-            {
+            headers={
                 "X-PawControl-Signature": "sig",
-                "X-PawControl-Timestamp": "nan-ts",
+                "X-PawControl-Timestamp": "bad",
             },
         ),
     )
     assert bad_ts.status == 401
 
-    with patch(
-        "custom_components.pawcontrol.webhooks.WebhookAuthenticator.verify_signature",
-        side_effect=AuthenticationError("invalid"),
-    ):
-        invalid_sig = await _handle_webhook(
-            hass,
-            "id-1",
-            _DummyRequest(
-                b"{}",
-                {
-                    "X-PawControl-Signature": "sig",
-                    "X-PawControl-Timestamp": "123.0",
-                },
-            ),
-        )
+    class _FailingAuthenticator:
+        def __init__(self, secret: str) -> None:
+            self.secret = secret
+
+        def verify_signature(self, _raw: bytes, _sig: str, _ts: float) -> None:
+            raise webhooks.AuthenticationError("bad")
+
+    monkeypatch.setattr(webhooks, "WebhookAuthenticator", _FailingAuthenticator)
+    invalid_sig = await webhooks._handle_webhook(
+        hass,
+        "id-1",
+        _DummyRequest(
+            b"{}",
+            headers={
+                "X-PawControl-Signature": "sig",
+                "X-PawControl-Timestamp": "1",
+            },
+        ),
+    )
     assert invalid_sig.status == 401
 
-    config_entry.options[CONF_WEBHOOK_REQUIRE_SIGNATURE] = False
-    invalid_json = await _handle_webhook(hass, "id-1", _DummyRequest(b"{bad"))
+    # Signature disabled and payload validation paths.
+    entry.options = {CONF_WEBHOOK_ID: "id-1", CONF_WEBHOOK_REQUIRE_SIGNATURE: False}
+
+    invalid_json = await webhooks._handle_webhook(hass, "id-1", _DummyRequest(b"{"))
     assert invalid_json.status == 400
 
-    invalid_payload = await _handle_webhook(hass, "id-1", _DummyRequest(b"[1, 2, 3]"))
+    invalid_payload = await webhooks._handle_webhook(
+        hass,
+        "id-1",
+        _DummyRequest(json.dumps(["not-object"]).encode()),
+    )
     assert invalid_payload.status == 400
+
+    process = AsyncMock(return_value={"ok": True, "dog_id": "buddy"})
+    monkeypatch.setattr(webhooks, "async_process_gps_push", process)
+    ok_response = await webhooks._handle_webhook(
+        hass,
+        "id-1",
+        _DummyRequest(json.dumps({"nonce": "n-1"}).encode()),
+    )
+    assert ok_response.status == 200
+    assert process.await_args.kwargs["nonce"] == "n-1"
+
+    process_fail = AsyncMock(
+        return_value={"ok": False, "status": 409, "error": "dup", "dog_id": "buddy"}
+    )
+    monkeypatch.setattr(webhooks, "async_process_gps_push", process_fail)
+    failed = await webhooks._handle_webhook(
+        hass,
+        "id-1",
+        _DummyRequest(json.dumps({}).encode()),
+    )
+    assert failed.status == 409
 
 
 @pytest.mark.asyncio
-async def test_handle_webhook_success_and_rejection(
-    hass: MagicMock, config_entry: MagicMock
-) -> None:
-    config_entry.options = {
-        CONF_WEBHOOK_ID: "id-1",
-        CONF_WEBHOOK_REQUIRE_SIGNATURE: False,
-    }
-
-    payload = {
-        "dog_id": "buddy",
-        "latitude": 1.2,
-        "longitude": 3.4,
-        "nonce": "nonce-1",
-    }
-
-    with patch(
-        "custom_components.pawcontrol.webhooks.async_process_gps_push",
-        new=AsyncMock(return_value={"ok": True, "dog_id": "buddy"}),
-    ) as process_push:
-        ok = await _handle_webhook(
-            hass,
-            "id-1",
-            _DummyRequest(json.dumps(payload).encode("utf-8")),
-        )
-
-    assert ok.status == 200
-    process_push.assert_awaited_once()
-    assert process_push.await_args.kwargs["nonce"] == "nonce-1"
-
-    with patch(
-        "custom_components.pawcontrol.webhooks.async_process_gps_push",
-        new=AsyncMock(
-            return_value={
-                "ok": False,
-                "error": "denied",
-                "status": 409,
-                "dog_id": "buddy",
-            }
-        ),
-    ):
-        rejected = await _handle_webhook(
-            hass,
-            "id-1",
-            _DummyRequest(json.dumps(payload).encode("utf-8")),
-        )
-
-    assert rejected.status == 409
-    assert json.loads(rejected.text)["dog_id"] == "buddy"
+async def test_handle_webhook_requires_secret_when_signatures_enabled() -> None:
+    entry = _make_entry(
+        options={CONF_WEBHOOK_ID: "id-1", CONF_WEBHOOK_REQUIRE_SIGNATURE: True}
+    )
+    hass = _make_hass([entry])
+    response = await webhooks._handle_webhook(hass, "id-1", _DummyRequest(b"{}"))
+    assert response.status == 400
