@@ -7,7 +7,9 @@ from custom_components.pawcontrol import selector_shim
 
 def test_selector_namespace_call_uses_selector_factory_when_callable() -> None:
     """Namespace call should delegate to selector factory when one is provided."""
-    namespace = selector_shim._SelectorNamespace(selector=lambda config: {"wrapped": config})
+    namespace = selector_shim._SelectorNamespace(
+        selector=lambda config: {"wrapped": config}
+    )
 
     assert namespace({"foo": "bar"}) == {"wrapped": {"foo": "bar"}}
 

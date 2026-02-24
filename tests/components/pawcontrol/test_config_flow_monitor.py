@@ -1,7 +1,5 @@
 """Tests for config flow performance monitoring helpers."""
 
-from __future__ import annotations
-
 from collections.abc import Iterator
 import logging
 from unittest.mock import patch
