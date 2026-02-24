@@ -24,6 +24,21 @@ def test_validate_profile_selection_rejects_unknown_profile() -> None:
         config_flow_profile.validate_profile_selection({"entity_profile": "unknown"})
 
 
+def test_validate_profile_selection_rejects_profile_missing_from_registry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Guard should reject a profile if runtime registry no longer contains it."""
+    known_profile = next(iter(config_flow_profile.PROFILE_TITLES))
+    patched_profiles = dict(config_flow_profile.ENTITY_PROFILES)
+    patched_profiles.pop(known_profile)
+    monkeypatch.setattr(config_flow_profile, "ENTITY_PROFILES", patched_profiles)
+
+    with pytest.raises(vol.Invalid, match="invalid_profile"):
+        config_flow_profile.validate_profile_selection({
+            "entity_profile": known_profile
+        })
+
+
 def test_profile_selector_options_include_value_and_label() -> None:
     """Selector options should expose both value and UI label fields."""
     options = config_flow_profile.get_profile_selector_options()
