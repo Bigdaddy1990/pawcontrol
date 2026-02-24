@@ -8,6 +8,7 @@ Python: 3.13+
 """
 
 import asyncio
+import builtins
 import contextlib
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -17,6 +18,7 @@ from unittest.mock import AsyncMock, Mock, call
 import pytest
 
 from custom_components.pawcontrol.coordinator_support import CacheMonitorRegistrar
+from custom_components.pawcontrol import notifications as notifications_module
 from custom_components.pawcontrol.notifications import (
     RETRY_DELAY_SECONDS,
     NotificationChannel,
@@ -202,6 +204,98 @@ class _DynamicPersonManager:
             },
             "cache": {"cache_entries": 0, "hit_rate": 0.0},
         }
+
+
+@pytest.mark.unit
+def test_notification_event_to_dict_serializes_enhanced_fields() -> None:
+    """Notification events should serialize all metadata fields."""
+    created_at = datetime(2026, 1, 10, 8, 30, tzinfo=UTC)
+    acknowledged_at = datetime(2026, 1, 10, 8, 45, tzinfo=UTC)
+    event = NotificationEvent(
+        id="evt-1",
+        dog_id="dog-123",
+        notification_type=NotificationType.SYSTEM_WARNING,
+        priority=NotificationPriority.HIGH,
+        title="Heads up",
+        message="Something happened",
+        created_at=created_at,
+        expires_at=created_at + timedelta(hours=1),
+        channels=[NotificationChannel.PERSISTENT],
+        data={"source": "unit-test"},
+        sent_to=[NotificationChannel.MOBILE],
+        failed_channels=[NotificationChannel.EMAIL],
+        retry_count=2,
+        acknowledged=True,
+        acknowledged_at=acknowledged_at,
+        grouped_with=["evt-0"],
+        template_used="alert_template",
+        send_attempts={"persistent": 2},
+        targeted_persons=["person.alice"],
+        notification_services=["notify.alice_phone"],
+        failed_notification_services=["notify.family"],
+    )
+
+    payload = event.to_dict()
+
+    assert payload["notification_type"] == "system_warning"
+    assert payload["priority"] == "high"
+    assert payload["acknowledged_at"] == acknowledged_at.isoformat()
+    assert payload["targeted_persons"] == ["person.alice"]
+    assert payload["failed_notification_services"] == ["notify.family"]
+
+
+@pytest.mark.unit
+def test_notification_event_batch_compatibility_respects_acknowledged_state() -> None:
+    """Batched notifications must match dog, type, priority, and ack state."""
+    created_at = datetime(2026, 1, 10, 8, 30, tzinfo=UTC)
+    base_event = NotificationEvent(
+        id="evt-1",
+        dog_id="dog-123",
+        notification_type=NotificationType.WALK_REMINDER,
+        priority=NotificationPriority.NORMAL,
+        title="Walk",
+        message="Time for a walk",
+        created_at=created_at,
+    )
+    compatible = NotificationEvent(
+        id="evt-2",
+        dog_id="dog-123",
+        notification_type=NotificationType.WALK_REMINDER,
+        priority=NotificationPriority.NORMAL,
+        title="Walk",
+        message="Walk now",
+        created_at=created_at,
+    )
+    acknowledged = NotificationEvent(
+        id="evt-3",
+        dog_id="dog-123",
+        notification_type=NotificationType.WALK_REMINDER,
+        priority=NotificationPriority.NORMAL,
+        title="Walk",
+        message="Walk now",
+        created_at=created_at,
+        acknowledged=True,
+    )
+
+    assert base_event.can_be_batched_with(compatible) is True
+    assert base_event.can_be_batched_with(acknowledged) is False
+
+
+@pytest.mark.unit
+def test_dt_now_falls_back_to_datetime_now_on_import_error(monkeypatch) -> None:
+    """``_dt_now`` should gracefully fall back when Home Assistant dt import fails."""
+    original_import = builtins.__import__
+
+    def _fake_import(name, *args, **kwargs):
+        if name == "homeassistant.util":
+            raise ImportError("forced import failure")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _fake_import)
+
+    now = notifications_module._dt_now()
+
+    assert isinstance(now, datetime)
 
 
 @pytest.mark.unit
