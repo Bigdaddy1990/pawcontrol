@@ -209,3 +209,161 @@ async def test_async_setup_external_bindings_skips_non_entity_and_manual_sources
     await external_bindings.async_setup_external_bindings(hass, entry)
 
     assert track_calls == []
+
+
+@pytest.mark.asyncio
+async def test_async_setup_external_bindings_ignores_small_movements(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup should ignore GPS updates that are below movement threshold."""
+
+    class _GPSManager:
+        async def async_get_current_location(self, _dog_id: str) -> Any:
+            return SimpleNamespace(latitude=51.0, longitude=7.0)
+
+        async def async_add_gps_point(self, **_kwargs: Any) -> bool:
+            msg = "async_add_gps_point should not be called for tiny movements"
+            raise AssertionError(msg)
+
+    class _Coordinator:
+        def __init__(self, manager: _GPSManager) -> None:
+            self.gps_geofence_manager = manager
+
+        async def async_patch_gps_update(self, _dog_id: str) -> None:
+            msg = "async_patch_gps_update should not be called for tiny movements"
+            raise AssertionError(msg)
+
+    gps_manager = _GPSManager()
+    runtime_data = SimpleNamespace(
+        coordinator=_Coordinator(gps_manager),
+        gps_geofence_manager=gps_manager,
+    )
+    monkeypatch.setattr(
+        external_bindings,
+        "require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+
+    async def _no_sleep(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(external_bindings.asyncio, "sleep", _no_sleep)
+
+    callback_box: dict[str, Any] = {}
+    monkeypatch.setattr(
+        external_bindings.event_helper,
+        "async_track_state_change_event",
+        lambda _hass, _entities, callback: (
+            callback_box.setdefault("callback", callback) or (lambda: None)
+        ),
+    )
+
+    hass = SimpleNamespace(data={}, async_create_task=asyncio.create_task)
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={
+            "dogs": [
+                {
+                    "dog_id": "fido",
+                    "gps_config": {"gps_source": "device_tracker.fido"},
+                }
+            ]
+        },
+    )
+
+    await external_bindings.async_setup_external_bindings(hass, entry)
+
+    callback = callback_box["callback"]
+    event = SimpleNamespace(
+        data={
+            "new_state": SimpleNamespace(
+                attributes={"latitude": 51.0, "longitude": 7.0}
+            )
+        }
+    )
+    callback(event)
+
+    binding = hass.data[DOMAIN][external_bindings._STORE_KEY]["entry-id"]["fido"]
+    assert binding.task is not None
+    await binding.task
+
+
+@pytest.mark.asyncio
+async def test_async_setup_external_bindings_cancels_previous_pending_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A new state event should cancel the previous in-flight debounce task."""
+
+    class _GPSManager:
+        async def async_get_current_location(self, _dog_id: str) -> None:
+            return None
+
+        async def async_add_gps_point(self, **_kwargs: Any) -> bool:
+            return False
+
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(
+            gps_geofence_manager=_GPSManager(),
+            async_patch_gps_update=lambda _dog_id: None,
+        ),
+        gps_geofence_manager=_GPSManager(),
+    )
+    monkeypatch.setattr(
+        external_bindings,
+        "require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+
+    blocker = asyncio.Event()
+
+    async def _blocked_sleep(_seconds: float) -> None:
+        await blocker.wait()
+
+    monkeypatch.setattr(external_bindings.asyncio, "sleep", _blocked_sleep)
+
+    callbacks: dict[str, Any] = {}
+
+    def _track(_hass: Any, _entities: list[str], callback: Any) -> Any:
+        callbacks["cb"] = callback
+        return lambda: None
+
+    monkeypatch.setattr(
+        external_bindings.event_helper,
+        "async_track_state_change_event",
+        _track,
+    )
+
+    hass = SimpleNamespace(data={}, async_create_task=asyncio.create_task)
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={
+            "dogs": [
+                {
+                    "dog_id": "fido",
+                    "gps_config": {"gps_source": "device_tracker.fido"},
+                }
+            ]
+        },
+    )
+    await external_bindings.async_setup_external_bindings(hass, entry)
+
+    event = SimpleNamespace(
+        data={
+            "new_state": SimpleNamespace(
+                attributes={"latitude": 52.0, "longitude": 8.0}
+            )
+        }
+    )
+    callbacks["cb"](event)
+    binding = hass.data[DOMAIN][external_bindings._STORE_KEY]["entry-id"]["fido"]
+    first_task = binding.task
+    assert first_task is not None
+
+    callbacks["cb"](event)
+    second_task = binding.task
+    assert second_task is not None
+    assert second_task is not first_task
+    assert first_task.cancelling() > 0
+
+    blocker.set()
+    await second_task
