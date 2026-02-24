@@ -65,6 +65,7 @@ def test_coerce_runtime_data_supports_store_entries() -> None:
         _coerce_runtime_data(DomainRuntimeStoreEntry(runtime_data=runtime_data))
         is runtime_data
     )
+    assert _coerce_runtime_data({"runtime_data": runtime_data}) is runtime_data
     assert _coerce_runtime_data(object()) is None
 
 
