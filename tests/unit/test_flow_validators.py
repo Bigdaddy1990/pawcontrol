@@ -1,198 +1,183 @@
-"""Tests for flow-level validation wrapper helpers."""
+"""Tests for config/options flow validator wrapper functions."""
+
+from __future__ import annotations
 
 from typing import Any
 
 import pytest
 
 from custom_components.pawcontrol import flow_validators
+from custom_components.pawcontrol.exceptions import ValidationError
 
 
-def test_validate_flow_dog_name_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Dog-name flow helper should delegate to validate_dog_name."""
+@pytest.mark.parametrize(
+    ("wrapper_name", "target_name", "kwargs", "expected"),
+    [
+        (
+            "validate_flow_dog_name",
+            "validate_dog_name",
+            {"name": "Luna", "field": "dog_name", "required": True},
+            "Luna",
+        ),
+        (
+            "validate_flow_gps_interval",
+            "validate_gps_interval",
+            {
+                "value": "30",
+                "field": "gps_interval",
+                "minimum": 10,
+                "maximum": 60,
+                "default": 20,
+                "clamp": False,
+                "required": False,
+            },
+            30,
+        ),
+        (
+            "validate_flow_timer_interval",
+            "validate_interval",
+            {
+                "value": 15,
+                "field": "timer_interval",
+                "minimum": 5,
+                "maximum": 20,
+                "default": 10,
+                "clamp": True,
+                "required": True,
+            },
+            15,
+        ),
+        (
+            "validate_flow_time_window",
+            "validate_time_window",
+            {
+                "start": "08:00:00",
+                "end": "09:00:00",
+                "start_field": "start",
+                "end_field": "end",
+                "default_start": None,
+                "default_end": None,
+            },
+            ("08:00:00", "09:00:00"),
+        ),
+    ],
+)
+def test_function_wrappers_delegate_to_validation_module(
+    monkeypatch: pytest.MonkeyPatch,
+    wrapper_name: str,
+    target_name: str,
+    kwargs: dict[str, Any],
+    expected: Any,
+) -> None:
+    """Wrapper helpers should pass all args/kwargs to the validation API."""
     captured: dict[str, Any] = {}
 
-    def _fake_validate(name: Any, *, field: str, required: bool) -> str | None:
-        captured.update({"name": name, "field": field, "required": required})
-        return "Fido"
+    def _fake(*args: Any, **inner_kwargs: Any) -> Any:
+        captured["args"] = args
+        captured["kwargs"] = inner_kwargs
+        return expected
 
-    monkeypatch.setattr(flow_validators, "validate_dog_name", _fake_validate)
+    monkeypatch.setattr(flow_validators, target_name, _fake)
 
-    assert (
-        flow_validators.validate_flow_dog_name(" fido ", field="dog", required=False)
-        == "Fido"
-    )
-    assert captured == {"name": " fido ", "field": "dog", "required": False}
+    wrapper = getattr(flow_validators, wrapper_name)
+    result = wrapper(**kwargs)
+
+    assert result == expected
+    expected_args = tuple(kwargs.values())[: len(captured["args"])]
+    expected_kwargs = {
+        k: v
+        for k, v in kwargs.items()
+        if k not in tuple(kwargs)[: len(captured["args"])]
+    }
+    assert captured["args"] == expected_args
+    assert captured["kwargs"] == expected_kwargs
 
 
-def test_validate_flow_gps_helpers_delegate(monkeypatch: pytest.MonkeyPatch) -> None:
-    """GPS flow helpers should pass through arguments to InputValidator."""
-    captured: dict[str, Any] = {}
+def test_input_validator_wrappers_delegate_exactly(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """InputValidator wrappers should forward values and keyword fields."""
+    captured_calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
 
-    def _fake_coords(
-        latitude: Any,
-        longitude: Any,
-        *,
-        latitude_field: str,
-        longitude_field: str,
-    ) -> tuple[float, float]:
-        captured["coords"] = {
-            "latitude": latitude,
-            "longitude": longitude,
-            "latitude_field": latitude_field,
-            "longitude_field": longitude_field,
-        }
-        return (51.5, -0.1)
-
-    def _fake_accuracy(
-        value: Any,
-        *,
-        field: str,
-        min_value: float,
-        max_value: float,
-        required: bool,
-    ) -> float | None:
-        captured["accuracy"] = {
-            "value": value,
-            "field": field,
-            "min_value": min_value,
-            "max_value": max_value,
-            "required": required,
-        }
-        return 10.5
-
-    def _fake_radius(
-        value: Any,
-        *,
-        field: str,
-        min_value: float,
-        max_value: float,
-        required: bool,
-    ) -> float | None:
-        captured["radius"] = {
-            "value": value,
-            "field": field,
-            "min_value": min_value,
-            "max_value": max_value,
-            "required": required,
-        }
-        return 200.0
+    def _capture(
+        method_name: str, *args: Any, **kwargs: Any
+    ) -> float | tuple[float, float]:
+        captured_calls.append((method_name, args, kwargs))
+        return (1.0, 2.0) if method_name == "validate_gps_coordinates" else 25.0
 
     monkeypatch.setattr(
-        flow_validators.InputValidator, "validate_gps_coordinates", _fake_coords
+        flow_validators.InputValidator,
+        "validate_gps_coordinates",
+        staticmethod(
+            lambda *args, **kwargs: _capture(
+                "validate_gps_coordinates", *args, **kwargs
+            )
+        ),
     )
     monkeypatch.setattr(
-        flow_validators.InputValidator, "validate_gps_accuracy", _fake_accuracy
+        flow_validators.InputValidator,
+        "validate_gps_accuracy",
+        staticmethod(
+            lambda *args, **kwargs: _capture("validate_gps_accuracy", *args, **kwargs)
+        ),
     )
     monkeypatch.setattr(
-        flow_validators.InputValidator, "validate_geofence_radius", _fake_radius
+        flow_validators.InputValidator,
+        "validate_geofence_radius",
+        staticmethod(
+            lambda *args, **kwargs: _capture(
+                "validate_geofence_radius", *args, **kwargs
+            )
+        ),
     )
 
-    assert flow_validators.validate_flow_gps_coordinates(1, 2) == (51.5, -0.1)
+    assert flow_validators.validate_flow_gps_coordinates("52.5", "13.4") == (1.0, 2.0)
     assert (
         flow_validators.validate_flow_gps_accuracy(
-            "10", field="acc", min_value=1.0, max_value=20.0, required=False
+            "25",
+            field="gps_accuracy",
+            min_value=5,
+            max_value=50,
+            required=False,
         )
-        == 10.5
+        == 25.0
     )
     assert (
         flow_validators.validate_flow_geofence_radius(
-            "200", field="radius", min_value=10.0, max_value=500.0
+            "25",
+            field="radius",
+            min_value=10,
+            max_value=100,
+            required=True,
         )
-        == 200.0
+        == 25.0
     )
 
-    assert captured["coords"] == {
-        "latitude": 1,
-        "longitude": 2,
-        "latitude_field": "latitude",
-        "longitude_field": "longitude",
-    }
-    assert captured["accuracy"] == {
-        "value": "10",
-        "field": "acc",
-        "min_value": 1.0,
-        "max_value": 20.0,
-        "required": False,
-    }
-    assert captured["radius"] == {
-        "value": "200",
-        "field": "radius",
-        "min_value": 10.0,
-        "max_value": 500.0,
-        "required": True,
-    }
+    assert captured_calls == [
+        (
+            "validate_gps_coordinates",
+            ("52.5", "13.4"),
+            {"latitude_field": "latitude", "longitude_field": "longitude"},
+        ),
+        (
+            "validate_gps_accuracy",
+            ("25",),
+            {
+                "field": "gps_accuracy",
+                "min_value": 5,
+                "max_value": 50,
+                "required": False,
+            },
+        ),
+        (
+            "validate_geofence_radius",
+            ("25",),
+            {"field": "radius", "min_value": 10, "max_value": 100, "required": True},
+        ),
+    ]
 
 
-def test_validate_flow_interval_helpers_delegate(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Interval and time-window helpers should delegate to validation module."""
-    captured: dict[str, Any] = {}
-
-    def _fake_gps_interval(value: Any, **kwargs: Any) -> int | None:
-        captured["gps"] = {"value": value, **kwargs}
-        return 15
-
-    def _fake_interval(value: Any, **kwargs: Any) -> int:
-        captured["interval"] = {"value": value, **kwargs}
-        return 30
-
-    def _fake_time_window(start: Any, end: Any, **kwargs: Any) -> tuple[str, str]:
-        captured["window"] = {"start": start, "end": end, **kwargs}
-        return ("08:00", "09:00")
-
-    monkeypatch.setattr(flow_validators, "validate_gps_interval", _fake_gps_interval)
-    monkeypatch.setattr(flow_validators, "validate_interval", _fake_interval)
-    monkeypatch.setattr(flow_validators, "validate_time_window", _fake_time_window)
-
-    assert (
-        flow_validators.validate_flow_gps_interval(
-            "15", field="gps_interval", minimum=5, maximum=60, required=True
-        )
-        == 15
-    )
-    assert (
-        flow_validators.validate_flow_timer_interval(
-            "30", field="timer", minimum=10, maximum=120, default=60
-        )
-        == 30
-    )
-    assert flow_validators.validate_flow_time_window(
-        "08:00",
-        "09:00",
-        start_field="start_time",
-        end_field="end_time",
-    ) == ("08:00", "09:00")
-
-    assert captured["gps"] == {
-        "value": "15",
-        "field": "gps_interval",
-        "minimum": 5,
-        "maximum": 60,
-        "required": True,
-        "default": None,
-        "clamp": False,
-    }
-    assert captured["interval"] == {
-        "value": "30",
-        "field": "timer",
-        "minimum": 10,
-        "maximum": 120,
-        "default": 60,
-        "required": False,
-        "clamp": False,
-    }
-    assert captured["window"] == {
-        "start": "08:00",
-        "end": "09:00",
-        "start_field": "start_time",
-        "end_field": "end_time",
-        "default_start": None,
-        "default_end": None,
-    }
-
-
-def test_flow_validators_exports_validation_error() -> None:
-    """The compatibility export list should include ValidationError."""
+def test_flow_validators_exports_validation_error_symbol() -> None:
+    """Public exports should expose ValidationError for flow modules."""
+    assert flow_validators.ValidationError is ValidationError
     assert "ValidationError" in flow_validators.__all__
-    assert flow_validators.ValidationError.__name__ == "ValidationError"
