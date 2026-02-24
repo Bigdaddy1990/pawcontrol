@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 from custom_components.pawcontrol.utils.normalize import normalize_value
 
@@ -67,6 +67,7 @@ def test_normalize_value_skips_dataclass_type_objects() -> None:
     assert normalize_value(_Config).startswith("<class")
 
 
+@dataclass
 class DeviceSnapshot:
     dog_name: str
     feed_count: int

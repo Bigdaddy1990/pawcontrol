@@ -133,5 +133,5 @@ def test_log_helpers_emit_expected_records(caplog: pytest.LogCaptureFixture) -> 
             RuntimeError("boom"),
         )
 
-    assert "https://user:pass@example.com/path" in caplog.text
+    assert "https://example.com/path" in caplog.text
     assert "RuntimeError" in caplog.text
