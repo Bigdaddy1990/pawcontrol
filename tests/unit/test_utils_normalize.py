@@ -1,63 +1,58 @@
-"""Tests for JSON normalization helpers."""
+"""Unit tests for JSON normalization helpers."""
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 from custom_components.pawcontrol.utils.normalize import normalize_value
 
 
 @dataclass
-class _SampleDataclass:
-    """Dataclass fixture for normalization tests."""
+class SamplePayload:
+    """Simple dataclass payload for normalization tests."""
 
-    created_at: datetime
-    tags: set[str]
-
-
-class _ReprOnly:
-    """Simple object that relies on repr fallback."""
-
-    def __repr__(self) -> str:
-        return "<repr-only>"
+    name: str
+    delay: timedelta
 
 
-def test_normalize_value_handles_scalar_and_temporal_types() -> None:
-    """Scalar and temporal values should be converted to JSON-compatible values."""
-    now = datetime(2025, 1, 2, 3, 4, 5, tzinfo=UTC)
+class CustomObject:
+    """Object without JSON conversion support."""
 
+
+def test_normalize_value_handles_json_primitives() -> None:
+    """Primitive values should remain unchanged."""
     assert normalize_value(None) is None
     assert normalize_value(True) is True
-    assert normalize_value(4) == 4
-    assert normalize_value(3.5) == 3.5
-    assert normalize_value("paw") == "paw"
-    assert normalize_value(now) == now.isoformat()
-    assert normalize_value(date(2025, 1, 2)) == "2025-01-02"
-    assert normalize_value(time(3, 4, 5)) == "03:04:05"
-    assert normalize_value(timedelta(minutes=2, seconds=1)) == 121.0
+    assert normalize_value(3) == 3
+    assert normalize_value(1.5) == 1.5
+    assert normalize_value("pawcontrol") == "pawcontrol"
 
 
-def test_normalize_value_handles_dataclass_mapping_and_iterables() -> None:
-    """Dataclasses and containers should be normalized recursively."""
-    sample = _SampleDataclass(
-        created_at=datetime(2025, 1, 2, 3, 4, 5, tzinfo=UTC),
-        tags={"dog", "cat"},
-    )
-
-    normalized_dataclass = normalize_value(sample)
-
-    assert normalized_dataclass["created_at"] == "2025-01-02T03:04:05+00:00"
-    assert set(normalized_dataclass["tags"]) == {"dog", "cat"}
-
-    normalized_mapping = normalize_value({1: datetime(2025, 1, 2, tzinfo=UTC)})
-    assert normalized_mapping == {"1": "2025-01-02T00:00:00+00:00"}
-
-    normalized_set = normalize_value({1, 2, 3})
-    assert set(normalized_set) == {1, 2, 3}
-
-    normalized_iterable = normalize_value((date(2025, 1, 2), "ok"))
-    assert normalized_iterable == ["2025-01-02", "ok"]
+def test_normalize_value_handles_datetime_types() -> None:
+    """Date, time, and datetime values should be returned as ISO strings."""
+    assert normalize_value(date(2026, 1, 2)) == "2026-01-02"
+    assert normalize_value(time(13, 45, 5)) == "13:45:05"
+    assert normalize_value(datetime(2026, 1, 2, 13, 45, 5)) == "2026-01-02T13:45:05"
 
 
-def test_normalize_value_uses_repr_for_unknown_types() -> None:
-    """Unknown objects should fall back to repr output."""
-    assert normalize_value(_ReprOnly()) == "<repr-only>"
+def test_normalize_value_handles_dataclass_and_mapping_and_iterables() -> None:
+    """Structured objects should be recursively normalized."""
+    payload = SamplePayload(name="Buddy", delay=timedelta(minutes=15))
+
+    assert normalize_value(payload) == {"name": "Buddy", "delay": 900.0}
+
+    mapping_result = normalize_value({1: datetime(2026, 5, 1, 8, 30), "items": (1, 2)})
+    assert mapping_result == {"1": "2026-05-01T08:30:00", "items": [1, 2]}
+
+    set_result = normalize_value({"a", "b"})
+    assert isinstance(set_result, list)
+    assert set(set_result) == {"a", "b"}
+
+    generator_result = normalize_value(item for item in [1, timedelta(seconds=5)])
+    assert generator_result == [1, 5.0]
+
+
+def test_normalize_value_falls_back_to_repr_for_unknown_values() -> None:
+    """Unsupported objects should use their repr for serialization."""
+    custom = CustomObject()
+
+    assert normalize_value(custom) == repr(custom)
