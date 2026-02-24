@@ -69,6 +69,12 @@ def test_coerce_runtime_data_supports_store_entries() -> None:
     assert _coerce_runtime_data(object()) is None
 
 
+def test_coerce_runtime_data_supports_legacy_and_duck_typed_entries() -> None:
+    """Runtime data coercion should support legacy and duck-typed containers."""
+    runtime_data = _runtime_data_with_coordinator(SimpleNamespace())
+
+    assert _coerce_runtime_data({"runtime_data": runtime_data}) is runtime_data
+    assert _coerce_runtime_data(SimpleNamespace(coordinator=SimpleNamespace())) is not None
 def test_coerce_runtime_data_supports_reloaded_runtime_classes() -> None:
     """Reloaded runtime dataclass instances should still be accepted."""
     reloaded_runtime_type = type(

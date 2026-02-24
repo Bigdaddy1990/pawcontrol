@@ -3,7 +3,8 @@
 from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 import logging
-from typing import Final, cast
+from typing import Any, cast
+from typing import Final
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
@@ -58,25 +59,21 @@ def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     if isinstance(value, PawControlRuntimeData):
         return value
 
-    if value is None:
-        return None
-
-    value_cls = getattr(value, "__class__", None)
-    if value_cls is not None and (
-        getattr(value_cls, "__name__", "") == "PawControlRuntimeData"
-        and getattr(value_cls, "__module__", "")
-        == PawControlRuntimeData.__module__
-    ):
-        return cast(PawControlRuntimeData, value)
+    runtime_container = cast(Any, value)
+    unwrap = getattr(runtime_container, "unwrap", None)
+    if callable(unwrap):
+        return _coerce_runtime_data(unwrap())
 
     if isinstance(value, DomainRuntimeStoreEntry):
         return value.unwrap()
     if isinstance(value, Mapping):
-        legacy_runtime_data = value.get("runtime_data")
-        if isinstance(legacy_runtime_data, PawControlRuntimeData):
-            return legacy_runtime_data
-    if getattr(value, "coordinator", None) is not None:
-        return value  # type: ignore[return-value]
+        runtime_data = value.get("runtime_data")
+        if runtime_data is not None:
+            return _coerce_runtime_data(runtime_data)
+
+    runtime_candidate = cast(Any, value)
+    if getattr(runtime_candidate, "coordinator", None) is not None:
+        return cast(PawControlRuntimeData, runtime_candidate)
     return None
 
 
