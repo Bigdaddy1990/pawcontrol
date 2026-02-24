@@ -118,6 +118,74 @@ def test_get_cached_component_translation_lookup_uses_english_fallback() -> None
     assert fallback == {"e": "v"}
 
 
+def test_resolve_component_translation_uses_component_key() -> None:
+    """Component helper should resolve namespaced translation keys."""
+    result = translation_helpers.resolve_component_translation(
+        {"component.pawcontrol.common.action": "Aktion"},
+        {},
+        "action",
+    )
+
+    assert result == "Aktion"
+
+
+def test_get_cached_component_translations_uses_bundled_when_cache_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bundled translations are returned when no cache entry exists."""
+    hass = SimpleNamespace(data={"pawcontrol": {"translations": {}}})
+
+    monkeypatch.setattr(
+        translation_helpers,
+        "_load_bundled_component_translations",
+        lambda language: {f"component.pawcontrol.common.{language}": "Bundled"},
+    )
+
+    result = translation_helpers.get_cached_component_translations(hass, "de")
+
+    assert result == {"component.pawcontrol.common.de": "Bundled"}
+
+
+@pytest.mark.asyncio
+async def test_async_get_component_translations_handles_loader_exceptions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Loader failures should gracefully fallback to bundled translations."""
+    hass = SimpleNamespace(data={})
+
+    async def failing_async_get_translations(
+        *args: object, **kwargs: object
+    ) -> dict[str, str]:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        translation_helpers,
+        "async_get_translations",
+        failing_async_get_translations,
+    )
+    monkeypatch.setattr(
+        translation_helpers,
+        "_load_bundled_component_translations",
+        lambda language: {"component.pawcontrol.common.fallback": language},
+    )
+
+    result = await translation_helpers.async_get_component_translations(hass, "de")
+
+    assert result == {"component.pawcontrol.common.fallback": "de"}
+
+
+@pytest.mark.asyncio
+async def test_async_get_component_translation_lookup_reuses_english_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """English lookups should reuse the same mapping for fallback."""
+    hass = SimpleNamespace(data={})
+
+    async def fake_async_get_translations(
+        *args: object, **kwargs: object
+    ) -> dict[str, str]:
+        language = args[1]
+        return {f"component.pawcontrol.common.{language}": language}
 def test_load_bundled_component_translations_handles_invalid_inputs(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path,
@@ -189,6 +257,31 @@ async def test_async_get_component_translations_handles_ha_exceptions(
         "async_get_translations",
         fake_async_get_translations,
     )
+
+    (
+        translations,
+        fallback,
+    ) = await translation_helpers.async_get_component_translation_lookup(
+        hass,
+        "en",
+    )
+
+    assert translations == fallback
+
+
+@pytest.mark.asyncio
+async def test_async_preload_component_translations_calls_each_language(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Preload helper should request translations for every language entry."""
+    hass = SimpleNamespace(data={})
+    languages_seen: list[str | None] = []
+
+    async def fake_async_get_component_translations(
+        _hass: SimpleNamespace,
+        language: str | None,
+    ) -> dict[str, str]:
+        languages_seen.append(language)
     monkeypatch.setattr(
         translation_helpers,
         "_load_bundled_component_translations",
@@ -218,6 +311,54 @@ async def test_async_preload_component_translations_preloads_languages(
     monkeypatch.setattr(
         translation_helpers,
         "async_get_component_translations",
+        fake_async_get_component_translations,
+    )
+
+    await translation_helpers.async_preload_component_translations(
+        hass, ["de", None, "en"]
+    )
+
+    assert languages_seen == ["de", None, "en"]
+
+
+def test_load_bundled_component_translations_reads_common_entries(
+    tmp_path: pytest.TempPathFactory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bundled loader should map common keys into component translation keys."""
+    translation_helpers._load_bundled_component_translations.cache_clear()
+    module_file = tmp_path / "translation_helpers.py"
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "de.json").write_text(
+        '{"common": {"action": "Aktion", "nested": 5}}',
+        encoding="utf-8",
+    )
+    module_file.write_text("", encoding="utf-8")
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    result = translation_helpers._load_bundled_component_translations("de")
+
+    assert result == {"component.pawcontrol.common.action": "Aktion"}
+
+
+def test_load_bundled_component_translations_handles_missing_or_invalid_payload(
+    tmp_path: pytest.TempPathFactory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Loader should return an empty mapping for invalid bundled files."""
+    translation_helpers._load_bundled_component_translations.cache_clear()
+    module_file = tmp_path / "translation_helpers.py"
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "fr.json").write_text("not json", encoding="utf-8")
+    (translations_dir / "it.json").write_text('{"common": []}', encoding="utf-8")
+    module_file.write_text("", encoding="utf-8")
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    assert translation_helpers._load_bundled_component_translations("es") == {}
+    assert translation_helpers._load_bundled_component_translations("fr") == {}
+    assert translation_helpers._load_bundled_component_translations("it") == {}
         fake_get_component_translations,
     )
 
