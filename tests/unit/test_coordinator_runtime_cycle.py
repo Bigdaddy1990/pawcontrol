@@ -4,8 +4,6 @@ Covers RuntimeCycleInfo.to_dict, EntityBudgetSnapshot properties,
 summarize_entity_budgets, and CoordinatorRuntime.execute_cycle via mocking.
 """
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch

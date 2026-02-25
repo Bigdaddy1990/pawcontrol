@@ -6,8 +6,6 @@ _call_coordinator_method, _normalize_cache_timestamp, _normalise_attributes).
 These can be exercised without constructing a live HA entity.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 import time
 from typing import Any

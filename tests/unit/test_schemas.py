@@ -4,8 +4,6 @@ Covers validate_json_schema_payload, SchemaViolation, the GPS/geofence/options
 schemas, and all internal type-check helpers in schemas.py.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.schemas import (
