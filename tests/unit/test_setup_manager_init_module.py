@@ -294,11 +294,6 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides(
         _capture_initialization,
     )
 
-async def test_async_initialize_geofencing_manager_prefers_per_dog_options() -> None:
-    """Per-dog geofence options should override global defaults."""
-    initialize = AsyncMock()
-    geofencing_manager = SimpleNamespace(async_initialize=initialize)
-    initialization_tasks: list = []
     entry = SimpleNamespace(
         options={
             "geofence_settings": {
@@ -318,13 +313,6 @@ async def test_async_initialize_geofencing_manager_prefers_per_dog_options() -> 
         }
     )
     initialization_tasks: list[asyncio.Task[None]] = []
-                        "use_home_location": False,
-                        "geofence_radius_m": 175,
-                    }
-                }
-            },
-        }
-    )
 
     await manager_init._async_initialize_geofencing_manager(
         geofencing_manager,
@@ -350,12 +338,18 @@ def test_register_runtime_monitors_calls_data_manager_hook_when_available() -> N
         data_manager=SimpleNamespace(
             register_runtime_cache_monitors=register_runtime_cache_monitors
         )
-    initialize.assert_awaited_once_with(
-        dogs=["buddy"],
-        enabled=True,
-        use_home_location=False,
-        home_zone_radius=175,
     )
+
+    manager_init._register_runtime_monitors(runtime_data)
+
+    register_runtime_cache_monitors.assert_called_once_with(runtime_data)
+
+
+def test_register_runtime_monitors_skips_when_data_manager_hook_missing() -> None:
+    """Runtime monitor registration should no-op when the hook is unavailable."""
+    runtime_data = SimpleNamespace(data_manager=SimpleNamespace())
+
+    manager_init._register_runtime_monitors(runtime_data)
 
 
 def test_attach_managers_to_coordinator_shares_resilience_manager() -> None:
@@ -434,15 +428,3 @@ def test_create_runtime_data_syncs_script_history_and_telemetry(
     script_manager.attach_runtime_manual_history.assert_called_once_with(runtime_data)
     script_manager.sync_manual_event_history.assert_called_once_with()
     telemetry_update.assert_called_once_with(runtime_data)
-
-
-def test_register_runtime_monitors_calls_data_manager_hook() -> None:
-    """Runtime monitor registration should call the cache monitor hook if present."""
-    register_hook = MagicMock()
-    runtime_data = SimpleNamespace(
-        data_manager=SimpleNamespace(register_runtime_cache_monitors=register_hook)
-    )
-
-    manager_init._register_runtime_monitors(runtime_data)
-
-    register_runtime_cache_monitors.assert_called_once_with(runtime_data)
