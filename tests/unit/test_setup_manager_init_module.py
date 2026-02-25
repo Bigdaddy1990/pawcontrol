@@ -294,6 +294,11 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides(
         _capture_initialization,
     )
 
+async def test_async_initialize_geofencing_manager_prefers_per_dog_options() -> None:
+    """Per-dog geofence options should override global defaults."""
+    initialize = AsyncMock()
+    geofencing_manager = SimpleNamespace(async_initialize=initialize)
+    initialization_tasks: list = []
     entry = SimpleNamespace(
         options={
             "geofence_settings": {
@@ -313,6 +318,13 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides(
         }
     )
     initialization_tasks: list[asyncio.Task[None]] = []
+                        "use_home_location": False,
+                        "geofence_radius_m": 175,
+                    }
+                }
+            },
+        }
+    )
 
     await manager_init._async_initialize_geofencing_manager(
         geofencing_manager,
@@ -338,6 +350,97 @@ def test_register_runtime_monitors_calls_data_manager_hook_when_available() -> N
         data_manager=SimpleNamespace(
             register_runtime_cache_monitors=register_runtime_cache_monitors
         )
+    initialize.assert_awaited_once_with(
+        dogs=["buddy"],
+        enabled=True,
+        use_home_location=False,
+        home_zone_radius=175,
+    )
+
+
+def test_attach_managers_to_coordinator_shares_resilience_manager() -> None:
+    """Attach helper should wire optional manager resilience references."""
+    resilience_manager = object()
+    coordinator = SimpleNamespace(
+        resilience_manager=resilience_manager,
+        attach_runtime_managers=MagicMock(),
+    )
+    gps_geofence_manager = SimpleNamespace(resilience_manager=None)
+    notification_manager = SimpleNamespace(resilience_manager=None)
+    weather_health_manager = SimpleNamespace(resilience_manager=None)
+    core_managers = {
+        "data_manager": object(),
+        "feeding_manager": object(),
+        "walk_manager": object(),
+        "notification_manager": notification_manager,
+    }
+    optional_managers = {
+        "gps_geofence_manager": gps_geofence_manager,
+        "geofencing_manager": object(),
+        "weather_health_manager": weather_health_manager,
+        "garden_manager": object(),
+    }
+
+    manager_init._attach_managers_to_coordinator(
+        coordinator,
+        core_managers,
+        optional_managers,
+    )
+
+    coordinator.attach_runtime_managers.assert_called_once()
+    assert gps_geofence_manager.resilience_manager is resilience_manager
+    assert notification_manager.resilience_manager is resilience_manager
+    assert weather_health_manager.resilience_manager is resilience_manager
+
+
+def test_create_runtime_data_syncs_script_history_and_telemetry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runtime data creation should sync script history and update telemetry."""
+    script_manager = SimpleNamespace(
+        attach_runtime_manual_history=MagicMock(),
+        sync_manual_event_history=MagicMock(),
+    )
+    telemetry_update = MagicMock()
+    monkeypatch.setattr(
+        manager_init,
+        "update_runtime_reconfigure_summary",
+        telemetry_update,
+    )
+
+    runtime_data = manager_init._create_runtime_data(
+        SimpleNamespace(data={"k": "v"}, options={"o": "p"}),
+        SimpleNamespace(api_client=object()),
+        {
+            "data_manager": object(),
+            "notification_manager": object(),
+            "feeding_manager": object(),
+            "walk_manager": object(),
+            "entity_factory": object(),
+        },
+        {
+            "helper_manager": object(),
+            "script_manager": script_manager,
+            "geofencing_manager": object(),
+            "gps_geofence_manager": object(),
+            "door_sensor_manager": object(),
+            "garden_manager": object(),
+            "weather_health_manager": object(),
+        },
+        [{"dog_id": "buddy", "dog_name": "Buddy"}],
+        "standard",
+    )
+
+    script_manager.attach_runtime_manual_history.assert_called_once_with(runtime_data)
+    script_manager.sync_manual_event_history.assert_called_once_with()
+    telemetry_update.assert_called_once_with(runtime_data)
+
+
+def test_register_runtime_monitors_calls_data_manager_hook() -> None:
+    """Runtime monitor registration should call the cache monitor hook if present."""
+    register_hook = MagicMock()
+    runtime_data = SimpleNamespace(
+        data_manager=SimpleNamespace(register_runtime_cache_monitors=register_hook)
     )
 
     manager_init._register_runtime_monitors(runtime_data)
