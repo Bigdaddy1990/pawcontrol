@@ -226,6 +226,74 @@ def test_persistent_cache_load_success_and_clear(monkeypatch) -> None:
     asyncio.run(_run())
 
 
+def test_persistent_cache_reload_short_circuit_and_expiry(monkeypatch) -> None:
+    """Persistent cache should skip duplicate loads and evict expired entries."""
+
+    class _CountingStore:
+        def __init__(self, _hass: object, _version: int, _key: str) -> None:
+            self.load_calls = 0
+
+        async def async_load(self) -> dict[str, object]:
+            self.load_calls += 1
+            return {
+                "stale": {
+                    "value": {"name": "Old"},
+                    "timestamp": 1.0,
+                    "ttl_seconds": 1.0,
+                }
+            }
+
+        async def async_save(self, _data: dict[str, object]) -> None:
+            return None
+
+    async def _run() -> None:
+        monkeypatch.setattr(cache_module, "Store", _CountingStore)
+        persistent = cache_module.PersistentCache[dict[str, str]](object(), "paw")
+
+        await persistent.async_load()
+        await persistent.async_load()
+
+        fake_store = persistent._store
+        assert isinstance(fake_store, _CountingStore)
+        assert fake_store.load_calls == 1
+
+        from unittest.mock import patch
+
+        with patch("custom_components.pawcontrol.cache.time.time", return_value=10.0):
+            assert await persistent.get("stale") is None
+
+        assert await persistent.delete("missing") is False
+
+    asyncio.run(_run())
+
+
+def test_persistent_cache_delete_triggers_lazy_load(monkeypatch) -> None:
+    """Delete should trigger async_load when cache has not been loaded yet."""
+
+    class _EmptyStore:
+        def __init__(self, _hass: object, _version: int, _key: str) -> None:
+            self.load_calls = 0
+
+        async def async_load(self) -> dict[str, object]:
+            self.load_calls += 1
+            return {}
+
+        async def async_save(self, _data: dict[str, object]) -> None:
+            return None
+
+    async def _run() -> None:
+        monkeypatch.setattr(cache_module, "Store", _EmptyStore)
+        persistent = cache_module.PersistentCache[dict[str, str]](object(), "paw")
+
+        assert await persistent.delete("missing") is False
+
+        fake_store = persistent._store
+        assert isinstance(fake_store, _EmptyStore)
+        assert fake_store.load_calls == 1
+
+    asyncio.run(_run())
+
+
 def test_two_level_cache_forwards_operations_and_promotes_from_l2() -> None:
     """Two-level cache should delegate setup/get/set/delete/clear/save/stats."""
 
@@ -313,5 +381,35 @@ def test_two_level_cache_forwards_operations_and_promotes_from_l2() -> None:
         stats = cache.get_stats()
         assert stats["l1"].hits == 1
         assert stats["l2"].misses == 1
+
+    asyncio.run(_run())
+
+
+def test_lru_cache_capacity_eviction_and_l1_hit_path() -> None:
+    """LRU capacity eviction and TwoLevel L1-hit shortcut should both execute."""
+
+    class _BypassL2:
+        def __init__(self) -> None:
+            self.get_calls = 0
+
+        async def get(self, _key: str) -> object | None:
+            self.get_calls += 1
+            return None
+
+    async def _run() -> None:
+        lru = cache_module.LRUCache[int](max_size=1, default_ttl=30)
+        await lru.set("first", 1)
+        await lru.set("second", 2)
+
+        assert await lru.get("first") is None
+        assert await lru.get("second") == 2
+        assert lru.get_stats().evictions == 1
+
+        cache = cache_module.TwoLevelCache[int](object())
+        cache._l1 = lru  # type: ignore[assignment]
+        cache._l2 = _BypassL2()  # type: ignore[assignment]
+
+        assert await cache.get("second") == 2
+        assert cache._l2.get_calls == 0
 
     asyncio.run(_run())
