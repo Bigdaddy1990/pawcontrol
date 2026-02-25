@@ -80,6 +80,7 @@ def test_service_validation_error_trims_whitespace() -> None:
             None,
             "gps_update_interval is required",
         ),
+        ("gps_accuracy", "gps_accuracy_required", None, "gps_accuracy is required"),
         (
             "geofence_radius",
             "geofence_radius_required",
@@ -114,6 +115,15 @@ def test_service_validation_error_trims_whitespace() -> None:
     ],
 )
 def test_format_gps_validation_error_variants(
+            "geofence_radius",
+            "geofence_radius_out_of_range",
+            "m",
+            "geofence_radius must be between 1 and 10m",
+        ),
+        ("gps_accuracy", "unknown_constraint", None, "gps_accuracy is invalid"),
+    ],
+)
+def test_format_gps_validation_error(
     field: str,
     constraint: str,
     unit: str | None,
@@ -127,6 +137,8 @@ def test_format_gps_validation_error_variants(
         min_value=1,
         max_value=30,
     )
+    """GPS validation constraints should map to user-friendly messages."""
+    error = services.ValidationError(field, 0, constraint, min_value=1, max_value=10)
 
     assert services._format_gps_validation_error(error, unit=unit) == expected
 
@@ -147,6 +159,15 @@ def test_format_text_validation_error_variants(
 ) -> None:
     """Text validation helper should classify common constraint messages."""
     error = services.ValidationError("dog_name", "", constraint)
+        ("field_required", "notes is required"),
+        ("Must be text", "notes must be a string"),
+        ("Cannot be empty or whitespace", "notes must be a non-empty string"),
+        ("unexpected", "notes is invalid"),
+    ],
+)
+def test_format_text_validation_error(constraint: str, expected: str) -> None:
+    """Text validation messages should use stable wording."""
+    error = services.ValidationError("notes", "  ", constraint)
 
     assert services._format_text_validation_error(error) == expected
 
@@ -158,6 +179,10 @@ def test_format_text_validation_error_variants(
         (False, False),
         ("enabled", True),
         ("OFF", False),
+        ("true", True),
+        (" enabled ", True),
+        ("0", False),
+        ("disabled", False),
         (1, True),
         (0, False),
     ],
@@ -323,6 +348,82 @@ def test_coordinator_resolver_invalidates_cache_when_entry_not_loaded() -> None:
 
     assert resolver._get_cached_coordinator() is None
     assert resolver._cached_entry_id is None
+    """Boolean coercion should support native, string, and integer toggles."""
+    assert services._coerce_service_bool(value, field="enabled") is expected
+
+
+@pytest.mark.parametrize("value", [2, "maybe", 1.2, object()])
+def test_coerce_service_bool_rejects_invalid_values(value: object) -> None:
+    """Unsupported service booleans should raise a validation error."""
+    with pytest.raises(ServiceValidationError):
+        services._coerce_service_bool(value, field="enabled")
+
+
+def test_format_expires_in_hours_error_variants() -> None:
+    """Expiry formatting should cover all user-facing branches."""
+    assert (
+        services._format_expires_in_hours_error(
+            services.ValidationError(
+                "expires_in_hours", constraint="expires_in_hours_required"
+            ),
+        )
+        == "expires_in_hours is required"
+    )
+    assert (
+        services._format_expires_in_hours_error(
+            services.ValidationError(
+                "expires_in_hours",
+                constraint="expires_in_hours_not_numeric",
+            ),
+        )
+        == "expires_in_hours must be a number"
+    )
+    assert (
+        services._format_expires_in_hours_error(
+            services.ValidationError(
+                "expires_in_hours",
+                constraint="expires_in_hours_out_of_range",
+                min_value=1.0,
+                max_value=2.0,
+            ),
+        )
+        == "expires_in_hours must be between 1 and 2"
+    )
+    assert (
+        services._format_expires_in_hours_error(
+            services.ValidationError(
+                "expires_in_hours",
+                constraint="expires_in_hours_out_of_range",
+                min_value=2.0,
+            ),
+        )
+        == "expires_in_hours must be greater than 2"
+    )
+    assert (
+        services._format_expires_in_hours_error(
+            services.ValidationError(
+                "expires_in_hours",
+                constraint="expires_in_hours_out_of_range",
+                max_value=24.0,
+            ),
+        )
+        == "expires_in_hours must be less than 24"
+    )
+    assert (
+        services._format_expires_in_hours_error(
+            services.ValidationError(
+                "expires_in_hours",
+                constraint="expires_in_hours_out_of_range",
+            ),
+        )
+        == "expires_in_hours is out of range"
+    )
+    assert (
+        services._format_expires_in_hours_error(
+            services.ValidationError("expires_in_hours", constraint="unexpected"),
+        )
+        == "expires_in_hours is invalid"
+    )
 
 
 @pytest.mark.unit

@@ -52,7 +52,7 @@ class _TestSensor(PawControlBinarySensorBase):
 
     def __init__(
         self, coordinator: _CoordStub, dog_id: str = "rex", dog_name: str = "Rex"
-    ) -> None:  # noqa: E501
+    ) -> None:
         super().__init__(
             cast(PawControlCoordinator, coordinator),
             dog_id,
@@ -192,25 +192,25 @@ class TestBinarySensorLogicMixin:
 
     def test_time_based_status_true_within_threshold(
         self, mixin: BinarySensorLogicMixin
-    ) -> None:  # noqa: E501
+    ) -> None:
         recent = (datetime.now(UTC) - timedelta(minutes=5)).isoformat()
         assert mixin._calculate_time_based_status(recent, 0.5) is True
 
     def test_time_based_status_false_outside_threshold(
         self, mixin: BinarySensorLogicMixin
-    ) -> None:  # noqa: E501
+    ) -> None:
         old_ts = (datetime.now(UTC) - timedelta(hours=2)).isoformat()
         assert mixin._calculate_time_based_status(old_ts, 0.5) is False
 
     def test_time_based_status_default_when_none(
         self, mixin: BinarySensorLogicMixin
-    ) -> None:  # noqa: E501
+    ) -> None:
         assert mixin._calculate_time_based_status(None, 1.0, True) is True
         assert mixin._calculate_time_based_status(None, 1.0, False) is False
 
     def test_time_based_status_false_on_empty_string(
         self, mixin: BinarySensorLogicMixin
-    ) -> None:  # noqa: E501
+    ) -> None:
         assert mixin._calculate_time_based_status("", 1.0) is False
 
     def test_evaluate_threshold_greater(self, mixin: BinarySensorLogicMixin) -> None:
@@ -223,7 +223,7 @@ class TestBinarySensorLogicMixin:
 
     def test_evaluate_threshold_greater_equal(
         self, mixin: BinarySensorLogicMixin
-    ) -> None:  # noqa: E501
+    ) -> None:
         assert mixin._evaluate_threshold(5, 5, "greater_equal") is True
         assert mixin._evaluate_threshold(4, 5, "greater_equal") is False
 
@@ -233,13 +233,13 @@ class TestBinarySensorLogicMixin:
 
     def test_evaluate_threshold_none_returns_default(
         self, mixin: BinarySensorLogicMixin
-    ) -> None:  # noqa: E501
+    ) -> None:
         assert mixin._evaluate_threshold(None, 5, "greater", True) is True
         assert mixin._evaluate_threshold(None, 5, "greater", False) is False
 
     def test_evaluate_threshold_unknown_comparison(
         self, mixin: BinarySensorLogicMixin
-    ) -> None:  # noqa: E501
+    ) -> None:
         assert mixin._evaluate_threshold(10, 5, "unknown_op") is False
 
 
