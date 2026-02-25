@@ -4,8 +4,6 @@ Covers _normalize_dog_configs, _async_add_entities_in_batches,
 PawControlTextBase core behaviour, and concrete text entity subclasses.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -143,7 +141,7 @@ class TestAsyncAddTextEntitiesInBatches:
         entities = [PawControlCustomLabelText(coord, "rex", "Rex")]
         call_count = 0
 
-        async def fake_add(batch, **kwargs):
+        async def fake_add(batch, **kwargs) -> None:
             nonlocal call_count
             call_count += 1
 

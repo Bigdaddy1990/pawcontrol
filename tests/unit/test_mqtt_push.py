@@ -4,8 +4,6 @@ Covers _domain_store, _any_dog_expects_mqtt, async_register_entry_mqtt,
 and async_unregister_entry_mqtt in mqtt_push.py.
 """
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -185,12 +183,14 @@ class TestAsyncRegisterEntryMqtt:
 
             import custom_components.pawcontrol.mqtt_push as mod
 
-            original_import = (
-                __builtins__.__import__ if isinstance(__builtins__, dict) else None
+            (
+                __builtins__.get("__import__")
+                if isinstance(__builtins__, dict)
+                else __builtins__.__import__
             )  # noqa: E501, F841
 
             # Directly call with mock that patches the internal import
-            async def _mock_register(hass_, entry_):
+            async def _mock_register(hass_, entry_) -> None:
                 enabled = bool(entry_.options.get("mqtt_enabled", True))
                 if not enabled:
                     return

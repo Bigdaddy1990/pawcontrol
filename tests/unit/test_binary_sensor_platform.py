@@ -6,8 +6,6 @@ _coerce_timestamp, _apply_standard_timing_attributes), and core
 binary sensor class construction.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast

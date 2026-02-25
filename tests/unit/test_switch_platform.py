@@ -4,8 +4,6 @@ Covers OptimizedSwitchBase, ProfileOptimizedSwitchFactory,
 _async_add_entities_in_batches, and core switch subclasses.
 """
 
-from __future__ import annotations
-
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
@@ -306,7 +304,7 @@ class TestAsyncAddEntitiesInBatches:
         ]
         call_count = 0
 
-        async def fake_add(entities_arg, **kwargs):
+        async def fake_add(entities_arg, **kwargs) -> None:
             nonlocal call_count
             call_count += 1
 
@@ -326,7 +324,7 @@ class TestAsyncAddEntitiesInBatches:
         ]
         batches_added: list[int] = []
 
-        async def fake_callback(entities_arg, **kwargs):
+        async def fake_callback(entities_arg, **kwargs) -> None:
             batches_added.append(len(entities_arg))
 
         from unittest.mock import patch
