@@ -53,7 +53,7 @@ class _CoordStub:
 
 def _make_coordinator(
     dog_data: CoordinatorDogData | None = None,
-) -> PawControlCoordinator:  # noqa: E501
+) -> PawControlCoordinator:
     return cast(PawControlCoordinator, _CoordStub(dog_data))
 
 
@@ -207,7 +207,7 @@ class TestPawControlTextBase:
         entity._current_value = "same"
         with patch.object(
             entity, "_async_persist_text_value", new=AsyncMock()
-        ) as mock_persist:  # noqa: E501
+        ) as mock_persist:
             await entity.async_set_value("same")
         mock_persist.assert_not_called()
 
@@ -271,7 +271,7 @@ class TestConcreteTextEntities:
         entity = PawControlCurrentWalkLabelText(
             _make_coordinator(
                 cast(CoordinatorDogData, {"walk": {"walk_in_progress": False}})
-            ),  # noqa: E501
+            ),
             "rex",
             "Rex",
         )
@@ -281,7 +281,7 @@ class TestConcreteTextEntities:
         entity = PawControlCurrentWalkLabelText(
             _make_coordinator(
                 cast(CoordinatorDogData, {"walk": {"walk_in_progress": True}})
-            ),  # noqa: E501
+            ),
             "rex",
             "Rex",
         )
