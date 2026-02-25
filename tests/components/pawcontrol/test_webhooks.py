@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import logging
+import sys
+from types import SimpleNamespace
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -181,17 +184,17 @@ async def test_async_register_entry_webhook_registers_and_unregisters_existing(
 
 
 @pytest.mark.asyncio
-async def test_async_register_entry_webhook_skips_when_not_eligible(
+async def test_async_register_entry_webhook_skips_when_not_enabled(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Registration should no-op when webhook mode is disabled or unsupported."""
+    """Webhook registration should stop early when webhook mode is disabled."""
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "manual"}}]},
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
         options={
             CONF_WEBHOOK_ENABLED: False,
-            CONF_WEBHOOK_ID: "register-id",
+            CONF_WEBHOOK_ID: "disabled-id",
         },
     )
     entry.add_to_hass(hass)
