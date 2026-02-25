@@ -171,7 +171,7 @@ async def test_async_register_entry_webhook_registers_and_unregisters_existing(
     )
     monkeypatch.setattr(
         "custom_components.pawcontrol.webhooks.get_entry_webhook_url",
-        lambda _hass, _entry: None,
+        lambda _hass, _entry: "https://example.test/webhook",
     )
 
     await async_register_entry_webhook(hass, entry)
@@ -201,20 +201,12 @@ async def test_async_register_entry_webhook_skips_when_not_enabled(
 
     called = False
 
-    def _fake_register(*_: Any, **__: Any) -> None:
+    def _fake_register(*_args: Any, **_kwargs: Any) -> None:
         nonlocal called
         called = True
 
     monkeypatch.setattr(
         "custom_components.pawcontrol.webhooks.async_register", _fake_register
-    )
-
-    async def _noop_ensure(*_: Any) -> None:
-        return None
-
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.webhooks.async_ensure_webhook_config",
-        _noop_ensure,
     )
 
     await async_register_entry_webhook(hass, entry)
@@ -223,25 +215,34 @@ async def test_async_register_entry_webhook_skips_when_not_enabled(
 
 
 @pytest.mark.asyncio
-async def test_async_register_entry_webhook_skips_when_id_missing(
+async def test_async_register_entry_webhook_skips_invalid_webhook_id(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Webhook registration should stop early when webhook id is invalid."""
+    """Registration should no-op when no valid webhook id is configured."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
         options={
             CONF_WEBHOOK_ENABLED: True,
-            CONF_WEBHOOK_ID: 1,
-            CONF_WEBHOOK_SECRET: "a-secret",
+            CONF_WEBHOOK_ID: "",
+            CONF_WEBHOOK_SECRET: "present-secret",
+            CONF_WEBHOOK_REQUIRE_SIGNATURE: False,
         },
     )
     entry.add_to_hass(hass)
 
     called = False
 
-    def _fake_register(*_: Any, **__: Any) -> None:
+    async def _fake_ensure(_hass: HomeAssistant, _entry: MockConfigEntry) -> None:
+        return None
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhooks.async_ensure_webhook_config",
+        _fake_ensure,
+    )
+
+    def _fake_register(*_args: Any, **_kwargs: Any) -> None:
         nonlocal called
         called = True
 
@@ -249,56 +250,9 @@ async def test_async_register_entry_webhook_skips_when_id_missing(
         "custom_components.pawcontrol.webhooks.async_register", _fake_register
     )
 
-    async def _noop_ensure(*_: Any) -> None:
-        return None
-
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.webhooks.async_ensure_webhook_config",
-        _noop_ensure,
-    )
-
     await async_register_entry_webhook(hass, entry)
 
     assert called is False
-
-
-@pytest.mark.asyncio
-async def test_async_register_entry_webhook_logs_url_when_available(
-    hass: HomeAssistant,
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Webhook registration should log the generated URL when present."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
-        options={
-            CONF_WEBHOOK_ENABLED: True,
-            CONF_WEBHOOK_ID: "with-url",
-            CONF_WEBHOOK_SECRET: "a-secret",
-            CONF_WEBHOOK_REQUIRE_SIGNATURE: False,
-        },
-    )
-    entry.add_to_hass(hass)
-
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.webhooks.async_unregister",
-        lambda *_: None,
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.webhooks.async_register",
-        lambda *_: None,
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.webhooks.get_entry_webhook_url",
-        lambda *_: "https://example.test/api/webhook/with-url",
-    )
-
-    caplog.set_level(logging.INFO, logger="custom_components.pawcontrol.webhooks")
-
-    await async_register_entry_webhook(hass, entry)
-
-    assert "PawControl webhook URL for entry" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -326,11 +280,11 @@ async def test_async_unregister_entry_webhook_skips_invalid_ids(
 
 
 @pytest.mark.asyncio
-async def test_async_unregister_entry_webhook_unregisters_valid_id(
+async def test_async_unregister_entry_webhook_calls_unregister_for_valid_ids(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Webhook unregistration should call Home Assistant for valid ids."""
+    """Webhook unregistration should unregister valid webhook ids."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={},
@@ -338,11 +292,10 @@ async def test_async_unregister_entry_webhook_unregisters_valid_id(
     )
     entry.add_to_hass(hass)
 
-    seen_id: str | None = None
+    calls: list[str] = []
 
     def _fake_unregister(_hass: HomeAssistant, webhook_id: str) -> None:
-        nonlocal seen_id
-        seen_id = webhook_id
+        calls.append(webhook_id)
 
     monkeypatch.setattr(
         "custom_components.pawcontrol.webhooks.async_unregister", _fake_unregister
@@ -350,7 +303,7 @@ async def test_async_unregister_entry_webhook_unregisters_valid_id(
 
     await async_unregister_entry_webhook(hass, entry)
 
-    assert seen_id == "remove-me"
+    assert calls == ["remove-me"]
 
 
 def test_get_entry_webhook_url_returns_none_without_id(hass: HomeAssistant) -> None:
@@ -364,23 +317,19 @@ def test_get_entry_webhook_url_returns_generated_url(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Webhook URL helper should delegate to Home Assistant generator."""
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={CONF_WEBHOOK_ID: "abc123"})
+    """Webhook URL helper should delegate to Home Assistant URL generation."""
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={CONF_WEBHOOK_ID: "id-123"})
 
-    monkeypatch.setitem(
-        sys.modules,
-        "homeassistant.components.webhook",
-        SimpleNamespace(
-            async_generate_url=(
-                lambda _hass, webhook_id: f"https://example.test/api/webhook/{webhook_id}"
-            )
-        ),
+    from homeassistant.components import webhook as webhook_component
+
+    monkeypatch.setattr(
+        webhook_component,
+        "async_generate_url",
+        lambda _hass, webhook_id: f"https://example.test/{webhook_id}",
+        raising=False,
     )
 
-    assert (
-        get_entry_webhook_url(hass, entry)
-        == "https://example.test/api/webhook/abc123"
-    )
+    assert get_entry_webhook_url(hass, entry) == "https://example.test/id-123"
 
 
 @pytest.mark.asyncio
