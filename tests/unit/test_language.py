@@ -1,33 +1,41 @@
+"""Unit tests for language normalization helpers."""
+
 import pytest
 
 from custom_components.pawcontrol.language import normalize_language
 
 
-def test_normalize_language_rejects_empty_default() -> None:
-    """An empty default language is invalid."""
-    with pytest.raises(ValueError, match="non-empty"):
-        normalize_language("en", default="")
+def test_normalize_language_uses_default_for_missing_language() -> None:
+    """None and empty values should resolve to the configured default."""
+    assert normalize_language(None) == "en"
+    assert normalize_language("") == "en"
 
 
-def test_normalize_language_uses_default_for_empty_input() -> None:
-    """Missing language should return the provided default."""
-    assert normalize_language(None, default="de") == "de"
-    assert normalize_language("", default="de") == "de"
+def test_normalize_language_normalizes_delimiters_and_case() -> None:
+    """Regional variants should collapse to lower-case base language codes."""
+    assert normalize_language("DE_de") == "de"
+    assert normalize_language("  fr-CA  ") == "fr"
 
 
-def test_normalize_language_normalizes_format_when_supported_is_omitted() -> None:
-    """Underscores/casing should be normalized to lowercase primary language."""
-    assert normalize_language("PT_BR") == "pt"
-    assert normalize_language(" es-MX ") == "es"
+def test_normalize_language_returns_default_for_empty_normalized_value() -> None:
+    """Whitespace-only values should fall back to the default language."""
+    assert normalize_language("   ") == "en"
 
 
-def test_normalize_language_applies_supported_allowlist() -> None:
-    """Unsupported values should fallback to the default language."""
-    supported = {"en", "de", "fr"}
-    assert normalize_language("de-DE", supported=supported, default="en") == "de"
-    assert normalize_language("it", supported=supported, default="en") == "en"
+def test_normalize_language_honors_supported_languages() -> None:
+    """Unsupported languages should fall back when supported values are provided."""
+    supported = {"en", "de"}
+
+    assert normalize_language("de-DE", supported=supported) == "de"
+    assert normalize_language("fr-FR", supported=supported) == "en"
 
 
-def test_normalize_language_returns_default_when_normalized_value_is_blank() -> None:
-    """Inputs that normalize to blank values should fallback to default."""
-    assert normalize_language("___", default="en") == "en"
+def test_normalize_language_requires_non_empty_default() -> None:
+    """An empty default should fail fast with a clear exception."""
+    with pytest.raises(ValueError, match="default language must be a non-empty"):
+        normalize_language("de", default="")
+
+
+def test_normalize_language_preserves_whitespace_default_when_requested() -> None:
+    """Whitespace defaults are treated as explicit caller-provided values."""
+    assert normalize_language(None, default="   ") == "   "

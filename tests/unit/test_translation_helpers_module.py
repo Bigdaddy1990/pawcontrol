@@ -26,6 +26,42 @@ def test_get_translation_cache_initializes_hass_data() -> None:
     assert translation_helpers.DOMAIN in hass.data
 
 
+def test_get_translation_cache_replaces_non_mapping_cache_value() -> None:
+    """The cache helper should replace malformed cache payloads."""
+    hass = SimpleNamespace(data={"pawcontrol": {"translations": "invalid"}})
+
+    cache = translation_helpers._get_translation_cache(hass)
+
+    assert cache == {}
+    assert hass.data["pawcontrol"]["translations"] is cache
+
+
+def test_get_translation_cache_replaces_non_mapping_domain_data() -> None:
+    """The cache helper should recover when domain data is malformed."""
+    hass = SimpleNamespace(data={"pawcontrol": "invalid"})
+
+    cache = translation_helpers._get_translation_cache(hass)
+
+    assert cache == {}
+    assert isinstance(hass.data["pawcontrol"], dict)
+    assert hass.data["pawcontrol"]["translations"] is cache
+
+
+def test_get_translation_cache_initializes_when_hass_has_no_data_attribute() -> None:
+    """The cache helper should create hass.data when the attribute is absent."""
+
+    class _Hass:
+        pass
+
+    hass = _Hass()
+
+    cache = translation_helpers._get_translation_cache(hass)
+
+    assert cache == {}
+    assert isinstance(hass.data, dict)
+    assert hass.data["pawcontrol"]["translations"] is cache
+
+
 @pytest.mark.asyncio
 async def test_async_get_component_translations_uses_ha_then_cache(
     monkeypatch: pytest.MonkeyPatch,
@@ -149,6 +185,41 @@ def test_get_cached_component_translations_uses_bundled_when_cache_missing(
     }
 
 
+def test_get_cached_component_translations_prefers_non_empty_cached_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-empty cached mapping should be returned without bundled fallback."""
+    cached = {"component.pawcontrol.common.de": "Gespeichert"}
+    hass = SimpleNamespace(data={"pawcontrol": {"translations": {"de": cached}}})
+
+    def _unexpected_loader(_language: str) -> dict[str, str]:
+        raise AssertionError("Bundled loader should not be called")
+
+    monkeypatch.setattr(
+        translation_helpers,
+        "_load_bundled_component_translations",
+        _unexpected_loader,
+    )
+
+    assert translation_helpers.get_cached_component_translations(hass, "de") is cached
+
+
+def test_get_cached_component_translations_uses_bundled_for_cached_empty_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty cached mapping should still trigger bundled fallback resolution."""
+    hass = SimpleNamespace(data={"pawcontrol": {"translations": {"de": {}}}})
+    monkeypatch.setattr(
+        translation_helpers,
+        "_load_bundled_component_translations",
+        lambda language: {f"component.pawcontrol.common.{language}": "Bundled"},
+    )
+
+    assert translation_helpers.get_cached_component_translations(hass, "de") == {
+        "component.pawcontrol.common.de": "Bundled"
+    }
+
+
 def test_cached_lookup_for_english_reuses_same_mapping() -> None:
     """English lookup should return the same mapping as fallback."""
     english = {"component.pawcontrol.common.title": "Title"}
@@ -182,6 +253,31 @@ async def test_async_translation_lookup_reuses_english_mapping(
 
 
 @pytest.mark.asyncio
+async def test_async_translation_lookup_fetches_english_fallback_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-English lookups should fetch the requested and English mapping."""
+    hass = SimpleNamespace(data={})
+    calls: list[str] = []
+
+    async def fake_get(*_args: object, **_kwargs: object) -> dict[str, str]:
+        language = _args[1]
+        calls.append(language)
+        return {f"component.pawcontrol.common.{language}": language}
+
+    monkeypatch.setattr(translation_helpers, "async_get_translations", fake_get)
+
+    translations, fallback = await translation_helpers.async_get_component_translation_lookup(
+        hass,
+        "de",
+    )
+
+    assert translations == {"component.pawcontrol.common.de": "de"}
+    assert fallback == {"component.pawcontrol.common.en": "en"}
+    assert calls == ["de", "en"]
+
+
+@pytest.mark.asyncio
 async def test_async_preload_component_translations_calls_each_language(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -206,6 +302,32 @@ async def test_async_preload_component_translations_calls_each_language(
     )
 
     assert seen == ["de", None, "en"]
+
+
+@pytest.mark.asyncio
+async def test_async_preload_component_translations_noop_for_empty_languages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Preload helper should not call translation fetch for empty iterables."""
+    hass = SimpleNamespace(data={})
+    called = False
+
+    async def fake_get_component_translations(
+        _hass: object, _language: str | None
+    ) -> dict[str, str]:
+        nonlocal called
+        called = True
+        return {}
+
+    monkeypatch.setattr(
+        translation_helpers,
+        "async_get_component_translations",
+        fake_get_component_translations,
+    )
+
+    await translation_helpers.async_preload_component_translations(hass, [])
+
+    assert called is False
 
 
 def test_load_bundled_component_translations_reads_only_common_strings(
@@ -281,3 +403,12 @@ def test_component_translation_helpers_resolve_component_key() -> None:
         {key: "Aktion"}, {}, "action"
     )
     assert resolved == "Aktion"
+
+
+def test_resolve_component_translation_uses_default_when_key_missing() -> None:
+    """Component lookup should return default text for missing translation keys."""
+    resolved = translation_helpers.resolve_component_translation(
+        {}, {}, "action", "Run"
+    )
+
+    assert resolved == "Run"

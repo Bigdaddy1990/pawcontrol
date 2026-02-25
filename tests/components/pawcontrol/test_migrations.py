@@ -70,3 +70,99 @@ async def test_async_migrate_entry_v1_to_v2(hass: HomeAssistant) -> None:
 
     dog_options = entry.options[CONF_DOG_OPTIONS]
     assert dog_options["buddy"]["gps_settings"]["gps_update_interval"] == 30
+
+
+@pytest.mark.asyncio
+async def test_async_migrate_entry_rejects_newer_version(
+    hass: HomeAssistant,
+) -> None:
+    """Migration fails when an entry advertises a future schema version."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        version=CONFIG_ENTRY_VERSION + 1,
+        data={},
+        options={},
+    )
+    entry.add_to_hass(hass)
+
+    result = await async_migrate_entry(hass, entry)
+
+    assert result is False
+    assert entry.version == CONFIG_ENTRY_VERSION + 1
+
+
+@pytest.mark.asyncio
+async def test_async_migrate_entry_normalizes_legacy_dog_payload_shapes(
+    hass: HomeAssistant,
+) -> None:
+    """Legacy list payloads and mixed module toggles are normalized."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        version=1,
+        data={
+            CONF_DOGS: [
+                {
+                    "dogId": " Shadow ",
+                    "name": " ",
+                    "modules": [
+                        "gps",
+                        {"module": "feeding", "enabled": "off"},
+                        {"module": "walk", "value": "yes"},
+                    ],
+                },
+                {
+                    "id": "Milo",
+                    "dog_name": "Milo",
+                },
+            ]
+        },
+        options={
+            CONF_DOG_OPTIONS: [
+                {DOG_ID_FIELD: "Shadow", "gps_settings": {"gps_update_interval": 5}},
+            ]
+        },
+    )
+    entry.add_to_hass(hass)
+
+    result = await async_migrate_entry(hass, entry)
+
+    assert result is True
+    dogs = entry.data[CONF_DOGS]
+    dog_map = {dog[DOG_ID_FIELD]: dog for dog in dogs}
+    assert dog_map["shadow"][DOG_NAME_FIELD] == "shadow"
+    assert dog_map["shadow"][DOG_MODULES_FIELD] == {
+        "gps": True,
+        "feeding": False,
+        "walk": True,
+    }
+    assert dog_map["milo"][DOG_NAME_FIELD] == "Milo"
+    assert entry.options[CONF_DOG_OPTIONS]["Shadow"]["gps_settings"] == {
+        "gps_update_interval": 5,
+    }
+
+
+@pytest.mark.asyncio
+async def test_async_migrate_entry_from_pre_v1_applies_default_path(
+    hass: HomeAssistant,
+) -> None:
+    """Version zero entries are promoted through the v1 migration logic."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        version=0,
+        data={
+            CONF_DOGS: {
+                " Daisy ": {
+                    "identifier": " DAISY ",
+                    "name": "Daisy",
+                }
+            }
+        },
+        options={},
+    )
+    entry.add_to_hass(hass)
+
+    result = await async_migrate_entry(hass, entry)
+
+    assert result is True
+    assert entry.version == CONFIG_ENTRY_VERSION
+    assert entry.data[CONF_DOGS][0][DOG_ID_FIELD] == "daisy"

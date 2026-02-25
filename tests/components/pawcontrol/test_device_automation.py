@@ -1,5 +1,6 @@
 """Tests for PawControl device automations."""
 
+import logging
 from unittest.mock import AsyncMock, Mock
 
 from homeassistant.config_entries import ConfigEntry
@@ -21,6 +22,7 @@ import pytest
 import voluptuous as vol
 
 from custom_components.pawcontrol.const import DOMAIN
+import custom_components.pawcontrol.device_action as device_action_module
 from custom_components.pawcontrol.device_action import (
     async_call_action,
     async_get_action_capabilities,
@@ -29,6 +31,7 @@ from custom_components.pawcontrol.device_action import (
 from custom_components.pawcontrol.device_automation_helpers import build_unique_id
 from custom_components.pawcontrol.device_condition import (
     async_condition_from_config,
+    async_get_condition_capabilities,
     async_get_conditions,
 )
 from custom_components.pawcontrol.device_trigger import (
@@ -200,6 +203,81 @@ async def test_condition_missing_entity_returns_false(
             CONF_DOMAIN: DOMAIN,
             CONF_TYPE: "needs_walk",
             CONF_ENTITY_ID: "binary_sensor.pawcontrol_buddy_needs_walk",
+        },
+    )
+
+    assert not condition(hass, {})
+
+
+@pytest.mark.asyncio
+async def test_condition_capabilities_status_is_requires_status(
+    hass: HomeAssistant,
+) -> None:
+    """Ensure status conditions expose and validate the status field."""
+    capabilities = await async_get_condition_capabilities(
+        hass,
+        {CONF_TYPE: "status_is"},
+    )
+
+    fields = capabilities["extra_fields"]
+    fields({"status": "sleeping"})
+    with pytest.raises(vol.Invalid):
+        fields({})
+
+    assert await async_get_condition_capabilities(hass, {CONF_TYPE: "needs_walk"}) == {}
+
+
+@pytest.mark.asyncio
+async def test_condition_status_is_uses_runtime_snapshot(
+    hass: HomeAssistant,
+) -> None:
+    """Prefer runtime status snapshot values when evaluating status_is conditions."""
+    device_entry = _register_device(hass)
+    coordinator = Mock()
+    coordinator.get_dog_data.return_value = {
+        "status_snapshot": {"state": "sleeping"},
+    }
+    runtime_data = PawControlRuntimeData(
+        coordinator=coordinator,
+        data_manager=Mock(),
+        notification_manager=Mock(),
+        feeding_manager=AsyncMock(),
+        walk_manager=AsyncMock(),
+        entity_factory=Mock(),
+        entity_profile="standard",
+        dogs=[{"dog_id": DOG_ID, "dog_name": "Buddy"}],
+    )
+    entry = ConfigEntry(entry_id=ENTRY_ID, domain=DOMAIN, data={"dogs": []})
+    store_runtime_data(hass, entry, runtime_data)
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "status_is",
+            "status": "sleeping",
+        },
+    )
+
+    assert condition(hass, {})
+
+
+@pytest.mark.asyncio
+async def test_condition_status_is_missing_status_returns_false(
+    hass: HomeAssistant,
+) -> None:
+    """Return false when status_is does not provide an expected status value."""
+    device_entry = _register_device(hass)
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "status_is",
         },
     )
 
@@ -401,3 +479,55 @@ async def test_action_calls_walk_manager_for_start_and_end(
         notes="great pace",
         save_route=False,
     )
+
+
+@pytest.mark.asyncio
+async def test_action_unknown_type_logs_debug_and_returns(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ensure unknown actions are ignored with a debug log."""
+    device_entry = _register_device(hass)
+    feeding_manager = AsyncMock()
+    walk_manager = AsyncMock()
+    runtime_data = PawControlRuntimeData(
+        coordinator=Mock(),
+        data_manager=Mock(),
+        notification_manager=Mock(),
+        feeding_manager=feeding_manager,
+        walk_manager=walk_manager,
+        entity_factory=Mock(),
+        entity_profile="standard",
+        dogs=[{"dog_id": DOG_ID, "dog_name": "Buddy"}],
+    )
+    entry = ConfigEntry(entry_id=ENTRY_ID, domain=DOMAIN, data={"dogs": []})
+    store_runtime_data(hass, entry, runtime_data)
+    monkeypatch.setattr(
+        device_action_module,
+        "ACTION_SCHEMA",
+        vol.Schema(
+            {
+                vol.Required(CONF_DEVICE_ID): str,
+                vol.Required(CONF_DOMAIN): str,
+                vol.Required(CONF_TYPE): str,
+            },
+            extra=vol.ALLOW_EXTRA,
+        ),
+    )
+
+    with caplog.at_level(logging.DEBUG):
+        await async_call_action(
+            hass,
+            {
+                CONF_DEVICE_ID: device_entry.id,
+                CONF_DOMAIN: DOMAIN,
+                CONF_TYPE: "unknown_action",
+            },
+            {},
+        )
+
+    feeding_manager.async_add_feeding.assert_not_awaited()
+    walk_manager.async_start_walk.assert_not_awaited()
+    walk_manager.async_end_walk.assert_not_awaited()
+    assert "Unhandled PawControl device action: unknown_action" in caplog.text

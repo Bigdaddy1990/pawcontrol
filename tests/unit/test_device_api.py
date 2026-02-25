@@ -43,6 +43,10 @@ def device_api_module() -> ModuleType:
     class RateLimitError(Exception):
         """Stubbed rate limit error."""
 
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            super().__init__(*args)
+            self.kwargs = kwargs
+
     stub_exceptions.ConfigEntryAuthFailed = ConfigEntryAuthFailedError
     stub_exceptions.NetworkError = NetworkError
     stub_exceptions.RateLimitError = RateLimitError
@@ -152,3 +156,172 @@ def test_device_client_rejects_closed_session(
         )
 
     assert "received a closed aiohttp ClientSession" in str(excinfo.value)
+
+
+@pytest.mark.unit
+def test_validate_device_endpoint_rejects_invalid_values(
+    device_api_module: ModuleType,
+) -> None:
+    """Endpoint validation should reject empty, hostless, and unsupported URLs."""
+    with pytest.raises(ValueError, match="endpoint must be provided"):
+        device_api_module.validate_device_endpoint("")
+
+    with pytest.raises(ValueError, match="http or https"):
+        device_api_module.validate_device_endpoint("ftp://example.com")
+
+    with pytest.raises(ValueError, match="valid hostname"):
+        device_api_module.validate_device_endpoint("https://")
+
+
+@pytest.mark.unit
+def test_device_client_forwards_bearer_token_and_feeding_path(
+    device_api_module: ModuleType,
+    session_factory,
+) -> None:
+    """The client should include auth headers and compose feeding endpoint paths."""
+    session = session_factory()
+    response = Mock()
+    response.status = 200
+    response.json = AsyncMock(return_value={"feeding": "ok"})
+    session.request = AsyncMock(return_value=response)
+
+    client = device_api_module.PawControlDeviceClient(
+        session=session,
+        endpoint="https://device.pawcontrol.invalid",
+        api_key="secret",
+    )
+
+    payload = asyncio.run(client.async_get_feeding_payload("dog-123"))
+
+    args, kwargs = session.request.await_args
+    expected_url = client.base_url.join(
+        device_api_module.URL("/api/dogs/dog-123/feeding")
+    )
+    assert args == ("GET", expected_url)
+    assert kwargs["headers"] == {"Authorization": "Bearer secret"}
+    assert payload == {"feeding": "ok"}
+
+
+@pytest.mark.unit
+def test_device_client_uses_resilience_manager_when_configured(
+    device_api_module: ModuleType,
+    session_factory,
+) -> None:
+    """When available, resilience manager should execute protected request path."""
+    session = session_factory()
+    response = Mock()
+    response.status = 200
+    response.json = AsyncMock(return_value={"status": "ok"})
+
+    manager = Mock()
+    manager.execute_with_resilience = AsyncMock(return_value=response)
+
+    client = device_api_module.PawControlDeviceClient(
+        session=session,
+        endpoint="https://device.pawcontrol.invalid",
+        resilience_manager=manager,
+    )
+
+    payload = asyncio.run(client.async_get_json("/status"))
+
+    manager.execute_with_resilience.assert_awaited_once()
+    args, kwargs = manager.execute_with_resilience.await_args
+    assert args[:3] == (client._async_request_protected, "GET", "/status")
+    assert kwargs["circuit_breaker_name"] == "device_api_request"
+    assert kwargs["retry_config"] is client._retry_config
+    assert payload == {"status": "ok"}
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("status", "headers", "body", "expected_exc", "message"),
+    [
+        (401, {}, "", "ConfigEntryAuthFailed", "Authentication with Paw Control"),
+        (429, {"Retry-After": "120"}, "", "RateLimitError", "device_api"),
+        (500, {}, "  fail  ", "NetworkError", "HTTP 500: fail"),
+    ],
+)
+def test_device_client_http_error_mapping(
+    device_api_module: ModuleType,
+    session_factory,
+    status: int,
+    headers: dict[str, str],
+    body: str,
+    expected_exc: str,
+    message: str,
+) -> None:
+    """HTTP status codes should be translated to integration exception types."""
+    session = session_factory()
+    response = Mock()
+    response.status = status
+    response.headers = headers
+    response.text = AsyncMock(return_value=body)
+    session.request = AsyncMock(return_value=response)
+
+    client = device_api_module.PawControlDeviceClient(
+        session=session,
+        endpoint="https://device.pawcontrol.invalid",
+    )
+
+    exception_type = getattr(device_api_module, expected_exc)
+    with pytest.raises(exception_type) as excinfo:
+        asyncio.run(client.async_get_json("/status"))
+
+    assert message in str(excinfo.value)
+
+
+@pytest.mark.unit
+def test_async_request_protected_delegates_to_request(
+    device_api_module: ModuleType,
+    session_factory,
+) -> None:
+    """Protected request wrapper should delegate directly to the request helper."""
+    session = session_factory()
+    response = Mock()
+    response.status = 200
+    response.json = AsyncMock(return_value={"status": "ok"})
+    session.request = AsyncMock(return_value=response)
+
+    client = device_api_module.PawControlDeviceClient(
+        session=session,
+        endpoint="https://device.pawcontrol.invalid",
+    )
+
+    result = asyncio.run(client._async_request_protected("GET", "/status"))
+
+    assert result is response
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("error_kind", "message"),
+    [
+        ("timeout", "Timed out while contacting"),
+        ("client", "Client error talking"),
+        ("os", "Network error talking"),
+    ],
+)
+def test_device_client_transport_errors_raise_network_error(
+    device_api_module: ModuleType,
+    session_factory,
+    error_kind: str,
+    message: str,
+) -> None:
+    """Transport-level failures should map to NetworkError with clear messaging."""
+    if error_kind == "timeout":
+        raised_error: Exception = TimeoutError()
+    elif error_kind == "client":
+        raised_error = device_api_module.ClientError("broken")
+    else:
+        raised_error = OSError("offline")
+
+    session = session_factory()
+    session.request = AsyncMock(side_effect=raised_error)
+
+    client = device_api_module.PawControlDeviceClient(
+        session=session,
+        endpoint="https://device.pawcontrol.invalid",
+    )
+
+    with pytest.raises(device_api_module.NetworkError, match=message):
+        asyncio.run(client.async_get_json("/status"))

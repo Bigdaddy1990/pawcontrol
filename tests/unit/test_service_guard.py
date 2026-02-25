@@ -1,5 +1,7 @@
 """Unit tests for service guard telemetry models."""
 
+from collections.abc import Iterator, MutableMapping
+
 import pytest
 
 from custom_components.pawcontrol.service_guard import (
@@ -177,7 +179,81 @@ def test_normalise_guard_history_handles_mixed_entries() -> None:
     assert history[1]["executed"] is False
 
 
+def test_normalise_guard_result_payload_filters_invalid_text_values() -> None:
+    """Normalisation should keep only non-empty string metadata values."""
+    payload = normalise_guard_result_payload({
+        "executed": 1,
+        "domain": "",
+        "service": 10,
+        "reason": None,
+        "description": "scheduled block",
+    })
+
+    assert payload == {
+        "executed": True,
+        "description": "scheduled block",
+    }
+
+
+def test_normalise_guard_history_keeps_mapping_entries_only() -> None:
+    """History normalisation should include only valid mapping payloads."""
+    history = normalise_guard_history((
+        {"executed": True, "domain": "notify"},
+        {"service": "switch.turn_on", "reason": "cooldown"},
+        12,
+    ))
+
+    assert history == [
+        {"executed": True, "domain": "notify"},
+        {"executed": False, "service": "switch.turn_on", "reason": "cooldown"},
+    ]
+
+
 @pytest.mark.parametrize("payload", ["history", b"history", bytearray(b"history"), 42])
 def test_normalise_guard_history_rejects_non_sequence_payloads(payload: object) -> None:
     """History normalisation should reject unsupported payload types."""
     assert normalise_guard_history(payload) == []
+
+
+def test_service_guard_snapshot_accumulate_handles_write_ignored_mapping() -> None:
+    """Accumulate should still return sane payloads when mapping writes are ignored."""
+
+    class IgnoreWritesMapping(MutableMapping[str, object]):
+        """Mutable mapping that allows reads but discards writes for selected keys."""
+
+        def __init__(self) -> None:
+            self._storage: dict[str, object] = {
+                "executed": 1,
+                "skipped": 1,
+                "reasons": "blocked",
+                "last_results": "blocked",
+            }
+
+        def __getitem__(self, key: str) -> object:
+            return self._storage[key]
+
+        def __setitem__(self, key: str, value: object) -> None:
+            if key in {"reasons", "last_results"}:
+                return
+            self._storage[key] = value
+
+        def __delitem__(self, key: str) -> None:
+            del self._storage[key]
+
+        def __iter__(self) -> Iterator[str]:
+            return iter(self._storage)
+
+        def __len__(self) -> int:
+            return len(self._storage)
+
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+    ])
+    payload = snapshot.accumulate(IgnoreWritesMapping())
+
+    assert payload == {
+        "executed": 1,
+        "skipped": 2,
+        "reasons": {},
+        "last_results": snapshot.history(),
+    }
