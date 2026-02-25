@@ -58,10 +58,15 @@ def test_unwrap_async_result_returns_plain_payload() -> None:
     """Successful gather payloads should pass through unchanged."""
     payload = {"status": "ok"}
 
-    assert unwrap_async_result(payload, context="sync", logger=logging.getLogger(__name__)) == payload
+    assert (
+        unwrap_async_result(payload, context="sync", logger=logging.getLogger(__name__))
+        == payload
+    )
 
 
-def test_unwrap_async_result_logs_non_cancelled_exception(caplog: pytest.LogCaptureFixture) -> None:
+def test_unwrap_async_result_logs_non_cancelled_exception(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Regular exceptions should be logged and converted to None."""
     caplog.set_level(logging.ERROR)
     logger = logging.getLogger("test.dashboard_shared")
@@ -82,10 +87,14 @@ def test_unwrap_async_result_reraises_cancelled_error_by_default() -> None:
     cancelled = asyncio.CancelledError()
 
     with pytest.raises(asyncio.CancelledError):
-        unwrap_async_result(cancelled, context="refresh", logger=logging.getLogger(__name__))
+        unwrap_async_result(
+            cancelled, context="refresh", logger=logging.getLogger(__name__)
+        )
 
 
-def test_unwrap_async_result_can_suppress_cancelled(caplog: pytest.LogCaptureFixture) -> None:
+def test_unwrap_async_result_can_suppress_cancelled(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Suppressed cancellations should be logged and return None."""
     caplog.set_level(logging.WARNING)
     logger = logging.getLogger("test.dashboard_shared.cancelled")

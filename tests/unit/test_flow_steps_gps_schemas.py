@@ -84,13 +84,11 @@ def test_build_gps_settings_schema_uses_fallback_defaults_for_missing_options() 
 def test_build_geofence_settings_schema_normalizes_radius_and_coordinates() -> None:
     """Geofence schema should coerce coordinate/radius defaults when invalid."""
     defaults = _marker_defaults(
-        build_geofence_settings_schema(
-            {
-                GEOFENCE_RADIUS_FIELD: "not-a-number",
-                GEOFENCE_LAT_FIELD: "",
-                GEOFENCE_LON_FIELD: "",
-            }
-        )
+        build_geofence_settings_schema({
+            GEOFENCE_RADIUS_FIELD: "not-a-number",
+            GEOFENCE_LAT_FIELD: "",
+            GEOFENCE_LON_FIELD: "",
+        })
     )
 
     assert defaults[GEOFENCE_RADIUS_FIELD] == 100

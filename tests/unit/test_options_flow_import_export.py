@@ -131,9 +131,9 @@ async def test_import_payload_validation_errors_are_surfaced() -> None:
 
     flow = _FailingValidationFlow()
 
-    result = await flow.async_step_import_export_import(
-        {"payload": '{"options": {"threshold": 3}}'}
-    )
+    result = await flow.async_step_import_export_import({
+        "payload": '{"options": {"threshold": 3}}'
+    })
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {"payload": "invalid_payload"}
@@ -161,14 +161,12 @@ async def test_import_payload_updates_entry_and_creates_options_entry(
         lambda payload: payload,
     )
 
-    result = await flow.async_step_import_export_import(
-        {
-            "payload": (
-                '{"options": {"threshold": 3}, '
-                '"dogs": [{"name": "Milo"}, "skip", {"name": "Luna"}]}'
-            )
-        }
-    )
+    result = await flow.async_step_import_export_import({
+        "payload": (
+            '{"options": {"threshold": 3}, '
+            '"dogs": [{"name": "Milo"}, "skip", {"name": "Luna"}]}'
+        )
+    })
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"] == {"normalised": {"threshold": 3}}

@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.pawcontrol.error_recovery import (
     ErrorPattern,
@@ -35,7 +35,9 @@ async def test_handle_error_recovers_with_action_and_creates_issue(
         )
     )
 
-    with patch("custom_components.pawcontrol.error_recovery.ir.async_create_issue") as issue:
+    with patch(
+        "custom_components.pawcontrol.error_recovery.ir.async_create_issue"
+    ) as issue:
         result = await coordinator.handle_error(
             AuthenticationError("invalid token"),
             context={"step": "auth"},
@@ -117,7 +119,9 @@ def test_error_stats_to_dict_and_rate() -> None:
 @pytest.mark.asyncio
 async def test_recovery_summary_and_singleton_helper(hass: HomeAssistant) -> None:
     """Summary values and module singleton should be stable."""
-    with patch("custom_components.pawcontrol.error_recovery._error_recovery_coordinator", None):
+    with patch(
+        "custom_components.pawcontrol.error_recovery._error_recovery_coordinator", None
+    ):
         first = get_error_recovery_coordinator(hass)
         second = get_error_recovery_coordinator(hass)
         assert first is second
