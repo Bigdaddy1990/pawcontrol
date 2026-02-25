@@ -22,9 +22,7 @@ def test_stringify_resilience_value_handles_binary_decode_failure() -> None:
     assert coordinator_observability._stringify_resilience_value(b"plain") == "plain"
 
     invalid_binary = bytearray(b"\xff\xfe")
-    assert (
-        coordinator_observability._stringify_resilience_value(invalid_binary) == ""
-    )
+    assert coordinator_observability._stringify_resilience_value(invalid_binary) == ""
 
 
 def test_build_security_scorecard_includes_webhook_error_payload() -> None:
