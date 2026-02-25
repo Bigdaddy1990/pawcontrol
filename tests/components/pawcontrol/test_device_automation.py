@@ -1,5 +1,6 @@
 """Tests for PawControl device automations."""
 
+import logging
 from unittest.mock import AsyncMock, Mock
 
 from homeassistant.config_entries import ConfigEntry
@@ -21,6 +22,7 @@ import pytest
 import voluptuous as vol
 
 from custom_components.pawcontrol.const import DOMAIN
+import custom_components.pawcontrol.device_action as device_action_module
 from custom_components.pawcontrol.device_action import (
     async_call_action,
     async_get_action_capabilities,
@@ -477,3 +479,55 @@ async def test_action_calls_walk_manager_for_start_and_end(
         notes="great pace",
         save_route=False,
     )
+
+
+@pytest.mark.asyncio
+async def test_action_unknown_type_logs_debug_and_returns(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ensure unknown actions are ignored with a debug log."""
+    device_entry = _register_device(hass)
+    feeding_manager = AsyncMock()
+    walk_manager = AsyncMock()
+    runtime_data = PawControlRuntimeData(
+        coordinator=Mock(),
+        data_manager=Mock(),
+        notification_manager=Mock(),
+        feeding_manager=feeding_manager,
+        walk_manager=walk_manager,
+        entity_factory=Mock(),
+        entity_profile="standard",
+        dogs=[{"dog_id": DOG_ID, "dog_name": "Buddy"}],
+    )
+    entry = ConfigEntry(entry_id=ENTRY_ID, domain=DOMAIN, data={"dogs": []})
+    store_runtime_data(hass, entry, runtime_data)
+    monkeypatch.setattr(
+        device_action_module,
+        "ACTION_SCHEMA",
+        vol.Schema(
+            {
+                vol.Required(CONF_DEVICE_ID): str,
+                vol.Required(CONF_DOMAIN): str,
+                vol.Required(CONF_TYPE): str,
+            },
+            extra=vol.ALLOW_EXTRA,
+        ),
+    )
+
+    with caplog.at_level(logging.DEBUG):
+        await async_call_action(
+            hass,
+            {
+                CONF_DEVICE_ID: device_entry.id,
+                CONF_DOMAIN: DOMAIN,
+                CONF_TYPE: "unknown_action",
+            },
+            {},
+        )
+
+    feeding_manager.async_add_feeding.assert_not_awaited()
+    walk_manager.async_start_walk.assert_not_awaited()
+    walk_manager.async_end_walk.assert_not_awaited()
+    assert "Unhandled PawControl device action: unknown_action" in caplog.text
