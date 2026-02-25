@@ -4,7 +4,10 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from custom_components.pawcontrol.utils import ensure_utc_datetime
+from custom_components.pawcontrol.utils import (
+    ensure_local_datetime,
+    ensure_utc_datetime,
+)
 
 
 @pytest.mark.parametrize(
@@ -53,3 +56,28 @@ def test_ensure_utc_datetime_converts_naive_datetimes_to_utc() -> None:
 
     assert result == datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
     assert result.tzinfo is UTC
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (
+            datetime(2024, 1, 1, 12, 30, tzinfo=UTC),
+            datetime(2024, 1, 1, 12, 30, tzinfo=UTC),
+        ),
+        ("2024-01-01T12:30:00+00:00", datetime(2024, 1, 1, 12, 30, tzinfo=UTC)),
+        ("2024-01-01", datetime(2024, 1, 1, 0, 0, tzinfo=UTC)),
+    ],
+)
+def test_ensure_local_datetime_handles_supported_values(value, expected) -> None:
+    """Local datetime coercion should support datetime and date-like strings."""
+    result = ensure_local_datetime(value)
+
+    assert result == expected
+    assert result.tzinfo is UTC
+
+
+@pytest.mark.parametrize("value", [None, "", 1700000000])
+def test_ensure_local_datetime_rejects_invalid_values(value) -> None:
+    """Unsupported local datetime values should return ``None``."""
+    assert ensure_local_datetime(value) is None
