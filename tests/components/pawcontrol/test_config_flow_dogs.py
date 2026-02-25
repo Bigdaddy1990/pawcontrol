@@ -234,11 +234,39 @@ def test_health_input_helpers_cover_vaccines_medications_and_diets() -> None:
             "senior_formula": True,
             "raw_diet": True,
             "prescription": True,
+            "kidney_support": True,
             "diabetic": True,
             "hypoallergenic": True,
             "organic": True,
         },
     )
+    diet_validation = mixin._validate_diet_combinations(diets)
+
+    assert conditions == [
+        "diabetes",
+        "digestive_issues",
+        "skin_allergy",
+        "joint_pain",
+    ]
+    assert set(diets) == {
+        "prescription",
+        "kidney_support",
+        "organic",
+        "hypoallergenic",
+        "raw_diet",
+        "puppy_formula",
+        "senior_formula",
+    }
+    assert diet_validation["valid"] is False
+    assert diet_validation["recommended_vet_consultation"] is True
+    assert any(
+        issue["type"] == "age_conflict" for issue in diet_validation["conflicts"]
+    )
+    assert {issue["type"] for issue in diet_validation["warnings"]} >= {
+        "raw_medical_warning",
+        "multiple_prescription_warning",
+        "hypoallergenic_warning",
+    }
     assert "puppy_formula" in diets
 
     validation = flow._validate_diet_combinations(diets)
@@ -253,6 +281,72 @@ def test_health_input_helpers_cover_vaccines_medications_and_diets() -> None:
     [
         (0, "small", "moderate"),
         (11, "medium", "low"),
+        (7, "large", "moderate"),
+        (4, "medium", "high"),
+        (4, "unknown", "moderate"),
+    ],
+)
+def test_suggest_activity_level_respects_age_and_size(
+    age: int,
+    size: str,
+    expected: str,
+) -> None:
+    """Activity suggestion helper should prioritize age bands before size mapping."""
+    mixin = _mixin()
+    assert mixin._suggest_activity_level(age, size) == expected
+
+
+@pytest.mark.asyncio
+async def test_get_diet_compatibility_guidance_uses_translations_and_fallback() -> None:
+    """Guidance helper should include all relevant bullet lines and fallback text."""
+    mixin = _mixin()
+
+    async def _lookup() -> tuple[dict[str, str], dict[str, str]]:
+        return (
+            {
+                "config.error.diet_guidance_puppies": "Puppy guidance",
+                "config.error.diet_guidance_large_breed": "Large breed guidance",
+                "config.error.diet_guidance_raw_diets": "Raw guidance",
+                "config.error.diet_guidance_none": "No warnings",
+            },
+            {
+                "config.error.diet_guidance_multiple_prescription": (
+                    "Prescription fallback"
+                ),
+                "config.error.diet_guidance_prescription_overrides": (
+                    "Override fallback"
+                ),
+                "config.error.diet_guidance_none": "Fallback none",
+            },
+        )
+
+    mixin._async_get_translation_lookup = _lookup  # type: ignore[method-assign]
+
+    guidance = await mixin._get_diet_compatibility_guidance(1, "large")
+
+    assert guidance.split("\n") == [
+        "Puppy guidance",
+        "Large breed guidance",
+        "Prescription fallback",
+        "Raw guidance",
+        "Override fallback",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_diet_compatibility_guidance_returns_none_when_empty() -> None:
+    """Guidance helper should return the explicit "none" translation."""
+    mixin = _mixin()
+
+    async def _lookup() -> tuple[dict[str, str], dict[str, str]]:
+        return ({}, {"config.error.diet_guidance_none": "No compatibility notes"})
+
+    mixin._async_get_translation_lookup = _lookup  # type: ignore[method-assign]
+
+    assert (
+        await mixin._get_diet_compatibility_guidance(3, "small")
+        == "No compatibility notes"
+    )
         (8, "medium", "moderate"),
         (4, "large", "high"),
     ],
