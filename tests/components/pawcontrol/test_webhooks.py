@@ -23,6 +23,9 @@ from custom_components.pawcontrol.webhooks import (
     _any_dog_expects_webhook,
     _handle_webhook,
     async_ensure_webhook_config,
+    async_register_entry_webhook,
+    async_unregister_entry_webhook,
+    get_entry_webhook_url,
 )
 
 
@@ -91,6 +94,123 @@ def test_any_dog_expects_webhook_handles_invalid_shapes() -> None:
     assert _any_dog_expects_webhook(entry) is True
 
 
+def test_any_dog_expects_webhook_returns_false_when_dogs_not_list() -> None:
+    """Dog source detection should reject non-list storage shapes."""
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_DOGS: {"gps_config": {}}})
+
+    assert _any_dog_expects_webhook(entry) is False
+
+
+@pytest.mark.asyncio
+async def test_async_ensure_webhook_config_keeps_existing_credentials(
+    hass: HomeAssistant,
+) -> None:
+    """Existing webhook credentials should not be regenerated."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={
+            CONF_WEBHOOK_ENABLED: True,
+            CONF_WEBHOOK_ID: "existing-id",
+            CONF_WEBHOOK_SECRET: "existing-secret",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    await async_ensure_webhook_config(hass, entry)
+
+    assert entry.options[CONF_WEBHOOK_ID] == "existing-id"
+    assert entry.options[CONF_WEBHOOK_SECRET] == "existing-secret"
+
+
+@pytest.mark.asyncio
+async def test_async_register_entry_webhook_registers_and_unregisters_existing(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Webhook registration should unregister stale handlers before registering."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={
+            CONF_WEBHOOK_ENABLED: True,
+            CONF_WEBHOOK_ID: "register-id",
+            CONF_WEBHOOK_SECRET: "register-secret",
+            CONF_WEBHOOK_REQUIRE_SIGNATURE: False,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    calls: dict[str, Any] = {}
+
+    def _fake_unregister(_hass: HomeAssistant, webhook_id: str) -> None:
+        calls["unregister"] = webhook_id
+
+    def _fake_register(
+        _hass: HomeAssistant,
+        domain: str,
+        name: str,
+        webhook_id: str,
+        handler: Any,
+    ) -> None:
+        calls.update({
+            "domain": domain,
+            "name": name,
+            "register": webhook_id,
+            "handler": handler,
+        })
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhooks.async_unregister", _fake_unregister
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhooks.async_register", _fake_register
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhooks.get_entry_webhook_url",
+        lambda _hass, _entry: None,
+    )
+
+    await async_register_entry_webhook(hass, entry)
+
+    assert calls["unregister"] == "register-id"
+    assert calls["register"] == "register-id"
+    assert calls["domain"] == DOMAIN
+    assert calls["name"]
+    assert calls["handler"] is _handle_webhook
+
+
+@pytest.mark.asyncio
+async def test_async_unregister_entry_webhook_skips_invalid_ids(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Webhook unregistration should ignore empty webhook ids."""
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={CONF_WEBHOOK_ID: ""})
+    entry.add_to_hass(hass)
+
+    called = False
+
+    def _fake_unregister(_hass: HomeAssistant, webhook_id: str) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhooks.async_unregister", _fake_unregister
+    )
+
+    await async_unregister_entry_webhook(hass, entry)
+
+    assert called is False
+
+
+def test_get_entry_webhook_url_returns_none_without_id(hass: HomeAssistant) -> None:
+    """Webhook URL generation should return None when id is missing."""
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+
+    assert get_entry_webhook_url(hass, entry) is None
+
+
 @pytest.mark.asyncio
 async def test_handle_webhook_rejects_unknown_webhook_id(hass: HomeAssistant) -> None:
     """Unknown webhook ids should return not found."""
@@ -126,6 +246,98 @@ async def test_handle_webhook_requires_signature_headers(hass: HomeAssistant) ->
 
 
 @pytest.mark.asyncio
+async def test_handle_webhook_rejects_missing_secret_when_signature_required(
+    hass: HomeAssistant,
+) -> None:
+    """Signature mode should fail fast when secrets are not configured."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={
+            CONF_WEBHOOK_ID: "webhook-no-secret",
+            CONF_WEBHOOK_ENABLED: True,
+            CONF_WEBHOOK_REQUIRE_SIGNATURE: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    response = await _handle_webhook(
+        hass,
+        "webhook-no-secret",
+        _RequestStub(b'{"dog_id":"dino"}'),
+    )
+
+    assert response.status == 400
+    assert _response_json(response)["error"] == "webhook_not_configured"
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_rejects_invalid_signature_timestamp(
+    hass: HomeAssistant,
+) -> None:
+    """Signature mode should reject non-numeric timestamps."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={
+            CONF_WEBHOOK_ID: "webhook-bad-ts",
+            CONF_WEBHOOK_ENABLED: True,
+            CONF_WEBHOOK_REQUIRE_SIGNATURE: True,
+            CONF_WEBHOOK_SECRET: "my-secret",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    response = await _handle_webhook(
+        hass,
+        "webhook-bad-ts",
+        _RequestStub(
+            b'{"dog_id":"dino"}',
+            headers={
+                "X-PawControl-Signature": "sig",
+                "X-PawControl-Timestamp": "not-a-number",
+            },
+        ),
+    )
+
+    assert response.status == 401
+    assert _response_json(response)["error"] == "invalid_signature"
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_rejects_invalid_signature_value(
+    hass: HomeAssistant,
+) -> None:
+    """Signature mode should reject bad signatures."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={
+            CONF_WEBHOOK_ID: "webhook-bad-sig",
+            CONF_WEBHOOK_ENABLED: True,
+            CONF_WEBHOOK_REQUIRE_SIGNATURE: True,
+            CONF_WEBHOOK_SECRET: "my-secret",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    response = await _handle_webhook(
+        hass,
+        "webhook-bad-sig",
+        _RequestStub(
+            b'{"dog_id":"dino"}',
+            headers={
+                "X-PawControl-Signature": "bad-signature",
+                "X-PawControl-Timestamp": "1700000000",
+            },
+        ),
+    )
+
+    assert response.status == 401
+    assert _response_json(response)["error"] == "invalid_signature"
+
+
+@pytest.mark.asyncio
 async def test_handle_webhook_rejects_invalid_json(hass: HomeAssistant) -> None:
     """Malformed JSON should fail with a bad request response."""
     entry = MockConfigEntry(
@@ -143,6 +355,28 @@ async def test_handle_webhook_rejects_invalid_json(hass: HomeAssistant) -> None:
 
     assert response.status == 400
     assert _response_json(response)["error"] == "invalid_json"
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_rejects_non_object_payload(
+    hass: HomeAssistant,
+) -> None:
+    """JSON payloads must be object mappings for push processing."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={
+            CONF_WEBHOOK_ID: "webhook-list",
+            CONF_WEBHOOK_ENABLED: True,
+            CONF_WEBHOOK_REQUIRE_SIGNATURE: False,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    response = await _handle_webhook(hass, "webhook-list", _RequestStub(b"[1,2,3]"))
+
+    assert response.status == 400
+    assert _response_json(response)["error"] == "invalid_payload"
 
 
 @pytest.mark.asyncio
@@ -173,16 +407,14 @@ async def test_handle_webhook_success_forwards_nonce(
         raw_size: int,
         nonce: str | None,
     ) -> dict[str, Any]:
-        captured.update(
-            {
-                "hass": hass_arg,
-                "entry": entry_arg,
-                "payload": payload,
-                "source": source,
-                "raw_size": raw_size,
-                "nonce": nonce,
-            }
-        )
+        captured.update({
+            "hass": hass_arg,
+            "entry": entry_arg,
+            "payload": payload,
+            "source": source,
+            "raw_size": raw_size,
+            "nonce": nonce,
+        })
         return {"ok": True, "dog_id": "dino"}
 
     monkeypatch.setattr(
