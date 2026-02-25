@@ -151,73 +151,73 @@ class TestValidateSchemaProperty:
     def test_enum_accepts_valid_value(self) -> None:
         violations = _validate_schema_property(
             "k", "a", {"type": "string", "enum": ["a", "b"]}
-        )  # noqa: E501
+        )
         assert violations == []
 
     def test_enum_rejects_invalid_value(self) -> None:
         violations = _validate_schema_property(
             "k", "z", {"type": "string", "enum": ["a", "b"]}
-        )  # noqa: E501
+        )
         assert any(v.constraint == "enum" for v in violations)
 
     def test_minlength_passes(self) -> None:
         violations = _validate_schema_property(
             "k", "ab", {"type": "string", "minLength": 2}
-        )  # noqa: E501
+        )
         assert violations == []
 
     def test_minlength_fails(self) -> None:
         violations = _validate_schema_property(
             "k", "a", {"type": "string", "minLength": 2}
-        )  # noqa: E501
+        )
         assert any(v.constraint == "minLength" for v in violations)
 
     def test_maxlength_passes(self) -> None:
         violations = _validate_schema_property(
             "k", "ab", {"type": "string", "maxLength": 5}
-        )  # noqa: E501
+        )
         assert violations == []
 
     def test_maxlength_fails(self) -> None:
         violations = _validate_schema_property(
             "k", "abcdef", {"type": "string", "maxLength": 3}
-        )  # noqa: E501
+        )
         assert any(v.constraint == "maxLength" for v in violations)
 
     def test_minimum_passes(self) -> None:
         violations = _validate_schema_property(
             "k", 10, {"type": "integer", "minimum": 5}
-        )  # noqa: E501
+        )
         assert violations == []
 
     def test_minimum_fails(self) -> None:
         violations = _validate_schema_property(
             "k", 3, {"type": "integer", "minimum": 5}
-        )  # noqa: E501
+        )
         assert any(v.constraint == "minimum" for v in violations)
 
     def test_maximum_passes(self) -> None:
         violations = _validate_schema_property(
             "k", 5, {"type": "integer", "maximum": 10}
-        )  # noqa: E501
+        )
         assert violations == []
 
     def test_maximum_fails(self) -> None:
         violations = _validate_schema_property(
             "k", 15, {"type": "integer", "maximum": 10}
-        )  # noqa: E501
+        )
         assert any(v.constraint == "maximum" for v in violations)
 
     def test_multiple_of_passes(self) -> None:
         violations = _validate_schema_property(
             "k", 4, {"type": "integer", "multipleOf": 2}
-        )  # noqa: E501
+        )
         assert violations == []
 
     def test_multiple_of_fails(self) -> None:
         violations = _validate_schema_property(
             "k", 3, {"type": "integer", "multipleOf": 2}
-        )  # noqa: E501
+        )
         assert any(v.constraint == "multipleOf" for v in violations)
 
 
@@ -232,7 +232,7 @@ class TestValidateJsonSchemaPayload:
     def test_non_dict_returns_type_violation(self) -> None:
         violations = validate_json_schema_payload(
             "not-a-dict", GPS_DOG_CONFIG_JSON_SCHEMA
-        )  # noqa: E501
+        )
         assert len(violations) == 1
         assert violations[0].field == "payload"
         assert violations[0].constraint == "type"
@@ -258,7 +258,7 @@ class TestValidateJsonSchemaPayload:
         assert any(
             v.field == "gps_update_interval" and v.constraint == "minimum"
             for v in violations
-        )  # noqa: E501
+        )
 
     def test_gps_update_interval_valid(self) -> None:
         payload = {"gps_source": "device_tracker", "gps_update_interval": 30}
@@ -295,14 +295,14 @@ class TestValidateJsonSchemaPayload:
         violations = validate_json_schema_payload(payload, GEOFENCE_OPTIONS_JSON_SCHEMA)
         assert any(
             v.field == "radius" and v.constraint == "minimum" for v in violations
-        )  # noqa: E501
+        )
 
     def test_geofence_radius_above_maximum(self) -> None:
         payload = {"radius": 999999}
         violations = validate_json_schema_payload(payload, GEOFENCE_OPTIONS_JSON_SCHEMA)
         assert any(
             v.field == "radius" and v.constraint == "maximum" for v in violations
-        )  # noqa: E501
+        )
 
     def test_geofence_null_lat_accepted(self) -> None:
         """Null latitude should be accepted (type: [number, null])."""
@@ -315,7 +315,7 @@ class TestValidateJsonSchemaPayload:
         violations = validate_json_schema_payload(payload, GPS_OPTIONS_JSON_SCHEMA)
         assert any(
             v.field == "mqtt_topic" and v.constraint == "maxLength" for v in violations
-        )  # noqa: E501
+        )
 
     def test_push_payload_max_bytes_valid(self) -> None:
         payload = {"push_payload_max_bytes": 65536}
