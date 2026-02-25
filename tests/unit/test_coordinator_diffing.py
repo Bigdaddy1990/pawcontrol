@@ -158,6 +158,21 @@ class TestCoordinatorDataDiff:
         assert "old_dog" in changed
         assert "max" not in changed
 
+    def test_coordinator_data_diff_change_count(self) -> None:
+        """Test change_count uses unique changed dog identifiers."""
+        diff = CoordinatorDataDiff(
+            dog_diffs={
+                "buddy": DogDataDiff(
+                    "buddy",
+                    module_diffs={"gps": DataDiff(modified_keys=frozenset({"lat"}))},
+                )
+            },
+            added_dogs=frozenset({"charlie"}),
+            removed_dogs=frozenset({"old_dog"}),
+        )
+
+        assert diff.change_count == 3
+
 
 class TestComputeDataDiff:
     """Test compute_data_diff function."""
@@ -212,6 +227,25 @@ class TestComputeDataDiff:
         diff = compute_data_diff(old, None)
         assert diff.removed_keys == frozenset({"a"})
 
+    @pytest.mark.parametrize(
+        ("old", "new", "expected_modified"),
+        [
+            ({"value": None}, {"value": 1}, frozenset({"value"})),
+            ({"value": [1, 2]}, {"value": [1, 2, 3]}, frozenset({"value"})),
+            ({"value": {"a": 1}}, {"value": {"a": 1, "b": 2}}, frozenset({"value"})),
+            ({"value": 1}, {"value": 1.0}, frozenset({"value"})),
+        ],
+    )
+    def test_compute_data_diff_compare_value_branches(
+        self,
+        old: dict[str, object],
+        new: dict[str, object],
+        expected_modified: frozenset[str],
+    ) -> None:
+        """Test compare branches for None, sequences, mappings, and type mismatches."""
+        diff = compute_data_diff(old, new)
+        assert diff.modified_keys == expected_modified
+
 
 class TestComputeDogDiff:
     """Test compute_dog_diff function."""
@@ -245,6 +279,15 @@ class TestComputeDogDiff:
 
         assert "walk" in diff.changed_modules
 
+    def test_compute_dog_diff_scalar_module_changed(self) -> None:
+        """Test dog diff detects non-mapping module scalar changes."""
+        old = {"battery": 88}
+        new = {"battery": 89}
+
+        diff = compute_dog_diff("buddy", old, new)
+
+        assert diff.module_diffs["battery"].modified_keys == frozenset({"battery"})
+
 
 class TestComputeCoordinatorDiff:
     """Test compute_coordinator_diff function."""
@@ -277,6 +320,14 @@ class TestComputeCoordinatorDiff:
         diff = compute_coordinator_diff(old, new)
 
         assert not diff.has_changes
+
+    def test_compute_coordinator_diff_handles_none_snapshots(self) -> None:
+        """Test None snapshots are normalized to empty mappings."""
+        diff = compute_coordinator_diff(None, {"buddy": {}})
+        assert diff.added_dogs == frozenset({"buddy"})
+
+        diff = compute_coordinator_diff({"buddy": {}}, None)
+        assert diff.removed_dogs == frozenset({"buddy"})
 
 
 class TestShouldNotifyEntities:
@@ -319,6 +370,26 @@ class TestShouldNotifyEntities:
 
         assert should_notify_entities(diff, dog_id="buddy", module="gps") is True
         assert should_notify_entities(diff, dog_id="buddy", module="walk") is False
+
+    def test_should_notify_entities_module_filter_without_dog_id(self) -> None:
+        """Test module-only filtering checks all changed dogs."""
+        diff = CoordinatorDataDiff(
+            dog_diffs={
+                "buddy": DogDataDiff(
+                    "buddy",
+                    module_diffs={"gps": DataDiff(modified_keys=frozenset({"lat"}))},
+                ),
+                "max": DogDataDiff(
+                    "max",
+                    module_diffs={
+                        "walk": DataDiff(modified_keys=frozenset({"active"}))
+                    },
+                ),
+            }
+        )
+
+        assert should_notify_entities(diff, module="gps") is True
+        assert should_notify_entities(diff, module="feeding") is False
 
 
 class TestSmartDiffTracker:
@@ -374,6 +445,38 @@ class TestSmartDiffTracker:
 
         changed = tracker.get_changed_entities(dog_id="buddy", module="gps")
         assert "buddy.gps" in changed
+
+    def test_smart_diff_tracker_get_changed_entities_from_supplied_diff(self) -> None:
+        """Test get_changed_entities uses provided diff when available."""
+        tracker = SmartDiffTracker()
+        tracker.update({"buddy": {"gps": {"lat": 45.0}}})
+
+        manual_diff = CoordinatorDataDiff(
+            dog_diffs={"charlie": DogDataDiff("charlie")},
+            added_dogs=frozenset({"charlie"}),
+        )
+        changed = tracker.get_changed_entities(
+            manual_diff, dog_id="charlie", module="gps"
+        )
+
+        assert changed == frozenset({"charlie.gps"})
+
+    def test_smart_diff_tracker_changed_entities_for_added_removed_dogs(
+        self,
+    ) -> None:
+        """Test added/removed dogs return dog key when module filter is absent."""
+        tracker = SmartDiffTracker()
+        diff = CoordinatorDataDiff(
+            dog_diffs={
+                "buddy": DogDataDiff("buddy"),
+                "old_dog": DogDataDiff("old_dog"),
+            },
+            added_dogs=frozenset({"buddy"}),
+            removed_dogs=frozenset({"old_dog"}),
+        )
+
+        changed = tracker.get_changed_entities(diff)
+        assert changed == frozenset({"buddy", "old_dog"})
 
 
 class TestGetChangedFields:
@@ -456,6 +559,29 @@ class TestLogDiffSummary:
         caplog.set_level("DEBUG")
         log_diff_summary(diff)
         assert "1 dogs changed" in caplog.text
+
+    def test_log_diff_summary_with_added_and_removed_counts(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test summary includes added and removed dog counts."""
+        caplog.set_level(
+            logging.DEBUG, logger="custom_components.pawcontrol.coordinator_diffing"
+        )
+        diff = CoordinatorDataDiff(
+            dog_diffs={
+                "buddy": DogDataDiff(
+                    "buddy",
+                    module_diffs={"gps": DataDiff(modified_keys=frozenset({"lat"}))},
+                )
+            },
+            added_dogs=frozenset({"charlie"}),
+            removed_dogs=frozenset({"old_dog"}),
+        )
+
+        caplog.set_level("DEBUG")
+        log_diff_summary(diff)
+        assert "1 added" in caplog.text
+        assert "1 removed" in caplog.text
 
 
 class TestEdgeCases:
