@@ -368,6 +368,97 @@ def test_storage_namespace_timestamp_anomalies(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
+def test_cache_repair_summary_aggregates_anomalies(tmp_path: Path) -> None:
+    """Repair summaries should aggregate cache anomalies and severity."""
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    manager = PawControlDataManager(
+        hass=hass,
+        entry_id="repair-summary",
+        dogs_config=[],
+    )
+
+    summary = manager.cache_repair_summary(
+        {
+            "storage_visitor_mode": {
+                "stats": {"entries": "4", "hits": "1", "misses": "7"},
+                "diagnostics": {
+                    "expired_entries": "2",
+                    "expired_via_override": "1",
+                    "pending_expired_entries": "1",
+                    "pending_override_candidates": "3",
+                    "active_override_flags": "1",
+                    "timestamp_anomalies": {
+                        "buddy": "stale",
+                        "max": "unparseable",
+                    },
+                },
+            },
+            "coordinator_modules": {
+                "stats": {"entries": 1, "hits": 4, "misses": 0, "hit_rate": 100.0},
+                "diagnostics": {"errors": ["adapter failed"]},
+            },
+        }
+    )
+
+    assert summary is not None
+    assert summary.severity == "error"
+    assert summary.total_caches == 2
+    assert summary.anomaly_count == 2
+    assert summary.caches_with_errors == ["coordinator_modules"]
+    assert summary.caches_with_expired_entries == ["storage_visitor_mode"]
+    assert summary.caches_with_pending_expired_entries == ["storage_visitor_mode"]
+    assert summary.caches_with_override_flags == ["storage_visitor_mode"]
+    assert summary.caches_with_low_hit_rate == ["storage_visitor_mode"]
+    assert summary.totals.entries == 5
+    assert summary.totals.hits == 5
+    assert summary.totals.misses == 7
+    assert summary.totals.expired_entries == 2
+    assert summary.totals.expired_via_override == 1
+    assert summary.totals.pending_expired_entries == 1
+    assert summary.totals.pending_override_candidates == 3
+    assert summary.totals.active_override_flags == 1
+    assert summary.totals.overall_hit_rate == 41.67
+
+    assert summary.issues is not None
+    storage_issue = next(
+        issue for issue in summary.issues if issue["cache"] == "storage_visitor_mode"
+    )
+    assert storage_issue["timestamp_anomalies"] == {
+        "buddy": "stale",
+        "max": "unparseable",
+    }
+
+
+@pytest.mark.unit
+def test_cache_repair_summary_ignores_invalid_snapshots(tmp_path: Path) -> None:
+    """Repair summaries should ignore malformed snapshot keys and payloads."""
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    manager = PawControlDataManager(
+        hass=hass,
+        entry_id="repair-summary",
+        dogs_config=[],
+    )
+
+    assert manager.cache_repair_summary({}) is None
+
+    summary = manager.cache_repair_summary(
+        {
+            "": {"stats": {"entries": 2, "hits": 2, "misses": 0}},
+            "valid_cache": object(),
+        }
+    )
+
+    assert summary is not None
+    assert summary.total_caches == 2
+    assert summary.anomaly_count == 0
+    assert summary.severity == "info"
+    assert summary.issues is None
+    assert summary.totals.entries == 0
+    assert summary.totals.hits == 0
+    assert summary.totals.misses == 0
+
+
+@pytest.mark.unit
 def test_helper_manager_register_cache_monitor() -> None:
     """Helper manager should expose diagnostics through the cache registrar."""
     hass = SimpleNamespace()
