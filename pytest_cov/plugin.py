@@ -150,9 +150,10 @@ def pytest_sessionstart(session: object) -> None:
     source_roots, _ = _normalize_sources(expanded_sources)
     branch = bool(getattr(options, "cov_branch", False))
     include = _build_include_patterns(expanded_sources)
+    source = None if include else (source_roots or None)
     cov = coverage.Coverage(
         branch=branch,
-        source=source_roots or None,
+        source=source,
         include=include,
     )
     cov.start()
