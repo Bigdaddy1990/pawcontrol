@@ -1,9 +1,21 @@
 """Minimal pytest-cov plugin shim for the local test environment."""
 
 from pathlib import Path
+from typing import Any
 
-import coverage
-from coverage.exceptions import NoDataError
+try:
+    import coverage
+    from coverage.exceptions import NoDataError
+except ModuleNotFoundError:  # pragma: no cover - exercised in integration envs
+    coverage = None
+
+    class NoDataError(Exception):
+        """Fallback exception used when the coverage package is unavailable."""
+
+
+def _coverage_is_available() -> bool:
+    """Return whether the optional ``coverage`` dependency is importable."""
+    return coverage is not None
 
 
 def _split_report_target(value: str) -> tuple[str, str | None]:
@@ -84,10 +96,12 @@ class _CoverageController:
 
     def __init__(self, config: object) -> None:
         self._config = config
-        self._coverage: coverage.Coverage | None = None
+        self._coverage: Any | None = None
         self._include_files: tuple[str, ...] = ()
 
     def pytest_configure(self, config: object) -> None:
+        if not _coverage_is_available():
+            return
         options = getattr(config, "option", None)
         raw_sources = tuple(getattr(options, "cov_sources", ()) or ())
         sources, include_files = _normalize_sources(raw_sources)
@@ -141,6 +155,8 @@ def _build_include_patterns(raw_sources: tuple[str, ...]) -> tuple[str, ...] | N
 
 
 def pytest_sessionstart(session: object) -> None:
+    if not _coverage_is_available():
+        return
     options = getattr(getattr(session, "config", None), "option", None)
     if options is None:
         return
@@ -166,7 +182,7 @@ def pytest_sessionfinish(session: object, exitstatus: int) -> None:
     if config is None:
         return
 
-    cov: coverage.Coverage | None = getattr(config, "_pawcontrol_cov", None)
+    cov: Any | None = getattr(config, "_pawcontrol_cov", None)
     if cov is None:
         return
 
