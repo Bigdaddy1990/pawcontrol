@@ -17,9 +17,13 @@ import pytest
 from custom_components.pawcontrol.feeding_manager import (
     FeedingBatchEntry,
     FeedingComplianceCompleted,
+    FeedingEvent,
     FeedingHealthUpdatePayload,
     FeedingManager,
     FeedingMedicationData,
+    MealSchedule,
+    MealType,
+    _normalise_health_override,
 )
 from custom_components.pawcontrol.types import (
     FeedingDailyStats,
@@ -811,3 +815,127 @@ class TestEdgeCases:
 
         assert len(data["feedings"]) == 10
         assert data["daily_stats"]["total_fed_today"] == 500.0
+
+
+@pytest.mark.unit
+class TestStandaloneFeedingHelpers:
+    """Test helper dataclasses and pure utility functions."""
+
+    def test_feeding_event_to_dict_serializes_meal_type(self) -> None:
+        """Ensure immutable events serialize enum and timestamps correctly."""
+        event = FeedingEvent(
+            time=datetime(2025, 1, 2, 8, 30, tzinfo=UTC),
+            amount=125,
+            meal_type=MealType.BREAKFAST,
+            scheduled=True,
+        )
+
+        as_dict = event.to_dict()
+
+        assert as_dict["meal_type"] == "breakfast"
+        assert as_dict["amount"] == 125.0
+        assert as_dict["scheduled"] is True
+        assert as_dict["time"] == "2025-01-02T08:30:00+00:00"
+
+    def test_normalise_health_override_returns_none_for_empty_payload(self) -> None:
+        """Verify empty payloads do not produce synthetic health overrides."""
+        assert _normalise_health_override(None) is None
+        assert _normalise_health_override({}) is None
+
+    def test_normalise_health_override_filters_non_string_conditions(self) -> None:
+        """Coercion should cast numbers and drop invalid condition values."""
+        payload = {
+            "weight": "23.5",
+            "ideal_weight": 21,
+            "age_months": "36",
+            "health_conditions": ["arthritis", 7, None, "diabetic"],
+        }
+
+        override = _normalise_health_override(payload)
+
+        assert override == {
+            "weight": 23.5,
+            "ideal_weight": 21.0,
+            "age_months": 36,
+            "health_conditions": ["arthritis", "diabetic"],
+        }
+
+
+@pytest.mark.unit
+class TestMealSchedule:
+    """Test schedule date arithmetic and reminder calculations."""
+
+    def test_is_due_today_respects_enabled_and_weekdays(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Schedules must only be due when enabled and weekday matches."""
+        fixed_now = datetime(2025, 1, 6, 9, 0, tzinfo=UTC)  # Monday
+        monkeypatch.setattr(
+            "custom_components.pawcontrol.feeding_manager.dt_util.now",
+            lambda: fixed_now,
+        )
+
+        disabled_schedule = MealSchedule(
+            meal_type=MealType.BREAKFAST,
+            scheduled_time=datetime.strptime("08:00", "%H:%M").time(),
+            portion_size=150,
+            enabled=False,
+        )
+        wrong_day_schedule = MealSchedule(
+            meal_type=MealType.BREAKFAST,
+            scheduled_time=datetime.strptime("08:00", "%H:%M").time(),
+            portion_size=150,
+            days_of_week=[1],  # Tuesday
+        )
+        matching_day_schedule = MealSchedule(
+            meal_type=MealType.BREAKFAST,
+            scheduled_time=datetime.strptime("08:00", "%H:%M").time(),
+            portion_size=150,
+            days_of_week=[0],
+        )
+
+        assert disabled_schedule.is_due_today() is False
+        assert wrong_day_schedule.is_due_today() is False
+        assert matching_day_schedule.is_due_today() is True
+
+    def test_get_next_feeding_time_rolls_to_next_valid_day(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When today's slot passed, schedule rolls to next allowed weekday."""
+        fixed_now = datetime(2025, 1, 6, 10, 0, tzinfo=UTC)  # Monday
+        monkeypatch.setattr(
+            "custom_components.pawcontrol.feeding_manager.dt_util.now",
+            lambda: fixed_now,
+        )
+
+        monkeypatch.setattr(
+            "custom_components.pawcontrol.feeding_manager.dt_util.as_local",
+            lambda value: value.replace(tzinfo=UTC),
+        )
+
+        schedule = MealSchedule(
+            meal_type=MealType.DINNER,
+            scheduled_time=datetime.strptime("09:00", "%H:%M").time(),
+            portion_size=220,
+            days_of_week=[2],  # Wednesday
+        )
+
+        assert schedule.get_next_feeding_time() == datetime(
+            2025,
+            1,
+            8,
+            9,
+            0,
+            tzinfo=UTC,
+        )
+
+    def test_get_reminder_time_disabled_returns_none(self) -> None:
+        """Reminder helper should return ``None`` when reminders are disabled."""
+        schedule = MealSchedule(
+            meal_type=MealType.DINNER,
+            scheduled_time=datetime.strptime("18:00", "%H:%M").time(),
+            portion_size=220,
+            reminder_enabled=False,
+        )
+
+        assert schedule.get_reminder_time() is None
