@@ -17,9 +17,16 @@ from custom_components.pawcontrol.flow_steps.gps_schemas import (
 )
 from custom_components.pawcontrol.types import (
     AUTO_TRACK_WALKS_FIELD,
+    GEOFENCE_ALERTS_FIELD,
+    GEOFENCE_ENABLED_FIELD,
     GEOFENCE_LAT_FIELD,
     GEOFENCE_LON_FIELD,
     GEOFENCE_RADIUS_FIELD,
+    GEOFENCE_RESTRICTED_ZONE_FIELD,
+    GEOFENCE_SAFE_ZONE_FIELD,
+    GEOFENCE_USE_HOME_FIELD,
+    GEOFENCE_ZONE_ENTRY_FIELD,
+    GEOFENCE_ZONE_EXIT_FIELD,
     GPS_ACCURACY_FILTER_FIELD,
     GPS_DISTANCE_FILTER_FIELD,
     GPS_ENABLED_FIELD,
@@ -81,6 +88,29 @@ def test_build_gps_settings_schema_uses_fallback_defaults_for_missing_options() 
     assert defaults[AUTO_TRACK_WALKS_FIELD] is True
 
 
+def test_build_gps_settings_schema_prefers_existing_option_values() -> None:
+    """GPS settings schema should preserve explicit option values."""
+    defaults = _marker_defaults(
+        build_gps_settings_schema({
+            GPS_ENABLED_FIELD: False,
+            GPS_UPDATE_INTERVAL_FIELD: 45,
+            GPS_ACCURACY_FILTER_FIELD: 12,
+            GPS_DISTANCE_FILTER_FIELD: 250,
+            ROUTE_RECORDING_FIELD: False,
+            ROUTE_HISTORY_DAYS_FIELD: 14,
+            AUTO_TRACK_WALKS_FIELD: False,
+        })
+    )
+
+    assert defaults[GPS_ENABLED_FIELD] is False
+    assert defaults[GPS_UPDATE_INTERVAL_FIELD] == 45
+    assert defaults[GPS_ACCURACY_FILTER_FIELD] == 12
+    assert defaults[GPS_DISTANCE_FILTER_FIELD] == 250
+    assert defaults[ROUTE_RECORDING_FIELD] is False
+    assert defaults[ROUTE_HISTORY_DAYS_FIELD] == 14
+    assert defaults[AUTO_TRACK_WALKS_FIELD] is False
+
+
 def test_build_geofence_settings_schema_normalizes_radius_and_coordinates() -> None:
     """Geofence schema should coerce coordinate/radius defaults when invalid."""
     defaults = _marker_defaults(
@@ -99,3 +129,32 @@ def test_build_geofence_settings_schema_normalizes_radius_and_coordinates() -> N
         build_geofence_settings_schema({GEOFENCE_RADIUS_FIELD: 150.5})
     )
     assert numeric_defaults[GEOFENCE_RADIUS_FIELD] == 150
+
+
+def test_build_geofence_settings_schema_prefers_explicit_settings() -> None:
+    """Geofence schema should keep all explicitly configured values."""
+    defaults = _marker_defaults(
+        build_geofence_settings_schema({
+            GEOFENCE_ENABLED_FIELD: False,
+            GEOFENCE_USE_HOME_FIELD: False,
+            GEOFENCE_RADIUS_FIELD: 180,
+            GEOFENCE_LAT_FIELD: "48.137",
+            GEOFENCE_LON_FIELD: "11.576",
+            GEOFENCE_ALERTS_FIELD: False,
+            GEOFENCE_SAFE_ZONE_FIELD: False,
+            GEOFENCE_RESTRICTED_ZONE_FIELD: False,
+            GEOFENCE_ZONE_ENTRY_FIELD: False,
+            GEOFENCE_ZONE_EXIT_FIELD: False,
+        })
+    )
+
+    assert defaults[GEOFENCE_ENABLED_FIELD] is False
+    assert defaults[GEOFENCE_USE_HOME_FIELD] is False
+    assert defaults[GEOFENCE_RADIUS_FIELD] == 180
+    assert defaults[GEOFENCE_LAT_FIELD] == "48.137"
+    assert defaults[GEOFENCE_LON_FIELD] == "11.576"
+    assert defaults[GEOFENCE_ALERTS_FIELD] is False
+    assert defaults[GEOFENCE_SAFE_ZONE_FIELD] is False
+    assert defaults[GEOFENCE_RESTRICTED_ZONE_FIELD] is False
+    assert defaults[GEOFENCE_ZONE_ENTRY_FIELD] is False
+    assert defaults[GEOFENCE_ZONE_EXIT_FIELD] is False
