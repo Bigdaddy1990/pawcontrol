@@ -2,6 +2,7 @@ from collections.abc import Generator, Iterable
 from types import TracebackType
 from typing import TypeAlias, cast
 
+import aiohttp
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant
 import pytest
@@ -87,6 +88,22 @@ class DummySession:
         response = self._responses[self._index]
         self._index += 1
         return DummyRequestContext(response)
+
+
+class RaisingSession:
+    """Session stub that raises when issuing HTTP GET requests."""
+
+    closed = False
+
+    def __init__(self, error: Exception) -> None:
+        self._error = error
+
+    async def request(self, *args: object, **kwargs: object) -> DummyResponse:
+        context = self.get(*args, **kwargs)
+        return await context
+
+    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:
+        raise self._error
 
 
 @pytest.mark.asyncio
@@ -197,3 +214,63 @@ async def test_async_test_api_health_authentication_failure(
     assert health["reachable"] is True
     assert health["status"] == "authentication_failed"
     assert health["capabilities"] is None
+
+
+@pytest.mark.asyncio
+async def test_test_endpoint_reachability_handles_client_error(
+    hass: HomeAssistant,
+) -> None:
+    """Client errors should report the endpoint as unreachable."""
+    session = RaisingSession(aiohttp.ClientError("network down"))
+    validator = APIValidator(hass, cast(ClientSession, session))
+
+    assert await validator._test_endpoint_reachability("https://example.test") is False
+
+
+@pytest.mark.asyncio
+async def test_test_endpoint_reachability_handles_unexpected_error(
+    hass: HomeAssistant,
+) -> None:
+    """Unexpected errors should also report the endpoint as unreachable."""
+    session = RaisingSession(RuntimeError("boom"))
+    validator = APIValidator(hass, cast(ClientSession, session))
+
+    assert await validator._test_endpoint_reachability("https://example.test") is False
+
+
+@pytest.mark.asyncio
+async def test_async_test_api_health_reports_timeout(hass: HomeAssistant) -> None:
+    """Health checks should map timeouts to ``status=timeout`` payloads."""
+    session = DummySession([])
+    validator = APIValidator(hass, cast(ClientSession, session))
+
+    async def _raise_timeout(*args: object, **kwargs: object) -> object:
+        raise TimeoutError
+
+    validator.async_validate_api_connection = _raise_timeout  # type: ignore[method-assign]
+
+    health = await validator.async_test_api_health("https://example.test")
+
+    assert health["healthy"] is False
+    assert health["status"] == "timeout"
+    assert health["error"] == "Health check timeout"
+
+
+@pytest.mark.asyncio
+async def test_async_test_api_health_reports_unexpected_errors(
+    hass: HomeAssistant,
+) -> None:
+    """Unexpected health-check failures should return an error payload."""
+    session = DummySession([])
+    validator = APIValidator(hass, cast(ClientSession, session))
+
+    async def _raise_runtime_error(*args: object, **kwargs: object) -> object:
+        raise RuntimeError("validation exploded")
+
+    validator.async_validate_api_connection = _raise_runtime_error  # type: ignore[method-assign]
+
+    health = await validator.async_test_api_health("https://example.test")
+
+    assert health["healthy"] is False
+    assert health["status"] == "error"
+    assert health["error"] == "validation exploded"
