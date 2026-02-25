@@ -36,6 +36,17 @@ def test_get_translation_cache_replaces_non_mapping_cache_value() -> None:
     assert hass.data["pawcontrol"]["translations"] is cache
 
 
+def test_get_translation_cache_replaces_non_mapping_domain_data() -> None:
+    """The cache helper should recover when domain data is malformed."""
+    hass = SimpleNamespace(data={"pawcontrol": "invalid"})
+
+    cache = translation_helpers._get_translation_cache(hass)
+
+    assert cache == {}
+    assert isinstance(hass.data["pawcontrol"], dict)
+    assert hass.data["pawcontrol"]["translations"] is cache
+
+
 @pytest.mark.asyncio
 async def test_async_get_component_translations_uses_ha_then_cache(
     monkeypatch: pytest.MonkeyPatch,
@@ -307,3 +318,12 @@ def test_component_translation_helpers_resolve_component_key() -> None:
         {key: "Aktion"}, {}, "action"
     )
     assert resolved == "Aktion"
+
+
+def test_resolve_component_translation_uses_default_when_key_missing() -> None:
+    """Component lookup should return default text for missing translation keys."""
+    resolved = translation_helpers.resolve_component_translation(
+        {}, {}, "action", "Run"
+    )
+
+    assert resolved == "Run"
