@@ -6,8 +6,8 @@ global registry helpers, and decorator wrappers.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 import time
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 

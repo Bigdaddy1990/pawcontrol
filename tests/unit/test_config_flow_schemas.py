@@ -102,7 +102,13 @@ def test_modules_schema_accepts_explicit_overrides() -> None:
 @pytest.mark.unit
 def test_module_selection_keys_contains_expected_modules() -> None:
     """MODULE_SELECTION_KEYS should include all core module constants."""
-    expected = {MODULE_FEEDING, MODULE_WALK, MODULE_HEALTH, MODULE_GPS, MODULE_NOTIFICATIONS}
+    expected = {
+        MODULE_FEEDING,
+        MODULE_WALK,
+        MODULE_HEALTH,
+        MODULE_GPS,
+        MODULE_NOTIFICATIONS,
+    }  # noqa: E501
     assert set(MODULE_SELECTION_KEYS) == expected
 
 

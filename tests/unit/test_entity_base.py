@@ -21,7 +21,6 @@ from custom_components.pawcontrol.entity import (
 )
 from custom_components.pawcontrol.types import CoordinatorDogData, PawControlConfigEntry
 
-
 # ---------------------------------------------------------------------------
 # Minimal stubs
 # ---------------------------------------------------------------------------
@@ -195,14 +194,12 @@ def test_set_cache_ttl_changes_ttl() -> None:
 @pytest.mark.unit
 def test_get_module_data_returns_empty_mapping_for_unknown_module() -> None:
     """Querying a missing module returns an empty mapping without raising."""
-    coord = _StubCoordinator(
-        {
-            "dog1": cast(
-                CoordinatorDogData,
-                {"dog_info": {}, "status": "online", "last_update": None},
-            )
-        }
-    )
+    coord = _StubCoordinator({
+        "dog1": cast(
+            CoordinatorDogData,
+            {"dog_info": {}, "status": "online", "last_update": None},
+        )
+    })
     entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "dog1", "Dog1")
     result = entity._get_module_data("nonexistent_module")
     assert isinstance(result, Mapping)
@@ -213,19 +210,17 @@ def test_get_module_data_returns_empty_mapping_for_unknown_module() -> None:
 def test_get_module_data_returns_module_payload() -> None:
     """Returns the module payload when available in coordinator data."""
     walk_data = {"walk_in_progress": True, "distance": 1.5}
-    coord = _StubCoordinator(
-        {
-            "runner": cast(
-                CoordinatorDogData,
-                {
-                    "dog_info": {"dog_id": "runner", "dog_name": "Runner"},
-                    "status": "online",
-                    "last_update": datetime.now(UTC).isoformat(),
-                    "walk": walk_data,
-                },
-            )
-        }
-    )
+    coord = _StubCoordinator({
+        "runner": cast(
+            CoordinatorDogData,
+            {
+                "dog_info": {"dog_id": "runner", "dog_name": "Runner"},
+                "status": "online",
+                "last_update": datetime.now(UTC).isoformat(),
+                "walk": walk_data,
+            },
+        )
+    })
     entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "runner", "Runner")
     result = entity._get_module_data("walk")
     assert isinstance(result, Mapping)
