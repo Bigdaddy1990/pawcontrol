@@ -71,7 +71,14 @@ def test_cached_decorator_preserves_metadata_and_sorts_kwargs() -> None:
         async def get(self, key: str) -> object | None:
             return self.storage.get(key)
 
-        async def set(self, key: str, value: object, *, l1_ttl: float, l2_ttl: float) -> None:
+        async def set(
+            self,
+            key: str,
+            value: object,
+            *,
+            l1_ttl: float,
+            l2_ttl: float,
+        ) -> None:
             self.storage[key] = value
             self.set_calls.append((key, value, l1_ttl, l2_ttl))
 
@@ -95,5 +102,54 @@ def test_cached_decorator_preserves_metadata_and_sorts_kwargs() -> None:
         assert l2_ttl == 20
         assert compute.__name__ == "compute"
         assert compute.__doc__ == "Example coroutine."
+
+    asyncio.run(_run())
+
+
+def test_cache_entry_and_stats_helpers_cover_edge_values() -> None:
+    """Cache helper dataclasses should expose stable derived values."""
+    entry = cache_module.CacheEntry[str](value="ok", timestamp=10.0, ttl_seconds=5.0)
+
+    from unittest.mock import patch
+
+    with patch("custom_components.pawcontrol.cache.time.time", return_value=12.0):
+        assert entry.age_seconds == 2.0
+        assert entry.ttl_remaining == 3.0
+        assert entry.is_expired is False
+
+    with patch("custom_components.pawcontrol.cache.time.time", return_value=20.0):
+        assert entry.ttl_remaining == 0.0
+        assert entry.is_expired is True
+
+    stats = cache_module.CacheStats(hits=0, misses=0, evictions=1, size=2, max_size=3)
+    assert stats.hit_rate == 0.0
+    assert stats.to_dict()["hit_rate"] == 0.0
+
+
+def test_persistent_cache_error_paths_and_delete_flow(monkeypatch) -> None:
+    """Persistent cache should handle store failures and delete safely."""
+
+    class _FailingStore:
+        def __init__(self, _hass: object, _version: int, _key: str) -> None:
+            self.saved_payloads: list[dict[str, object]] = []
+
+        async def async_load(self) -> dict[str, object]:
+            raise RuntimeError("load failed")
+
+        async def async_save(self, data: dict[str, object]) -> None:
+            self.saved_payloads.append(data)
+            raise RuntimeError("save failed")
+
+    async def _run() -> None:
+        monkeypatch.setattr(cache_module, "Store", _FailingStore)
+        persistent = cache_module.PersistentCache[dict[str, str]](object(), "paw")
+
+        assert await persistent.get("missing") is None
+        assert await persistent.delete("missing") is False
+
+        await persistent.set("dog", {"id": "1"})
+        assert await persistent.delete("dog") is True
+
+        await persistent.async_save()
 
     asyncio.run(_run())
