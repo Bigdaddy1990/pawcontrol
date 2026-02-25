@@ -409,7 +409,7 @@ class CoordinatorRuntime:
             errors,
         )
 
-        if all_failed:
+        if all_failed or errors >= total_dogs:
             raise CoordinatorUpdateFailed(
                 f"All {total_dogs} dogs failed to update",
             )

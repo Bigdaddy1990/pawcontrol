@@ -66,13 +66,13 @@ def translated_grooming_label(
 def translated_grooming_template(
     hass: HomeAssistant | None,
     language: str | None,
-    key: str,
+    template_key: str,
     **values: object,
 ) -> str:
     """Return a localized grooming template string."""
-    translation_key = GROOMING_TEMPLATE_TRANSLATION_KEYS.get(key)
+    translation_key = GROOMING_TEMPLATE_TRANSLATION_KEYS.get(template_key)
     if translation_key is None:
-        return key.format(**values)
+        return template_key.format(**values)
 
     if hass is None:
         template = translation_key
@@ -85,7 +85,7 @@ def translated_grooming_template(
             translations,
             fallback,
             translation_key,
-            default=key,
+            default=template_key,
         )
     return template.format(**values)
 

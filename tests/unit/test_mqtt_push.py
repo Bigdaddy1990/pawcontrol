@@ -186,7 +186,9 @@ class TestAsyncRegisterEntryMqtt:
             import custom_components.pawcontrol.mqtt_push as mod
 
             original_import = (
-                __builtins__.__import__ if isinstance(__builtins__, dict) else None
+                __builtins__.get("__import__")
+                if isinstance(__builtins__, dict)
+                else __builtins__.__import__
             )  # noqa: E501, F841
 
             # Directly call with mock that patches the internal import
