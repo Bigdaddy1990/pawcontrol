@@ -2,9 +2,11 @@
 
 from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.flow_steps.gps_helpers import (
+    build_dog_gps_placeholders,
     build_gps_source_options,
     validation_error_key,
 )
+from custom_components.pawcontrol.types import DOG_GPS_PLACEHOLDERS_TEMPLATE
 
 
 def test_validation_error_key_prefers_constraint() -> None:
@@ -40,3 +42,16 @@ def test_build_gps_source_options_extends_custom_sources() -> None:
         "mqtt": "MQTT (Push)",
         "manual": "Manual Location Entry",
     }
+
+
+def test_build_dog_gps_placeholders_returns_immutable_copy() -> None:
+    """Dog GPS placeholders should be frozen and avoid mutating the template."""
+    placeholders = build_dog_gps_placeholders(dog_name="Luna")
+
+    assert placeholders["dog_name"] == "Luna"
+    assert DOG_GPS_PLACEHOLDERS_TEMPLATE["dog_name"] == ""
+
+    mutable_copy = dict(placeholders)
+    mutable_copy["dog_name"] = "Nova"
+
+    assert placeholders["dog_name"] == "Luna"

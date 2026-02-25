@@ -26,6 +26,16 @@ def test_get_translation_cache_initializes_hass_data() -> None:
     assert translation_helpers.DOMAIN in hass.data
 
 
+def test_get_translation_cache_replaces_non_mapping_cache_value() -> None:
+    """The cache helper should replace malformed cache payloads."""
+    hass = SimpleNamespace(data={"pawcontrol": {"translations": "invalid"}})
+
+    cache = translation_helpers._get_translation_cache(hass)
+
+    assert cache == {}
+    assert hass.data["pawcontrol"]["translations"] is cache
+
+
 @pytest.mark.asyncio
 async def test_async_get_component_translations_uses_ha_then_cache(
     monkeypatch: pytest.MonkeyPatch,
@@ -138,6 +148,22 @@ def test_get_cached_component_translations_uses_bundled_when_cache_missing(
 ) -> None:
     """Missing cache entries should fall back to bundled translations."""
     hass = SimpleNamespace(data={"pawcontrol": {"translations": {}}})
+    monkeypatch.setattr(
+        translation_helpers,
+        "_load_bundled_component_translations",
+        lambda language: {f"component.pawcontrol.common.{language}": "Bundled"},
+    )
+
+    assert translation_helpers.get_cached_component_translations(hass, "de") == {
+        "component.pawcontrol.common.de": "Bundled"
+    }
+
+
+def test_get_cached_component_translations_uses_bundled_for_cached_empty_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty cached mapping should still trigger bundled fallback resolution."""
+    hass = SimpleNamespace(data={"pawcontrol": {"translations": {"de": {}}}})
     monkeypatch.setattr(
         translation_helpers,
         "_load_bundled_component_translations",
