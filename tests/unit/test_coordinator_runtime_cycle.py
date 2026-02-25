@@ -295,7 +295,7 @@ class TestCoordinatorRuntimeExecuteCycle:
         runtime = self._make_runtime()
         _data, info = await runtime.execute_cycle(
             ["rex"], {}, empty_payload_factory=dict
-        )  # noqa: E501
+        )
         assert info.success is True
 
     @pytest.mark.asyncio
