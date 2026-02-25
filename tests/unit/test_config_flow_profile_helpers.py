@@ -1,7 +1,5 @@
 """Tests for config flow profile helper utilities."""
 
-from __future__ import annotations
-
 from types import MappingProxyType
 
 import pytest
@@ -15,7 +13,9 @@ def test_coerce_and_title_helpers_handle_non_string_values() -> None:
     assert profile_helpers._coerce_str("alpha") == "alpha"
     assert profile_helpers._coerce_str(42, fallback="fallback") == "fallback"
 
-    assert profile_helpers._get_profile_title("standard", {"name": "Custom"}) == "Custom"
+    assert (
+        profile_helpers._get_profile_title("standard", {"name": "Custom"}) == "Custom"
+    )
     assert profile_helpers._get_profile_title("standard", {"name": 7}) == "Standard"
     assert profile_helpers._get_profile_title("standard", None) == "Standard"
 
@@ -32,7 +32,9 @@ def test_validate_profile_selection_returns_submitted_profile() -> None:
 def test_validate_profile_selection_rejects_unknown_profile() -> None:
     """Unknown profiles should be normalized to Home Assistant style errors."""
     with pytest.raises(vol.Invalid, match="invalid_profile"):
-        profile_helpers.validate_profile_selection({"entity_profile": "definitely_unknown"})
+        profile_helpers.validate_profile_selection({
+            "entity_profile": "definitely_unknown"
+        })
 
 
 def test_validate_profile_selection_uses_runtime_membership_guard(

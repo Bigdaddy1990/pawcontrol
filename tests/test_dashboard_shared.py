@@ -1,7 +1,5 @@
 """Tests for shared dashboard helper utilities."""
 
-from __future__ import annotations
-
 import asyncio
 import logging
 

@@ -125,12 +125,10 @@ def test_derive_next_feeding_time_handles_missing_or_invalid_fields() -> None:
     )
     assert (
         derive_next_feeding_time(
-            _feeding_payload(
-                {
-                    "config": {"meals_per_day": 2},
-                    "last_feeding": "not-a-datetime",
-                }
-            )
+            _feeding_payload({
+                "config": {"meals_per_day": 2},
+                "last_feeding": "not-a-datetime",
+            })
         )
         is None
     )

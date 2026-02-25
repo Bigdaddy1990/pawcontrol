@@ -1,7 +1,5 @@
 """Tests for entity update optimization helpers."""
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime
 

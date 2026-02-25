@@ -267,7 +267,10 @@ async def test_async_translation_lookup_fetches_english_fallback_once(
 
     monkeypatch.setattr(translation_helpers, "async_get_translations", fake_get)
 
-    translations, fallback = await translation_helpers.async_get_component_translation_lookup(
+    (
+        translations,
+        fallback,
+    ) = await translation_helpers.async_get_component_translation_lookup(
         hass,
         "de",
     )

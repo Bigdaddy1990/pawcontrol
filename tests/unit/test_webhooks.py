@@ -1,7 +1,5 @@
 """Unit tests for webhook endpoint helpers."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 import json
 from types import SimpleNamespace

@@ -1,7 +1,5 @@
 """Tests for error recovery coordinator helpers."""
 
-from __future__ import annotations
-
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
