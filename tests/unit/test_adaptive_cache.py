@@ -332,3 +332,115 @@ async def test_cleanup_diagnostics_track_override(
     assert diagnostics["last_expired_count"] == 1
     assert diagnostics["last_override_ttl"] == 90
     assert diagnostics["last_cleanup"] is not None
+
+
+@pytest.mark.asyncio
+async def test_get_expires_override_entries_and_tracks_diagnostics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fetching an expired override entry should increment miss diagnostics."""
+    cache = AdaptiveCache()
+    base_time = datetime(2024, 6, 1, tzinfo=UTC)
+
+    monkeypatch.setattr(data_manager, "_utcnow", lambda: base_time)
+    await cache.set("dog", {"name": "Nova"}, base_ttl=600)
+
+    # Force an override-specific expiry path and mark metadata as malformed.
+    cache._metadata["dog"]["created_at"] = base_time - timedelta(seconds=300)
+    cache._metadata["dog"]["ttl"] = 120
+    cache._metadata["dog"]["override_applied"] = True
+    cache._metadata["dog"]["expiry"] = "invalid"  # type: ignore[assignment]
+
+    monkeypatch.setattr(
+        data_manager,
+        "_utcnow",
+        lambda: base_time,
+    )
+    value, hit = await cache.get("dog")
+
+    assert hit is False
+    assert value is None
+    diagnostics = cache.get_diagnostics()
+    assert diagnostics["expired_entries"] == 1
+    assert diagnostics["expired_via_override"] == 1
+    assert diagnostics["last_expired_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_set_with_non_positive_ttl_uses_default_and_reports_stats(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cache stats should capture hits/misses when falling back to default TTL."""
+    cache = AdaptiveCache(default_ttl=45)
+    base_time = datetime(2024, 7, 1, tzinfo=UTC)
+
+    monkeypatch.setattr(data_manager, "_utcnow", lambda: base_time)
+    await cache.set("dog", {"name": "Milo"}, base_ttl=0)
+
+    value, hit = await cache.get("dog")
+    assert hit is True
+    assert value == {"name": "Milo"}
+
+    missing_value, missing_hit = await cache.get("missing")
+    assert missing_hit is False
+    assert missing_value is None
+
+    stats = cache.get_stats()
+    assert stats["size"] == 1
+    assert stats["hits"] == 1
+    assert stats["misses"] == 1
+    assert stats["hit_rate"] == 50.0
+    assert cache._metadata["dog"]["ttl"] == 45
+    assert cache._metadata["dog"]["expiry"] == base_time + timedelta(seconds=45)
+
+
+@pytest.mark.asyncio
+async def test_cleanup_with_non_positive_override_retains_entries_without_expiry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-positive override TTL should disable expiry and keep entries active."""
+    cache = AdaptiveCache()
+    base_time = datetime(2024, 8, 1, tzinfo=UTC)
+
+    monkeypatch.setattr(data_manager, "_utcnow", lambda: base_time)
+    await cache.set("dog", {"name": "Loki"}, base_ttl=120)
+
+    monkeypatch.setattr(
+        data_manager,
+        "_utcnow",
+        lambda: base_time + timedelta(minutes=10),
+    )
+    removed = await cache.cleanup_expired(ttl_seconds=-5)
+
+    assert removed == 0
+    diagnostics = cache.get_diagnostics()
+    assert diagnostics["last_override_ttl"] == 0
+    assert diagnostics["active_override_entries"] == 1
+    assert cache._metadata["dog"]["expiry"] is None
+
+
+@pytest.mark.asyncio
+async def test_coordinator_snapshot_serializes_cleanup_timestamp(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Coordinator snapshot payloads should include serialized diagnostics."""
+    cache = AdaptiveCache()
+    base_time = datetime(2024, 9, 1, tzinfo=UTC)
+
+    monkeypatch.setattr(data_manager, "_utcnow", lambda: base_time)
+    await cache.set("dog", {"name": "Roxy"}, base_ttl=30)
+
+    monkeypatch.setattr(
+        data_manager,
+        "_utcnow",
+        lambda: base_time + timedelta(seconds=40),
+    )
+    await cache.cleanup_expired()
+
+    snapshot = cache.coordinator_snapshot()
+    assert snapshot["stats"]["size"] == 0
+    assert snapshot["diagnostics"]["cleanup_invocations"] == 1
+    assert (
+        snapshot["diagnostics"]["last_cleanup"]
+        == (base_time + timedelta(seconds=40)).isoformat()
+    )
