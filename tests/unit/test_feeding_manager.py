@@ -10,7 +10,9 @@ Python: 3.13+
 import asyncio
 from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import cast
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -811,3 +813,168 @@ class TestEdgeCases:
 
         assert len(data["feedings"]) == 10
         assert data["daily_stats"]["total_fed_today"] == 500.0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestAdvancedFeedingOperations:
+    """Test advanced feeding helpers and shutdown cleanup paths."""
+
+    async def test_adjust_daily_portions_schedules_and_reverts(
+        self, mock_feeding_manager: FeedingManager, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Temporary adjustments should schedule and complete a reversion task."""
+        created_tasks: list[asyncio.Task[object]] = []
+        original_create_task = asyncio.create_task
+
+        def capture_task(
+            coro: Coroutine[object, object, object],
+        ) -> asyncio.Task[object]:
+            task = original_create_task(coro)
+            created_tasks.append(task)
+            return task
+
+        monkeypatch.setattr(asyncio, "create_task", capture_task)
+
+        original_sleep = asyncio.sleep
+
+        async def fast_sleep(delay: float) -> None:
+            await original_sleep(0)
+
+        monkeypatch.setattr(asyncio, "sleep", fast_sleep)
+
+        config = mock_feeding_manager._configs["test_dog"]
+        original_amount = config.daily_food_amount
+        original_portions = [
+            schedule.portion_size for schedule in config.meal_schedules
+        ]
+
+        result = await mock_feeding_manager.async_adjust_daily_portions(
+            "test_dog",
+            adjustment_percent=25,
+            reason="higher activity week",
+            temporary=True,
+            duration_days=1,
+        )
+
+        assert result["status"] == "adjusted"
+        assert result["reversion_scheduled"] is True
+        assert config.daily_food_amount > original_amount
+        assert "test_dog" in mock_feeding_manager._portion_reversion_tasks
+        assert created_tasks
+
+        task = created_tasks.pop()
+        await task
+
+        assert config.daily_food_amount == original_amount
+        assert [
+            schedule.portion_size for schedule in config.meal_schedules
+        ] == original_portions
+        assert "test_dog" not in mock_feeding_manager._portion_reversion_tasks
+
+    async def test_adjust_daily_portions_validates_inputs(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Adjustment validation should reject missing dogs and invalid percentages."""
+        with pytest.raises(ValueError, match="No feeding configuration"):
+            await mock_feeding_manager.async_adjust_daily_portions(
+                "unknown_dog",
+                adjustment_percent=10,
+            )
+
+        with pytest.raises(ValueError, match=r"between -50 and \+50"):
+            await mock_feeding_manager.async_adjust_daily_portions(
+                "test_dog",
+                adjustment_percent=75,
+            )
+
+    async def test_adjust_daily_portions_rejects_dangerously_low_target(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Adjustment should fail when daily target would fall below 50g."""
+        mock_feeding_manager._configs["test_dog"].daily_food_amount = 60.0
+
+        with pytest.raises(ValueError, match="dangerously low"):
+            await mock_feeding_manager.async_adjust_daily_portions(
+                "test_dog",
+                adjustment_percent=-20,
+            )
+
+    async def test_add_health_snack_enriches_notes_and_logs_feeding(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Health snacks should map benefits to notes and append feeding events."""
+        mock_feeding_manager.async_add_feeding = AsyncMock(
+            return_value=SimpleNamespace(time=datetime.now(UTC)),
+        )
+
+        result = await mock_feeding_manager.async_add_health_snack(
+            "test_dog",
+            snack_type="blueberries",
+            amount=25.0,
+            health_benefit="digestive",
+            notes="small handful",
+        )
+
+        assert result["status"] == "added"
+        assert "Supports digestive health" in result["notes"]
+        mock_feeding_manager.async_add_feeding.assert_awaited_once()
+        _, kwargs = mock_feeding_manager.async_add_feeding.call_args
+        assert kwargs["meal_type"] == "snack"
+        assert kwargs["scheduled"] is False
+        assert "Supports digestive health" in kwargs["notes"]
+
+    async def test_add_health_snack_validates_amount_and_unknown_benefit(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Snack helper should guard invalid grams and support fallback labels."""
+        mock_feeding_manager.async_add_feeding = AsyncMock(
+            return_value=SimpleNamespace(time=datetime.now(UTC)),
+        )
+
+        with pytest.raises(ValueError, match="between 0 and 100"):
+            await mock_feeding_manager.async_add_health_snack(
+                "test_dog",
+                snack_type="carrot",
+                amount=0,
+            )
+
+        result = await mock_feeding_manager.async_add_health_snack(
+            "test_dog",
+            snack_type="pumpkin",
+            amount=20,
+            health_benefit="custom_focus",
+        )
+        assert result["notes"] == "Health benefit: custom_focus"
+
+    async def test_async_shutdown_cancels_tasks_and_clears_state(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Shutdown should cancel reminder tasks and empty in-memory caches."""
+
+        async def pending_task() -> None:
+            await asyncio.sleep(60)
+
+        task = asyncio.create_task(pending_task())
+        mock_feeding_manager._reminder_tasks["manual_task"] = task
+        mock_feeding_manager._reminder_events["manual_task"] = asyncio.Event()
+        mock_feeding_manager._next_reminders["manual_task"] = datetime.now(UTC)
+
+        await mock_feeding_manager.async_add_feeding(
+            dog_id="test_dog",
+            amount=100.0,
+            meal_type="breakfast",
+        )
+
+        await mock_feeding_manager.async_shutdown()
+
+        assert task.cancelled()
+        assert mock_feeding_manager._reminder_tasks == {}
+        assert mock_feeding_manager._reminder_events == {}
+        assert mock_feeding_manager._next_reminders == {}
+        assert mock_feeding_manager._feedings == {}
+        assert mock_feeding_manager._configs == {}
+        assert mock_feeding_manager._data_cache == {}
+        assert mock_feeding_manager._cache_time == {}
+        assert mock_feeding_manager._stats_cache == {}
+        assert mock_feeding_manager._stats_cache_time == {}
