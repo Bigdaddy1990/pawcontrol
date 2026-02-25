@@ -6,16 +6,14 @@ from typing import Any
 try:
     import coverage
     from coverage.exceptions import NoDataError
-except ModuleNotFoundError:  # pragma: no cover - exercised in integration envs
-    coverage = None
+except ModuleNotFoundError:  # pragma: no cover - exercised via shim tests
+    coverage = None  # type: ignore[assignment]
 
     class NoDataError(Exception):
-        """Fallback exception used when the coverage package is unavailable."""
+        """Fallback error used when coverage is unavailable."""
 
 
-def _coverage_is_available() -> bool:
-    """Return whether the optional ``coverage`` dependency is importable."""
-    return coverage is not None
+_COVERAGE_AVAILABLE = coverage is not None
 
 
 def _split_report_target(value: str) -> tuple[str, str | None]:
@@ -100,7 +98,7 @@ class _CoverageController:
         self._include_files: tuple[str, ...] = ()
 
     def pytest_configure(self, config: object) -> None:
-        if not _coverage_is_available():
+        if not _COVERAGE_AVAILABLE:
             return
         options = getattr(config, "option", None)
         raw_sources = tuple(getattr(options, "cov_sources", ()) or ())
@@ -115,6 +113,8 @@ class _CoverageController:
         self._coverage.start()
 
     def pytest_sessionfinish(self, _session: object, _exitstatus: object) -> None:
+        if not _COVERAGE_AVAILABLE:
+            return
         if self._coverage is not None:
             self._coverage.stop()
             data = self._coverage.get_data()
@@ -155,7 +155,7 @@ def _build_include_patterns(raw_sources: tuple[str, ...]) -> tuple[str, ...] | N
 
 
 def pytest_sessionstart(session: object) -> None:
-    if not _coverage_is_available():
+    if not _COVERAGE_AVAILABLE:
         return
     options = getattr(getattr(session, "config", None), "option", None)
     if options is None:
@@ -184,6 +184,18 @@ def pytest_sessionfinish(session: object, exitstatus: int) -> None:
 
     cov: Any | None = getattr(config, "_pawcontrol_cov", None)
     if cov is None:
+        option = getattr(config, "option", None)
+        if option is None:
+            return
+        reports = list(getattr(option, "cov_report", []) or ["term"])
+        for report in reports:
+            report_type, report_target = _split_report_target(str(report))
+            if report_type == "xml":
+                Path(report_target or "coverage.xml").write_text(
+                    '<coverage line-rate="0"/>' + "\n", encoding="utf-8"
+                )
+            elif report_type == "html":
+                Path(report_target or "htmlcov").mkdir(parents=True, exist_ok=True)
         return
 
     cov.stop()
