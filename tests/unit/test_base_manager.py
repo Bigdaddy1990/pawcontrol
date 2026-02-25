@@ -4,6 +4,7 @@ Tests base manager classes, lifecycle management, error handling,
 and manager registration system.
 """
 
+import time
 from unittest.mock import MagicMock
 
 import pytest
@@ -215,6 +216,54 @@ class TestBaseManager:
         assert "DummyManager" in repr_str
         assert "ready=False" in repr_str
         assert "has_coordinator=False" in repr_str
+
+    def test_manager_logger_property_returns_internal_logger(self) -> None:
+        """Test logger property exposes the manager logger instance."""
+        mock_hass = MagicMock()
+        manager = DummyManager(mock_hass)
+
+        assert manager.logger is manager._logger
+
+    @pytest.mark.asyncio
+    async def test_async_health_check_reflects_ready_state(self) -> None:
+        """Test health-check payload before and after setup/teardown."""
+        mock_hass = MagicMock()
+        manager = DummyManager(mock_hass)
+
+        before_setup = await manager.async_health_check()
+        assert before_setup == {
+            "status": "not_ready",
+            "is_ready": False,
+            "is_setup": False,
+            "is_shutdown": False,
+            "manager_name": "DummyManager",
+        }
+
+        await manager.async_initialize()
+        after_setup = await manager.async_health_check()
+        assert after_setup["status"] == "healthy"
+        assert after_setup["is_ready"] is True
+
+        await manager.async_teardown()
+        after_teardown = await manager.async_health_check()
+        assert after_teardown["status"] == "not_ready"
+        assert after_teardown["is_shutdown"] is True
+
+    def test_get_metrics_includes_uptime_after_setup_timestamp_set(self) -> None:
+        """Test metrics include uptime once setup timestamp is available."""
+        mock_hass = MagicMock()
+        manager = DummyManager(mock_hass)
+
+        initial_metrics = manager.get_metrics()
+        assert initial_metrics == {
+            "manager_name": "DummyManager",
+            "manager_version": "1.0.0",
+            "is_ready": False,
+        }
+
+        manager._setup_timestamp = time.time() - 5
+        metrics_with_uptime = manager.get_metrics()
+        assert metrics_with_uptime["uptime_seconds"] >= 5
 
 
 class DummyDataManager(DataManager):
