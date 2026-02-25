@@ -64,6 +64,24 @@ async def test_validate_integration_name_accepts_trimmed() -> None:
     assert result["errors"] == {}
 
 
+@pytest.mark.asyncio
+async def test_validate_integration_name_handles_empty_and_too_long() -> None:
+    """Validation surfaces required and length errors for invalid names."""
+    flow = _TestFlow()
+
+    empty_result: IntegrationNameValidationResult = (
+        await flow._async_validate_integration_name("   ")
+    )
+    assert empty_result["valid"] is False
+    assert empty_result["errors"] == {CONF_NAME: "integration_name_required"}
+
+    too_long_result: IntegrationNameValidationResult = (
+        await flow._async_validate_integration_name("x" * 51)
+    )
+    assert too_long_result["valid"] is False
+    assert too_long_result["errors"] == {CONF_NAME: "integration_name_too_long"}
+
+
 def test_get_feeding_defaults_by_size_returns_structured_payload() -> None:
     """Feeding defaults expose the typed size payload for scheduler setup."""
     flow = _TestFlow()
@@ -86,6 +104,28 @@ def test_generate_unique_id_sanitizes_and_prefixes() -> None:
 
     assert flow._generate_unique_id("Paw Control-Pro") == "paw_control_pro"
     assert flow._generate_unique_id("123#Dog") == "paw_control_123dog"
+
+
+def test_feature_summary_and_weight_compatibility_are_consistent() -> None:
+    """Feature list text and size-weight compatibility ranges remain stable."""
+    flow = _TestFlow()
+
+    feature_summary = flow._get_feature_summary()
+    assert "🐕 Multi-dog management with individual settings" in feature_summary
+    assert "📱 Mobile app integration" in feature_summary
+
+    assert flow._is_weight_size_compatible(14.0, "toy") is True
+    assert flow._is_weight_size_compatible(40.0, "toy") is False
+    assert flow._is_weight_size_compatible(95.0, "unknown") is False
+
+
+def test_format_dogs_list_without_dogs_returns_empty_state_hint() -> None:
+    """Empty dog state uses the onboarding hint string."""
+    flow = _TestFlow()
+
+    assert flow._format_dogs_list() == (
+        "No dogs configured yet. Add your first dog to get started!"
+    )
 
 
 def test_format_dogs_list_and_module_summary_include_special_config() -> None:
