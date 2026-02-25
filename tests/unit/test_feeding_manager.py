@@ -191,6 +191,46 @@ class TestCalorieCalculations:
 
         assert abs(calories - expected) < 50
 
+    async def test_calculate_daily_calories_invalid_activity_defaults_to_moderate(
+        self,
+        mock_dog_config: FeedingManagerDogSetupPayload,
+        mock_hass: object,
+    ) -> None:
+        """Invalid activity values should fall back to moderate multiplier."""
+        manager = FeedingManager(mock_hass)
+
+        config = typed_deepcopy(mock_dog_config)
+        config["activity_level"] = "extreme"
+
+        await manager.async_initialize([config])
+
+        calories = manager.calculate_daily_calories("test_dog")
+
+        # Invalid enum values use ActivityLevel.MODERATE (=1.6).
+        assert 1150 < calories < 1250
+
+    async def test_calculate_rer_rejects_non_positive_or_non_numeric_weight(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """RER helper should validate numeric positive weights."""
+        with pytest.raises(ValueError, match="number"):
+            mock_feeding_manager._calculate_rer("heavy")
+
+        with pytest.raises(ValueError, match="greater than zero"):
+            mock_feeding_manager._calculate_rer(0.0)
+
+        with pytest.raises(ValueError, match="greater than zero"):
+            mock_feeding_manager._calculate_rer(-1.0)
+
+    async def test_calculate_rer_without_adjustment_uses_full_weight(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Disabling adjustment should produce higher RER for larger dogs."""
+        adjusted = mock_feeding_manager._calculate_rer(30.0)
+        unadjusted = mock_feeding_manager._calculate_rer(30.0, adjusted=False)
+
+        assert unadjusted > adjusted
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -504,6 +544,8 @@ class TestHealthConditionAdjustments:
         assert emergency_portion < normal_portion
         assert abs(emergency_portion / normal_portion - 0.7) < 0.1
 
+        await mock_feeding_manager.async_shutdown()
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -745,6 +787,200 @@ class TestDataRetrieval:
         assert stats["total_fed_today"] == 200.0
         assert isinstance(stats["remaining_calories"], (float, type(None)))
 
+    async def test_async_get_feedings_filters_from_since(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Ensure ``since`` filtering returns only newer feeding events."""
+        now = datetime.now(UTC)
+
+        await mock_feeding_manager.async_add_feeding(
+            dog_id="test_dog",
+            amount=100.0,
+            meal_type="breakfast",
+            timestamp=now - timedelta(hours=2),
+        )
+        await mock_feeding_manager.async_add_feeding(
+            dog_id="test_dog",
+            amount=120.0,
+            meal_type="dinner",
+            timestamp=now - timedelta(minutes=20),
+        )
+
+        recent = await mock_feeding_manager.async_get_feedings(
+            "test_dog",
+            since=now - timedelta(hours=1),
+        )
+
+        assert len(recent) == 1
+        assert recent[0].amount == 120.0
+
+    async def test_async_get_feeding_data_uses_cache(
+        self, mock_feeding_manager: FeedingManager, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Ensure cached feeding snapshots are reused while cache is valid."""
+        call_counter = {"count": 0}
+        original_builder = mock_feeding_manager._build_feeding_snapshot
+
+        def tracked_builder(dog_id: str) -> FeedingSnapshot:
+            call_counter["count"] += 1
+            return original_builder(dog_id)
+
+        monkeypatch.setattr(
+            mock_feeding_manager,
+            "_build_feeding_snapshot",
+            tracked_builder,
+        )
+
+        first = await mock_feeding_manager.async_get_feeding_data("test_dog")
+        second = await mock_feeding_manager.async_get_feeding_data("test_dog")
+
+        assert call_counter["count"] == 1
+        assert first is second
+
+    async def test_async_batch_add_feedings_adds_multiple(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Batch feeding inserts every item and preserves ordering."""
+        now = datetime.now(UTC)
+        events = await mock_feeding_manager.async_batch_add_feedings([
+            {
+                "dog_id": "test_dog",
+                "amount": 130.0,
+                "meal_type": "breakfast",
+                "timestamp": now - timedelta(hours=1),
+            },
+            {
+                "dog_id": "test_dog",
+                "amount": 150.0,
+                "meal_type": "dinner",
+                "timestamp": now,
+            },
+        ])
+
+        assert len(events) == 2
+        feedings = await mock_feeding_manager.async_get_feedings("test_dog")
+        assert len(feedings) == 2
+        assert [feeding.amount for feeding in feedings] == [130.0, 150.0]
+
+    async def test_async_get_statistics_returns_empty_snapshot(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Statistics should be well-formed even when no feedings exist."""
+        stats = await mock_feeding_manager.async_get_statistics("test_dog", days=7)
+
+        assert stats["period_days"] == 7
+        assert stats["total_feedings"] == 0
+        assert stats["average_daily_feedings"] == 0
+        assert stats["average_daily_amount"] == 0
+        assert stats["most_common_meal"] is None
+        assert stats["schedule_adherence"] == 100
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestFeedingManagerHelperMethods:
+    """Direct coverage for deterministic helper behaviour."""
+
+    async def test_parse_time_accepts_string_and_time_instance(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Time parser should accept canonical strings and ``time`` objects."""
+        parsed_hhmm = mock_feeding_manager._parse_time("08:30")
+        parsed_hhmmss = mock_feeding_manager._parse_time("08:30:45")
+        from_datetime = (
+            datetime(2026, 1, 1, 12, 15, 5, tzinfo=UTC).timetz().replace(tzinfo=None)
+        )
+        parsed_direct = mock_feeding_manager._parse_time(from_datetime)
+
+        assert parsed_hhmm is not None
+        assert (parsed_hhmm.hour, parsed_hhmm.minute, parsed_hhmm.second) == (8, 30, 0)
+        assert parsed_hhmmss is not None
+        assert (parsed_hhmmss.hour, parsed_hhmmss.minute, parsed_hhmmss.second) == (
+            8,
+            30,
+            45,
+        )
+        assert parsed_direct == from_datetime
+
+    async def test_parse_time_rejects_invalid_payloads(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Parser should gracefully reject malformed strings and non-strings."""
+        assert mock_feeding_manager._parse_time("invalid") is None
+        assert mock_feeding_manager._parse_time("09") is None
+        assert mock_feeding_manager._parse_time(cast(object, 123)) is None
+
+    async def test_normalize_special_diet_variants(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Special-diet normalization should preserve valid string entries only."""
+        assert mock_feeding_manager._normalize_special_diet(None) == []
+        assert mock_feeding_manager._normalize_special_diet(
+            "  renal , diabetic ,, "
+        ) == ["renal , diabetic ,,"]
+        assert mock_feeding_manager._normalize_special_diet([
+            " hypoallergenic ",
+            "",
+            None,
+            "renal",
+        ]) == ["hypoallergenic", "renal"]
+        assert mock_feeding_manager._normalize_special_diet(42) == []
+
+    async def test_parse_time_handles_value_error_path(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Non-numeric clock segments should trigger ValueError handling."""
+        assert mock_feeding_manager._parse_time("aa:30") is None
+
+    async def test_initialize_parses_schedule_and_snack_inputs(
+        self,
+        mock_dog_config: FeedingManagerDogSetupPayload,
+        mock_hass: object,
+    ) -> None:
+        """Initialization should parse meal config and ignore invalid snack entries."""
+        manager = FeedingManager(mock_hass)
+
+        config = typed_deepcopy(mock_dog_config)
+        feeding_config = _mutable_feeding_config(config)
+        feeding_config.update({
+            "breakfast_time": "07:30",
+            "dinner_time": "18:15:30",
+            "portion_size": "123.4",
+            "enable_reminders": "yes",  # invalid -> default True
+            "reminder_minutes_before": "20",
+            "snack_times": ["11:00", "invalid", 123],
+        })
+
+        await manager.async_initialize([config])
+
+        schedules = manager._configs["test_dog"].meal_schedules
+        assert len(schedules) == 3
+        assert schedules[0].meal_type.value == "breakfast"
+        assert schedules[0].portion_size == 123.4
+        assert schedules[0].reminder_enabled is True
+        assert schedules[0].reminder_minutes_before == 20
+        assert schedules[1].meal_type.value == "dinner"
+        assert schedules[1].scheduled_time.second == 30
+        assert schedules[2].meal_type.value == "snack"
+
+    async def test_calculate_daily_calories_missing_weight_raises(
+        self,
+        mock_dog_config: FeedingManagerDogSetupPayload,
+        mock_hass: object,
+    ) -> None:
+        """Missing weight in both dog data and config should raise ValueError."""
+        manager = FeedingManager(mock_hass)
+
+        config = typed_deepcopy(mock_dog_config)
+
+        await manager.async_initialize([config])
+
+        manager._dogs["test_dog"]["weight"] = None
+        manager._configs["test_dog"].dog_weight = None
+
+        with pytest.raises(ValueError, match="Dog weight is required"):
+            manager.calculate_daily_calories("test_dog")
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -939,3 +1175,96 @@ class TestMealSchedule:
         )
 
         assert schedule.get_reminder_time() is None
+@pytest.mark.asyncio
+class TestPortionAndSnackAdjustments:
+    """Test daily-portion adjustments and health snack logging."""
+
+    async def test_async_adjust_daily_portions_temporary_reversion(
+        self, mock_feeding_manager: FeedingManager, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Temporary daily adjustments should schedule and apply reversion."""
+        created_tasks: list[asyncio.Task[object]] = []
+        original_create_task = asyncio.create_task
+
+        def capture_task(
+            coro: Coroutine[object, object, object],
+        ) -> asyncio.Task[object]:
+            task = original_create_task(coro)
+            created_tasks.append(task)
+            return task
+
+        monkeypatch.setattr(asyncio, "create_task", capture_task)
+
+        original_sleep = asyncio.sleep
+
+        async def fast_sleep(delay: float) -> None:
+            await original_sleep(0)
+
+        monkeypatch.setattr(asyncio, "sleep", fast_sleep)
+
+        original_daily_amount = mock_feeding_manager._configs[
+            "test_dog"
+        ].daily_food_amount
+        result = await mock_feeding_manager.async_adjust_daily_portions(
+            dog_id="test_dog",
+            adjustment_percent=20,
+            reason="post-exercise",
+            temporary=True,
+            duration_days=1,
+        )
+
+        assert result["status"] == "adjusted"
+        assert result["reversion_scheduled"] is True
+        assert created_tasks
+        assert (
+            mock_feeding_manager._configs["test_dog"].daily_food_amount
+            > original_daily_amount
+        )
+
+        reversion_task = created_tasks.pop()
+        await reversion_task
+        assert mock_feeding_manager._configs[
+            "test_dog"
+        ].daily_food_amount == pytest.approx(original_daily_amount)
+
+    async def test_async_add_health_snack_enriches_notes(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Health snacks should annotate notes with selected health benefit."""
+        result = await mock_feeding_manager.async_add_health_snack(
+            dog_id="test_dog",
+            snack_type="carrot",
+            amount=25.0,
+            health_benefit="dental",
+            notes="after brushing",
+        )
+
+        assert result["status"] == "added"
+        assert "Promotes dental health" in result["notes"]
+        data = mock_feeding_manager.get_feeding_data("test_dog")
+        latest_feeding = data["feedings"][-1]
+        assert latest_feeding["meal_type"] == "snack"
+        assert "Promotes dental health" in latest_feeding["notes"]
+
+    async def test_async_shutdown_clears_runtime_state(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Shutdown should clear all in-memory caches and configuration state."""
+        await mock_feeding_manager.async_add_feeding(
+            dog_id="test_dog",
+            amount=120.0,
+            meal_type="breakfast",
+        )
+        await mock_feeding_manager.async_get_feeding_data("test_dog")
+        await mock_feeding_manager.async_get_statistics("test_dog")
+
+        assert mock_feeding_manager._feedings
+        assert mock_feeding_manager._configs
+        assert mock_feeding_manager._data_cache
+
+        await mock_feeding_manager.async_shutdown()
+
+        assert mock_feeding_manager._feedings == {}
+        assert mock_feeding_manager._configs == {}
+        assert mock_feeding_manager._data_cache == {}
+        assert mock_feeding_manager._stats_cache == {}
