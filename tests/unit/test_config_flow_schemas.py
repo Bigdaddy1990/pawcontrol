@@ -108,7 +108,7 @@ def test_module_selection_keys_contains_expected_modules() -> None:
         MODULE_HEALTH,
         MODULE_GPS,
         MODULE_NOTIFICATIONS,
-    }  # noqa: E501
+    }
     assert set(MODULE_SELECTION_KEYS) == expected
 
 
