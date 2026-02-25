@@ -202,6 +202,70 @@ def test_dog_modules_from_flow_input_merges_existing_defaults() -> None:
     assert modules["garden"] is False
 
 
+def test_get_feeding_summary_handles_empty_and_long_lists() -> None:
+    """Feeding summary should describe empty, single, and many dogs."""
+    flow = _ModuleFlowHarness(dogs=[])
+
+    assert flow._get_feeding_summary([]) == "No dogs with feeding tracking"
+
+    single_summary = flow._get_feeding_summary([
+        cast(DogConfigData, {"dog_name": "Buddy"})
+    ])
+    assert single_summary == "Feeding configuration for Buddy"
+
+    many_summary = flow._get_feeding_summary([
+        cast(DogConfigData, {"dog_name": "Buddy"}),
+        cast(DogConfigData, {"dog_name": "Luna"}),
+        cast(DogConfigData, {"dog_name": "Milo"}),
+        cast(DogConfigData, {"dog_name": "Nala"}),
+    ])
+    assert many_summary == "Feeding configuration for: Buddy, Luna, Milo, ...and 1 more"
+
+
+def test_get_dogs_module_summary_handles_empty_and_overflow() -> None:
+    """Dog module summary should include overflow information after three dogs."""
+    empty_flow = _ModuleFlowHarness(dogs=[])
+    assert empty_flow._get_dogs_module_summary() == "No dogs configured yet"
+
+    dogs: list[DogConfigData] = [
+        cast(
+            DogConfigData,
+            {
+                "dog_name": "Buddy",
+                "modules": cast(
+                    DogModulesConfig, {MODULE_GPS: True, MODULE_HEALTH: True}
+                ),
+            },
+        ),
+        cast(
+            DogConfigData,
+            {
+                "dog_name": "Luna",
+                "modules": cast(DogModulesConfig, {MODULE_FEEDING: True}),
+            },
+        ),
+        cast(
+            DogConfigData,
+            {
+                "dog_name": "Milo",
+                "modules": cast(DogModulesConfig, {}),
+            },
+        ),
+        cast(
+            DogConfigData,
+            {
+                "dog_name": "Nala",
+                "modules": cast(DogModulesConfig, {MODULE_DASHBOARD: True}),
+            },
+        ),
+    ]
+    flow = _ModuleFlowHarness(dogs=dogs)
+
+    assert flow._get_dogs_module_summary() == (
+        "Buddy: 2 modules | Luna: 1 modules | Milo: 0 modules | ...and 1 more"
+    )
+
+
 class _ModuleFlowHarness(ModuleConfigurationMixin):
     """Harness exposing module configuration steps for UI regression tests."""
 
