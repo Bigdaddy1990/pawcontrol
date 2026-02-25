@@ -7,6 +7,7 @@ import logging
 from types import MappingProxyType, SimpleNamespace
 from typing import TypedDict, cast
 
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import ServiceValidationError
 import pytest
 
@@ -105,6 +106,15 @@ def test_service_validation_error_trims_whitespace() -> None:
             "geofence_radius must be a number",
         ),
         (
+            "gps_accuracy",
+            "gps_accuracy_out_of_range",
+            "m",
+            "gps_accuracy must be between 1 and 30m",
+        ),
+        ("gps_accuracy", "other", None, "gps_accuracy is invalid"),
+    ],
+)
+def test_format_gps_validation_error_variants(
             "geofence_radius",
             "geofence_radius_out_of_range",
             "m",
@@ -119,6 +129,14 @@ def test_format_gps_validation_error(
     unit: str | None,
     expected: str,
 ) -> None:
+    """GPS validation helper should map constraints to user-facing errors."""
+    error = services.ValidationError(
+        field,
+        31,
+        constraint,
+        min_value=1,
+        max_value=30,
+    )
     """GPS validation constraints should map to user-friendly messages."""
     error = services.ValidationError(field, 0, constraint, min_value=1, max_value=10)
 
@@ -128,6 +146,19 @@ def test_format_gps_validation_error(
 @pytest.mark.parametrize(
     ("constraint", "expected"),
     [
+        ("name_required", "dog_name is required"),
+        ("Must be text", "dog_name must be a string"),
+        ("Cannot be empty or whitespace", "dog_name must be a non-empty string"),
+        ("unexpected", "dog_name is invalid"),
+        (None, "dog_name is invalid"),
+    ],
+)
+def test_format_text_validation_error_variants(
+    constraint: str | None,
+    expected: str,
+) -> None:
+    """Text validation helper should classify common constraint messages."""
+    error = services.ValidationError("dog_name", "", constraint)
         ("field_required", "notes is required"),
         ("Must be text", "notes must be a string"),
         ("Cannot be empty or whitespace", "notes must be a non-empty string"),
@@ -146,6 +177,8 @@ def test_format_text_validation_error(constraint: str, expected: str) -> None:
     [
         (True, True),
         (False, False),
+        ("enabled", True),
+        ("OFF", False),
         ("true", True),
         (" enabled ", True),
         ("0", False),
@@ -158,6 +191,163 @@ def test_coerce_service_bool_accepts_supported_values(
     value: object,
     expected: bool,
 ) -> None:
+    """Boolean coercion should support Home Assistant service payload variants."""
+    assert services._coerce_service_bool(value, field="enabled") is expected
+
+
+def test_coerce_service_bool_rejects_invalid_values() -> None:
+    """Boolean coercion should raise a ServiceValidationError for invalid values."""
+    with pytest.raises(ServiceValidationError, match="enabled must be a boolean"):
+        services._coerce_service_bool("sometimes", field="enabled")
+
+
+def test_format_numeric_value_collapses_integer_floats() -> None:
+    """Numeric formatter should avoid decimal suffixes for integer-like floats."""
+    assert services._format_numeric_value(4.0) == "4"
+    assert services._format_numeric_value(4.5) == "4.5"
+
+
+@pytest.mark.parametrize(
+    ("constraint", "minimum", "maximum", "expected"),
+    [
+        (
+            "expires_in_hours_required",
+            None,
+            None,
+            "expires_in_hours is required",
+        ),
+        (
+            "expires_in_hours_not_numeric",
+            None,
+            None,
+            "expires_in_hours must be a number",
+        ),
+        (
+            "expires_in_hours_out_of_range",
+            1.0,
+            24.0,
+            "expires_in_hours must be between 1 and 24",
+        ),
+        (
+            "expires_in_hours_out_of_range",
+            2,
+            None,
+            "expires_in_hours must be greater than 2",
+        ),
+        (
+            "expires_in_hours_out_of_range",
+            None,
+            12,
+            "expires_in_hours must be less than 12",
+        ),
+        (
+            "expires_in_hours_out_of_range",
+            None,
+            None,
+            "expires_in_hours is out of range",
+        ),
+        ("unexpected", None, None, "expires_in_hours is invalid"),
+    ],
+)
+def test_format_expires_in_hours_error_variants(
+    constraint: str,
+    minimum: object,
+    maximum: object,
+    expected: str,
+) -> None:
+    """Expiry validation helper should render friendly range hints."""
+    error = services.ValidationError(
+        "expires_in_hours",
+        0,
+        constraint,
+        min_value=minimum,
+        max_value=maximum,
+    )
+
+    assert services._format_expires_in_hours_error(error) == expected
+
+
+def test_coordinator_resolver_persists_instance_in_hass_data() -> None:
+    """Resolver helper should cache one resolver instance per hass/domain data."""
+    hass = SimpleNamespace(data={})
+
+    first = services._coordinator_resolver(hass)  # type: ignore[arg-type]
+    second = services._coordinator_resolver(hass)  # type: ignore[arg-type]
+
+    assert first is second
+
+
+def test_coordinator_resolver_creates_new_instance_for_non_resolver_value() -> None:
+    """Resolver helper should replace stale placeholders with a real resolver."""
+    hass = SimpleNamespace(
+        data={services.DOMAIN: {"_service_coordinator_resolver": {}}}
+    )
+
+    resolver = services._coordinator_resolver(hass)  # type: ignore[arg-type]
+
+    assert isinstance(resolver, services._CoordinatorResolver)
+
+
+def test_coordinator_resolver_lookup_error_messages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Source lookup should raise user-facing errors for each setup state."""
+
+    def _build_hass(entries: list[SimpleNamespace]) -> SimpleNamespace:
+        return SimpleNamespace(
+            data={},
+            config_entries=SimpleNamespace(async_entries=lambda domain: entries),
+        )
+
+    loaded = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="entry-loaded")
+    not_loaded = SimpleNamespace(
+        state=ConfigEntryState.SETUP_IN_PROGRESS,
+        entry_id="entry-pending",
+    )
+
+    monkeypatch.setattr(services, "get_runtime_data", lambda hass, entry: None)
+
+    with pytest.raises(ServiceValidationError, match="runtime data is not ready"):
+        services._CoordinatorResolver(_build_hass([loaded])).resolve()  # type: ignore[arg-type]
+
+    with pytest.raises(ServiceValidationError, match="still initializing"):
+        services._CoordinatorResolver(_build_hass([not_loaded])).resolve()  # type: ignore[arg-type]
+
+    with pytest.raises(ServiceValidationError, match="is not set up"):
+        services._CoordinatorResolver(_build_hass([])).resolve()  # type: ignore[arg-type]
+
+
+def test_coordinator_resolver_invalidates_cache_when_hass_instance_changes() -> None:
+    """Cached coordinators should be discarded when attached to another hass."""
+    hass = SimpleNamespace(data={})
+    resolver = services._CoordinatorResolver(hass)  # type: ignore[arg-type]
+
+    resolver._cached_coordinator = SimpleNamespace(  # type: ignore[assignment]
+        hass=SimpleNamespace(),
+        config_entry=SimpleNamespace(entry_id="entry", state=ConfigEntryState.LOADED),
+    )
+    resolver._cached_entry_id = "entry"
+
+    assert resolver._get_cached_coordinator() is None
+    assert resolver._cached_coordinator is None
+
+
+def test_coordinator_resolver_invalidates_cache_when_entry_not_loaded() -> None:
+    """Cached coordinators should be dropped when config entry leaves LOADED."""
+    hass = SimpleNamespace(data={})
+    resolver = services._CoordinatorResolver(hass)  # type: ignore[arg-type]
+
+    resolver._cached_coordinator = SimpleNamespace(  # type: ignore[assignment]
+        hass=hass,
+        config_entry=SimpleNamespace(
+            entry_id="entry",
+            state=ConfigEntryState.SETUP_IN_PROGRESS,
+        ),
+    )
+    resolver._cached_entry_id = "entry"
+
+    assert resolver._get_cached_coordinator() is None
+    assert resolver._cached_entry_id is None
     """Boolean coercion should support native, string, and integer toggles."""
     assert services._coerce_service_bool(value, field="enabled") is expected
 
