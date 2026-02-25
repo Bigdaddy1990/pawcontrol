@@ -90,7 +90,7 @@ def test_translated_grooming_label_with_hass_and_format_values() -> None:
     ):
         result = translated_grooming_label(
             mock_hass, "en", "button_action", dog="Buddy"
-        )  # noqa: E501
+        )
 
     assert result == "Action for Buddy"
 
