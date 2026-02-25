@@ -6,7 +6,11 @@ from homeassistant.config_entries import ConfigEntry
 import pytest
 
 from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.system_health import system_health_info
+from custom_components.pawcontrol.system_health import (
+    _normalise_manual_events_snapshot,
+    _resolve_indicator_thresholds,
+    system_health_info,
+)
 from custom_components.pawcontrol.types import DomainRuntimeStoreEntry
 
 
@@ -180,3 +184,105 @@ async def test_system_health_info_coerces_unexpected_types(hass: Any) -> None:
     assert breaker_overview["half_open_breaker_count"] == 0
     assert breaker_overview["rejection_breaker_count"] == 2
     assert breaker_overview["status"] == "monitoring"
+
+
+def test_normalise_manual_events_snapshot_coerces_nested_payloads() -> None:
+    """Manual event telemetry should be normalized into stable payloads."""
+    snapshot = {
+        "available": 1,
+        "automations": [
+            {
+                "config_entry_id": " entry-1 ",
+                "title": " Dog profile ",
+                "manual_guard_event": " guard.event ",
+                "configured_guard": "yes",
+                "configured_breaker": 0,
+                "configured_check": True,
+            },
+            "skip-me",
+        ],
+        "configured_guard_events": [" one ", "", 123],
+        "listener_events": {" primary ": [" event.one ", "", None]},
+        "listener_metadata": {
+            "guard": {
+                "sources": [" sensor_a ", ""],
+                "primary_source": "sensor_a",
+            },
+        },
+        "preferred_events": {
+            "manual_guard_event": " preferred.guard ",
+            "manual_breaker_event": " preferred.breaker ",
+            "manual_check_event": " preferred.check ",
+        },
+        "event_history": [
+            {"event": "manual.guard"},
+            "skip",
+        ],
+        "event_counters": {
+            "total": "2",
+            "by_event": {"manual.guard": "1"},
+            "by_reason": {"manual": "bad"},
+        },
+        "active_listeners": [" listener.one ", "", None],
+    }
+
+    payload = _normalise_manual_events_snapshot(snapshot)
+
+    assert payload["available"] is True
+    assert payload["automations"][0]["config_entry_id"] == "entry-1"
+    assert payload["automations"][0]["configured_guard"] is True
+    assert payload["automations"][0]["configured_breaker"] is False
+    assert payload["configured_guard_events"] == ["one"]
+    assert payload["listener_events"] == {"primary": ["event.one"]}
+    assert payload["listener_metadata"] == {
+        "guard": {"sources": ["sensor_a"], "primary_source": "sensor_a"},
+    }
+    assert payload["preferred_guard_event"] == "preferred.guard"
+    assert payload["preferred_breaker_event"] == "preferred.breaker"
+    assert payload["preferred_check_event"] == "preferred.check"
+    assert payload["event_history"] == [{"event": "manual.guard"}]
+    assert payload["event_counters"] == {
+        "total": 2,
+        "by_event": {"manual.guard": 1},
+        "by_reason": {"manual": 0},
+    }
+    assert payload["active_listeners"] == ["listener.one"]
+
+
+def test_resolve_indicator_thresholds_uses_script_snapshot_before_options() -> None:
+    """Script-provided thresholds should win over config entry options."""
+
+    class _ScriptManager:
+        def get_resilience_escalation_snapshot(self) -> dict[str, object]:
+            return {
+                "thresholds": {
+                    "skip_threshold": {"active": "4", "default": 9},
+                    "breaker_threshold": {"default": "5"},
+                },
+            }
+
+    runtime = _make_runtime_data(
+        performance_stats={},
+        coordinator=_Coordinator({}),
+        script_manager=_ScriptManager(),
+    )
+
+    guard_thresholds, breaker_thresholds = _resolve_indicator_thresholds(
+        runtime,
+        {
+            "system_settings": {
+                "resilience_skip_threshold": 2,
+                "resilience_breaker_threshold": 2,
+            },
+        },
+    )
+
+    assert guard_thresholds.warning_count == 3
+    assert guard_thresholds.critical_count == 4
+    assert guard_thresholds.source == "resilience_script"
+    assert guard_thresholds.source_key == "active"
+
+    assert breaker_thresholds.warning_count == 4
+    assert breaker_thresholds.critical_count == 5
+    assert breaker_thresholds.source == "resilience_script"
+    assert breaker_thresholds.source_key == "default"
