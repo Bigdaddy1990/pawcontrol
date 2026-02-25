@@ -138,7 +138,7 @@ class TestAsyncRegisterEntryMqtt:
         hass = _make_hass()
         entry = _make_entry(
             mqtt_enabled=True, dogs=[{"gps_config": {"gps_source": "device_tracker"}}]
-        )  # noqa: E501
+        )
         await async_register_entry_mqtt(hass, entry)
         assert "_mqtt_push" not in hass.data.get("pawcontrol", {})
 
@@ -187,7 +187,7 @@ class TestAsyncRegisterEntryMqtt:
                 __builtins__.get("__import__")
                 if isinstance(__builtins__, dict)
                 else __builtins__.__import__
-            )  # noqa: E501, F841
+            )
 
             # Directly call with mock that patches the internal import
             async def _mock_register(hass_, entry_) -> None:
@@ -202,7 +202,7 @@ class TestAsyncRegisterEntryMqtt:
                     return
                 hass_.data.setdefault("pawcontrol", {})["_mqtt_push"] = {
                     entry_.entry_id: mock_unsub
-                }  # noqa: E501
+                }
 
             await _mock_register(hass, entry)
 
