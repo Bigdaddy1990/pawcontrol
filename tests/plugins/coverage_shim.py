@@ -13,8 +13,17 @@ from types import CodeType, FrameType
 from typing import Any
 import warnings
 
-import coverage
-from coverage.exceptions import CoverageWarning, NoDataError
+try:
+    import coverage
+    from coverage.exceptions import CoverageWarning, NoDataError
+except ModuleNotFoundError:  # pragma: no cover - exercised in slim local envs
+    coverage = None
+
+    class CoverageWarning(Warning):
+        """Fallback warning when coverage is unavailable."""
+
+    class NoDataError(Exception):
+        """Fallback error when coverage is unavailable."""
 
 
 @lru_cache(maxsize=128)
@@ -25,11 +34,11 @@ def _compile_cached(filename: str, source: str) -> CodeType | None:
         return None
 
 
-if not hasattr(coverage, "_compile_cached"):
+if coverage is not None and not hasattr(coverage, "_compile_cached"):
     coverage._compile_cached = _compile_cached  # type: ignore[attr-defined]
 
 
-if not hasattr(coverage.Coverage, "_resolve_event_path"):
+if coverage is not None and not hasattr(coverage.Coverage, "_resolve_event_path"):
     _original_init = coverage.Coverage.__init__
     _original_start = coverage.Coverage.start
     _original_stop = coverage.Coverage.stop

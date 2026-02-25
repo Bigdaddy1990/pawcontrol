@@ -64,3 +64,33 @@ def test_sessionstart_without_cov_sources_keeps_source_none(monkeypatch) -> None
     assert recorder.kwargs["branch"] is True
     assert recorder.kwargs["include"] is None
     assert recorder.kwargs["source"] is None
+
+
+def test_sessionstart_skips_when_coverage_dependency_missing(monkeypatch) -> None:
+    """Session start should no-op when ``coverage`` is unavailable."""
+    monkeypatch.setattr(plugin, "coverage", None)
+
+    config = SimpleNamespace(
+        option=SimpleNamespace(cov=["custom_components/pawcontrol"])
+    )
+    session = SimpleNamespace(config=config)
+
+    plugin.pytest_sessionstart(session)
+
+    assert not hasattr(config, "_pawcontrol_cov")
+
+
+def test_controller_configure_skips_when_coverage_dependency_missing(
+    monkeypatch,
+) -> None:
+    """Controller setup should skip when ``coverage`` cannot be imported."""
+    monkeypatch.setattr(plugin, "coverage", None)
+
+    controller = plugin._CoverageController(config=SimpleNamespace())
+    controller.pytest_configure(
+        SimpleNamespace(
+            option=SimpleNamespace(cov_sources=["custom_components/pawcontrol"])
+        )
+    )
+
+    assert controller._coverage is None
