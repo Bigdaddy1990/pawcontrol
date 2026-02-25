@@ -302,18 +302,22 @@ class TestAsyncAddEntitiesInBatches:
         entities = [
             PawControlDoNotDisturbSwitch(coord, f"dog{i}", f"Dog{i}") for i in range(3)
         ]
-        call_count = 0
+        batch_sizes: list[int] = []
 
-        async def fake_add(entities_arg, **kwargs) -> None:
-            nonlocal call_count
-            call_count += 1
+        async def fake_add(_callback, entities_arg, **kwargs) -> None:
+            batch_sizes.append(len(entities_arg))
 
-        with pytest.raises(Exception):  # noqa: B017
-            # Will fail because async_call_add_entities is being mocked
-            pass
+        from unittest.mock import patch
 
-        # Minimal sanity check that entities are created correctly
-        assert len(entities) == 3
+        with patch(
+            "custom_components.pawcontrol.switch.async_call_add_entities",
+            side_effect=fake_add,
+        ):
+            await _async_add_entities_in_batches(
+                AsyncMock(), entities, batch_size=15, delay_between_batches=0
+            )
+
+        assert batch_sizes == [3]
 
     @pytest.mark.asyncio
     async def test_batches_split_correctly(self) -> None:
@@ -324,7 +328,7 @@ class TestAsyncAddEntitiesInBatches:
         ]
         batches_added: list[int] = []
 
-        async def fake_callback(entities_arg, **kwargs) -> None:
+        async def fake_callback(_callback, entities_arg, **kwargs) -> None:
             batches_added.append(len(entities_arg))
 
         from unittest.mock import patch
@@ -334,9 +338,7 @@ class TestAsyncAddEntitiesInBatches:
             side_effect=fake_callback,
         ):
             await _async_add_entities_in_batches(
-                fake_callback, entities, batch_size=15, delay_between_batches=0
-            )  # noqa: E501
+                AsyncMock(), entities, batch_size=15, delay_between_batches=0
+            )
 
-        # The patch replaces async_call_add_entities so batches_added won't fill
-        # through fake_callback; instead just verify entities were prepared
-        assert len(entities) == 20
+        assert batches_added == [15, 5]

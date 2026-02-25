@@ -141,7 +141,7 @@ class TestAsyncAddTextEntitiesInBatches:
         entities = [PawControlCustomLabelText(coord, "rex", "Rex")]
         call_count = 0
 
-        async def fake_add(batch, **kwargs) -> None:
+        async def fake_add(_callback, batch, **kwargs) -> None:
             nonlocal call_count
             call_count += 1
 

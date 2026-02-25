@@ -430,6 +430,7 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
         self._is_on = initial_state
         self._last_changed = dt_util.utcnow()
         self._set_cache_ttl(3.0)
+        self._update_cache(initial_state)
 
         # Entity configuration
         self._attr_unique_id = f"pawcontrol_{dog_id}_{switch_type}"
