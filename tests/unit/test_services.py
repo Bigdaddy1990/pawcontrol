@@ -72,6 +72,35 @@ def test_service_validation_error_trims_whitespace() -> None:
 
 
 @pytest.mark.parametrize(
+    ("constraint", "unit", "expected"),
+    [
+        ("gps_update_interval_required", None, "interval is required"),
+        ("geofence_radius_required", None, "radius is required"),
+        ("gps_accuracy_not_numeric", None, "accuracy must be a number"),
+        ("gps_update_interval_not_numeric", None, "interval must be a whole number"),
+        (
+            "gps_accuracy_out_of_range",
+            "m",
+            "accuracy must be between 1 and 10m",
+        ),
+        ("unknown_constraint", None, "radius is invalid"),
+    ],
+)
+def test_format_gps_validation_error(
+    constraint: str, unit: str | None, expected: str
+) -> None:
+    """GPS validation helper should provide readable error messages."""
+    error = services.ValidationError(
+        field="accuracy"
+        if "accuracy" in constraint
+        else "interval"
+        if "interval" in constraint
+        else "radius",
+        value="bad",
+        constraint=constraint,
+        min_value=1,
+        max_value=10,
+    )
     ("field", "constraint", "unit", "expected"),
     [
         (
@@ -146,6 +175,15 @@ def test_format_gps_validation_error(
 @pytest.mark.parametrize(
     ("constraint", "expected"),
     [
+        ("title_required", "title is required"),
+        ("Must be text", "title must be a string"),
+        ("Cannot be empty or whitespace", "title must be a non-empty string"),
+        ("something_else", "title is invalid"),
+    ],
+)
+def test_format_text_validation_error(constraint: str, expected: str) -> None:
+    """Text validation helper should map known constraints to friendly messages."""
+    error = services.ValidationError(field="title", value="bad", constraint=constraint)
         ("name_required", "dog_name is required"),
         ("Must be text", "dog_name must be a string"),
         ("Cannot be empty or whitespace", "dog_name must be a non-empty string"),
@@ -172,6 +210,45 @@ def test_format_text_validation_error(constraint: str, expected: str) -> None:
     assert services._format_text_validation_error(error) == expected
 
 
+def test_format_expires_in_hours_error_variants() -> None:
+    """Expiry helper should handle all supported boundary combinations."""
+    required = services.ValidationError(
+        field="expires_in_hours",
+        value=None,
+        constraint="expires_in_hours_required",
+    )
+    min_only = services.ValidationError(
+        field="expires_in_hours",
+        value=0,
+        constraint="expires_in_hours_out_of_range",
+        min_value=1.0,
+    )
+    max_only = services.ValidationError(
+        field="expires_in_hours",
+        value=900,
+        constraint="expires_in_hours_out_of_range",
+        max_value=48.0,
+    )
+    generic = services.ValidationError(
+        field="expires_in_hours",
+        value="bad",
+        constraint="unknown",
+    )
+
+    assert (
+        services._format_expires_in_hours_error(required)
+        == "expires_in_hours is required"
+    )
+    assert (
+        services._format_expires_in_hours_error(min_only)
+        == "expires_in_hours must be greater than 1"
+    )
+    assert (
+        services._format_expires_in_hours_error(max_only)
+        == "expires_in_hours must be less than 48"
+    )
+    assert (
+        services._format_expires_in_hours_error(generic)
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
@@ -424,6 +501,13 @@ def test_format_expires_in_hours_error_variants() -> None:
         )
         == "expires_in_hours is invalid"
     )
+
+
+def test_normalise_service_details_handles_sequence_and_scalar_payloads() -> None:
+    """Service detail normaliser should preserve list/scalar payloads."""
+    assert services._normalise_service_details(None) is None
+    assert services._normalise_service_details([1, "two"]) == {"items": [1, "two"]}
+    assert services._normalise_service_details(5) == {"value": 5}
 
 
 @pytest.mark.unit
