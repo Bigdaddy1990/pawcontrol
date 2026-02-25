@@ -50,7 +50,7 @@ class _CoordStub:
 
 def _make_coordinator(
     dog_data: CoordinatorDogData | None = None,
-) -> PawControlCoordinator:  # noqa: E501
+) -> PawControlCoordinator:
     return cast(PawControlCoordinator, _CoordStub(dog_data))
 
 
@@ -129,7 +129,7 @@ class TestProfileOptimizedSwitchFactory:
         )
         feature_switches = [
             s for s in switches if isinstance(s, PawControlFeatureSwitch)
-        ]  # noqa: E501
+        ]
         assert len(feature_switches) >= 1
 
     def test_returns_list_of_switch_instances(self) -> None:
@@ -254,11 +254,11 @@ class TestPawControlFeatureSwitch:
 
     def _make(
         self, feature_id: str = "gps_tracking", module: str = "gps"
-    ) -> PawControlFeatureSwitch:  # noqa: E501
+    ) -> PawControlFeatureSwitch:
         coord = _make_coordinator()
         return PawControlFeatureSwitch(
             coord, "rex", "Rex", feature_id, "GPS Tracking", "mdi:gps", module
-        )  # noqa: E501
+        )
 
     def test_feature_id_stored(self) -> None:
         switch = self._make()
@@ -292,7 +292,7 @@ class TestAsyncAddEntitiesInBatches:
         with patch(
             "custom_components.pawcontrol.switch.async_call_add_entities",
             new=AsyncMock(),
-        ) as mock_add:  # noqa: E501
+        ) as mock_add:
             await _async_add_entities_in_batches(callback, [])
             mock_add.assert_not_called()
 
