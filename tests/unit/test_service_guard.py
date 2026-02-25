@@ -177,6 +177,36 @@ def test_normalise_guard_history_handles_mixed_entries() -> None:
     assert history[1]["executed"] is False
 
 
+def test_normalise_guard_result_payload_filters_invalid_text_values() -> None:
+    """Normalisation should keep only non-empty string metadata values."""
+    payload = normalise_guard_result_payload({
+        "executed": 1,
+        "domain": "",
+        "service": 10,
+        "reason": None,
+        "description": "scheduled block",
+    })
+
+    assert payload == {
+        "executed": True,
+        "description": "scheduled block",
+    }
+
+
+def test_normalise_guard_history_keeps_mapping_entries_only() -> None:
+    """History normalisation should include only valid mapping payloads."""
+    history = normalise_guard_history((
+        {"executed": True, "domain": "notify"},
+        {"service": "switch.turn_on", "reason": "cooldown"},
+        12,
+    ))
+
+    assert history == [
+        {"executed": True, "domain": "notify"},
+        {"executed": False, "service": "switch.turn_on", "reason": "cooldown"},
+    ]
+
+
 @pytest.mark.parametrize("payload", ["history", b"history", bytearray(b"history"), 42])
 def test_normalise_guard_history_rejects_non_sequence_payloads(payload: object) -> None:
     """History normalisation should reject unsupported payload types."""

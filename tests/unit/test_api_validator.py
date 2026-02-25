@@ -274,3 +274,74 @@ async def test_async_test_api_health_reports_unexpected_errors(
     assert health["healthy"] is False
     assert health["status"] == "error"
     assert health["error"] == "validation exploded"
+
+
+class CapturingSession(DummySession):
+    """Session stub that records GET call arguments for assertions."""
+
+    def __init__(self, responses: Iterable[DummyResponse]) -> None:
+        super().__init__(responses)
+        self.calls: list[tuple[object, dict[str, object]]] = []
+
+    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:
+        self.calls.append((args[0] if args else None, dict(kwargs)))
+        return super().get(*args, **kwargs)
+
+
+def test_validate_endpoint_format_validates_required_parts(
+    hass: HomeAssistant,
+) -> None:
+    """Endpoint validation should require scheme and netloc."""
+    validator = APIValidator(hass, cast(ClientSession, DummySession([])))
+
+    assert validator._validate_endpoint_format("https://example.test") is True
+    assert validator._validate_endpoint_format("http://127.0.0.1:8123") is True
+    assert validator._validate_endpoint_format("example.test") is False
+    assert validator._validate_endpoint_format("https:///missing-host") is False
+
+
+@pytest.mark.asyncio
+async def test_test_endpoint_reachability_respects_ssl_override(
+    hass: HomeAssistant,
+) -> None:
+    """Reachability checks should forward the configured ssl override."""
+    session = CapturingSession([DummyResponse(200)])
+    validator = APIValidator(hass, cast(ClientSession, session), verify_ssl=False)
+
+    reachable = await validator._test_endpoint_reachability("https://example.test")
+
+    assert reachable is True
+    assert session.calls[0][0] == "https://example.test"
+    assert session.calls[0][1] == {"allow_redirects": True, "ssl": False}
+
+
+@pytest.mark.asyncio
+async def test_test_authentication_handles_non_mapping_json_payload(
+    hass: HomeAssistant,
+) -> None:
+    """Authentication should succeed even when JSON payload is not a mapping."""
+    session = CapturingSession([
+        DummyResponse(200, cast(DummyPayload, {"ignored": True})),
+    ])
+    validator = APIValidator(hass, cast(ClientSession, session), verify_ssl=False)
+
+    result = await validator._test_authentication("https://example.test", "token")
+
+    assert result == {
+        "authenticated": True,
+        "api_version": None,
+        "capabilities": None,
+    }
+    assert session.calls[0][0] == "https://example.test/auth/validate"
+    assert session.calls[0][1]["ssl"] is False
+
+
+@pytest.mark.asyncio
+async def test_async_close_keeps_shared_session_open(hass: HomeAssistant) -> None:
+    """APIValidator should never close shared Home Assistant sessions."""
+    session = DummySession([])
+    validator = APIValidator(hass, cast(ClientSession, session))
+
+    await validator.async_close()
+
+    assert session.closed is False
