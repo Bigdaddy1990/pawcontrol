@@ -12,10 +12,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.text import (
     PawControlBreederInfoText,
-    PawControlCustomLabelText,
     PawControlCurrentWalkLabelText,
+    PawControlCustomLabelText,
     PawControlDogNotesText,
     PawControlHealthNotesText,
     PawControlMicrochipText,
@@ -24,9 +25,7 @@ from custom_components.pawcontrol.text import (
     _async_add_entities_in_batches,
     _normalize_dog_configs,
 )
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.types import CoordinatorDogData
-
 
 # ---------------------------------------------------------------------------
 # Stubs
@@ -54,7 +53,9 @@ class _CoordStub:
         return []
 
 
-def _make_coordinator(dog_data: CoordinatorDogData | None = None) -> PawControlCoordinator:
+def _make_coordinator(
+    dog_data: CoordinatorDogData | None = None,
+) -> PawControlCoordinator:  # noqa: E501
     return cast(PawControlCoordinator, _CoordStub(dog_data))
 
 
@@ -206,7 +207,9 @@ class TestPawControlTextBase:
         entity = self._make_notes()
         entity.async_write_ha_state = MagicMock()
         entity._current_value = "same"
-        with patch.object(entity, "_async_persist_text_value", new=AsyncMock()) as mock_persist:
+        with patch.object(
+            entity, "_async_persist_text_value", new=AsyncMock()
+        ) as mock_persist:  # noqa: E501
             await entity.async_set_value("same")
         mock_persist.assert_not_called()
 
@@ -268,7 +271,9 @@ class TestConcreteTextEntities:
 
     def test_current_walk_label_unavailable_when_no_walk(self) -> None:
         entity = PawControlCurrentWalkLabelText(
-            _make_coordinator(cast(CoordinatorDogData, {"walk": {"walk_in_progress": False}})),
+            _make_coordinator(
+                cast(CoordinatorDogData, {"walk": {"walk_in_progress": False}})
+            ),  # noqa: E501
             "rex",
             "Rex",
         )
@@ -276,7 +281,9 @@ class TestConcreteTextEntities:
 
     def test_current_walk_label_available_during_walk(self) -> None:
         entity = PawControlCurrentWalkLabelText(
-            _make_coordinator(cast(CoordinatorDogData, {"walk": {"walk_in_progress": True}})),
+            _make_coordinator(
+                cast(CoordinatorDogData, {"walk": {"walk_in_progress": True}})
+            ),  # noqa: E501
             "rex",
             "Rex",
         )

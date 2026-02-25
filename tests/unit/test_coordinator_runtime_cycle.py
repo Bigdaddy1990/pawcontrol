@@ -20,7 +20,6 @@ from custom_components.pawcontrol.coordinator_runtime import (
 )
 from custom_components.pawcontrol.exceptions import UpdateFailed
 
-
 # ---------------------------------------------------------------------------
 # EntityBudgetSnapshot
 # ---------------------------------------------------------------------------
@@ -220,7 +219,9 @@ class TestCoordinatorRuntimeExecuteCycle:
         fetch_result: object = None,
         fetch_error: type[Exception] | None = None,
     ) -> CoordinatorRuntime:
-        from custom_components.pawcontrol.coordinator_runtime import AdaptivePollingController
+        from custom_components.pawcontrol.coordinator_runtime import (
+            AdaptivePollingController,
+        )
         from custom_components.pawcontrol.coordinator_support import (
             CoordinatorMetrics,
             DogConfigRegistry,
@@ -294,7 +295,9 @@ class TestCoordinatorRuntimeExecuteCycle:
     @pytest.mark.asyncio
     async def test_cycle_info_success_flag_true_on_no_errors(self) -> None:
         runtime = self._make_runtime()
-        _data, info = await runtime.execute_cycle(["rex"], {}, empty_payload_factory=dict)
+        _data, info = await runtime.execute_cycle(
+            ["rex"], {}, empty_payload_factory=dict
+        )  # noqa: E501
         assert info.success is True
 
     @pytest.mark.asyncio

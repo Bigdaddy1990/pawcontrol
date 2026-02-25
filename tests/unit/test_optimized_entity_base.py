@@ -23,8 +23,8 @@ from custom_components.pawcontrol.optimized_entity_base import (
     PerformanceTracker,
     _call_coordinator_method,
     _coordinator_is_available,
-    _normalize_cache_timestamp,
     _normalise_attributes,
+    _normalize_cache_timestamp,
 )
 
 pytestmark = pytest.mark.unit
@@ -148,7 +148,7 @@ def test_call_coordinator_method_handles_type_error() -> None:
     """Returns None if the method raises TypeError on call."""
 
     class _Coord:
-        def bad(self, required_arg: str) -> str:  # noqa: ARG002
+        def bad(self, required_arg: str) -> str:
             return required_arg
 
     # Calling without the required arg should trigger TypeError → None

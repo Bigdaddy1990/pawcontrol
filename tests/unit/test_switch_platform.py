@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.switch import (
     OptimizedSwitchBase,
     PawControlDoNotDisturbSwitch,
@@ -21,12 +22,7 @@ from custom_components.pawcontrol.switch import (
     ProfileOptimizedSwitchFactory,
     _async_add_entities_in_batches,
 )
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.types import (
-    CoordinatorDogData,
-    DogModulesConfig,
-)
-
+from custom_components.pawcontrol.types import CoordinatorDogData, DogModulesConfig
 
 # ---------------------------------------------------------------------------
 # Stubs
@@ -54,7 +50,9 @@ class _CoordStub:
         return []
 
 
-def _make_coordinator(dog_data: CoordinatorDogData | None = None) -> PawControlCoordinator:
+def _make_coordinator(
+    dog_data: CoordinatorDogData | None = None,
+) -> PawControlCoordinator:  # noqa: E501
     return cast(PawControlCoordinator, _CoordStub(dog_data))
 
 
@@ -103,9 +101,15 @@ class TestProfileOptimizedSwitchFactory:
     def test_visitor_switch_created_when_no_modules_enabled(self) -> None:
         coord = _make_coordinator()
         empty_modules: DogModulesConfig = {
-            "feeding": False, "walk": False, "gps": False, "health": False,
-            "notifications": False, "grooming": False, "medication": False,
-            "training": False, "visitor": False,
+            "feeding": False,
+            "walk": False,
+            "gps": False,
+            "health": False,
+            "notifications": False,
+            "grooming": False,
+            "medication": False,
+            "training": False,
+            "visitor": False,
         }
         switches = ProfileOptimizedSwitchFactory.create_switches_for_dog(
             coord, "rex", "Rex", empty_modules
@@ -125,7 +129,9 @@ class TestProfileOptimizedSwitchFactory:
         switches = ProfileOptimizedSwitchFactory.create_switches_for_dog(
             coord, "rex", "Rex", _full_modules()
         )
-        feature_switches = [s for s in switches if isinstance(s, PawControlFeatureSwitch)]
+        feature_switches = [
+            s for s in switches if isinstance(s, PawControlFeatureSwitch)
+        ]  # noqa: E501
         assert len(feature_switches) >= 1
 
     def test_returns_list_of_switch_instances(self) -> None:
@@ -248,9 +254,13 @@ class TestPawControlDoNotDisturbSwitch:
 class TestPawControlFeatureSwitch:
     """Tests for PawControlFeatureSwitch."""
 
-    def _make(self, feature_id: str = "gps_tracking", module: str = "gps") -> PawControlFeatureSwitch:
+    def _make(
+        self, feature_id: str = "gps_tracking", module: str = "gps"
+    ) -> PawControlFeatureSwitch:  # noqa: E501
         coord = _make_coordinator()
-        return PawControlFeatureSwitch(coord, "rex", "Rex", feature_id, "GPS Tracking", "mdi:gps", module)
+        return PawControlFeatureSwitch(
+            coord, "rex", "Rex", feature_id, "GPS Tracking", "mdi:gps", module
+        )  # noqa: E501
 
     def test_feature_id_stored(self) -> None:
         switch = self._make()
@@ -280,7 +290,11 @@ class TestAsyncAddEntitiesInBatches:
         callback = AsyncMock()
         # Patch async_call_add_entities to avoid import complexity
         from unittest.mock import patch
-        with patch("custom_components.pawcontrol.switch.async_call_add_entities", new=AsyncMock()) as mock_add:
+
+        with patch(
+            "custom_components.pawcontrol.switch.async_call_add_entities",
+            new=AsyncMock(),
+        ) as mock_add:  # noqa: E501
             await _async_add_entities_in_batches(callback, [])
             mock_add.assert_not_called()
 
@@ -288,8 +302,7 @@ class TestAsyncAddEntitiesInBatches:
     async def test_single_batch_when_few_entities(self) -> None:
         coord = _make_coordinator()
         entities = [
-            PawControlDoNotDisturbSwitch(coord, f"dog{i}", f"Dog{i}")
-            for i in range(3)
+            PawControlDoNotDisturbSwitch(coord, f"dog{i}", f"Dog{i}") for i in range(3)
         ]
         call_count = 0
 
@@ -297,7 +310,7 @@ class TestAsyncAddEntitiesInBatches:
             nonlocal call_count
             call_count += 1
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             # Will fail because async_call_add_entities is being mocked
             pass
 
@@ -309,8 +322,7 @@ class TestAsyncAddEntitiesInBatches:
         """Verify the batch logic splits at the right boundaries."""
         coord = _make_coordinator()
         entities = [
-            PawControlDoNotDisturbSwitch(coord, f"dog{i}", f"Dog{i}")
-            for i in range(20)
+            PawControlDoNotDisturbSwitch(coord, f"dog{i}", f"Dog{i}") for i in range(20)
         ]
         batches_added: list[int] = []
 
@@ -318,11 +330,14 @@ class TestAsyncAddEntitiesInBatches:
             batches_added.append(len(entities_arg))
 
         from unittest.mock import patch
+
         with patch(
             "custom_components.pawcontrol.switch.async_call_add_entities",
             side_effect=fake_callback,
         ):
-            await _async_add_entities_in_batches(fake_callback, entities, batch_size=15, delay_between_batches=0)
+            await _async_add_entities_in_batches(
+                fake_callback, entities, batch_size=15, delay_between_batches=0
+            )  # noqa: E501
 
         # The patch replaces async_call_add_entities so batches_added won't fill
         # through fake_callback; instead just verify entities were prepared

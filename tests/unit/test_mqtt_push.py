@@ -17,7 +17,6 @@ from custom_components.pawcontrol.mqtt_push import (
     async_unregister_entry_mqtt,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers / stubs
 # ---------------------------------------------------------------------------
@@ -139,7 +138,9 @@ class TestAsyncRegisterEntryMqtt:
     @pytest.mark.asyncio
     async def test_does_nothing_when_no_dog_expects_mqtt(self) -> None:
         hass = _make_hass()
-        entry = _make_entry(mqtt_enabled=True, dogs=[{"gps_config": {"gps_source": "device_tracker"}}])
+        entry = _make_entry(
+            mqtt_enabled=True, dogs=[{"gps_config": {"gps_source": "device_tracker"}}]
+        )  # noqa: E501
         await async_register_entry_mqtt(hass, entry)
         assert "_mqtt_push" not in hass.data.get("pawcontrol", {})
 
@@ -150,10 +151,13 @@ class TestAsyncRegisterEntryMqtt:
             mqtt_enabled=True,
             dogs=[{"gps_config": {"gps_source": "mqtt"}}],
         )
-        with patch(
-            "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
-            new=AsyncMock(),
-        ), patch.dict("sys.modules", {"homeassistant.components.mqtt": None}):
+        with (
+            patch(
+                "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
+                new=AsyncMock(),
+            ),
+            patch.dict("sys.modules", {"homeassistant.components.mqtt": None}),
+        ):
             # ImportError path — no subscription stored
             await async_register_entry_mqtt(hass, entry)
 
@@ -178,18 +182,27 @@ class TestAsyncRegisterEntryMqtt:
             patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
         ):
             import importlib
+
             import custom_components.pawcontrol.mqtt_push as mod
-            original_import = __builtins__.__import__ if isinstance(__builtins__, dict) else None  # noqa: F841
+
+            original_import = (
+                __builtins__.__import__ if isinstance(__builtins__, dict) else None
+            )  # noqa: E501, F841
 
             # Directly call with mock that patches the internal import
             async def _mock_register(hass_, entry_):
                 enabled = bool(entry_.options.get("mqtt_enabled", True))
                 if not enabled:
                     return
-                from custom_components.pawcontrol.mqtt_push import _any_dog_expects_mqtt as _adm
+                from custom_components.pawcontrol.mqtt_push import (
+                    _any_dog_expects_mqtt as _adm,
+                )
+
                 if not _adm(entry_):
                     return
-                hass_.data.setdefault("pawcontrol", {})["_mqtt_push"] = {entry_.entry_id: mock_unsub}
+                hass_.data.setdefault("pawcontrol", {})["_mqtt_push"] = {
+                    entry_.entry_id: mock_unsub
+                }  # noqa: E501
 
             await _mock_register(hass, entry)
 
@@ -229,6 +242,7 @@ class TestAsyncRegisterEntryMqtt:
 
         if called_topics:
             from custom_components.pawcontrol.const import DEFAULT_MQTT_TOPIC
+
             assert called_topics[0] == DEFAULT_MQTT_TOPIC
 
 
