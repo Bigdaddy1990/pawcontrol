@@ -15,6 +15,8 @@ from custom_components.pawcontrol.config_flow_modules import (
     _coerce_dashboard_configuration,
     _coerce_feeding_configuration,
     _coerce_module_global_settings,
+    translated_dashboard_feature,
+    translated_dashboard_setup,
 )
 from custom_components.pawcontrol.const import (
     MODULE_DASHBOARD,
@@ -158,6 +160,16 @@ def test_build_dashboard_and_feeding_placeholders() -> None:
         "features": "status_cards, quick_actions",
     }
     assert feeding == {"dog_count": 1, "feeding_summary": "Doggo"}
+
+
+def test_dashboard_translation_helpers_fallback_to_keys() -> None:
+    """Unknown translation keys should return formatted/raw fallback values."""
+    assert (
+        translated_dashboard_setup("en", "{name}-fallback", name="module")
+        == "module-fallback"
+    )
+    assert translated_dashboard_setup("en", "literal-key") == "literal-key"
+    assert translated_dashboard_feature("de", "unknown-feature") == "unknown-feature"
 
 
 def test_gps_config_schema_accepts_payload() -> None:
@@ -398,6 +410,47 @@ async def test_async_step_configure_modules_routes_to_dashboard_form() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_step_configure_modules_handles_empty_and_gps_paths() -> None:
+    """Module step should short-circuit empty configs and GPS-enabled configs."""
+    no_dogs_flow = _ModuleFlowHarness(dogs=[])
+
+    empty_result = await no_dogs_flow.async_step_configure_modules(
+        cast(ModuleConfigurationStepInput, {})
+    )
+
+    assert empty_result["type"] == "create_entry"
+    assert no_dogs_flow.transitions[-1] == "final_setup"
+
+    gps_flow = _ModuleFlowHarness(
+        dogs=[
+            cast(
+                DogConfigData,
+                {
+                    "dog_id": "dog-1",
+                    "dog_name": "Tracker",
+                    "modules": cast(
+                        DogModulesConfig,
+                        {
+                            MODULE_DASHBOARD: False,
+                            MODULE_FEEDING: False,
+                            MODULE_GPS: True,
+                            MODULE_HEALTH: False,
+                        },
+                    ),
+                },
+            )
+        ]
+    )
+
+    gps_result = await gps_flow.async_step_configure_modules(
+        cast(ModuleConfigurationStepInput, {})
+    )
+
+    assert gps_result["step_id"] == "configure_external_entities"
+    assert gps_flow.transitions[-1] == "external_entities"
+
+
+@pytest.mark.asyncio
 async def test_async_step_configure_dashboard_handles_payload() -> None:
     """Dashboard step exposes localized placeholders and persists settings."""
     dogs = [
@@ -487,6 +540,38 @@ async def test_async_step_configure_dashboard_handles_payload() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_step_configure_dashboard_without_gps_goes_to_final_setup() -> None:
+    """Dashboard payload should go straight to final setup when GPS is disabled."""
+    flow = _ModuleFlowHarness(
+        dogs=[
+            cast(
+                DogConfigData,
+                {
+                    "dog_id": "dog-1",
+                    "dog_name": "Buddy",
+                    "modules": cast(
+                        DogModulesConfig,
+                        {
+                            MODULE_DASHBOARD: True,
+                            MODULE_GPS: False,
+                            MODULE_HEALTH: False,
+                            MODULE_FEEDING: False,
+                        },
+                    ),
+                },
+            )
+        ]
+    )
+
+    result = await flow.async_step_configure_dashboard(
+        cast(DashboardConfigurationStepInput, {"auto_create_dashboard": True})
+    )
+
+    assert result["type"] == "create_entry"
+    assert flow.transitions[-1] == "final_setup"
+
+
+@pytest.mark.asyncio
 async def test_async_step_configure_feeding_details_roundtrip() -> None:
     """Feeding configuration captures typed payloads and reaches final step."""
     dogs = [
@@ -550,3 +635,158 @@ async def test_async_step_configure_feeding_details_roundtrip() -> None:
         "feeding_reminders": False,
         "portion_tolerance": 15,
     }
+
+
+@pytest.mark.asyncio
+async def test_async_step_configure_feeding_details_routes_to_gps_when_enabled() -> (
+    None
+):
+    """Feeding detail submission should route to GPS step when required."""
+    flow = _ModuleFlowHarness(
+        dogs=[
+            cast(
+                DogConfigData,
+                {
+                    "dog_id": "dog-1",
+                    "dog_name": "Buddy",
+                    "modules": cast(
+                        DogModulesConfig,
+                        {
+                            MODULE_DASHBOARD: False,
+                            MODULE_FEEDING: True,
+                            MODULE_GPS: True,
+                            MODULE_HEALTH: False,
+                        },
+                    ),
+                },
+            )
+        ]
+    )
+
+    result = await flow.async_step_configure_feeding_details(
+        cast(FeedingConfigurationStepInput, {"daily_food_amount": 420.0})
+    )
+
+    assert result["step_id"] == "configure_external_entities"
+    assert flow.transitions[-1] == "external_entities"
+
+
+def test_module_mixin_helper_branches() -> None:
+    """Coverage for performance suggestions and dashboard info branches."""
+    empty_flow = _ModuleFlowHarness(dogs=[])
+    assert (
+        empty_flow._suggest_performance_mode(
+            cast(
+                ModuleConfigurationSummary,
+                {
+                    "gps_dogs": 0,
+                    "health_dogs": 0,
+                    "feeding_dogs": 0,
+                    "counts": {"gps": 0, "health": 0, "feeding": 0},
+                    "total": 0,
+                    "description": "none",
+                },
+            )
+        )
+        == "minimal"
+    )
+    assert empty_flow._get_dashboard_setup_info() == (
+        "Basic dashboard with core monitoring features"
+    )
+
+    heavy_flow = _ModuleFlowHarness(
+        dogs=[
+            cast(
+                DogConfigData,
+                {
+                    "dog_name": "A",
+                    "modules": cast(
+                        DogModulesConfig,
+                        {
+                            MODULE_GPS: True,
+                            MODULE_HEALTH: True,
+                            MODULE_FEEDING: True,
+                            MODULE_DASHBOARD: True,
+                        },
+                    ),
+                },
+            ),
+            cast(
+                DogConfigData,
+                {
+                    "dog_name": "B",
+                    "modules": cast(
+                        DogModulesConfig,
+                        {
+                            MODULE_GPS: True,
+                            MODULE_HEALTH: True,
+                            MODULE_FEEDING: True,
+                            MODULE_DASHBOARD: True,
+                        },
+                    ),
+                },
+            ),
+            cast(
+                DogConfigData,
+                {
+                    "dog_name": "C",
+                    "modules": cast(
+                        DogModulesConfig,
+                        {
+                            MODULE_GPS: True,
+                            MODULE_HEALTH: True,
+                            MODULE_FEEDING: True,
+                            MODULE_DASHBOARD: True,
+                        },
+                    ),
+                },
+            ),
+        ]
+    )
+    summary = heavy_flow._analyze_configured_modules()
+    assert heavy_flow._suggest_performance_mode(summary) == "full"
+
+    standard_flow = _ModuleFlowHarness(
+        dogs=[
+            cast(
+                DogConfigData,
+                {
+                    "dog_name": "Solo",
+                    "modules": cast(
+                        DogModulesConfig,
+                        {
+                            MODULE_GPS: False,
+                            MODULE_HEALTH: False,
+                            MODULE_FEEDING: False,
+                            MODULE_DASHBOARD: True,
+                        },
+                    ),
+                },
+            )
+        ]
+    )
+    assert standard_flow._get_dashboard_setup_info() == (
+        "Standard dashboard with monitoring features"
+    )
+
+    balanced_flow = _ModuleFlowHarness(
+        dogs=[
+            cast(
+                DogConfigData,
+                {
+                    "dog_name": "Geo",
+                    "modules": cast(
+                        DogModulesConfig,
+                        {
+                            MODULE_GPS: True,
+                            MODULE_HEALTH: False,
+                            MODULE_FEEDING: False,
+                            MODULE_DASHBOARD: True,
+                        },
+                    ),
+                },
+            )
+        ]
+    )
+    balanced_summary = balanced_flow._analyze_configured_modules()
+    assert balanced_flow._suggest_performance_mode(balanced_summary) == "balanced"
