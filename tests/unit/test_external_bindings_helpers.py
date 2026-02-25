@@ -367,3 +367,136 @@ async def test_async_setup_external_bindings_cancels_previous_pending_task(
 
     blocker.set()
     await second_task
+
+
+@pytest.mark.asyncio
+async def test_async_setup_external_bindings_handles_guard_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup should short-circuit for missing managers and malformed dog payloads."""
+    hass = SimpleNamespace(data={}, async_create_task=asyncio.create_task)
+    entry = SimpleNamespace(entry_id="entry-id", data={"dogs": "invalid"})
+
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(gps_geofence_manager=None),
+        gps_geofence_manager=None,
+    )
+    monkeypatch.setattr(
+        external_bindings,
+        "require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+
+    await external_bindings.async_setup_external_bindings(hass, entry)
+    assert DOMAIN not in hass.data
+
+    runtime_data.gps_geofence_manager = SimpleNamespace()
+    hass.data = {DOMAIN: {external_bindings._STORE_KEY: {"entry-id": "invalid"}}}
+    await external_bindings.async_setup_external_bindings(hass, entry)
+    assert isinstance(hass.data[DOMAIN][external_bindings._STORE_KEY]["entry-id"], dict)
+
+
+@pytest.mark.asyncio
+async def test_async_setup_external_bindings_covers_event_and_duplicate_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Listener callbacks should ignore malformed events and duplicate dog bindings."""
+
+    class _GPSManager:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_get_current_location(self, _dog_id: str) -> Any:
+            self.calls += 1
+            raise RuntimeError("boom")
+
+        async def async_add_gps_point(self, **_kwargs: Any) -> bool:
+            return False
+
+    gps_manager = _GPSManager()
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(
+            gps_geofence_manager=gps_manager,
+            async_patch_gps_update=lambda _dog_id: None,
+        ),
+        gps_geofence_manager=gps_manager,
+    )
+    monkeypatch.setattr(
+        external_bindings,
+        "require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+
+    async def _no_sleep(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(external_bindings.asyncio, "sleep", _no_sleep)
+
+    callbacks: list[Any] = []
+    monkeypatch.setattr(
+        external_bindings.event_helper,
+        "async_track_state_change_event",
+        lambda _hass, _entities, callback: callbacks.append(callback) or (lambda: None),
+    )
+
+    hass = SimpleNamespace(data={}, async_create_task=asyncio.create_task)
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={
+            "dogs": [
+                "bad-item",
+                {"dog_id": "", "gps_config": {"gps_source": "device_tracker.a"}},
+                {"dog_id": "fido", "gps_config": {}},
+                {"dog_id": "fido", "gps_config": {"gps_source": "device_tracker.fido"}},
+                {"dog_id": "fido", "gps_config": {"gps_source": "device_tracker.fido"}},
+            ]
+        },
+    )
+
+    await external_bindings.async_setup_external_bindings(hass, entry)
+    assert len(callbacks) == 1
+
+    callback = callbacks[0]
+    callback(SimpleNamespace(data={"new_state": None}))
+    binding = hass.data[DOMAIN][external_bindings._STORE_KEY]["entry-id"]["fido"]
+    assert binding.task is not None
+    await binding.task
+
+    callback(SimpleNamespace(data={"new_state": SimpleNamespace(attributes={})}))
+    await binding.task
+
+    callback(
+        SimpleNamespace(
+            data={
+                "new_state": SimpleNamespace(
+                    attributes={"latitude": 50.0, "longitude": 8.0}
+                )
+            }
+        )
+    )
+    await binding.task
+    assert gps_manager.calls == 1
+
+    # Binding removed after setup: callback should return without creating a task.
+    del hass.data[DOMAIN][external_bindings._STORE_KEY]["entry-id"]["fido"]
+    callback(
+        SimpleNamespace(
+            data={
+                "new_state": SimpleNamespace(
+                    attributes={"latitude": 50.0, "longitude": 8.0}
+                )
+            }
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_unload_external_bindings_handles_non_dict_structures() -> None:
+    """Unload should tolerate malformed storage structures without raising errors."""
+    hass = SimpleNamespace(data={DOMAIN: {external_bindings._STORE_KEY: []}})
+    entry = SimpleNamespace(entry_id="entry-id")
+
+    await external_bindings.async_unload_external_bindings(hass, entry)
+
+    hass.data[DOMAIN][external_bindings._STORE_KEY] = {"entry-id": "invalid"}
+    await external_bindings.async_unload_external_bindings(hass, entry)
