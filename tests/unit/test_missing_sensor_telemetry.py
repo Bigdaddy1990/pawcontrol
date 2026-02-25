@@ -72,6 +72,16 @@ def test_calculate_activity_level_prefers_health_snapshot() -> None:
     assert calculate_activity_level(None, None) == "unknown"
 
 
+def test_calculate_activity_level_handles_invalid_payloads() -> None:
+    """Invalid payload values should return unknown instead of raising."""
+    walk_data = _walk_payload({"walks_today": "not-a-number"})
+    assert calculate_activity_level(walk_data, None) == "unknown"
+
+    # Unknown health strings should not break the calculated baseline.
+    health_data = _health_payload({"activity_level": "unexpected"})
+    assert calculate_activity_level(_walk_payload(), health_data) == "high"
+
+
 def test_calculate_calories_burned_today_applies_multiplier() -> None:
     walk_data = _walk_payload({
         "total_distance_today": 2000.0,
@@ -79,6 +89,14 @@ def test_calculate_calories_burned_today_applies_multiplier() -> None:
     })
     health_data = _health_payload({"activity_level": "high"})
     assert calculate_calories_burned_today(walk_data, 30.0, health_data) == 1800.0
+
+
+def test_calculate_calories_burned_today_handles_invalid_numeric_input() -> None:
+    """Invalid telemetry should be coerced to a safe 0.0 response."""
+    walk_data = _walk_payload({"total_duration_today": "broken"})
+    assert calculate_calories_burned_today(walk_data, 25.0, None) == 0.0
+
+    assert calculate_calories_burned_today(None, 25.0, None) == 0.0
 
 
 def test_calculate_hours_since_uses_reference_timestamp() -> None:
@@ -94,3 +112,25 @@ def test_derive_next_feeding_time_respects_schedule() -> None:
     assert derive_next_feeding_time(feeding_data) == "16:00"
     invalid_data = _feeding_payload({"config": {"meals_per_day": 0}})
     assert derive_next_feeding_time(invalid_data) is None
+
+
+def test_derive_next_feeding_time_handles_missing_or_invalid_fields() -> None:
+    """Scheduling helper should short-circuit on malformed input payloads."""
+    assert derive_next_feeding_time(None) is None
+    assert derive_next_feeding_time(_feeding_payload()) is None
+    assert derive_next_feeding_time(_feeding_payload({"config": {}})) is None
+    assert (
+        derive_next_feeding_time(_feeding_payload({"config": {"meals_per_day": "x"}}))
+        is None
+    )
+    assert (
+        derive_next_feeding_time(
+            _feeding_payload(
+                {
+                    "config": {"meals_per_day": 2},
+                    "last_feeding": "not-a-datetime",
+                }
+            )
+        )
+        is None
+    )
