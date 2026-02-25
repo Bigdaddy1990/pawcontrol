@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from typing import Any
 
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.exceptions import FlowValidationError
 from custom_components.pawcontrol.options_flow_import_export import (
     ImportExportOptionsMixin,
 )
@@ -75,6 +77,77 @@ async def test_import_export_menu_rejects_unknown_action() -> None:
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "import_export"
     assert result["errors"] == {"action": "invalid_action"}
+
+
+async def test_import_export_menu_displays_selection_form() -> None:
+    """The selector form should render before the user chooses an action."""
+    flow = _ImportExportFlow()
+
+    result = await flow.async_step_import_export()
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "import_export"
+    schema_dict = result["data_schema"].schema
+    assert "action" in [key.schema for key in schema_dict]
+    placeholders = result["description_placeholders"]
+    assert "Create a JSON backup" in placeholders["instructions"]
+
+
+async def test_import_export_menu_routes_to_export_and_import() -> None:
+    """The selector action should dispatch to the requested step."""
+    flow = _ImportExportFlow()
+
+    export_result = await flow.async_step_import_export({"action": "export"})
+    import_result = await flow.async_step_import_export({"action": "import"})
+
+    assert export_result["step_id"] == "import_export_export"
+    assert import_result["step_id"] == "import_export_import"
+
+
+async def test_import_export_export_step_displays_payload_and_returns_to_init() -> None:
+    """The export step should expose the payload and return to init on submit."""
+    flow = _ImportExportFlow()
+
+    result = await flow.async_step_import_export_export()
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "import_export_export"
+    placeholders = result["description_placeholders"]
+    parsed_blob = json.loads(placeholders["export_blob"])
+    assert parsed_blob == flow._build_export_payload()
+    assert placeholders["generated_at"] == "2026-01-01T00:00:00+00:00"
+
+    submitted = await flow.async_step_import_export_export({"ignored": True})
+    assert submitted["type"] == FlowResultType.MENU
+    assert submitted["step_id"] == "init"
+
+
+async def test_import_payload_validation_errors_are_surfaced() -> None:
+    """Import validation failures should map to per-field flow errors."""
+
+    class _FailingValidationFlow(_ImportExportFlow):
+        def _validate_import_payload(self, payload: object) -> dict[str, Any]:
+            raise FlowValidationError(field_errors={"payload": "invalid_payload"})
+
+    flow = _FailingValidationFlow()
+
+    result = await flow.async_step_import_export_import(
+        {"payload": '{"options": {"threshold": 3}}'}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"payload": "invalid_payload"}
+
+
+async def test_import_payload_handles_blank_and_invalid_json() -> None:
+    """Blank and invalid JSON payloads should produce dedicated error keys."""
+    flow = _ImportExportFlow()
+
+    blank = await flow.async_step_import_export_import({"payload": "   "})
+    invalid = await flow.async_step_import_export_import({"payload": "{"})
+
+    assert blank["errors"] == {"payload": "invalid_payload"}
+    assert invalid["errors"] == {"payload": "invalid_json"}
 
 
 async def test_import_payload_updates_entry_and_creates_options_entry(
