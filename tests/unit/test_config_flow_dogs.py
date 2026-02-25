@@ -5,6 +5,7 @@ from types import MappingProxyType
 import pytest
 
 from custom_components.pawcontrol.config_flow_dogs import (
+    _coerce_bool,
     _build_add_another_summary_placeholders,
     _build_add_dog_placeholders,
     _build_dog_feeding_placeholders,
@@ -22,6 +23,31 @@ from custom_components.pawcontrol.flow_steps.gps_helpers import (
 from custom_components.pawcontrol.flow_steps.health_helpers import (
     build_dog_health_placeholders,
 )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("value", "default", "expected"),
+    [
+        (True, False, True),
+        (False, True, False),
+        (" YES ", False, True),
+        ("off", True, False),
+        ("not-a-bool", True, True),
+        (1, False, True),
+        (0, True, False),
+        (1.5, False, True),
+        (None, True, True),
+        (object(), False, False),
+    ],
+)
+def test_coerce_bool_supports_strings_numbers_and_defaults(
+    value: object,
+    default: bool,
+    expected: bool,
+) -> None:
+    """Boolean coercion should accept known literals and fallback to defaults."""
+    assert _coerce_bool(value, default=default) is expected
 
 
 @pytest.mark.unit

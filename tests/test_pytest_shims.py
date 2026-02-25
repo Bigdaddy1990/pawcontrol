@@ -6,6 +6,7 @@ change behaviour.
 """
 
 import asyncio
+import builtins
 from collections.abc import Generator
 import importlib
 from pathlib import Path
@@ -100,6 +101,29 @@ def test_pytest_cov_plugin_registers_options() -> None:
         "--cov-fail-under",
         "--no-cov-on-fail",
     } <= option_names
+
+
+def test_pytest_cov_imports_without_coverage_dependency(tmp_path: Path) -> None:
+    real_import = builtins.__import__
+
+    def _blocked_import(name: str, *args: object, **kwargs: object):
+        if name == "coverage" or name.startswith("coverage."):
+            raise ModuleNotFoundError("No module named 'coverage'")
+        return real_import(name, *args, **kwargs)
+
+    with patch("builtins.__import__", side_effect=_blocked_import):
+        pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    assert pytest_cov_plugin._COVERAGE_AVAILABLE is False
+
+    xml_path = tmp_path / "cov.xml"
+    option = SimpleNamespace(cov=[], cov_branch=False, cov_report=[f"xml:{xml_path}"])
+    session = _DummySession(option)
+
+    pytest_cov_plugin.pytest_sessionstart(session)
+    pytest_cov_plugin.pytest_sessionfinish(session, 0)
+
+    assert xml_path.exists()
 
 
 def test_pytest_cov_source_aliases_include_dotted_packages() -> None:
