@@ -187,6 +187,46 @@ class TestCalorieCalculations:
 
         assert abs(calories - expected) < 50
 
+    async def test_calculate_daily_calories_invalid_activity_defaults_to_moderate(
+        self,
+        mock_dog_config: FeedingManagerDogSetupPayload,
+        mock_hass: object,
+    ) -> None:
+        """Invalid activity values should fall back to moderate multiplier."""
+        manager = FeedingManager(mock_hass)
+
+        config = typed_deepcopy(mock_dog_config)
+        config["activity_level"] = "extreme"
+
+        await manager.async_initialize([config])
+
+        calories = manager.calculate_daily_calories("test_dog")
+
+        # Invalid enum values use ActivityLevel.MODERATE (=1.6).
+        assert 1150 < calories < 1250
+
+    async def test_calculate_rer_rejects_non_positive_or_non_numeric_weight(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """RER helper should validate numeric positive weights."""
+        with pytest.raises(ValueError, match="number"):
+            mock_feeding_manager._calculate_rer("heavy")
+
+        with pytest.raises(ValueError, match="greater than zero"):
+            mock_feeding_manager._calculate_rer(0.0)
+
+        with pytest.raises(ValueError, match="greater than zero"):
+            mock_feeding_manager._calculate_rer(-1.0)
+
+    async def test_calculate_rer_without_adjustment_uses_full_weight(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Disabling adjustment should produce higher RER for larger dogs."""
+        adjusted = mock_feeding_manager._calculate_rer(30.0)
+        unadjusted = mock_feeding_manager._calculate_rer(30.0, adjusted=False)
+
+        assert unadjusted > adjusted
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -740,6 +780,112 @@ class TestDataRetrieval:
         assert stats["meals_today"] == 1
         assert stats["total_fed_today"] == 200.0
         assert isinstance(stats["remaining_calories"], (float, type(None)))
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestFeedingManagerHelperMethods:
+    """Direct coverage for deterministic helper behaviour."""
+
+    async def test_parse_time_accepts_string_and_time_instance(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Time parser should accept canonical strings and ``time`` objects."""
+        parsed_hhmm = mock_feeding_manager._parse_time("08:30")
+        parsed_hhmmss = mock_feeding_manager._parse_time("08:30:45")
+        from_datetime = (
+            datetime(2026, 1, 1, 12, 15, 5, tzinfo=UTC).timetz().replace(tzinfo=None)
+        )
+        parsed_direct = mock_feeding_manager._parse_time(from_datetime)
+
+        assert parsed_hhmm is not None
+        assert (parsed_hhmm.hour, parsed_hhmm.minute, parsed_hhmm.second) == (8, 30, 0)
+        assert parsed_hhmmss is not None
+        assert (parsed_hhmmss.hour, parsed_hhmmss.minute, parsed_hhmmss.second) == (
+            8,
+            30,
+            45,
+        )
+        assert parsed_direct == from_datetime
+
+    async def test_parse_time_rejects_invalid_payloads(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Parser should gracefully reject malformed strings and non-strings."""
+        assert mock_feeding_manager._parse_time("invalid") is None
+        assert mock_feeding_manager._parse_time("09") is None
+        assert mock_feeding_manager._parse_time(cast(object, 123)) is None
+
+    async def test_normalize_special_diet_variants(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Special-diet normalization should preserve valid string entries only."""
+        assert mock_feeding_manager._normalize_special_diet(None) == []
+        assert mock_feeding_manager._normalize_special_diet(
+            "  renal , diabetic ,, "
+        ) == ["renal , diabetic ,,"]
+        assert mock_feeding_manager._normalize_special_diet([
+            " hypoallergenic ",
+            "",
+            None,
+            "renal",
+        ]) == ["hypoallergenic", "renal"]
+        assert mock_feeding_manager._normalize_special_diet(42) == []
+
+    async def test_parse_time_handles_value_error_path(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Non-numeric clock segments should trigger ValueError handling."""
+        assert mock_feeding_manager._parse_time("aa:30") is None
+
+    async def test_initialize_parses_schedule_and_snack_inputs(
+        self,
+        mock_dog_config: FeedingManagerDogSetupPayload,
+        mock_hass: object,
+    ) -> None:
+        """Initialization should parse meal config and ignore invalid snack entries."""
+        manager = FeedingManager(mock_hass)
+
+        config = typed_deepcopy(mock_dog_config)
+        feeding_config = _mutable_feeding_config(config)
+        feeding_config.update({
+            "breakfast_time": "07:30",
+            "dinner_time": "18:15:30",
+            "portion_size": "123.4",
+            "enable_reminders": "yes",  # invalid -> default True
+            "reminder_minutes_before": "20",
+            "snack_times": ["11:00", "invalid", 123],
+        })
+
+        await manager.async_initialize([config])
+
+        schedules = manager._configs["test_dog"].meal_schedules
+        assert len(schedules) == 3
+        assert schedules[0].meal_type.value == "breakfast"
+        assert schedules[0].portion_size == 123.4
+        assert schedules[0].reminder_enabled is True
+        assert schedules[0].reminder_minutes_before == 20
+        assert schedules[1].meal_type.value == "dinner"
+        assert schedules[1].scheduled_time.second == 30
+        assert schedules[2].meal_type.value == "snack"
+
+    async def test_calculate_daily_calories_missing_weight_raises(
+        self,
+        mock_dog_config: FeedingManagerDogSetupPayload,
+        mock_hass: object,
+    ) -> None:
+        """Missing weight in both dog data and config should raise ValueError."""
+        manager = FeedingManager(mock_hass)
+
+        config = typed_deepcopy(mock_dog_config)
+
+        await manager.async_initialize([config])
+
+        manager._dogs["test_dog"]["weight"] = None
+        manager._configs["test_dog"].dog_weight = None
+
+        with pytest.raises(ValueError, match="Dog weight is required"):
+            manager.calculate_daily_calories("test_dog")
 
 
 @pytest.mark.unit
