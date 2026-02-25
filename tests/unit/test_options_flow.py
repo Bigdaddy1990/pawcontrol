@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 
+from custom_components.pawcontrol import options_flow_main
 from custom_components.pawcontrol.const import (
     CONF_API_ENDPOINT,
     CONF_API_TOKEN,
@@ -265,6 +266,121 @@ def test_ensure_notification_options_normalises_values() -> None:
     assert options[NOTIFICATION_REMINDER_REPEAT_FIELD] == 45
     assert options[NOTIFICATION_PRIORITY_FIELD] is True
     assert options[NOTIFICATION_MOBILE_FIELD] is False
+
+
+def test_setup_flag_language_resolution_defaults_to_english(tmp_path: Any) -> None:
+    """Language detection should fall back to English when no files exist."""
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    strings_path = tmp_path / "strings.json"
+
+    languages = options_flow_main._resolve_setup_flag_supported_languages(
+        translations_dir,
+        strings_path,
+    )
+
+    assert languages == frozenset({"en"})
+
+
+def test_resolve_get_runtime_data_fallbacks() -> None:
+    """Runtime-data resolver should use patched callable and fallback safely."""
+    patched = cast(Any, lambda hass, entry: {"ok": True})
+
+    with patch.object(options_flow_main, "import_module") as import_module_mock:
+        import_module_mock.return_value = SimpleNamespace(get_runtime_data=patched)
+        assert options_flow_main._resolve_get_runtime_data() is patched
+
+    with patch.object(
+        options_flow_main,
+        "import_module",
+        side_effect=RuntimeError("boom"),
+    ):
+        assert (
+            options_flow_main._resolve_get_runtime_data()
+            is options_flow_main._get_runtime_data
+        )
+
+
+def test_initialize_from_config_entry_skips_invalid_dogs(
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Dog initialization should ignore non-mapping payloads."""
+    mock_config_entry.data = {
+        CONF_DOGS: [
+            "invalid",
+            {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"},
+        ]
+    }
+
+    flow = PawControlOptionsFlow()
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    assert len(flow._dogs) == 1
+    assert flow._dogs[0][DOG_ID_FIELD] == "buddy"
+
+
+def test_format_local_timestamp_handles_empty_invalid_and_naive() -> None:
+    """Timestamp formatting should support empty, invalid, and naive values."""
+    flow = PawControlOptionsFlow()
+
+    assert flow._format_local_timestamp(None) == "Never reconfigured"
+    assert flow._format_local_timestamp("not-a-date") == "not-a-date"
+    formatted = flow._format_local_timestamp("2024-05-01T12:30:00")
+    assert formatted.startswith("2024-05-01 12:30:00")
+
+
+def test_manual_event_choices_handles_disabled_and_unknown_sources(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Manual-event options should gracefully handle unknown source metadata."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    with patch.object(
+        flow,
+        "_collect_manual_event_sources",
+        return_value={
+            "from_disabled": cast(Any, {"disabled"}),
+            "from_unknown": cast(Any, {"zzz"}),
+            "from_options": cast(Any, {"options"}),
+        },
+    ):
+        options = flow._manual_event_choices("manual_check_event", {})
+
+    by_value = {
+        entry.get("value"): entry for entry in options if isinstance(entry, dict)
+    }
+    assert by_value["from_disabled"].get("metadata_primary_source") == "disabled"
+    assert "badge" not in by_value["from_unknown"]
+    assert by_value["from_options"].get("metadata_primary_source") == "options"
+
+
+def test_resolve_manual_event_choices_skips_non_mapping_options(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Choice extraction should ignore malformed option entries."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    with patch.object(
+        flow,
+        "_manual_event_choices",
+        return_value=cast(
+            Any,
+            [
+                "invalid",
+                {"value": ""},
+                {"value": "pawcontrol_manual_guard"},
+            ],
+        ),
+    ):
+        choices = flow._resolve_manual_event_choices()
+
+    assert choices["manual_guard_event"] == ["pawcontrol_manual_guard"]
 
 
 def test_ensure_notification_options_ignores_invalid_entries() -> None:
