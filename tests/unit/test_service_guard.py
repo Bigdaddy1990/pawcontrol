@@ -1,5 +1,7 @@
 """Unit tests for service guard telemetry models."""
 
+from collections.abc import Iterator, MutableMapping
+
 import pytest
 
 from custom_components.pawcontrol.service_guard import (
@@ -211,3 +213,47 @@ def test_normalise_guard_history_keeps_mapping_entries_only() -> None:
 def test_normalise_guard_history_rejects_non_sequence_payloads(payload: object) -> None:
     """History normalisation should reject unsupported payload types."""
     assert normalise_guard_history(payload) == []
+
+
+def test_service_guard_snapshot_accumulate_handles_write_ignored_mapping() -> None:
+    """Accumulate should still return sane payloads when mapping writes are ignored."""
+
+    class IgnoreWritesMapping(MutableMapping[str, object]):
+        """Mutable mapping that allows reads but discards writes for selected keys."""
+
+        def __init__(self) -> None:
+            self._storage: dict[str, object] = {
+                "executed": 1,
+                "skipped": 1,
+                "reasons": "blocked",
+                "last_results": "blocked",
+            }
+
+        def __getitem__(self, key: str) -> object:
+            return self._storage[key]
+
+        def __setitem__(self, key: str, value: object) -> None:
+            if key in {"reasons", "last_results"}:
+                return
+            self._storage[key] = value
+
+        def __delitem__(self, key: str) -> None:
+            del self._storage[key]
+
+        def __iter__(self) -> Iterator[str]:
+            return iter(self._storage)
+
+        def __len__(self) -> int:
+            return len(self._storage)
+
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+    ])
+    payload = snapshot.accumulate(IgnoreWritesMapping())
+
+    assert payload == {
+        "executed": 1,
+        "skipped": 2,
+        "reasons": {},
+        "last_results": snapshot.history(),
+    }
