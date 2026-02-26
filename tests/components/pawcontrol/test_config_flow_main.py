@@ -1,7 +1,5 @@
 """Tests for ``config_flow_main`` helpers and validation paths."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 
 from homeassistant.config_entries import ConfigEntryState

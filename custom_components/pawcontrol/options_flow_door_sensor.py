@@ -284,11 +284,17 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                                 self.hass,
                                 self._entry,
                             )
-                        except Exception:
-                            _LOGGER.error(
-                                f"Runtime data unavailable while updating door sensor overrides for dog {dog_id}",  # noqa: E501
-                            )
-                            errors["base"] = "runtime_cache_unavailable"
+                        except Exception as err:
+                            if isinstance(err, RuntimeDataUnavailableError) or (
+                                err.__class__.__name__
+                                == "RuntimeDataUnavailableError"
+                            ):
+                                _LOGGER.error(
+                                    f"Runtime data unavailable while updating door sensor overrides for dog {dog_id}",  # noqa: E501
+                                )
+                                errors["base"] = "runtime_cache_unavailable"
+                            else:
+                                raise
                         else:
                             data_manager = getattr(
                                 runtime,
