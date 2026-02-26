@@ -3,12 +3,12 @@
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-import pytest
 from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_TYPE
 from homeassistant.exceptions import HomeAssistantError
+import pytest
 
-from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol import device_action
+from custom_components.pawcontrol.const import DOMAIN
 
 
 async def test_async_get_actions_returns_empty_without_dog_context(monkeypatch) -> None:
@@ -98,7 +98,9 @@ async def test_async_call_action_requires_runtime_context(monkeypatch) -> None:
 async def test_async_call_action_dispatches_to_runtime_managers(monkeypatch) -> None:
     """Known action types should call their matching manager methods."""
     feeding_manager = SimpleNamespace(async_add_feeding=AsyncMock())
-    walk_manager = SimpleNamespace(async_start_walk=AsyncMock(), async_end_walk=AsyncMock())
+    walk_manager = SimpleNamespace(
+        async_start_walk=AsyncMock(), async_end_walk=AsyncMock()
+    )
     runtime_data = SimpleNamespace(
         feeding_manager=feeding_manager,
         walk_manager=walk_manager,
@@ -165,7 +167,9 @@ async def test_async_call_action_requires_amount_for_log_feeding(monkeypatch) ->
     """Log feeding actions must include an amount."""
     runtime_data = SimpleNamespace(
         feeding_manager=SimpleNamespace(async_add_feeding=AsyncMock()),
-        walk_manager=SimpleNamespace(async_start_walk=AsyncMock(), async_end_walk=AsyncMock()),
+        walk_manager=SimpleNamespace(
+            async_start_walk=AsyncMock(), async_end_walk=AsyncMock()
+        ),
     )
     monkeypatch.setattr(
         device_action,
