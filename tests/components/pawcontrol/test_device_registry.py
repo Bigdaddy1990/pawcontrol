@@ -7,7 +7,7 @@ from homeassistant.helpers.device_registry import DeviceEntry
 import pytest
 
 from custom_components.pawcontrol import async_remove_config_entry_device
-from custom_components.pawcontrol.const import CONF_DOGS, DOMAIN
+from custom_components.pawcontrol.const import CONF_DOG_OPTIONS, CONF_DOGS, DOMAIN
 from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
 from custom_components.pawcontrol.utils import (
     async_get_or_create_dog_device_entry,
@@ -65,6 +65,59 @@ async def test_remove_config_entry_device_allows_orphaned_device(
     result = await async_remove_config_entry_device(hass, entry, device_entry)
 
     assert result is True
+
+
+@pytest.mark.asyncio
+async def test_remove_config_entry_device_rejects_non_domain_identifier(
+    hass: HomeAssistant,
+) -> None:
+    """Ignore devices that are not owned by the integration domain."""
+    entry = ConfigEntry(domain=DOMAIN, data={CONF_DOGS: []})
+    device_entry = DeviceEntry(
+        id="device-external",
+        identifiers={("external", "buddy")},
+    )
+
+    result = await async_remove_config_entry_device(hass, entry, device_entry)
+
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_remove_config_entry_device_blocks_dogs_from_mapping_sources(
+    hass: HomeAssistant,
+) -> None:
+    """Block removal when mapped config/options still reference the dog id."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: {
+                "Buddy 1": {
+                    DOG_NAME_FIELD: "Buddy",
+                }
+            },
+            CONF_DOG_OPTIONS: {
+                "buddy-2": {
+                    DOG_ID_FIELD: "Buddy 2",
+                }
+            },
+        },
+        options={
+            CONF_DOG_OPTIONS: {
+                "buddy-3": {
+                    DOG_ID_FIELD: "Buddy 3",
+                }
+            }
+        },
+    )
+
+    for raw_id in ("Buddy 1", "Buddy 2", "Buddy 3"):
+        device_entry = DeviceEntry(
+            id=f"device-{raw_id}",
+            identifiers={(DOMAIN, sanitize_dog_id(raw_id))},
+        )
+        result = await async_remove_config_entry_device(hass, entry, device_entry)
+        assert result is False
 
 
 @pytest.mark.asyncio
