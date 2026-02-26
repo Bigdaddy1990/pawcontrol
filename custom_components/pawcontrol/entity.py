@@ -336,15 +336,10 @@ class PawControlDogEntityBase(PawControlEntity):
         if not isinstance(module, str) or not (module_name := module.strip()):
             return cast(CoordinatorUntypedModuleState, {})
 
-        coordinator_getter = getattr(self.coordinator, "get_module_data", None)
-        try:
-            if callable(coordinator_getter):
-                payload = coordinator_getter(self._dog_id, module_name)
-        payload: object
         try:
             module_lookup = getattr(self.coordinator, "get_module_data", None)
             if callable(module_lookup):
-                payload = module_lookup(self._dog_id, module)
+                payload = module_lookup(self._dog_id, module_name)
             else:
                 _LOGGER.debug(
                     "Coordinator for dog %s has no callable get_module_data; "
@@ -353,7 +348,6 @@ class PawControlDogEntityBase(PawControlEntity):
                 )
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module_name, {})
-                payload = dog_data.get(module, {})
         except AttributeError:
             _LOGGER.warning(
                 "Coordinator lookup failed for %s/%s (missing attribute)",
