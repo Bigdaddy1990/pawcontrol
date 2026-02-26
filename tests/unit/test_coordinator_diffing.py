@@ -394,11 +394,17 @@ class TestShouldNotifyEntities:
     def test_should_notify_entities_dog_with_unchanged_diff(self) -> None:
         """Unchanged dog diffs should not notify for that specific dog."""
         diff = CoordinatorDataDiff(
-            dog_diffs={"buddy": DogDataDiff("buddy")},
-            added_dogs=frozenset({"new_dog"}),
+            dog_diffs={
+                "buddy": DogDataDiff("buddy"),
+                "max": DogDataDiff(
+                    "max",
+                    module_diffs={"gps": DataDiff(modified_keys=frozenset({"lat"}))},
+                ),
+            },
         )
 
         assert should_notify_entities(diff, dog_id="buddy") is False
+        assert should_notify_entities(diff, dog_id="max") is True
 
 
 class TestSmartDiffTracker:
@@ -506,6 +512,21 @@ class TestSmartDiffTracker:
         )
 
         assert tracker.get_changed_entities(diff, dog_id="max") == frozenset()
+
+    def test_smart_diff_tracker_get_changed_entities_returns_added_dog_when_requested(
+        self,
+    ) -> None:
+        """Requested dogs listed in added_dogs should be returned."""
+        tracker = SmartDiffTracker()
+        diff = CoordinatorDataDiff(
+            dog_diffs={"buddy": DogDataDiff("buddy")},
+            added_dogs=frozenset({"max"}),
+        )
+
+        assert tracker.get_changed_entities(diff, dog_id="max") == frozenset({"max"})
+        assert tracker.get_changed_entities(diff, dog_id="max", module="gps") == (
+            frozenset({"max.gps"})
+        )
 
 
 class TestGetChangedFields:

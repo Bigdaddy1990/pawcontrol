@@ -392,12 +392,10 @@ def should_notify_entities(
         return True
 
     # If only module filter specified (check all dogs)
-    if module is not None:
-        return any(
-            module in dog_diff.changed_modules for dog_diff in diff.dog_diffs.values()
-        )
-
-    return False  # pragma: no cover
+    assert module is not None
+    return any(
+        module in dog_diff.changed_modules for dog_diff in diff.dog_diffs.values()
+    )
 
 
 class SmartDiffTracker:
