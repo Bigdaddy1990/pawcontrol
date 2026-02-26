@@ -333,11 +333,7 @@ class PawControlDogEntityBase(PawControlEntity):
 
     def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
         """Return coordinator module data with strict mapping validation."""
-        if not isinstance(module, str):
-            return cast(CoordinatorUntypedModuleState, {})
-
-        module_name = module.strip()
-        if not module_name:
+        if not isinstance(module, str) or not (module_name := module.strip()):
             return cast(CoordinatorUntypedModuleState, {})
 
         coordinator_getter = getattr(self.coordinator, "get_module_data", None)
