@@ -1223,7 +1223,7 @@ class TestPortionAndSnackAdjustments:
         ]
 
         result = await mock_feeding_manager.async_adjust_daily_portions(
-            "test_dog",
+            dog_id="test_dog",
             adjustment_percent=25,
             reason="higher activity week",
             temporary=True,
