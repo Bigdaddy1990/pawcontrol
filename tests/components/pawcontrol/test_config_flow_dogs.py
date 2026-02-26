@@ -240,7 +240,7 @@ def test_health_input_helpers_cover_vaccines_medications_and_diets() -> None:
             "organic": True,
         },
     )
-    diet_validation = mixin._validate_diet_combinations(diets)
+    diet_validation = flow._validate_diet_combinations(diets)
 
     assert conditions == [
         "diabetes",
@@ -292,14 +292,14 @@ def test_suggest_activity_level_respects_age_and_size(
     expected: str,
 ) -> None:
     """Activity suggestion helper should prioritize age bands before size mapping."""
-    mixin = _mixin()
+    mixin = _flow()
     assert mixin._suggest_activity_level(age, size) == expected
 
 
 @pytest.mark.asyncio
 async def test_get_diet_compatibility_guidance_uses_translations_and_fallback() -> None:
     """Guidance helper should include all relevant bullet lines and fallback text."""
-    mixin = _mixin()
+    mixin = _flow()
 
     async def _lookup() -> tuple[dict[str, str], dict[str, str]]:
         return (
@@ -336,7 +336,7 @@ async def test_get_diet_compatibility_guidance_uses_translations_and_fallback() 
 @pytest.mark.asyncio
 async def test_get_diet_compatibility_guidance_returns_none_when_empty() -> None:
     """Guidance helper should return the explicit "none" translation."""
-    mixin = _mixin()
+    mixin = _flow()
 
     async def _lookup() -> tuple[dict[str, str], dict[str, str]]:
         return ({}, {"config.error.diet_guidance_none": "No compatibility notes"})
@@ -347,13 +347,6 @@ async def test_get_diet_compatibility_guidance_returns_none_when_empty() -> None
         await mixin._get_diet_compatibility_guidance(3, "small")
         == "No compatibility notes"
     )
-        (8, "medium", "moderate"),
-        (4, "large", "high"),
-    ],
-)
-def test_suggest_activity_level(age: int, size: str, expected: str) -> None:
-    """Activity suggestions should account for age before size."""
-    assert _flow()._suggest_activity_level(age, size) == expected
 
 
 def test_setup_complexity_info_branches() -> None:
