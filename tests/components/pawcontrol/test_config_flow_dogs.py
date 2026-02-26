@@ -347,15 +347,6 @@ async def test_get_diet_compatibility_guidance_returns_none_when_empty() -> None
         await mixin._get_diet_compatibility_guidance(3, "small")
         == "No compatibility notes"
     )
-        (8, "medium", "moderate"),
-        (4, "large", "high"),
-    ],
-)
-def test_suggest_activity_level(age: int, size: str, expected: str) -> None:
-    """Activity suggestions should account for age before size."""
-    assert _flow()._suggest_activity_level(age, size) == expected
-
-
 def test_setup_complexity_info_branches() -> None:
     """Complexity helper should classify simple, standard, and complex setups."""
     flow = _flow()
