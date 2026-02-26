@@ -178,7 +178,7 @@ def _format_gps_validation_error(
 
     if field == "gps_update_interval":
         return f"{field} must be a whole number"
-    if constraint is None and field in {"gps_accuracy", "geofence_radius"}:
+    if field in {"gps_accuracy", "geofence_radius"}:
         return f"{field} must be a number"
 
     return f"{field} is invalid"
@@ -197,7 +197,7 @@ def _format_text_validation_error(error: ValidationError) -> str:
     if constraint == "Cannot be empty or whitespace":
         return f"{field} must be a non-empty string"
 
-    return f"{field} is invalid"
+    return f"{field} must be a number"
 
 
 def _coerce_service_bool(value: object, *, field: str) -> bool:
@@ -253,7 +253,13 @@ def _format_expires_in_hours_error(error: ValidationError) -> str:
             return f"{field} must be less than {_format_numeric_value(error.max_value)}"
         return f"{field} is out of range"
 
-    return f"{field} is invalid"
+    if isinstance(error.value, bool):
+        return f"{field} must be a number"
+
+    if isinstance(error.value, int | float):
+        return f"{field} is invalid"
+
+    return f"{field} must be a number"
 
 
 # PLATINUM: Enhanced validation ranges for service inputs
