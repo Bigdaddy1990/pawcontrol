@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.pawcontrol.const import CONF_DOGS, CONF_MODULES
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from custom_components.pawcontrol.exceptions import ConfigurationError
 from custom_components.pawcontrol.setup.validation import (
     _extract_enabled_modules,
@@ -109,6 +110,17 @@ def test_validate_profile_standard(mock_config_entry) -> None:
     """Test profile validation with standard profile."""
     profile = _validate_profile(mock_config_entry)
     assert profile == "standard"
+
+
+def test_validate_profile_keeps_known_profile(mock_config_entry) -> None:
+    """Known entity profiles should be preserved."""
+    known_profile = next(
+        profile for profile in ENTITY_PROFILES if profile != "standard"
+    )
+    mock_config_entry.options = {"entity_profile": known_profile}
+
+    profile = _validate_profile(mock_config_entry)
+    assert profile == known_profile
 
 
 def test_validate_profile_unknown_fallback(mock_config_entry) -> None:
@@ -226,6 +238,47 @@ def test_extract_enabled_modules_unknown_module() -> None:
 
     assert "gps" in modules
     assert "unknown_module" not in modules
+
+
+def test_extract_enabled_modules_skips_falsey_values() -> None:
+    """False-y module values should not be treated as enabled."""
+    dogs_config: list[DogConfigData] = [
+        {
+            "dog_id": "buddy",
+            "dog_name": "Buddy",
+            CONF_MODULES: {
+                "gps": 1,
+                "feeding": 0,
+                "health": False,
+            },
+        },
+    ]
+
+    modules = _extract_enabled_modules(dogs_config)
+
+    assert "gps" in modules
+    assert "feeding" not in modules
+    assert "health" not in modules
+
+
+def test_extract_enabled_modules_deduplicates_modules() -> None:
+    """Modules enabled for multiple dogs should be emitted once."""
+    dogs_config: list[DogConfigData] = [
+        {
+            "dog_id": "buddy",
+            "dog_name": "Buddy",
+            CONF_MODULES: {"gps": True, "feeding": True},
+        },
+        {
+            "dog_id": "max",
+            "dog_name": "Max",
+            CONF_MODULES: {"gps": True},
+        },
+    ]
+
+    modules = _extract_enabled_modules(dogs_config)
+
+    assert modules == frozenset({"gps", "feeding"})
 
 
 @pytest.mark.asyncio

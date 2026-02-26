@@ -397,7 +397,7 @@ def should_notify_entities(
             module in dog_diff.changed_modules for dog_diff in diff.dog_diffs.values()
         )
 
-    return False
+    return False  # pragma: no cover
 
 
 class SmartDiffTracker:

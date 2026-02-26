@@ -107,17 +107,17 @@ async def test_async_create_optional_managers_creates_gps_managers_and_migrates_
             return {"entity_profile": "advanced"}
 
     class _GPSManager:
-        def __init__(self, _hass):
+        def __init__(self, _hass) -> None:
             self.notification_manager = None
 
-        def set_notification_manager(self, manager):
+        def set_notification_manager(self, manager) -> None:
             self.notification_manager = manager
 
     class _GeofencingManager:
-        def __init__(self, _hass, _entry_id):
+        def __init__(self, _hass, _entry_id) -> None:
             self.notification_manager = None
 
-        def set_notification_manager(self, manager):
+        def set_notification_manager(self, manager) -> None:
             self.notification_manager = manager
 
     monkeypatch.setattr(

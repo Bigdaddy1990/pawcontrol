@@ -1,5 +1,7 @@
 """Additional coverage tests for coordinator observability helpers."""
 
+from types import SimpleNamespace
+
 from custom_components.pawcontrol import coordinator_observability
 
 
@@ -42,3 +44,51 @@ def test_build_security_scorecard_includes_webhook_error_payload() -> None:
     webhook_check = scorecard["checks"]["webhooks"]
     assert webhook_check["error"] == "probe failed"
     assert webhook_check["reason"] == "Webhook configurations missing HMAC protection"
+
+
+def test_entity_budget_tracker_handles_empty_and_zero_capacity_snapshots() -> None:
+    """Tracker saturation should clamp safely for empty and zero-capacity states."""
+    tracker = coordinator_observability.EntityBudgetTracker()
+
+    assert tracker.saturation() == 0.0
+    assert tracker.snapshots() == ()
+
+    tracker.record(
+        SimpleNamespace(
+            dog_id="buddy",
+            capacity=0,
+            total_allocated=3,
+        )
+    )
+    assert tracker.saturation() == 0.0
+
+
+def test_build_security_scorecard_normalises_negative_polling_values() -> None:
+    """Invalid adaptive inputs should be corrected before scorecard evaluation."""
+    scorecard = coordinator_observability.build_security_scorecard(
+        adaptive={"target_cycle_ms": 0, "current_interval_ms": -10},
+        entity_summary={"peak_utilization": 10.0},
+        webhook_status={"configured": False, "secure": True, "hmac_ready": True},
+    )
+
+    adaptive_check = scorecard["checks"]["adaptive_polling"]
+    assert adaptive_check["target_ms"] == 200.0
+    assert adaptive_check["current_ms"] == 200.0
+    assert adaptive_check["pass"] is True
+
+
+def test_normalise_webhook_status_wraps_scalar_insecure_config_values() -> None:
+    """Scalar insecure config values should be normalized to a tuple payload."""
+
+    class _Manager:
+        @staticmethod
+        def webhook_security_status() -> dict[str, object]:
+            return {
+                "configured": True,
+                "secure": False,
+                "hmac_ready": False,
+                "insecure_configs": "dog-1",
+            }
+
+    status = coordinator_observability.normalise_webhook_status(_Manager())
+    assert status["insecure_configs"] == ("dog-1",)

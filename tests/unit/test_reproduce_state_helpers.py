@@ -1,7 +1,5 @@
 """Unit tests for reproduce state helpers."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN

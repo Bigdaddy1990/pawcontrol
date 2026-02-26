@@ -9,6 +9,7 @@ import pytest
 
 from custom_components.pawcontrol.config_flow_external import (
     ExternalEntityConfigurationMixin,
+    _map_external_error,
 )
 from custom_components.pawcontrol.const import (
     CONF_DOOR_SENSOR,
@@ -18,6 +19,7 @@ from custom_components.pawcontrol.const import (
     MODULE_NOTIFICATIONS,
     MODULE_VISITOR,
 )
+from custom_components.pawcontrol.exceptions import FlowValidationError, ValidationError
 from custom_components.pawcontrol.types import (
     DogConfigData,
     DogModulesConfig,
@@ -111,6 +113,22 @@ class _ExternalEntityFlow(ExternalEntityConfigurationMixin):
 
     def _get_available_notify_services(self) -> dict[str, str]:
         return {"notify.mobile_app_main_phone": "Main phone"}
+
+
+class _EmptyExternalEntityFlow(_ExternalEntityFlow):
+    """Flow harness with no discovered entities/services."""
+
+    def _get_available_device_trackers(self) -> dict[str, str]:
+        return {}
+
+    def _get_available_person_entities(self) -> dict[str, str]:
+        return {}
+
+    def _get_available_door_sensors(self) -> dict[str, str]:
+        return {}
+
+    def _get_available_notify_services(self) -> dict[str, str]:
+        return {}
 
 
 @pytest.mark.asyncio
@@ -259,3 +277,103 @@ async def test_async_step_configure_external_entities_exposes_placeholders() -> 
     assert placeholders["gps_enabled"] is True
     assert placeholders["visitor_enabled"] is False
     assert placeholders["dog_count"] == 0
+
+
+def test_gps_selector_falls_back_to_manual_when_no_entities_available() -> None:
+    """The GPS selector should expose manual mode when discovery returns nothing."""
+    hass = _FakeHomeAssistant(
+        states=_FakeStates({}), services=_FakeServices({"notify": {}})
+    )
+    flow = _EmptyExternalEntityFlow(
+        hass,
+        modules=cast(
+            DogModulesConfig,
+            {MODULE_GPS: True, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: False},
+        ),
+    )
+
+    schema = flow._build_gps_source_selector()
+    field = next(iter(schema))
+
+    assert field.default() == "manual"
+
+
+def test_optional_selectors_return_empty_schema_without_discovered_targets() -> None:
+    """Door and notify selectors should be omitted when no entities are available."""
+    hass = _FakeHomeAssistant(
+        states=_FakeStates({}), services=_FakeServices({"notify": {}})
+    )
+    flow = _EmptyExternalEntityFlow(
+        hass,
+        modules=cast(
+            DogModulesConfig,
+            {MODULE_GPS: False, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: True},
+        ),
+    )
+
+    assert flow._build_door_sensor_selector() == {}
+    assert flow._build_notify_service_selector() == {}
+
+
+@pytest.mark.asyncio
+async def test_async_validate_external_entities_maps_gps_validation_errors() -> None:
+    """GPS validation errors should map to a field-level flow error."""
+    hass = _FakeHomeAssistant(
+        states=_FakeStates({}), services=_FakeServices({"notify": {}})
+    )
+    flow = _ExternalEntityFlow(
+        hass,
+        modules=cast(
+            DogModulesConfig,
+            {MODULE_GPS: True, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: False},
+        ),
+    )
+
+    with pytest.raises(FlowValidationError) as err:
+        await flow._async_validate_external_entities(
+            ExternalEntityConfig(gps_source="device_tracker.unknown"),
+        )
+
+    assert err.value.as_form_errors() == {CONF_GPS_SOURCE: "gps_entity_not_found"}
+
+
+def test_validate_door_sensor_handles_none_from_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A None return from validate_sensor_entity_id should clear the door sensor."""
+    hass = _FakeHomeAssistant(
+        states=_FakeStates({}), services=_FakeServices({"notify": {}})
+    )
+    flow = _ExternalEntityFlow(
+        hass,
+        modules=cast(
+            DogModulesConfig,
+            {MODULE_GPS: False, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: False},
+        ),
+    )
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.config_flow_external.validate_sensor_entity_id",
+        lambda *args, **kwargs: None,
+    )
+
+    assert flow._validate_door_sensor("binary_sensor.back_door") == {}
+
+
+@pytest.mark.parametrize(
+    ("constraint", "expected"),
+    [
+        ("gps_source_required", "required"),
+        ("gps_source_not_found", "gps_entity_not_found"),
+        ("gps_source_unavailable", "gps_entity_unavailable"),
+        ("notify_service_not_found", "notification_service_not_found"),
+        ("some_other_constraint", "invalid_external_entity"),
+    ],
+)
+def test_map_external_error_covers_remaining_constraints(
+    constraint: str,
+    expected: str,
+) -> None:
+    """Constraint mapping should return the expected frontend error identifiers."""
+    error = ValidationError(field="field", value="value", constraint=constraint)
+    assert _map_external_error(error) == expected

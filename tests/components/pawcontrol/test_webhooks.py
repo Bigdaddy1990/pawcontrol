@@ -1,7 +1,5 @@
 """Tests for webhook registration and request handling."""
 
-from __future__ import annotations
-
 import json
 import logging
 import sys

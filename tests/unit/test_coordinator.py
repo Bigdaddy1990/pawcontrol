@@ -12,6 +12,7 @@ from custom_components.pawcontrol.coordinator_runtime import (
     EntityBudgetSnapshot,
     RuntimeCycleInfo,
 )
+from custom_components.pawcontrol.exceptions import ValidationError
 
 
 @pytest.mark.unit
@@ -354,3 +355,77 @@ async def test_get_statistics_records_runtime(
     # we still catch pathological slowdowns without flaking due to instrumentation.  # noqa: E501
     assert coordinator._metrics.average_statistics_runtime_ms < 100.0
     debug_mock.assert_called()
+
+
+@pytest.mark.unit
+def test_initial_update_interval_falls_back_when_registry_validation_fails(
+    mock_hass,
+    mock_config_entry,
+    mock_session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid registry interval config should use the balanced fallback."""
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+
+    def _raise_validation_error(_self: object, _options: object) -> int:
+        raise ValidationError("update_interval", "broken")
+
+    monkeypatch.setattr(
+        type(coordinator.registry),
+        "calculate_update_interval",
+        _raise_validation_error,
+    )
+
+    assert (
+        coordinator._initial_update_interval(mock_config_entry)
+        == coordinator_module.UPDATE_INTERVALS["balanced"]
+    )
+
+
+@pytest.mark.unit
+def test_build_api_client_returns_none_without_endpoint(
+    mock_hass, mock_config_entry, mock_session
+) -> None:
+    """Missing API endpoint should skip client construction."""
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+
+    assert (
+        coordinator._build_api_client(
+            endpoint="",
+            token="secret",
+            resilience_manager=coordinator.resilience_manager,
+        )
+        is None
+    )
+
+
+@pytest.mark.unit
+def test_build_api_client_logs_and_returns_none_on_value_error(
+    mock_hass, mock_config_entry, mock_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Client constructor errors should be logged without exposing secrets."""
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    logged: list[tuple[object, object]] = []
+
+    def _raise_value_error(**_kwargs: object) -> object:
+        raise ValueError("invalid endpoint")
+
+    monkeypatch.setattr(
+        coordinator_module, "PawControlDeviceClient", _raise_value_error
+    )
+    monkeypatch.setattr(
+        coordinator_module,
+        "log_api_client_build_error",
+        lambda _logger, endpoint, err: logged.append((endpoint, err)),
+    )
+
+    assert (
+        coordinator._build_api_client(
+            endpoint="  https://example.test  ",
+            token="  token  ",
+            resilience_manager=coordinator.resilience_manager,
+        )
+        is None
+    )
+    assert logged and logged[0][0] == "  https://example.test  "
+    assert isinstance(logged[0][1], ValueError)

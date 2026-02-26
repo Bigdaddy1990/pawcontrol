@@ -1,5 +1,6 @@
 """Tests for PawControl sensor module data access helpers."""
 
+from datetime import UTC, datetime
 from typing import Any, cast
 
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
@@ -156,3 +157,112 @@ def test_get_module_data_uses_dog_payload_when_accessor_is_missing() -> None:
     payload = sensor._get_module_data("gps")
 
     assert payload["status"] == "active"
+
+
+def test_get_module_data_rejects_invalid_module_name() -> None:
+    """Invalid module names should always produce empty mappings."""
+    sensor = _build_sensor({
+        "alpha": cast(CoordinatorDogData, {"gps": {"status": "ok"}})
+    })
+
+    assert sensor._get_module_data("") == {}
+    assert sensor._get_module_data(cast(Any, None)) == {}
+
+
+def test_get_module_data_handles_specific_lookup_exceptions(caplog: Any) -> None:
+    """Specialized coordinator lookup failures should return empty payloads."""
+
+    class _AttributeErrorCoordinator(_CoordinatorStub):
+        def get_module_data(
+            self,
+            dog_id: str,
+            module: str,
+        ) -> CoordinatorModuleLookupResult:
+            raise AttributeError("missing")
+
+    class _LookupErrorCoordinator(_CoordinatorStub):
+        def get_module_data(
+            self,
+            dog_id: str,
+            module: str,
+        ) -> CoordinatorModuleLookupResult:
+            raise LookupError("missing")
+
+    class _TypeErrorCoordinator(_CoordinatorStub):
+        def get_module_data(
+            self,
+            dog_id: str,
+            module: str,
+        ) -> CoordinatorModuleLookupResult:
+            raise TypeError("wrong type")
+
+    class _ValueErrorCoordinator(_CoordinatorStub):
+        def get_module_data(
+            self,
+            dog_id: str,
+            module: str,
+        ) -> CoordinatorModuleLookupResult:
+            raise ValueError("bad value")
+
+    coordinator_types = (
+        (_AttributeErrorCoordinator, "missing attribute"),
+        (_LookupErrorCoordinator, "missing key/index"),
+        (_TypeErrorCoordinator, "type mismatch"),
+        (_ValueErrorCoordinator, "invalid value"),
+    )
+
+    with caplog.at_level("WARNING"):
+        for coordinator_type, expected_message in coordinator_types:
+            sensor = _DummySensor(
+                coordinator_type({"alpha": cast(CoordinatorDogData, {})})
+            )
+            assert sensor._get_module_data("gps") == {}
+            assert expected_message in caplog.text
+
+
+def test_sensor_base_coercion_helpers() -> None:
+    """Sensor coercion helpers should normalize supported payload values."""
+    sensor = _build_sensor({"alpha": cast(CoordinatorDogData, {})})
+
+    assert sensor._coerce_module_payload({"x": 1}) == {"x": 1}
+    assert sensor._coerce_module_payload("invalid") == {}
+
+    assert sensor._coerce_float(True) == 1.0
+    assert sensor._coerce_float(2) == 2.0
+    assert sensor._coerce_float("2.5") == 2.5
+    assert sensor._coerce_float("bad", default=3.0) == 3.0
+
+    assert sensor._coerce_int(True) == 1
+    assert sensor._coerce_int(4.2) == 4
+    assert sensor._coerce_int("5") == 5
+    assert sensor._coerce_int("bad", default=8) == 8
+
+    dt_value = datetime(2025, 1, 1, tzinfo=UTC)
+    assert sensor._coerce_utc_datetime(dt_value) == dt_value
+    assert sensor._coerce_utc_datetime("2025-01-01T00:00:00Z") is not None
+    assert sensor._coerce_utc_datetime(object()) is None
+
+    assert sensor._coerce_feeding_payload({"diet": "ok"}) == {"diet": "ok"}
+    assert sensor._coerce_walk_payload({"distance_km": 2.0}) == {"distance_km": 2.0}
+    assert sensor._coerce_gps_payload({"status": "active"}) is not None
+    assert sensor._coerce_health_payload({"score": 80}) == {"score": 80}
+
+
+def test_sensor_module_accessor_helpers_delegate_to_module_lookup() -> None:
+    """Module accessor helpers should delegate through ``_get_module_data``."""
+    sensor = _build_sensor({
+        "alpha": cast(
+            CoordinatorDogData,
+            {
+                "feeding": {"diet": "balanced"},
+                "walk": {"distance_km": 1.2},
+                "gps": {"status": "tracking"},
+                "health": {"activity": "normal"},
+            },
+        )
+    })
+
+    assert sensor._get_feeding_module() == {"diet": "balanced"}
+    assert sensor._get_walk_module() == {"distance_km": 1.2}
+    assert sensor._get_gps_module() is not None
+    assert sensor._get_health_module() == {"activity": "normal"}
