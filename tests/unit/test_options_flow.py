@@ -2019,9 +2019,7 @@ async def test_configure_door_sensor_runtime_cache_unavailable(
         patch(
             "custom_components.pawcontrol.options_flow_door_sensor._resolve_require_runtime_data",
             return_value=Mock(
-                side_effect=options_flow_door_sensor.RuntimeDataUnavailableError(
-                    "store unavailable"
-                ),
+                side_effect=RuntimeDataUnavailableError("store unavailable"),
             ),
         ),
         patch(

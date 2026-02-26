@@ -36,6 +36,7 @@ def test_normalize_language_requires_non_empty_default() -> None:
         normalize_language("de", default="")
 
 
-def test_normalize_language_preserves_whitespace_default_when_requested() -> None:
-    """Whitespace defaults are treated as explicit caller-provided values."""
-    assert normalize_language(None, default="   ") == "   "
+def test_normalize_language_rejects_whitespace_only_default() -> None:
+    """Whitespace-only defaults should fail fast like other empty defaults."""
+    with pytest.raises(ValueError, match="default language must be a non-empty"):
+        normalize_language(None, default="   ")

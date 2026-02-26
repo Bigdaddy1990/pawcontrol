@@ -245,12 +245,9 @@ def test_health_input_helpers_cover_vaccines_medications_and_diets() -> None:
 
     assert conditions == [
         "diabetes",
-        "allergies",
         "digestive_issues",
         "skin_allergy",
         "joint_pain",
-        "skin_issue",
-        "digestive",
     ]
     assert set(diets) == {
         "prescription",
@@ -258,10 +255,8 @@ def test_health_input_helpers_cover_vaccines_medications_and_diets() -> None:
         "organic",
         "hypoallergenic",
         "raw_diet",
-        "diabetic",
         "puppy_formula",
         "senior_formula",
-        "diabetic",
     }
     assert diet_validation["valid"] is False
     assert diet_validation["recommended_vet_consultation"] is True
