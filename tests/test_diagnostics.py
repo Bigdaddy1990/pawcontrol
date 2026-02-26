@@ -204,6 +204,22 @@ def test_service_guard_metrics_defaults_to_zero_payload() -> None:
     }
 
 
+def test_device_registry_entry_matching_accepts_set_like_containers() -> None:
+    """Device fallback matching should accept standard set-like containers."""
+    diagnostics = _load_diagnostics()
+    entry = type("DeviceEntry", (), {"config_entries": frozenset({"entry-1"})})()
+
+    assert diagnostics._device_entry_has_config_entry(entry, "entry-1") is True
+
+
+def test_device_registry_entry_matching_rejects_string_values() -> None:
+    """String config_entries values must not be treated as a container match."""
+    diagnostics = _load_diagnostics()
+    entry = type("DeviceEntry", (), {"config_entries": "entry-1"})()
+
+    assert diagnostics._device_entry_has_config_entry(entry, "entry-1") is False
+
+
 def test_configuration_url_redacted_in_diagnostics() -> None:
     """Ensure configuration_url fields are redacted in diagnostics payloads."""
     diagnostics = _load_diagnostics()
