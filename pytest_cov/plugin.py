@@ -14,8 +14,13 @@ except ModuleNotFoundError:  # pragma: no cover - exercised via shim tests
 
 
 def _coverage_available() -> bool:
-    """Return whether the optional coverage dependency is available."""
+    """Return whether the runtime coverage dependency is available."""
     return coverage is not None
+
+
+def _coverage_available() -> bool:
+    """Return whether the ``coverage`` dependency can be used."""
+    return _COVERAGE_AVAILABLE and coverage is not None
 
 
 def _split_report_target(value: str) -> tuple[str, str | None]:
