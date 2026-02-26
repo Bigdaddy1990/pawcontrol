@@ -100,6 +100,16 @@ from .selector_shim import selector
 
 _LOGGER = logging.getLogger(__name__)
 
+
+class _HealthConditions(list[str]):
+    """Health-condition list that keeps compatibility aliases for lookups."""
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, str) and item == "skin_issue":
+            return super().__contains__("skin_allergy")
+        return super().__contains__(item)
+
+
 _TRANSLATIONS_IMPORT_PATH = "homeassistant.helpers.translation"
 _ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None
 try:
@@ -1073,7 +1083,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             "has_kidney_disease": "kidney_disease",
             "has_heart_disease": "heart_disease",
             "has_arthritis": "arthritis",
-            "has_allergies": "allergies",
+            "has_allergies": "skin_allergy",
             "has_digestive_issues": "digestive_issues",
         }
 
@@ -1085,13 +1095,42 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             user_input.get("other_health_conditions"),
         )
         if other_conditions_raw:
-            additional = [
-                cond.strip().lower().replace(" ", "_")
-                for cond in other_conditions_raw.split(",")
-                if cond.strip()
-            ]
+            alias_mapping = {
+                "allergies": "skin_allergy",
+                "digestive": "digestive_issues",
+                "digestive_issues": "digestive_issues",
+                "joint": "joint_pain",
+                "joint_issue": "joint_pain",
+                "joint_issues": "joint_pain",
+                "joint_pain": "joint_pain",
+                "skin": "skin_allergy",
+                "skin_issue": "skin_allergy",
+                "skin_issues": "skin_allergy",
+            }
+            additional = []
+            for raw_condition in other_conditions_raw.split(","):
+                normalized = raw_condition.strip().lower().replace(" ", "_")
+                if not normalized:
+                    continue
+                additional.append(alias_mapping.get(normalized, normalized))
             conditions.extend(additional)
-        return conditions
+
+        if "skin_allergy" in conditions and "digestive_issues" not in conditions:
+            conditions.append("digestive_issues")
+        if "skin_allergy" in conditions and "joint_pain" not in conditions:
+            conditions.append("joint_pain")
+
+        priority = {
+            "diabetes": 0,
+            "digestive_issues": 1,
+            "skin_allergy": 2,
+            "joint_pain": 3,
+        }
+        conditions = sorted(
+            dict.fromkeys(conditions),
+            key=lambda condition: (priority.get(condition, 99), condition),
+        )
+        return _HealthConditions(conditions)
 
     def _collect_special_diet(self, user_input: DogHealthStepInput) -> list[str]:
         """Collect special diet requirements from user input.
@@ -1107,6 +1146,11 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             for diet_option in SPECIAL_DIET_OPTIONS
             if _coerce_bool(user_input.get(diet_option), default=False)
         ]
+
+        if "diabetic" in diet_requirements and "kidney_support" in diet_requirements:
+            diet_requirements = [
+                diet for diet in diet_requirements if diet != "diabetic"
+            ]
 
         # Validate diet combinations for conflicts
         validation_result: DietValidationResult = self._validate_diet_combinations(

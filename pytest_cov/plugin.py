@@ -16,6 +16,11 @@ except ModuleNotFoundError:  # pragma: no cover - exercised via shim tests
 _COVERAGE_AVAILABLE = coverage is not None
 
 
+def _coverage_available() -> bool:
+    """Return whether the optional coverage dependency is currently loaded."""
+    return coverage is not None
+
+
 def _split_report_target(value: str) -> tuple[str, str | None]:
     """Split cov report values while preserving terminal report modifiers."""
     # pytest-cov allows terminal modifiers like ``term-missing:skip-covered``
@@ -98,7 +103,7 @@ class _CoverageController:
         self._include_files: tuple[str, ...] = ()
 
     def pytest_configure(self, config: object) -> None:
-        if not _COVERAGE_AVAILABLE:
+        if not _coverage_available():
             return
         options = getattr(config, "option", None)
         raw_sources = tuple(getattr(options, "cov_sources", ()) or ())
@@ -113,7 +118,7 @@ class _CoverageController:
         self._coverage.start()
 
     def pytest_sessionfinish(self, _session: object, _exitstatus: object) -> None:
-        if not _COVERAGE_AVAILABLE:
+        if not _coverage_available():
             return
         if self._coverage is not None:
             self._coverage.stop()
@@ -155,7 +160,7 @@ def _build_include_patterns(raw_sources: tuple[str, ...]) -> tuple[str, ...] | N
 
 
 def pytest_sessionstart(session: object) -> None:
-    if not _COVERAGE_AVAILABLE:
+    if not _coverage_available():
         return
     options = getattr(getattr(session, "config", None), "option", None)
     if options is None:
