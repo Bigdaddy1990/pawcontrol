@@ -912,11 +912,14 @@ class PawControlConfigFlow(
                 float(cached_at_raw) if isinstance(cached_at_raw, int | float) else 0.0
             )
 
+            cache_consumed = bool(cached_entry.get("consumed"))
             if (
                 cached_state == state_signature
                 and cached_result is not None
                 and now_ts - cached_at < 60
+                and not cache_consumed
             ):
+                cached_entry["consumed"] = True
                 config_flow_monitor.record_validation("dog_input_cache_hit")
                 return cast(DogSetupStepInput, dict(cached_result))
 
@@ -934,6 +937,7 @@ class PawControlConfigFlow(
             "result": cloned_result,
             "cached_at": now_ts,
             "state_signature": state_signature,
+            "consumed": False,
         }
         self._validation_cache[cache_key] = cache_payload
         config_flow_monitor.record_validation("dog_input_validated")

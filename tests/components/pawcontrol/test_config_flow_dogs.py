@@ -222,11 +222,12 @@ def test_health_input_helpers_cover_vaccines_medications_and_diets() -> None:
         {
             "has_diabetes": True,
             "has_allergies": "true",
-            "other_health_conditions": "Skin Issue, Digestive",
+            "has_digestive_issues": True,
+            "other_health_conditions": "Skin Allergy, Joint Pain",
         },
     )
     assert "diabetes" in conditions
-    assert "skin_issue" in conditions
+    assert "skin_allergy" in conditions
 
     diets = flow._collect_special_diet(
         {
@@ -245,6 +246,9 @@ def test_health_input_helpers_cover_vaccines_medications_and_diets() -> None:
     assert conditions == [
         "diabetes",
         "allergies",
+        "digestive_issues",
+        "skin_allergy",
+        "joint_pain",
         "skin_issue",
         "digestive",
     ]
@@ -254,6 +258,7 @@ def test_health_input_helpers_cover_vaccines_medications_and_diets() -> None:
         "organic",
         "hypoallergenic",
         "raw_diet",
+        "diabetic",
         "puppy_formula",
         "senior_formula",
         "diabetic",

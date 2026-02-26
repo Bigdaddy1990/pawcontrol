@@ -81,4 +81,20 @@ serialize_datetime = _serialize_module.serialize_datetime
 serialize_timedelta = _serialize_module.serialize_timedelta
 serialize_dataclass = _serialize_module.serialize_dataclass
 serialize_entity_attributes = _serialize_module.serialize_entity_attributes
+# Keep serialization helpers bound to ``utils.serialize`` re-exports.
+globals().update(
+    {symbol.__name__: symbol for symbol in _SERIALIZE_SYMBOLS},
+)
+
 __all__ = sorted(_LEGACY_EXPORTS | _SERIALIZE_EXPORTS | _EXPLICIT_LEGACY_EXPORTS)
+
+
+for _serialize_name in _SERIALIZE_EXPORTS:
+    globals().pop(_serialize_name, None)
+
+
+def __getattr__(name: str) -> object:
+    """Resolve serialize helpers lazily to stay aligned with module reloads."""
+    if name in _SERIALIZE_EXPORTS:
+        return getattr(_serialize_module, name)
+    raise AttributeError(name)

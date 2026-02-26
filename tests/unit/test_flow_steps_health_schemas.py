@@ -1,7 +1,5 @@
 """Tests for health flow schema builders."""
 
-from __future__ import annotations
-
 import voluptuous as vol
 
 from custom_components.pawcontrol.const import MODULE_MEDICATION
