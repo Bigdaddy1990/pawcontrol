@@ -6,26 +6,14 @@ from typing import Any
 try:
     import coverage
     from coverage.exceptions import NoDataError
+    _COVERAGE_AVAILABLE = True
 except ModuleNotFoundError:  # pragma: no cover - exercised via shim tests
     coverage = None  # type: ignore[assignment]
+    _COVERAGE_AVAILABLE = False
 
     class NoDataError(Exception):
         """Fallback error used when coverage is unavailable."""
 
-
-def _coverage_available() -> bool:
-    """Return whether the runtime coverage dependency is available."""
-    return coverage is not None
-
-
-def _coverage_available() -> bool:
-    """Return whether the ``coverage`` dependency can be used."""
-    return _COVERAGE_AVAILABLE and coverage is not None
-
-
-def _coverage_available() -> bool:
-    """Return whether the coverage dependency is currently available."""
-    return coverage is not None
 
 def _coverage_available() -> bool:
     """Return whether the coverage dependency is currently importable."""
