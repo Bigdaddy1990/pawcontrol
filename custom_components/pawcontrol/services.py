@@ -248,7 +248,10 @@ def _format_expires_in_hours_error(error: ValidationError) -> str:
             return f"{field} must be less than {_format_numeric_value(error.max_value)}"
         return f"{field} is out of range"
 
-    return f"{field} must be a number"
+    if constraint == "unknown":
+        return f"{field} must be a number"
+
+    return f"{field} is invalid"
 
 
 # PLATINUM: Enhanced validation ranges for service inputs

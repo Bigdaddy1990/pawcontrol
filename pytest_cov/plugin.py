@@ -18,6 +18,11 @@ def _coverage_available() -> bool:
     return coverage is not None
 
 
+def _coverage_available() -> bool:
+    """Return whether the ``coverage`` dependency can be used."""
+    return _COVERAGE_AVAILABLE and coverage is not None
+
+
 def _split_report_target(value: str) -> tuple[str, str | None]:
     """Split cov report values while preserving terminal report modifiers."""
     # pytest-cov allows terminal modifiers like ``term-missing:skip-covered``
