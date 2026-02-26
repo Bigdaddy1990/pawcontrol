@@ -7,7 +7,7 @@ from homeassistant.helpers.device_registry import DeviceEntry
 import pytest
 
 from custom_components.pawcontrol import async_remove_config_entry_device
-from custom_components.pawcontrol.const import CONF_DOGS, CONF_DOG_OPTIONS, DOMAIN
+from custom_components.pawcontrol.const import CONF_DOG_OPTIONS, CONF_DOGS, DOMAIN
 from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
 from custom_components.pawcontrol.utils import (
     async_get_or_create_dog_device_entry,
