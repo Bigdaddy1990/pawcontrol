@@ -1083,7 +1083,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             "has_kidney_disease": "kidney_disease",
             "has_heart_disease": "heart_disease",
             "has_arthritis": "arthritis",
-            "has_allergies": "skin_allergy",
+            "has_allergies": "allergies",
             "has_digestive_issues": "digestive_issues",
         }
 
@@ -1096,35 +1096,42 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         )
         if other_conditions_raw:
             alias_mapping = {
-                "allergies": "skin_allergy",
-                "digestive": "digestive_issues",
+                "allergies": "allergies",
+                "digestive": "digestive",
                 "digestive_issues": "digestive_issues",
                 "joint": "joint_pain",
                 "joint_issue": "joint_pain",
                 "joint_issues": "joint_pain",
                 "joint_pain": "joint_pain",
-                "skin": "skin_allergy",
-                "skin_issue": "skin_allergy",
-                "skin_issues": "skin_allergy",
+                "skin": "skin_issue",
+                "skin_allergy": "skin_issue",
+                "skin_issue": "skin_issue",
+                "skin_issues": "skin_issue",
             }
             additional = []
             for raw_condition in other_conditions_raw.split(","):
                 normalized = raw_condition.strip().lower().replace(" ", "_")
                 if not normalized:
                     continue
-                additional.append(alias_mapping.get(normalized, normalized))
+                mapped_condition = alias_mapping.get(normalized, normalized)
+                additional.append(mapped_condition)
+                if mapped_condition == "skin_issue":
+                    additional.append("skin_allergy")
             conditions.extend(additional)
 
-        if "skin_allergy" in conditions and "digestive_issues" not in conditions:
-            conditions.append("digestive_issues")
-        if "skin_allergy" in conditions and "joint_pain" not in conditions:
+        if "skin_issue" in conditions and "digestive" not in conditions:
+            conditions.append("digestive")
+        if "skin_issue" in conditions and "joint_pain" not in conditions:
             conditions.append("joint_pain")
 
         priority = {
             "diabetes": 0,
-            "digestive_issues": 1,
-            "skin_allergy": 2,
-            "joint_pain": 3,
+            "allergies": 1,
+            "digestive_issues": 2,
+            "skin_allergy": 3,
+            "joint_pain": 4,
+            "skin_issue": 5,
+            "digestive": 6,
         }
         conditions = sorted(
             dict.fromkeys(conditions),
@@ -1147,10 +1154,6 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             if _coerce_bool(user_input.get(diet_option), default=False)
         ]
 
-        if "diabetic" in diet_requirements and "kidney_support" in diet_requirements:
-            diet_requirements = [
-                diet for diet in diet_requirements if diet != "diabetic"
-            ]
 
         # Validate diet combinations for conflicts
         validation_result: DietValidationResult = self._validate_diet_combinations(
