@@ -5,22 +5,13 @@ from collections.abc import Collection
 __all__ = ["normalize_language"]
 
 
-def normalize_language(
-    language: str | None,
-    *,
-    supported: Collection[str] | None = None,
-    default: str = "en",
-) -> str:
-    """Return a normalized language code constrained to ``supported`` values."""
-    if not default:
-        msg = "default language must be a non-empty string"
-        raise ValueError(msg)
+def _normalize_code(value: str | None) -> str:
+    """Normalize a language code to its lowercase base language."""
+    if value is None:
+        return ""
 
-    if not language:
-        return default
-
-    normalized = (
-        str(language)
+    return (
+        str(value)
         .replace(
             "_",
             "-",
@@ -29,13 +20,34 @@ def normalize_language(
         .strip()
         .lower()
     )
+
+
+def normalize_language(
+    language: str | None,
+    *,
+    supported: Collection[str] | None = None,
+    default: str = "en",
+) -> str:
+    """Return a normalized language code constrained to ``supported`` values."""
+    normalized_default = _normalize_code(default)
+    if not normalized_default:
+        msg = "default language must be a non-empty string"
+        raise ValueError(msg)
+
+    if not language:
+        return normalized_default
+
+    normalized = _normalize_code(language)
     if not normalized:
-        return default
+        return normalized_default
 
     if supported is None:
         return normalized
 
-    if normalized in supported:
+    normalized_supported = {_normalize_code(code) for code in supported}
+    normalized_supported.discard("")
+
+    if normalized in normalized_supported:
         return normalized
 
-    return default
+    return normalized_default

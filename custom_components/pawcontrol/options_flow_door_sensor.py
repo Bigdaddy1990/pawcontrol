@@ -20,7 +20,7 @@ from .const import (
 from .door_sensor_manager import ensure_door_sensor_settings_config
 from .flows.walk_helpers import WALK_SETTINGS_FIELDS
 from .repairs import ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE, async_create_issue
-from .runtime_data import RuntimeDataUnavailableError, require_runtime_data
+from .runtime_data import require_runtime_data
 from .selector_shim import selector
 from .telemetry import record_door_sensor_persistence_failure
 from .types import (
@@ -284,11 +284,17 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                                 self.hass,
                                 self._entry,
                             )
-                        except Exception:
-                            _LOGGER.error(
-                                f"Runtime data unavailable while updating door sensor overrides for dog {dog_id}",  # noqa: E501
-                            )
-                            errors["base"] = "runtime_cache_unavailable"
+                        except Exception as err:
+                            if isinstance(err, RuntimeDataUnavailableError) or (
+                                err.__class__.__name__
+                                == "RuntimeDataUnavailableError"
+                            ):
+                                _LOGGER.error(
+                                    f"Runtime data unavailable while updating door sensor overrides for dog {dog_id}",  # noqa: E501
+                                )
+                                errors["base"] = "runtime_cache_unavailable"
+                            else:
+                                raise
                         else:
                             data_manager = getattr(
                                 runtime,

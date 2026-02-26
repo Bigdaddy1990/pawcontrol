@@ -1,8 +1,5 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 
-from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -158,7 +155,6 @@ async def test_async_get_entry_for_unique_id_awaitable_entries(
 @pytest.mark.asyncio
 async def test_validate_dog_input_cached_reuses_recent_cached_result(
     flow: PawControlConfigFlow,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[dict[str, object]] = []
 
@@ -176,8 +172,10 @@ async def test_validate_dog_input_cached_reuses_recent_cached_result(
     assert second == dog_input
     assert len(calls) in {1, 2}
 
-    original_utcnow = dt_util.utcnow
-    monkeypatch.setattr(dt_util, "utcnow", lambda: original_utcnow().replace(year=2099))
+    cache_key = "buddy_Buddy_12"
+    flow._validation_cache[cache_key]["cached_at"] = 0.0
+
+    flow._existing_dog_ids.add("another-dog")
     third = await flow._validate_dog_input_cached(dog_input)
     assert third == dog_input
     assert len(calls) in {1, 2}

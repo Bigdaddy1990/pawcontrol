@@ -3239,6 +3239,7 @@ class DogValidationCacheEntry(TypedDict):
     cached_at: float
     state_signature: NotRequired[str]
     clock_token: NotRequired[int]
+    consumed: NotRequired[bool]
 
 
 class DogSetupStepInput(TypedDict):

@@ -12,9 +12,18 @@ def test_utils_all_is_sorted_and_has_no_private_names() -> None:
 
 def test_utils_re_exports_serialize_helpers() -> None:
     """Serialize helpers should be re-exported from the package root."""
-    assert utils.serialize_datetime.__name__ == serialize_module.serialize_datetime.__name__
-    assert utils.serialize_timedelta.__name__ == serialize_module.serialize_timedelta.__name__
-    assert utils.serialize_dataclass.__name__ == serialize_module.serialize_dataclass.__name__
+    assert (
+        utils.serialize_datetime.__name__
+        == serialize_module.serialize_datetime.__name__
+    )
+    assert (
+        utils.serialize_timedelta.__name__
+        == serialize_module.serialize_timedelta.__name__
+    )
+    assert (
+        utils.serialize_dataclass.__name__
+        == serialize_module.serialize_dataclass.__name__
+    )
     assert (
         utils.serialize_entity_attributes.__name__
         == serialize_module.serialize_entity_attributes.__name__
