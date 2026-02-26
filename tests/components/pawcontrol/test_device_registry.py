@@ -7,7 +7,7 @@ from homeassistant.helpers.device_registry import DeviceEntry
 import pytest
 
 from custom_components.pawcontrol import async_remove_config_entry_device
-from custom_components.pawcontrol.const import CONF_DOGS, DOMAIN
+from custom_components.pawcontrol.const import CONF_DOGS, CONF_DOG_OPTIONS, DOMAIN
 from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
 from custom_components.pawcontrol.utils import (
     async_get_or_create_dog_device_entry,
@@ -65,6 +65,56 @@ async def test_remove_config_entry_device_allows_orphaned_device(
     result = await async_remove_config_entry_device(hass, entry, device_entry)
 
     assert result is True
+
+
+@pytest.mark.asyncio
+async def test_remove_config_entry_device_ignores_non_pawcontrol_identifiers(
+    hass: HomeAssistant,
+) -> None:
+    """Ignore unrelated devices that are not managed by the integration."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: [
+                {
+                    DOG_ID_FIELD: "Luna",
+                    DOG_NAME_FIELD: "Luna",
+                }
+            ],
+        },
+    )
+    device_entry = DeviceEntry(
+        id="device-3",
+        identifiers={("other_domain", "luna")},
+    )
+
+    result = await async_remove_config_entry_device(hass, entry, device_entry)
+
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_remove_config_entry_device_considers_dog_options_mapping(
+    hass: HomeAssistant,
+) -> None:
+    """Prevent removal when identifiers are still present in dog option payloads."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: []},
+        options={
+            CONF_DOG_OPTIONS: {
+                "NOVA 007": {DOG_ID_FIELD: "NOVA 007"},
+            }
+        },
+    )
+    device_entry = DeviceEntry(
+        id="device-4",
+        identifiers={(DOMAIN, sanitize_dog_id("NOVA 007"))},
+    )
+
+    result = await async_remove_config_entry_device(hass, entry, device_entry)
+
+    assert result is False
 
 
 @pytest.mark.asyncio
