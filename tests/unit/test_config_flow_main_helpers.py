@@ -63,8 +63,6 @@ def test_normalise_discovery_metadata_normalizes_all_supported_fields(
     assert result["service_uuids"] == ["uuid-1", "uuid-2", "123"]
 
 
-
-
 def test_normalise_discovery_metadata_handles_integer_port_and_nonstr_fields(
     flow: PawControlConfigFlow,
 ) -> None:
@@ -221,7 +219,13 @@ async def test_handle_existing_discovery_entry_paths(
         return None
 
     flow._async_get_entry_for_unique_id = _none  # type: ignore[assignment]
-    flow._abort_if_unique_id_configured = lambda **kwargs: {"type": "abort", "reason": "already_configured", **kwargs}  # type: ignore[assignment]
+    flow._abort_if_unique_id_configured = (
+        lambda **kwargs: {
+            "type": "abort",
+            "reason": "already_configured",
+            **kwargs,
+        }
+    )  # type: ignore[assignment]
     result = await flow._handle_existing_discovery_entry(
         updates={"name": "paw"},
         comparison={},
@@ -250,7 +254,11 @@ async def test_handle_existing_discovery_entry_paths(
     assert result["reason"] == "already_configured"
 
     async def _update_reload_and_abort(*args, **kwargs):
-        return {"type": "abort", "reason": kwargs["reason"], "data_updates": kwargs["data_updates"]}
+        return {
+            "type": "abort",
+            "reason": kwargs["reason"],
+            "data_updates": kwargs["data_updates"],
+        }
 
     flow.async_update_reload_and_abort = _update_reload_and_abort  # type: ignore[assignment]
     result = await flow._handle_existing_discovery_entry(
