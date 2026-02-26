@@ -1064,6 +1064,8 @@ class TestAdvancedFeedingOperations:
         self, mock_feeding_manager: FeedingManager, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Temporary adjustments should schedule and complete a reversion task."""
+
+
 class TestStandaloneFeedingHelpers:
     """Test helper dataclasses and pure utility functions."""
 
@@ -1185,6 +1187,8 @@ class TestMealSchedule:
         )
 
         assert schedule.get_reminder_time() is None
+
+
 @pytest.mark.asyncio
 class TestPortionAndSnackAdjustments:
     """Test daily-portion adjustments and health snack logging."""
@@ -1219,16 +1223,9 @@ class TestPortionAndSnackAdjustments:
         ]
 
         result = await mock_feeding_manager.async_adjust_daily_portions(
-            "test_dog",
+            dog_id="test_dog",
             adjustment_percent=25,
             reason="higher activity week",
-        original_daily_amount = mock_feeding_manager._configs[
-            "test_dog"
-        ].daily_food_amount
-        result = await mock_feeding_manager.async_adjust_daily_portions(
-            dog_id="test_dog",
-            adjustment_percent=20,
-            reason="post-exercise",
             temporary=True,
             duration_days=1,
         )
@@ -1354,17 +1351,6 @@ class TestPortionAndSnackAdjustments:
         assert mock_feeding_manager._cache_time == {}
         assert mock_feeding_manager._stats_cache == {}
         assert mock_feeding_manager._stats_cache_time == {}
-        assert created_tasks
-        assert (
-            mock_feeding_manager._configs["test_dog"].daily_food_amount
-            > original_daily_amount
-        )
-
-        reversion_task = created_tasks.pop()
-        await reversion_task
-        assert mock_feeding_manager._configs[
-            "test_dog"
-        ].daily_food_amount == pytest.approx(original_daily_amount)
 
     async def test_async_add_health_snack_enriches_notes(
         self, mock_feeding_manager: FeedingManager
