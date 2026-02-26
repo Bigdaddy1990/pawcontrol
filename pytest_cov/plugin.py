@@ -6,6 +6,7 @@ from typing import Any
 try:
     import coverage
     from coverage.exceptions import NoDataError
+
     _COVERAGE_AVAILABLE = True
 except ModuleNotFoundError:  # pragma: no cover - exercised via shim tests
     coverage = None  # type: ignore[assignment]

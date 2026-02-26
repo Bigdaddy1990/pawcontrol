@@ -117,7 +117,12 @@ def test_service_validation_error_trims_whitespace() -> None:
             "m",
             "geofence_radius must be between 1 and 30m",
         ),
-        ("gps_accuracy", "unknown_constraint", None, "gps_accuracy must be a number"),
+        (
+            "gps_accuracy",
+            "unknown_constraint",
+            None,
+            "gps_accuracy must be a number",
+        ),
     ],
 )
 def test_format_gps_validation_error(

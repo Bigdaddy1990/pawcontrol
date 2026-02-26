@@ -286,8 +286,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                             )
                         except Exception as err:
                             if isinstance(err, RuntimeDataUnavailableError) or (
-                                err.__class__.__name__
-                                == "RuntimeDataUnavailableError"
+                                err.__class__.__name__ == "RuntimeDataUnavailableError"
                             ):
                                 _LOGGER.error(
                                     f"Runtime data unavailable while updating door sensor overrides for dog {dog_id}",  # noqa: E501
