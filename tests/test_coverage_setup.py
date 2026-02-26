@@ -1,7 +1,5 @@
 """Regression tests for repository-level coverage configuration."""
 
-from __future__ import annotations
-
 from pathlib import Path
 import shlex
 import tomllib

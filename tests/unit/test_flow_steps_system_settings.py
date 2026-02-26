@@ -1,7 +1,5 @@
 """Unit tests for system flow step helpers."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from typing import Any
 
