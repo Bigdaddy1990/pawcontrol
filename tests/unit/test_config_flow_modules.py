@@ -451,6 +451,17 @@ async def test_async_step_configure_modules_handles_empty_and_gps_paths() -> Non
 
 
 @pytest.mark.asyncio
+async def test_async_step_configure_modules_without_dogs_shows_final_step() -> None:
+    """Initial module step should jump to final setup when no dogs exist."""
+    flow = _ModuleFlowHarness(dogs=[])
+
+    result = await flow.async_step_configure_modules()
+
+    assert result["type"] == "create_entry"
+    assert flow.transitions[-1] == "final_setup"
+
+
+@pytest.mark.asyncio
 async def test_async_step_configure_dashboard_handles_payload() -> None:
     """Dashboard step exposes localized placeholders and persists settings."""
     dogs = [
