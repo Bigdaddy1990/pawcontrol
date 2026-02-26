@@ -38,3 +38,14 @@ def test_normalize_language_rejects_empty_default() -> None:
     """An empty default language should raise a ValueError."""
     with pytest.raises(ValueError, match="default language"):
         normalize_language("en", default="")
+
+
+def test_normalize_language_normalizes_default_value() -> None:
+    """Default values should be normalized before being returned."""
+    assert normalize_language(None, default=" PT_br ") == "pt"
+    assert normalize_language("it", supported={"en"}, default=" DE_at ") == "de"
+
+
+def test_normalize_language_normalizes_supported_values() -> None:
+    """Supported sets should match normalized values."""
+    assert normalize_language("DE_de", supported={"EN", "de_at"}, default="en") == "de"
