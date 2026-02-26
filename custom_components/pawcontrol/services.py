@@ -197,7 +197,7 @@ def _format_text_validation_error(error: ValidationError) -> str:
     if constraint == "Cannot be empty or whitespace":
         return f"{field} must be a non-empty string"
 
-    return f"{field} must be a number"
+    return f"{field} is invalid"
 
 
 def _coerce_service_bool(value: object, *, field: str) -> bool:
