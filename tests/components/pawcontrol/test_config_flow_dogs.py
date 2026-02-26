@@ -261,6 +261,7 @@ def test_health_input_helpers_cover_vaccines_medications_and_diets() -> None:
         "diabetic",
         "puppy_formula",
         "senior_formula",
+        "diabetic",
     }
     assert diet_validation["valid"] is False
     assert diet_validation["recommended_vet_consultation"] is True
