@@ -176,6 +176,11 @@ def _format_gps_validation_error(
             f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
         )
 
+    if field == "gps_update_interval":
+        return f"{field} must be a whole number"
+    if constraint is None and field in {"gps_accuracy", "geofence_radius"}:
+        return f"{field} must be a number"
+
     return f"{field} is invalid"
 
 
