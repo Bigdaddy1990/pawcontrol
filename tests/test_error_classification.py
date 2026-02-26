@@ -44,10 +44,12 @@ def test_classify_error_reason_uses_error_hints(error: str, expected: str) -> No
     assert classify_error_reason("not_mapped", error=error) == expected
 
 
-def test_classify_error_reason_handles_none_and_whitespace_unknown() -> None:
-    """Unknown or empty inputs should classify as unknown."""
+def test_classify_error_reason_returns_unknown_for_unmapped_inputs() -> None:
+    """Unknown, empty, or unmapped inputs should classify as 'unknown'."""
     assert classify_error_reason(None, error=None) == "unknown"
     assert classify_error_reason("  ", error="  ") == "unknown"
+    assert classify_error_reason("unmapped_reason") == "unknown"
+    assert classify_error_reason("unmapped_reason", error="no hints here") == "unknown"
 
 
 def test_classify_error_reason_treats_exception_reason_explicitly() -> None:
