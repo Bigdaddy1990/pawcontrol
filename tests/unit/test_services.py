@@ -156,8 +156,8 @@ def test_format_gps_validation_error(
         ("name_required", "dog_name is required"),
         ("Must be text", "dog_name must be a string"),
         ("Cannot be empty or whitespace", "dog_name must be a non-empty string"),
-        ("unexpected", "dog_name must be a number"),
-        (None, "dog_name must be a number"),
+        ("unexpected", "dog_name is invalid"),
+        (None, "dog_name is invalid"),
     ],
 )
 def test_format_text_validation_error(
