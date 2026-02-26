@@ -41,7 +41,7 @@ class _SystemSettingsHost(SystemSettingsOptionsMixin):
     def _coerce_int(self, value: Any, default: int) -> int:
         try:
             return int(value)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return default
 
     def async_create_entry(self, *, title: str, data: dict[str, Any]) -> dict[str, Any]:
@@ -99,29 +99,25 @@ async def test_async_step_push_settings_shows_form() -> None:
 @pytest.mark.asyncio
 async def test_async_step_push_settings_normalizes_user_input() -> None:
     """Push settings input is normalized and persisted."""
-    host = _SystemSettingsHost(
-        {
-            CONF_MQTT_TOPIC: "pawcontrol/default",
-            CONF_PUSH_PAYLOAD_MAX_BYTES: 2048,
-            CONF_PUSH_NONCE_TTL_SECONDS: 120,
-            CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: 10,
-            CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: 20,
-            CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: 30,
-            CONF_WEBHOOK_SECRET: "old-secret",
-        }
-    )
+    host = _SystemSettingsHost({
+        CONF_MQTT_TOPIC: "pawcontrol/default",
+        CONF_PUSH_PAYLOAD_MAX_BYTES: 2048,
+        CONF_PUSH_NONCE_TTL_SECONDS: 120,
+        CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: 10,
+        CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: 20,
+        CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: 30,
+        CONF_WEBHOOK_SECRET: "old-secret",
+    })
 
-    result = await host.async_step_push_settings(
-        {
-            CONF_MQTT_TOPIC: " pawcontrol/custom ",
-            CONF_PUSH_PAYLOAD_MAX_BYTES: "4096",
-            CONF_PUSH_NONCE_TTL_SECONDS: "300",
-            CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: "60",
-            CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: "50",
-            CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: "40",
-            CONF_WEBHOOK_SECRET: "",
-        }
-    )
+    result = await host.async_step_push_settings({
+        CONF_MQTT_TOPIC: " pawcontrol/custom ",
+        CONF_PUSH_PAYLOAD_MAX_BYTES: "4096",
+        CONF_PUSH_NONCE_TTL_SECONDS: "300",
+        CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: "60",
+        CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: "50",
+        CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: "40",
+        CONF_WEBHOOK_SECRET: "",
+    })
 
     assert result["type"] == "create_entry"
     saved = result["data"]

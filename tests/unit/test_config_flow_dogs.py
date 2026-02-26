@@ -5,12 +5,12 @@ from types import MappingProxyType
 import pytest
 
 from custom_components.pawcontrol.config_flow_dogs import (
-    _coerce_bool,
     _build_add_another_summary_placeholders,
     _build_add_dog_placeholders,
     _build_dog_feeding_placeholders,
     _build_dog_modules_placeholders,
     _build_module_setup_placeholders,
+    _coerce_bool,
 )
 from custom_components.pawcontrol.config_flow_placeholders import (
     _build_add_another_placeholders,

@@ -161,9 +161,9 @@ def test_get_module_data_uses_dog_payload_when_accessor_is_missing() -> None:
 
 def test_get_module_data_rejects_invalid_module_name() -> None:
     """Invalid module names should always produce empty mappings."""
-    sensor = _build_sensor(
-        {"alpha": cast(CoordinatorDogData, {"gps": {"status": "ok"}})}
-    )
+    sensor = _build_sensor({
+        "alpha": cast(CoordinatorDogData, {"gps": {"status": "ok"}})
+    })
 
     assert sensor._get_module_data("") == {}
     assert sensor._get_module_data(cast(Any, None)) == {}
@@ -250,19 +250,17 @@ def test_sensor_base_coercion_helpers() -> None:
 
 def test_sensor_module_accessor_helpers_delegate_to_module_lookup() -> None:
     """Module accessor helpers should delegate through ``_get_module_data``."""
-    sensor = _build_sensor(
-        {
-            "alpha": cast(
-                CoordinatorDogData,
-                {
-                    "feeding": {"diet": "balanced"},
-                    "walk": {"distance_km": 1.2},
-                    "gps": {"status": "tracking"},
-                    "health": {"activity": "normal"},
-                },
-            )
-        }
-    )
+    sensor = _build_sensor({
+        "alpha": cast(
+            CoordinatorDogData,
+            {
+                "feeding": {"diet": "balanced"},
+                "walk": {"distance_km": 1.2},
+                "gps": {"status": "tracking"},
+                "health": {"activity": "normal"},
+            },
+        )
+    })
 
     assert sensor._get_feeding_module() == {"diet": "balanced"}
     assert sensor._get_walk_module() == {"distance_km": 1.2}

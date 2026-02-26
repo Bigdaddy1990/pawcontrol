@@ -377,28 +377,26 @@ def test_cache_repair_summary_aggregates_anomalies(tmp_path: Path) -> None:
         dogs_config=[],
     )
 
-    summary = manager.cache_repair_summary(
-        {
-            "storage_visitor_mode": {
-                "stats": {"entries": "4", "hits": "1", "misses": "7"},
-                "diagnostics": {
-                    "expired_entries": "2",
-                    "expired_via_override": "1",
-                    "pending_expired_entries": "1",
-                    "pending_override_candidates": "3",
-                    "active_override_flags": "1",
-                    "timestamp_anomalies": {
-                        "buddy": "stale",
-                        "max": "unparseable",
-                    },
+    summary = manager.cache_repair_summary({
+        "storage_visitor_mode": {
+            "stats": {"entries": "4", "hits": "1", "misses": "7"},
+            "diagnostics": {
+                "expired_entries": "2",
+                "expired_via_override": "1",
+                "pending_expired_entries": "1",
+                "pending_override_candidates": "3",
+                "active_override_flags": "1",
+                "timestamp_anomalies": {
+                    "buddy": "stale",
+                    "max": "unparseable",
                 },
             },
-            "coordinator_modules": {
-                "stats": {"entries": 1, "hits": 4, "misses": 0, "hit_rate": 100.0},
-                "diagnostics": {"errors": ["adapter failed"]},
-            },
-        }
-    )
+        },
+        "coordinator_modules": {
+            "stats": {"entries": 1, "hits": 4, "misses": 0, "hit_rate": 100.0},
+            "diagnostics": {"errors": ["adapter failed"]},
+        },
+    })
 
     assert summary is not None
     assert summary.severity == "error"
@@ -441,12 +439,10 @@ def test_cache_repair_summary_ignores_invalid_snapshots(tmp_path: Path) -> None:
 
     assert manager.cache_repair_summary({}) is None
 
-    summary = manager.cache_repair_summary(
-        {
-            "": {"stats": {"entries": 2, "hits": 2, "misses": 0}},
-            "valid_cache": object(),
-        }
-    )
+    summary = manager.cache_repair_summary({
+        "": {"stats": {"entries": 2, "hits": 2, "misses": 0}},
+        "valid_cache": object(),
+    })
 
     assert summary is not None
     assert summary.total_caches == 2

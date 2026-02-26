@@ -5,20 +5,18 @@ from datetime import datetime, timedelta
 from typing import cast
 
 from custom_components.pawcontrol.sensor import (
-    SENSOR_MAPPING,
-    _normalise_attributes,
-    _suggested_precision_from_unit,
-    get_activity_score_cache_ttl,
-    register_sensor,
     MASS_GRAMS,
     MASS_KILOGRAMS,
     PERCENTAGE,
+    SENSOR_MAPPING,
     UnitOfLength,
     UnitOfTime,
     _coerce_budget_remaining,
     _is_budget_exhausted,
+    _normalise_attributes,
     _suggested_precision_from_unit,
     get_activity_score_cache_ttl,
+    register_sensor,
 )
 
 
@@ -63,9 +61,12 @@ def test_suggested_precision_handles_none_and_unknown_units() -> None:
 def test_activity_score_cache_ttl_defaults_when_missing_or_invalid() -> None:
     """Missing, invalid, and non-positive intervals should use default TTL."""
     assert get_activity_score_cache_ttl(cast(object, _CoordinatorStub(None))) == 300
-    assert get_activity_score_cache_ttl(
-        cast(object, _CoordinatorStub(_InvalidTotalSeconds()))
-    ) == 300
+    assert (
+        get_activity_score_cache_ttl(
+            cast(object, _CoordinatorStub(_InvalidTotalSeconds()))
+        )
+        == 300
+    )
     assert (
         get_activity_score_cache_ttl(
             cast(object, _CoordinatorStub(_TypeErrorTotalSeconds()))
@@ -98,7 +99,7 @@ def test_register_sensor_adds_class_to_mapping() -> None:
     mapping_key = "unit_test_sensor"
 
     @register_sensor(mapping_key)
-    class _RegisteredSensor:  # noqa: D401 - tiny inline test class
+    class _RegisteredSensor:
         """Inline class used to validate decorator wiring."""
 
     try:
@@ -122,6 +123,8 @@ def test_normalise_attributes_serialises_complex_values() -> None:
     assert normalised["duration"] == "0:05:00"
     assert sorted(cast(list[str], normalised["values"])) == ["a", "b"]
     assert str(normalised["opaque"]).startswith("<object object at")
+
+
 @dataclass(slots=True)
 class _BudgetStub:
     """Budget test double exposing a ``remaining`` attribute."""

@@ -1,8 +1,7 @@
 """Tests for package-level exports in ``custom_components.pawcontrol.utils``."""
 
 import custom_components.pawcontrol.utils as utils
-from custom_components.pawcontrol.utils import _legacy
-from custom_components.pawcontrol.utils import serialize as serialize_module
+from custom_components.pawcontrol.utils import _legacy, serialize as serialize_module
 
 
 def test_utils_all_is_sorted_and_has_no_private_names() -> None:
@@ -32,8 +31,6 @@ def test_utils_re_exports_known_legacy_helpers() -> None:
 
 def test_utils_exports_include_legacy_public_members() -> None:
     """All non-private names from ``_legacy`` should be present in ``__all__``."""
-    legacy_public_names = {
-        name for name in vars(_legacy) if not name.startswith("_")
-    }
+    legacy_public_names = {name for name in vars(_legacy) if not name.startswith("_")}
 
     assert legacy_public_names <= set(utils.__all__)
