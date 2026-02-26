@@ -242,18 +242,14 @@ def test_health_input_helpers_cover_vaccines_medications_and_diets() -> None:
     )
     diet_validation = flow._validate_diet_combinations(diets)
 
-    assert conditions == [
-        "diabetes",
-        "digestive_issues",
-        "skin_allergy",
-        "joint_pain",
-    ]
+    assert conditions == ["diabetes", "allergies", "skin_issue", "digestive"]
     assert set(diets) == {
         "prescription",
         "kidney_support",
         "organic",
         "hypoallergenic",
         "raw_diet",
+        "diabetic",
         "puppy_formula",
         "senior_formula",
     }
