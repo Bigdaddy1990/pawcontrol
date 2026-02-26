@@ -20,7 +20,7 @@ from .const import (
 from .door_sensor_manager import ensure_door_sensor_settings_config
 from .flows.walk_helpers import WALK_SETTINGS_FIELDS
 from .repairs import ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE, async_create_issue
-from .runtime_data import require_runtime_data
+from .runtime_data import RuntimeDataUnavailableError, require_runtime_data
 from .selector_shim import selector
 from .telemetry import record_door_sensor_persistence_failure
 from .types import (
