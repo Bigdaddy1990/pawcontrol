@@ -81,6 +81,51 @@ def test_performance_tracker_records_runs_and_failures() -> None:
     assert len(bucket["durations_ms"]) == 2
 
 
+def test_performance_tracker_recovers_from_invalid_store_shapes() -> None:
+    runtime_data = SimpleNamespace(
+        _performance_stats={
+            "performance_buckets": {
+                "refresh": {
+                    "runs": "1",
+                    "failures": None,
+                    "durations_ms": "invalid",
+                }
+            }
+        }
+    )
+
+    with performance.performance_tracker(runtime_data, "refresh", max_samples=3) as ctx:
+        ctx.mark_failure(RuntimeError("bad"))
+
+    bucket = runtime_data._performance_stats["performance_buckets"]["refresh"]
+    assert bucket["runs"] == 2
+    assert bucket["failures"] == 1
+    assert isinstance(bucket["durations_ms"], list)
+    assert len(bucket["durations_ms"]) == 1
+
+
+def test_performance_tracker_initializes_store_from_private_attribute() -> None:
+    runtime_data = SimpleNamespace(_performance_stats="invalid")
+
+    with performance.performance_tracker(runtime_data, "refresh"):
+        pass
+
+    assert isinstance(runtime_data._performance_stats, dict)
+    bucket = runtime_data._performance_stats["performance_buckets"]["refresh"]
+    assert bucket["runs"] == 1
+
+
+def test_performance_tracker_handles_non_mapping_bucket_container() -> None:
+    runtime_data = SimpleNamespace(performance_stats={"performance_buckets": []})
+
+    with performance.performance_tracker(runtime_data, "refresh"):
+        pass
+
+    assert isinstance(runtime_data.performance_stats["performance_buckets"], dict)
+    bucket = runtime_data.performance_stats["performance_buckets"]["refresh"]
+    assert bucket["runs"] == 1
+
+
 def test_record_maintenance_result_merges_legacy_history_and_metadata() -> None:
     existing_event = {"task": "old", "status": "ok"}
     runtime_data = SimpleNamespace(
