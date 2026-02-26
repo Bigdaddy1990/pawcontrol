@@ -71,5 +71,7 @@ _LEGACY_EXPORTS = {name for name in vars(_legacy_utils) if not name.startswith("
 # Populate this module's namespace with the legacy public symbols explicitly,
 # instead of using "from ._legacy import *".
 for _name in _LEGACY_EXPORTS:
+    if _name in _SERIALIZE_EXPORTS:
+        continue
     globals()[_name] = getattr(_legacy_utils, _name)
 __all__ = sorted(_LEGACY_EXPORTS | _SERIALIZE_EXPORTS | _EXPLICIT_LEGACY_EXPORTS)

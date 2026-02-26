@@ -898,6 +898,7 @@ class PawControlConfigFlow(
         state_signature = self._get_validation_state_signature()
         cached_entry = self._validation_cache.get(cache_key)
         now_ts = dt_util.utcnow().timestamp()
+        clock_token = id(dt_util.utcnow)
 
         if cached_entry is not None:
             cached_result_raw = cached_entry.get("result")
@@ -907,6 +908,7 @@ class PawControlConfigFlow(
                 else None
             )
             cached_state = cached_entry.get("state_signature")
+            cached_clock_token = cached_entry.get("clock_token")
             cached_at_raw = cached_entry.get("cached_at")
             cached_at = (
                 float(cached_at_raw) if isinstance(cached_at_raw, int | float) else 0.0
@@ -914,6 +916,7 @@ class PawControlConfigFlow(
 
             if (
                 cached_state == state_signature
+                and cached_clock_token == clock_token
                 and cached_result is not None
                 and now_ts - cached_at < 60
             ):
@@ -934,6 +937,7 @@ class PawControlConfigFlow(
             "result": cloned_result,
             "cached_at": now_ts,
             "state_signature": state_signature,
+            "clock_token": clock_token,
         }
         self._validation_cache[cache_key] = cache_payload
         config_flow_monitor.record_validation("dog_input_validated")
