@@ -219,13 +219,11 @@ async def test_handle_existing_discovery_entry_paths(
         return None
 
     flow._async_get_entry_for_unique_id = _none  # type: ignore[assignment]
-    flow._abort_if_unique_id_configured = (
-        lambda **kwargs: {
-            "type": "abort",
-            "reason": "already_configured",
-            **kwargs,
-        }
-    )  # type: ignore[assignment]
+    flow._abort_if_unique_id_configured = lambda **kwargs: {
+        "type": "abort",
+        "reason": "already_configured",
+        **kwargs,
+    }  # type: ignore[assignment]
     result = await flow._handle_existing_discovery_entry(
         updates={"name": "paw"},
         comparison={},

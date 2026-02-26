@@ -278,12 +278,16 @@ class TestErrorHandling:
         )
         assert errors == {"test_field": "required"}
 
-    def test_validate_required_field_legacy_api_type_error_on_missing_values(self) -> None:
+    def test_validate_required_field_legacy_api_type_error_on_missing_values(
+        self,
+    ) -> None:  # noqa: E501
         """Test legacy API requires errors, field, and value args."""
         with pytest.raises(TypeError, match="legacy validate_required_field requires"):
             validate_required_field({})
 
-    def test_validate_required_field_type_error_on_missing_field_and_value(self) -> None:
+    def test_validate_required_field_type_error_on_missing_field_and_value(
+        self,
+    ) -> None:  # noqa: E501
         """Test new API requires at least field_name and value."""
         with pytest.raises(TypeError, match="requires field_name and value"):
             validate_required_field("test_field")
