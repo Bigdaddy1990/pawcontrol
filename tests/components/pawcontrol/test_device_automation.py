@@ -11,6 +11,7 @@ from homeassistant.const import (
     CONF_ENTITY_ID,
     CONF_FROM,
     CONF_METADATA,
+    CONF_PLATFORM,
     CONF_TO,
     CONF_TYPE,
     STATE_ON,
@@ -35,6 +36,7 @@ from custom_components.pawcontrol.device_condition import (
     async_get_conditions,
 )
 from custom_components.pawcontrol.device_trigger import (
+    async_attach_trigger,
     async_get_trigger_capabilities,
     async_get_triggers,
 )
@@ -380,6 +382,148 @@ async def test_trigger_capabilities_status_changed(
     fields({CONF_FROM: "sleeping", CONF_TO: "playing"})
 
     assert (await async_get_trigger_capabilities(hass, {CONF_TYPE: "hungry"})) == {}
+
+
+@pytest.mark.asyncio
+async def test_attach_trigger_requires_entity_id(hass: HomeAssistant) -> None:
+    """Reject trigger attachments that cannot resolve an entity."""
+    with pytest.raises(vol.Invalid, match="Missing entity_id"):
+        await async_attach_trigger(
+            hass,
+            {
+                CONF_PLATFORM: "device",
+                CONF_DEVICE_ID: "device-id",
+                CONF_DOMAIN: DOMAIN,
+                CONF_TYPE: "hungry",
+            },
+            AsyncMock(),
+            {"description": "Hungry trigger"},
+        )
+
+
+@pytest.mark.asyncio
+async def test_attach_trigger_schedules_action_when_states_match(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Attach trigger should dispatch the action payload when state filters match."""
+    captured: dict[str, object] = {}
+    unsubscribe = object()
+
+    def _track_state_change_event(
+        _hass: HomeAssistant,
+        entity_ids: list[str],
+        listener,
+    ) -> object:
+        captured["entity_ids"] = entity_ids
+        captured["listener"] = listener
+        return unsubscribe
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.device_trigger.async_track_state_change_event",
+        _track_state_change_event,
+    )
+
+    scheduled: list[object] = []
+    monkeypatch.setattr(hass, "async_create_task", lambda coro: scheduled.append(coro))
+
+    action = AsyncMock()
+    removal = await async_attach_trigger(
+        hass,
+        {
+            CONF_PLATFORM: "device",
+            CONF_DEVICE_ID: "device-id",
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "hungry",
+            CONF_ENTITY_ID: "binary_sensor.pawcontrol_buddy_is_hungry",
+            CONF_FROM: "off",
+            CONF_TO: "on",
+        },
+        action,
+        {"description": "Hungry trigger"},
+    )
+
+    assert removal is unsubscribe
+    assert captured["entity_ids"] == ["binary_sensor.pawcontrol_buddy_is_hungry"]
+
+    callback = captured["listener"]
+    event = Mock(
+        data={
+            "old_state": Mock(state="off"),
+            "new_state": Mock(state="on"),
+        }
+    )
+    callback(event)
+
+    assert len(scheduled) == 1
+    await scheduled[0]
+
+    action.assert_awaited_once()
+    payload = action.await_args.args[0]
+    assert payload["platform"] == "device"
+    assert payload["device_id"] == "device-id"
+    assert payload["domain"] == DOMAIN
+    assert payload["type"] == "hungry"
+    assert payload["entity_id"] == "binary_sensor.pawcontrol_buddy_is_hungry"
+    assert payload["description"] == "Hungry trigger"
+
+
+@pytest.mark.asyncio
+async def test_attach_trigger_ignores_events_that_do_not_match_filters(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """State filters should block callbacks when old/new values do not match."""
+    captured: dict[str, object] = {}
+
+    def _track_state_change_event(
+        _hass: HomeAssistant,
+        _entity_ids: list[str],
+        listener,
+    ) -> object:
+        captured["listener"] = listener
+        return object()
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.device_trigger.async_track_state_change_event",
+        _track_state_change_event,
+    )
+
+    action = AsyncMock()
+    await async_attach_trigger(
+        hass,
+        {
+            CONF_PLATFORM: "device",
+            CONF_DEVICE_ID: "device-id",
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "hungry",
+            CONF_ENTITY_ID: "binary_sensor.pawcontrol_buddy_is_hungry",
+            CONF_FROM: "off",
+            CONF_TO: "on",
+        },
+        action,
+        {"description": "Hungry trigger"},
+    )
+
+    callback = captured["listener"]
+    callback(
+        Mock(
+            data={
+                "old_state": Mock(state="idle"),
+                "new_state": Mock(state="on"),
+            }
+        )
+    )
+    callback(
+        Mock(
+            data={
+                "old_state": Mock(state="off"),
+                "new_state": Mock(state="idle"),
+            }
+        )
+    )
+
+    action.assert_not_awaited()
 
 
 @pytest.mark.asyncio
