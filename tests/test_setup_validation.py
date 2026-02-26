@@ -105,6 +105,11 @@ def test_validate_profile_falls_back_for_unknown(
 
     assert _validate_profile(entry) == "standard"
     assert "Unknown profile 'mystery', using 'standard'" in caplog.text
+    assert any(
+        record.levelname == "WARNING"
+        and "Unknown profile 'mystery', using 'standard'" in record.message
+        for record in caplog.records
+    )
 
 
 def test_extract_enabled_modules_ignores_invalid_and_unknown(
@@ -127,3 +132,11 @@ def test_extract_enabled_modules_ignores_invalid_and_unknown(
         in caplog.text
     )
     assert "Ignoring unknown PawControl modules: new_module" in caplog.text
+    warning_messages = {
+        record.message for record in caplog.records if record.levelname == "WARNING"
+    }
+    assert (
+        "Ignoring modules for dog buddy because configuration is not a mapping"
+        in warning_messages
+    )
+    assert "Ignoring unknown PawControl modules: new_module" in warning_messages
