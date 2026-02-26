@@ -176,7 +176,12 @@ def _format_gps_validation_error(
             f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
         )
 
-    return f"{field} must be a number"
+    if field == "gps_update_interval":
+        return f"{field} must be a whole number"
+    if field in {"gps_accuracy", "geofence_radius"}:
+        return f"{field} must be a number"
+
+    return f"{field} is invalid"
 
 
 def _format_text_validation_error(error: ValidationError) -> str:
@@ -248,8 +253,9 @@ def _format_expires_in_hours_error(error: ValidationError) -> str:
             return f"{field} must be less than {_format_numeric_value(error.max_value)}"
         return f"{field} is out of range"
 
-    if not isinstance(error.value, int | float):
+    if isinstance(error.value, bool) or not isinstance(error.value, int | float):
         return f"{field} must be a number"
+
     return f"{field} is invalid"
 
 

@@ -1154,7 +1154,6 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             if _coerce_bool(user_input.get(diet_option), default=False)
         ]
 
-
         # Validate diet combinations for conflicts
         validation_result: DietValidationResult = self._validate_diet_combinations(
             diet_requirements,
