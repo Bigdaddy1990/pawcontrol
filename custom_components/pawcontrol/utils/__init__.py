@@ -75,6 +75,12 @@ for _name in _LEGACY_EXPORTS:
         continue
     globals()[_name] = getattr(_legacy_utils, _name)
 
+# Rebind serialize helpers after legacy export population so package-level
+# symbols always resolve to the serialize submodule implementations.
+serialize_datetime = _serialize_module.serialize_datetime
+serialize_timedelta = _serialize_module.serialize_timedelta
+serialize_dataclass = _serialize_module.serialize_dataclass
+serialize_entity_attributes = _serialize_module.serialize_entity_attributes
 # Keep serialization helpers bound to ``utils.serialize`` re-exports.
 globals().update(
     {symbol.__name__: symbol for symbol in _SERIALIZE_SYMBOLS},

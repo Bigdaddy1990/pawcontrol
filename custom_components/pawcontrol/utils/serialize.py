@@ -163,3 +163,14 @@ def _serialize_value(value: Any) -> Any:
 
     # Fallback: convert to string
     return str(value)
+
+
+# Keep package-level re-exports synchronized when this module is reloaded.
+_parent_utils_module = __import__("sys").modules.get(
+    "custom_components.pawcontrol.utils"
+)
+if _parent_utils_module is not None:
+    _parent_utils_module.serialize_datetime = serialize_datetime
+    _parent_utils_module.serialize_timedelta = serialize_timedelta
+    _parent_utils_module.serialize_dataclass = serialize_dataclass
+    _parent_utils_module.serialize_entity_attributes = serialize_entity_attributes

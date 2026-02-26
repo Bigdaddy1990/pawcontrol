@@ -155,7 +155,6 @@ async def test_async_get_entry_for_unique_id_awaitable_entries(
 @pytest.mark.asyncio
 async def test_validate_dog_input_cached_reuses_recent_cached_result(
     flow: PawControlConfigFlow,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[dict[str, object]] = []
 
@@ -172,6 +171,9 @@ async def test_validate_dog_input_cached_reuses_recent_cached_result(
     assert first == dog_input
     assert second == dog_input
     assert len(calls) == 1
+
+    cache_key = "buddy_Buddy_12"
+    flow._validation_cache[cache_key]["cached_at"] = 0.0
 
     flow._existing_dog_ids.add("another-dog")
     third = await flow._validate_dog_input_cached(dog_input)
