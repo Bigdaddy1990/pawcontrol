@@ -333,13 +333,21 @@ class PawControlDogEntityBase(PawControlEntity):
 
     def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
         """Return coordinator module data with strict mapping validation."""
-        if not isinstance(module, str) or not module:
+        if not isinstance(module, str) or not (module_name := module.strip()):
             return cast(CoordinatorUntypedModuleState, {})
+        if module_name != module:
+            _LOGGER.debug(
+                "Normalized module lookup key from %r to %r for dog %s",
+                module,
+                module_name,
+                self._dog_id,
+            )
+
         payload: object
         try:
             module_lookup = getattr(self.coordinator, "get_module_data", None)
             if callable(module_lookup):
-                payload = module_lookup(self._dog_id, module)
+                payload = module_lookup(self._dog_id, module_name)
             else:
                 _LOGGER.debug(
                     "Coordinator for dog %s has no callable get_module_data; "
@@ -347,12 +355,12 @@ class PawControlDogEntityBase(PawControlEntity):
                     self._dog_id,
                 )
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
-                payload = dog_data.get(module, {})
+                payload = dog_data.get(module_name, dog_data.get(module, {}))
         except AttributeError:
             _LOGGER.warning(
                 "Coordinator lookup failed for %s/%s (missing attribute)",
                 self._dog_id,
-                module,
+                module_name,
                 exc_info=True,
             )
             return cast(CoordinatorUntypedModuleState, {})
@@ -360,7 +368,7 @@ class PawControlDogEntityBase(PawControlEntity):
             _LOGGER.warning(
                 "Coordinator lookup failed for %s/%s (missing key/index)",
                 self._dog_id,
-                module,
+                module_name,
                 exc_info=True,
             )
             return cast(CoordinatorUntypedModuleState, {})
@@ -368,7 +376,7 @@ class PawControlDogEntityBase(PawControlEntity):
             _LOGGER.warning(
                 "Coordinator lookup failed for %s/%s (type mismatch)",
                 self._dog_id,
-                module,
+                module_name,
                 exc_info=True,
             )
             return cast(CoordinatorUntypedModuleState, {})
@@ -376,7 +384,7 @@ class PawControlDogEntityBase(PawControlEntity):
             _LOGGER.warning(
                 "Coordinator lookup failed for %s/%s (invalid value)",
                 self._dog_id,
-                module,
+                module_name,
                 exc_info=True,
             )
             return cast(CoordinatorUntypedModuleState, {})
@@ -384,7 +392,7 @@ class PawControlDogEntityBase(PawControlEntity):
             _LOGGER.warning(
                 "Error fetching module data for %s/%s: %s (%s)",
                 self._dog_id,
-                module,
+                module_name,
                 err,
                 err.__class__.__name__,
                 exc_info=True,
@@ -394,7 +402,7 @@ class PawControlDogEntityBase(PawControlEntity):
             _LOGGER.warning(
                 "Invalid module payload for %s/%s: expected mapping, got %s (value=%r)",
                 self._dog_id,
-                module,
+                module_name,
                 type(payload).__name__,
                 str(payload)[:100],
             )
