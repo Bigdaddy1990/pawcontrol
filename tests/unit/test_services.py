@@ -117,7 +117,12 @@ def test_service_validation_error_trims_whitespace() -> None:
             "m",
             "geofence_radius must be between 1 and 30m",
         ),
-        ("gps_accuracy", "unknown_constraint", None, "gps_accuracy is invalid"),
+        (
+            "gps_accuracy",
+            "unknown_constraint",
+            None,
+            "gps_accuracy must be a number",
+        ),
     ],
 )
 def test_format_gps_validation_error(
@@ -144,8 +149,8 @@ def test_format_gps_validation_error(
         ("name_required", "dog_name is required"),
         ("Must be text", "dog_name must be a string"),
         ("Cannot be empty or whitespace", "dog_name must be a non-empty string"),
-        ("unexpected", "dog_name is invalid"),
-        (None, "dog_name is invalid"),
+        ("unexpected", "dog_name must be a number"),
+        (None, "dog_name must be a number"),
     ],
 )
 def test_format_text_validation_error(
@@ -203,7 +208,7 @@ def test_format_expires_in_hours_error_boundary_cases() -> None:
     )
     assert (
         services._format_expires_in_hours_error(generic)
-        == "expires_in_hours is invalid"
+        == "expires_in_hours must be a number"
     )
     assert (
         services._format_expires_in_hours_error(unknown_numeric)
