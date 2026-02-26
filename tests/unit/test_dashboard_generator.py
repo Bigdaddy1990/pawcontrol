@@ -453,6 +453,40 @@ async def test_renderer_forwards_statistics_context(
 
 
 @pytest.mark.asyncio
+async def test_renderer_main_dashboard_returns_empty_for_invalid_payload(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Invalid dashboard payloads should short-circuit with an empty result."""
+    renderer = DashboardRenderer(hass)
+    execute_job = AsyncMock()
+    monkeypatch.setattr(renderer, "_execute_render_job", execute_job)
+
+    empty_for_none = await renderer.render_main_dashboard(None)
+    empty_for_string = await renderer.render_main_dashboard("invalid")
+
+    assert empty_for_none == {"views": []}
+    assert empty_for_string == {"views": []}
+    execute_job.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_renderer_dog_dashboard_returns_empty_for_invalid_payload(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Invalid per-dog payloads should skip rendering and return empty views."""
+    renderer = DashboardRenderer(hass)
+    execute_job = AsyncMock()
+    monkeypatch.setattr(renderer, "_execute_render_job", execute_job)
+
+    empty_for_none = await renderer.render_dog_dashboard(None)
+    empty_for_mapping = await renderer.render_dog_dashboard({"name": "Buddy"})
+
+    assert empty_for_none == {"views": []}
+    assert empty_for_mapping == {"views": []}
+    execute_job.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_write_dashboard_file_preserves_existing_file_on_error(
     hass, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
