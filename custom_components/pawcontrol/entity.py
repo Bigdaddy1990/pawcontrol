@@ -333,21 +333,25 @@ class PawControlDogEntityBase(PawControlEntity):
 
     def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
         """Return coordinator module data with strict mapping validation."""
-        if not isinstance(module, str) or not module:
+        if not isinstance(module, str):
             return cast(CoordinatorUntypedModuleState, {})
+
+        module_name = module.strip()
+        if not module_name:
+            return cast(CoordinatorUntypedModuleState, {})
+
+        coordinator_getter = getattr(self.coordinator, "get_module_data", None)
         try:
-            if hasattr(self.coordinator, "get_module_data"):
-                payload = self.coordinator.get_module_data(self._dog_id, module)
+            if callable(coordinator_getter):
+                payload = coordinator_getter(self._dog_id, module_name)
             else:
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
-                payload = dog_data.get(module, {})
+                payload = dog_data.get(module_name, {})
         except Exception as err:
-            # B10 FIX: Log the actual error so module failures surface in diagnostics.
-            # The original pragma: no cover comment was hiding real errors.
             _LOGGER.warning(
                 "Error fetching module data for %s/%s: %s (%s)",
                 self._dog_id,
-                module,
+                module_name,
                 err,
                 err.__class__.__name__,
             )
@@ -356,7 +360,7 @@ class PawControlDogEntityBase(PawControlEntity):
             _LOGGER.warning(
                 "Invalid module payload for %s/%s: expected mapping, got %s",
                 self._dog_id,
-                module,
+                module_name,
                 type(payload).__name__,
             )
             return cast(CoordinatorUntypedModuleState, {})
