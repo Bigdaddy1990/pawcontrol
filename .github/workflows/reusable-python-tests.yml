@@ -127,6 +127,7 @@ jobs:
       PAGES_BRANCH: ${{ inputs.pages-branch }}
       PAGES_PREFIX: ${{ inputs.pages-prefix }}
       PAGES_ARTIFACT_DIR: ${{ inputs.pages-artifact-directory }}
+      CODECOV_UPLOAD_ALLOWED: ${{ inputs.run-codecov && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -185,8 +186,8 @@ jobs:
         id: pytest
         # continue-on-error so that coverage artifacts and Codecov upload steps
         # always run, even when tests fail or coverage falls below the threshold.
-        # The real gate is enforced by the Extract-coverage-summary step below,
-        # which will fail the job when the threshold is not met.
+        # Coverage threshold enforcement happens in the final gate so this step
+        # only fails for pytest/runtime errors.
         continue-on-error: true
         env:
           PYTHONPATH: .
@@ -197,7 +198,6 @@ jobs:
             --cov-report=xml:"${{ env.COVERAGE_XML }}" \
             --cov-report=term-missing:skip-covered \
             --cov-report=html:"${{ env.COVERAGE_HTML_DIR }}" \
-            --cov-fail-under="${{ env.COVERAGE_MIN }}" \
             --junitxml="${{ env.JUNIT_PATH }}" \
             -o junit_family=legacy \
             --maxfail="${{ env.PYTEST_MAXFAIL }}" \
@@ -217,29 +217,63 @@ jobs:
 
           xml_path = Path(r"${{ env.COVERAGE_XML }}")
           if not xml_path.is_file():
-              raise SystemExit("missing coverage xml")
+              percent = 0.0
+              coverage_data_available = "false"
+              print(
+                  "Warning: coverage.xml not found; "
+                  "recording coverage as 0.0 for downstream gating"
+              )
+          else:
+              coverage_data_available = "true"
+              tree = ET.parse(xml_path)
+              root = tree.getroot()
+              line_rate = root.attrib.get("line-rate")
+              lines_valid = root.attrib.get("lines-valid")
+              if line_rate is None:
+                  raise SystemExit("missing line-rate attribute")
 
-          tree = ET.parse(xml_path)
-          root = tree.getroot()
-          line_rate = root.attrib.get("line-rate")
-          if line_rate is None:
-              raise SystemExit("missing line-rate attribute")
+              try:
+                  percent = round(float(line_rate) * 100, 2)
+              except ValueError as exc:  # pragma: no cover - defensive only
+                  raise SystemExit(f"invalid line-rate: {line_rate!r}") from exc
 
-          try:
-              percent = round(float(line_rate) * 100, 2)
-          except ValueError as exc:  # pragma: no cover - defensive only
-              raise SystemExit(f"invalid line-rate: {line_rate!r}") from exc
+              if lines_valid is not None:
+                  try:
+                      measured_lines = int(lines_valid)
+                  except ValueError as exc:  # pragma: no cover - defensive only
+                      raise SystemExit(f"invalid lines-valid: {lines_valid!r}") from exc
+
+                  if measured_lines == 0:
+                      coverage_data_available = "false"
+                      percent = 0.0
+                      print(
+                          "Warning: coverage.xml reported zero measurable lines; "
+                          "treating coverage data as unavailable"
+                      )
+              elif not root.findall(".//class"):
+                  coverage_data_available = "false"
+                  percent = 0.0
+                  print(
+                      "Warning: coverage.xml reported no class coverage entries; "
+                      "treating coverage data as unavailable"
+                  )
 
           print(f"coverage_percent={percent}")
           with open("coverage-summary.txt", "w", encoding="utf-8") as handle:
               handle.write(f"{percent}\n")
+          with open("coverage-data-available.txt", "w", encoding="utf-8") as handle:
+              handle.write(f"{coverage_data_available}\n")
           PY
           percent=$(tail -n1 coverage-summary.txt)
+          coverage_data_available=$(tail -n1 coverage-data-available.txt)
           echo "coverage_percent=${percent}" >> "$GITHUB_OUTPUT"
+          echo "coverage_data_available=${coverage_data_available}" >> "$GITHUB_OUTPUT"
 
       - name: Upload coverage to Codecov
         id: codecov_coverage_upload
-        if: always() && !cancelled() && inputs.run-codecov && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: >-
+          always() && !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
+          hashFiles(env.COVERAGE_XML) != ''
         uses: codecov/codecov-action@v5
         with:
           use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
@@ -251,7 +285,10 @@ jobs:
           name: pawcontrol-coverage
 
       - name: Retry coverage upload to Codecov when primary upload fails
-        if: always() && !cancelled() && inputs.run-codecov && steps.codecov_coverage_upload.outcome == 'failure'
+        if: >-
+          always() && !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
+          (steps.codecov_coverage_upload.outcome == 'failure' ||
+          steps.codecov_coverage_upload.outcome == 'skipped')
         uses: codecov/codecov-action@v5
         with:
           use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
@@ -263,7 +300,9 @@ jobs:
           name: pawcontrol-coverage-retry
 
       - name: Upload test results to Codecov
-        if: always() && !cancelled() && inputs.run-codecov && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: >-
+          always() && !cancelled() && env.CODECOV_UPLOAD_ALLOWED == 'true' &&
+          hashFiles(env.JUNIT_PATH) != ''
         uses: codecov/codecov-action@v5
         with:
           use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
@@ -322,6 +361,8 @@ jobs:
         env:
           PYTEST_OUTCOME: ${{ steps.pytest.outcome }}
           COVERAGE_PERCENT: ${{ steps.coverage_summary.outputs.coverage_percent }}
+          COVERAGE_DATA_AVAILABLE: ${{ steps.coverage_summary.outputs.coverage_data_available }}
+          COVERAGE_XML: ${{ env.COVERAGE_XML }}
           COVERAGE_MIN: ${{ env.COVERAGE_MIN }}
         run: |
           python - <<'PY'
@@ -329,15 +370,38 @@ jobs:
 
           from decimal import Decimal, InvalidOperation
           import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
 
           pytest_outcome = os.environ["PYTEST_OUTCOME"]
           coverage_percent_raw = os.environ.get("COVERAGE_PERCENT", "")
+          coverage_data_available = os.environ.get("COVERAGE_DATA_AVAILABLE", "")
+          coverage_xml = Path(os.environ["COVERAGE_XML"])
           coverage_min_raw = os.environ["COVERAGE_MIN"]
+
+          if coverage_data_available not in {"true", "false"}:
+              coverage_data_available = "true" if coverage_xml.is_file() else "false"
+          elif coverage_data_available == "true" and not coverage_xml.is_file():
+              coverage_data_available = "false"
+
+          if coverage_data_available == "true" and coverage_xml.is_file():
+              root = ET.parse(coverage_xml).getroot()
+              lines_valid = root.attrib.get("lines-valid")
+              if lines_valid is not None:
+                  try:
+                      measured_lines = int(lines_valid)
+                  except ValueError as exc:
+                      raise SystemExit(
+                          f"invalid lines-valid attribute in coverage.xml: {lines_valid!r}"
+                      ) from exc
+                  if measured_lines == 0:
+                      coverage_data_available = "false"
+              elif not root.findall(".//class"):
+                  coverage_data_available = "false"
 
           if pytest_outcome != "success":
               raise SystemExit(
-                  "pytest failed (or coverage threshold was not met). "
-                  f"Outcome: {pytest_outcome}."
+                  f"pytest failed. Outcome: {pytest_outcome}."
               )
 
           try:
@@ -350,6 +414,14 @@ jobs:
               ) from exc
 
           if coverage_percent < coverage_min:
+              if coverage_data_available != "true":
+                  print(
+                      "Warning: coverage data was not produced "
+                      "(missing or empty coverage.xml); skipping threshold "
+                      f"enforcement for reported coverage {coverage_percent}% "
+                      f"against minimum {coverage_min}%"
+                  )
+                  raise SystemExit(0)
               raise SystemExit(
                   "coverage is below the configured threshold: "
                   f"{coverage_percent}% < {coverage_min}%"

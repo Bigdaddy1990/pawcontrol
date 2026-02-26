@@ -4431,8 +4431,7 @@ class FeedingManager:
             Dictionary with snack addition results
         """
         async with self._lock:
-            config = self._configs.get(dog_id)
-            if not config:
+            if dog_id not in self._configs:
                 raise ValueError(
                     f"No feeding configuration found for dog {dog_id}",
                 )
@@ -4443,67 +4442,79 @@ class FeedingManager:
                     "Snack amount must be between 0 and 100 grams",
                 )
 
-            # Build enhanced notes with health benefit info
-            enhanced_notes = notes or ""
-            if health_benefit:
-                benefit_descriptions = {
-                    "digestive": "Supports digestive health",
-                    "dental": "Promotes dental health",
-                    "joint": "Supports joint health",
-                    "skin_coat": "Improves skin and coat health",
-                    "immune": "Boosts immune system",
-                    "calming": "Natural calming properties",
-                }
-                benefit_desc = benefit_descriptions.get(
-                    health_benefit,
-                    f"Health benefit: {health_benefit}",
-                )
-                enhanced_notes = (
-                    f"{benefit_desc}. {enhanced_notes}"
-                    if enhanced_notes
-                    else benefit_desc
-                )
-
-            # Add as feeding event
-            feeding_event = await self.async_add_feeding(
-                dog_id=dog_id,
-                amount=amount,
-                meal_type="snack",  # Use snack meal type
-                notes=enhanced_notes,
-                scheduled=False,  # Health snacks are typically unscheduled
+        # Build enhanced notes with health benefit info
+        enhanced_notes = notes or ""
+        if health_benefit:
+            benefit_descriptions = {
+                "digestive": "Supports digestive health",
+                "dental": "Promotes dental health",
+                "joint": "Supports joint health",
+                "skin_coat": "Improves skin and coat health",
+                "immune": "Boosts immune system",
+                "calming": "Natural calming properties",
+            }
+            benefit_desc = benefit_descriptions.get(
+                health_benefit,
+                f"Health benefit: {health_benefit}",
+            )
+            enhanced_notes = (
+                f"{benefit_desc}. {enhanced_notes}" if enhanced_notes else benefit_desc
             )
 
-            # Track health snack in daily stats (don't count towards meal requirements)  # noqa: E501
-            result = FeedingHealthSnackResult(
-                status="added",
-                dog_id=dog_id,
-                snack_type=snack_type,
-                amount=amount,
-                health_benefit=health_benefit,
-                feeding_event_id=feeding_event.time.isoformat(),
-                notes=enhanced_notes,
-                added_at=dt_util.now().isoformat(),
-            )
+        # Add as feeding event using the manager's lock path.
+        feeding_event = await self.async_add_feeding(
+            dog_id=dog_id,
+            amount=amount,
+            meal_type="snack",  # Use snack meal type
+            notes=enhanced_notes,
+            scheduled=False,  # Health snacks are typically unscheduled
+        )
 
-            _LOGGER.info(
-                "Added health snack for %s: %.1fg %s (%s)",
-                dog_id,
-                amount,
-                snack_type,
-                health_benefit or "general health",
-            )
+        # Track health snack in daily stats (don't count towards meal requirements)
+        result = FeedingHealthSnackResult(
+            status="added",
+            dog_id=dog_id,
+            snack_type=snack_type,
+            amount=amount,
+            health_benefit=health_benefit,
+            feeding_event_id=feeding_event.time.isoformat(),
+            notes=enhanced_notes,
+            added_at=dt_util.now().isoformat(),
+        )
 
-            return result
+        _LOGGER.info(
+            "Added health snack for %s: %.1fg %s (%s)",
+            dog_id,
+            amount,
+            snack_type,
+            health_benefit or "general health",
+        )
+
+        return result
 
     async def async_shutdown(self) -> None:
         """Clean shutdown of feeding manager."""
-        # Cancel all reminder tasks
-        for task in self._reminder_tasks.values():
-            task.cancel()
-        if self._reminder_tasks:
-            await asyncio.gather(*self._reminder_tasks.values(), return_exceptions=True)
-        # Clear all data
+        task_groups = (
+            self._reminder_tasks,
+            self._activity_reversion_tasks,
+            self._emergency_restore_tasks,
+            self._portion_reversion_tasks,
+        )
+        pending_tasks: list[asyncio.Task[None]] = []
+
+        for task_map in task_groups:
+            for task in task_map.values():
+                task.cancel()
+            pending_tasks.extend(task_map.values())
+
+        if pending_tasks:
+            await asyncio.gather(*pending_tasks, return_exceptions=True)
+
+        # Clear all runtime data
         self._reminder_tasks.clear()
+        self._activity_reversion_tasks.clear()
+        self._emergency_restore_tasks.clear()
+        self._portion_reversion_tasks.clear()
         self._reminder_events.clear()
         self._next_reminders.clear()
         self._feedings.clear()

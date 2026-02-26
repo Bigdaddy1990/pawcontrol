@@ -102,6 +102,30 @@ class _WrapperSession:
         return self._request(*args, **kwargs)
 
 
+class _MissingRequestSession:
+    """Session-like object lacking an aiohttp-style ``request`` callable."""
+
+    closed = False
+
+
+class _UnknownClosedStateSession:
+    """Session-like object with a non-boolean ``closed`` attribute."""
+
+    def __init__(self) -> None:
+        self.closed = "unknown"
+
+    async def request(self, *args: object, **kwargs: object) -> str:
+        return "ok"
+
+
+class _InstanceOnlyRequestSession:
+    """Session-like object with only an instance-level sync request method."""
+
+    def __init__(self) -> None:
+        self.closed = False
+        self.request = Mock()
+
+
 @pytest.mark.unit
 def test_ensure_shared_client_session_accepts_wrapped_request(
     http_client_module: ModuleType,
@@ -114,3 +138,43 @@ def test_ensure_shared_client_session_accepts_wrapped_request(
     validated = ensure_shared(session, owner="TestHelper")
 
     assert validated is session
+
+
+@pytest.mark.unit
+def test_ensure_shared_client_session_rejects_non_callable_request(
+    http_client_module: ModuleType,
+) -> None:
+    """Objects without a callable ``request`` attribute should be rejected."""
+    ensure_shared = http_client_module.ensure_shared_client_session
+
+    with pytest.raises(ValueError) as excinfo:
+        ensure_shared(_MissingRequestSession(), owner="TestHelper")
+
+    assert "aiohttp-compatible 'request' coroutine" in str(excinfo.value)
+
+
+@pytest.mark.unit
+def test_ensure_shared_client_session_ignores_non_bool_closed_state(
+    http_client_module: ModuleType,
+) -> None:
+    """Non-boolean ``closed`` markers should not be treated as closed pools."""
+    ensure_shared = http_client_module.ensure_shared_client_session
+
+    session = _UnknownClosedStateSession()
+
+    validated = ensure_shared(session, owner="TestHelper")
+
+    assert validated is session
+
+
+@pytest.mark.unit
+def test_ensure_shared_client_session_rejects_instance_only_sync_request(
+    http_client_module: ModuleType,
+) -> None:
+    """Sync request callables without class coroutine metadata must be rejected."""
+    ensure_shared = http_client_module.ensure_shared_client_session
+
+    with pytest.raises(ValueError) as excinfo:
+        ensure_shared(_InstanceOnlyRequestSession(), owner="TestHelper")
+
+    assert "aiohttp-compatible 'request' coroutine" in str(excinfo.value)

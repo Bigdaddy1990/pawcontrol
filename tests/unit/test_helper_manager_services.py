@@ -4,11 +4,11 @@ from types import SimpleNamespace
 from typing import Any, NotRequired, TypedDict, cast
 
 import pytest
-from tests.helpers.payloads import typed_deepcopy
 
 from custom_components.pawcontrol.helper_manager import PawControlHelperManager
 from custom_components.pawcontrol.service_guard import ServiceGuardResult
 from custom_components.pawcontrol.types import ServiceData
+from tests.helpers.payloads import typed_deepcopy
 
 
 class ServiceCallTargetPayload(TypedDict, total=False):

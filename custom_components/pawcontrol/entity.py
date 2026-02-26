@@ -344,9 +344,52 @@ class PawControlDogEntityBase(PawControlEntity):
         try:
             if callable(coordinator_getter):
                 payload = coordinator_getter(self._dog_id, module_name)
+        payload: object
+        try:
+            module_lookup = getattr(self.coordinator, "get_module_data", None)
+            if callable(module_lookup):
+                payload = module_lookup(self._dog_id, module)
             else:
+                _LOGGER.debug(
+                    "Coordinator for dog %s has no callable get_module_data; "
+                    "using get_dog_data fallback",
+                    self._dog_id,
+                )
                 dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
                 payload = dog_data.get(module_name, {})
+                payload = dog_data.get(module, {})
+        except AttributeError:
+            _LOGGER.warning(
+                "Coordinator lookup failed for %s/%s (missing attribute)",
+                self._dog_id,
+                module,
+                exc_info=True,
+            )
+            return cast(CoordinatorUntypedModuleState, {})
+        except LookupError:
+            _LOGGER.warning(
+                "Coordinator lookup failed for %s/%s (missing key/index)",
+                self._dog_id,
+                module,
+                exc_info=True,
+            )
+            return cast(CoordinatorUntypedModuleState, {})
+        except TypeError:
+            _LOGGER.warning(
+                "Coordinator lookup failed for %s/%s (type mismatch)",
+                self._dog_id,
+                module,
+                exc_info=True,
+            )
+            return cast(CoordinatorUntypedModuleState, {})
+        except ValueError:
+            _LOGGER.warning(
+                "Coordinator lookup failed for %s/%s (invalid value)",
+                self._dog_id,
+                module,
+                exc_info=True,
+            )
+            return cast(CoordinatorUntypedModuleState, {})
         except Exception as err:
             _LOGGER.warning(
                 "Error fetching module data for %s/%s: %s (%s)",
@@ -354,14 +397,16 @@ class PawControlDogEntityBase(PawControlEntity):
                 module_name,
                 err,
                 err.__class__.__name__,
+                exc_info=True,
             )
             return cast(CoordinatorUntypedModuleState, {})
         if not isinstance(payload, Mapping):
             _LOGGER.warning(
-                "Invalid module payload for %s/%s: expected mapping, got %s",
+                "Invalid module payload for %s/%s: expected mapping, got %s (value=%r)",
                 self._dog_id,
                 module_name,
                 type(payload).__name__,
+                str(payload)[:100],
             )
             return cast(CoordinatorUntypedModuleState, {})
         return cast(CoordinatorModuleLookupResult, payload)

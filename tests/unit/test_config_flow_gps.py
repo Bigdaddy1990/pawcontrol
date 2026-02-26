@@ -4,7 +4,6 @@ from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
-from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
 
 from custom_components.pawcontrol.const import MODULE_GPS
 from custom_components.pawcontrol.flow_steps.gps import (
@@ -12,6 +11,7 @@ from custom_components.pawcontrol.flow_steps.gps import (
     GPSModuleDefaultsMixin,
 )
 from custom_components.pawcontrol.types import DOG_NAME_FIELD, DogConfigData
+from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
 
 
 class _GPSDefaultsFlow(GPSModuleDefaultsMixin):

@@ -1,5 +1,7 @@
 """Unit tests for service guard telemetry models."""
 
+from collections.abc import Iterator, MutableMapping
+
 import pytest
 
 from custom_components.pawcontrol.service_guard import (
@@ -28,6 +30,12 @@ def test_service_guard_result_to_mapping() -> None:
     assert payload["reason"] == "timeout"
     assert payload["description"] == "notification blocked by guard"
     assert payload["executed"] is False
+
+
+def test_service_guard_result_bool_protocol() -> None:
+    """Guard result instances should mirror the executed boolean state."""
+    assert bool(ServiceGuardResult("notify", "mobile_app", True)) is True
+    assert bool(ServiceGuardResult("notify", "mobile_app", False)) is False
 
 
 def test_service_guard_snapshot_summary_and_metrics() -> None:
@@ -66,6 +74,80 @@ def test_service_guard_snapshot_summary_and_metrics() -> None:
     assert payload["last_results"][-1]["service"] == "turn_on"
 
 
+def test_service_guard_snapshot_accumulate_handles_invalid_metric_types() -> None:
+    """Accumulate should coerce mixed metric payload values safely."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("notify", "mobile_app", True),
+        ServiceGuardResult("script", "turn_on", False),
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+    ])
+
+    metrics: JSONMutableMapping = {
+        "executed": "2",
+        "skipped": True,
+        "reasons": {"cooldown": "bad", "other": 1.5},
+        "last_results": "not-a-list",
+    }
+
+    payload = snapshot.accumulate(metrics)
+
+    assert payload == {
+        "executed": 3,
+        "skipped": 3,
+        "reasons": {"cooldown": 1, "other": 1, "unknown": 1},
+        "last_results": snapshot.history(),
+    }
+
+
+def test_service_guard_snapshot_zero_metrics_shape() -> None:
+    """Zero metrics should include all expected diagnostic keys."""
+    assert ServiceGuardSnapshot.zero_metrics() == {
+        "executed": 0,
+        "skipped": 0,
+        "reasons": {},
+        "last_results": [],
+    }
+
+
+def test_service_guard_snapshot_to_metrics_exports_expected_payload() -> None:
+    """to_metrics should mirror snapshot counters and serialised history."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("notify", "mobile_app", True),
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+    ])
+
+    assert snapshot.to_metrics() == {
+        "executed": 1,
+        "skipped": 1,
+        "reasons": {"cooldown": 1},
+        "last_results": snapshot.history(),
+    }
+
+
+def test_service_guard_snapshot_accumulate_replaces_invalid_reasons_payload() -> None:
+    """Accumulate should reset reasons when the incoming value is not a mapping."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+        ServiceGuardResult("script", "turn_on", False),
+    ])
+    metrics: JSONMutableMapping = {
+        "executed": "invalid",
+        "skipped": None,
+        "reasons": "invalid",
+        "last_results": [],
+    }
+
+    payload = snapshot.accumulate(metrics)
+
+    assert payload == {
+        "executed": 0,
+        "skipped": 2,
+        "reasons": {"cooldown": 1, "unknown": 1},
+        "last_results": snapshot.history(),
+    }
+    assert metrics["reasons"] == {"cooldown": 1, "unknown": 1}
+
+
 @pytest.mark.parametrize(
     "raw_payload, expected",
     [
@@ -95,3 +177,83 @@ def test_normalise_guard_history_handles_mixed_entries() -> None:
     assert history[0]["executed"] is True
     assert history[1]["domain"] == "script"
     assert history[1]["executed"] is False
+
+
+def test_normalise_guard_result_payload_filters_invalid_text_values() -> None:
+    """Normalisation should keep only non-empty string metadata values."""
+    payload = normalise_guard_result_payload({
+        "executed": 1,
+        "domain": "",
+        "service": 10,
+        "reason": None,
+        "description": "scheduled block",
+    })
+
+    assert payload == {
+        "executed": True,
+        "description": "scheduled block",
+    }
+
+
+def test_normalise_guard_history_keeps_mapping_entries_only() -> None:
+    """History normalisation should include only valid mapping payloads."""
+    history = normalise_guard_history((
+        {"executed": True, "domain": "notify"},
+        {"service": "switch.turn_on", "reason": "cooldown"},
+        12,
+    ))
+
+    assert history == [
+        {"executed": True, "domain": "notify"},
+        {"executed": False, "service": "switch.turn_on", "reason": "cooldown"},
+    ]
+
+
+@pytest.mark.parametrize("payload", ["history", b"history", bytearray(b"history"), 42])
+def test_normalise_guard_history_rejects_non_sequence_payloads(payload: object) -> None:
+    """History normalisation should reject unsupported payload types."""
+    assert normalise_guard_history(payload) == []
+
+
+def test_service_guard_snapshot_accumulate_handles_write_ignored_mapping() -> None:
+    """Accumulate should still return sane payloads when mapping writes are ignored."""
+
+    class IgnoreWritesMapping(MutableMapping[str, object]):
+        """Mutable mapping that allows reads but discards writes for selected keys."""
+
+        def __init__(self) -> None:
+            self._storage: dict[str, object] = {
+                "executed": 1,
+                "skipped": 1,
+                "reasons": "blocked",
+                "last_results": "blocked",
+            }
+
+        def __getitem__(self, key: str) -> object:
+            return self._storage[key]
+
+        def __setitem__(self, key: str, value: object) -> None:
+            if key in {"reasons", "last_results"}:
+                return
+            self._storage[key] = value
+
+        def __delitem__(self, key: str) -> None:
+            del self._storage[key]
+
+        def __iter__(self) -> Iterator[str]:
+            return iter(self._storage)
+
+        def __len__(self) -> int:
+            return len(self._storage)
+
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+    ])
+    payload = snapshot.accumulate(IgnoreWritesMapping())
+
+    assert payload == {
+        "executed": 1,
+        "skipped": 2,
+        "reasons": {},
+        "last_results": snapshot.history(),
+    }

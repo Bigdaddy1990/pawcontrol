@@ -12,10 +12,6 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from tests.helpers.factories import (
-    create_mock_coordinator,
-    create_test_coordinator_data,
-)
 
 from custom_components.pawcontrol.exceptions import (
     ConfigurationError,
@@ -27,6 +23,10 @@ from custom_components.pawcontrol.exceptions import (
     StorageError,
     ValidationError,
     WalkError,
+)
+from tests.helpers.factories import (
+    create_mock_coordinator,
+    create_test_coordinator_data,
 )
 
 

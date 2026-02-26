@@ -134,6 +134,7 @@ GEOFENCE_OPTIONS_JSON_SCHEMA: Final[dict[str, Any]] = {
     "type": "object",
     "additionalProperties": False,
     "properties": {
+        # Canonical geofence option keys
         GEOFENCE_ENABLED_FIELD: {"type": "boolean"},
         GEOFENCE_USE_HOME_FIELD: {"type": "boolean"},
         GEOFENCE_LAT_FIELD: {
@@ -156,6 +157,24 @@ GEOFENCE_OPTIONS_JSON_SCHEMA: Final[dict[str, Any]] = {
         GEOFENCE_RESTRICTED_ZONE_FIELD: {"type": "boolean"},
         GEOFENCE_ZONE_ENTRY_FIELD: {"type": "boolean"},
         GEOFENCE_ZONE_EXIT_FIELD: {"type": "boolean"},
+        # Legacy/flow alias keys kept for backward compatibility
+        "enabled": {"type": "boolean"},
+        "use_home": {"type": "boolean"},
+        "lat": {
+            "type": ["number", "null"],
+            "minimum": MIN_LATITUDE,
+            "maximum": MAX_LATITUDE,
+        },
+        "lon": {
+            "type": ["number", "null"],
+            "minimum": MIN_LONGITUDE,
+            "maximum": MAX_LONGITUDE,
+        },
+        "radius": {
+            "type": "integer",
+            "minimum": int(MIN_GEOFENCE_RADIUS),
+            "maximum": int(MAX_GEOFENCE_RADIUS),
+        },
     },
 }
 

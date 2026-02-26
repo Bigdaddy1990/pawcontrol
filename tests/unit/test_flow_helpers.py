@@ -169,6 +169,66 @@ class TestFormRendering:
         assert result["step_id"] == "test_step"
         assert result["progress_action"] == "test_action"
 
+    def test_create_form_result_raises_without_schema(self) -> None:
+        """Test create_form_result fails fast when no schema is provided."""
+        with pytest.raises(ValueError, match="data_schema or schema must be provided"):
+            create_form_result(step_id="test_step")
+
+    def test_create_form_result_uses_flow_api(self) -> None:
+        """Test create_form_result delegates to flow when provided."""
+        schema = Schema({CONF_NAME: str})
+        mock_flow = MagicMock()
+        mock_flow.async_show_form.return_value = {"type": "form", "step_id": "user"}
+
+        result = create_form_result(
+            step_id="user",
+            data_schema=schema,
+            flow=mock_flow,
+            errors={"base": "invalid_input"},
+        )
+
+        assert result == {"type": "form", "step_id": "user"}
+        mock_flow.async_show_form.assert_called_once_with(
+            step_id="user",
+            data_schema=schema,
+            errors={"base": "invalid_input"},
+            description_placeholders=None,
+            last_step=False,
+        )
+
+    def test_create_menu_abort_and_progress_use_flow_api(self) -> None:
+        """Test menu/abort/progress helpers delegate to flow methods."""
+        mock_flow = MagicMock()
+        mock_flow.async_show_menu.return_value = {"type": "menu"}
+        mock_flow.async_abort.return_value = {"type": "abort"}
+        mock_flow.async_show_progress.return_value = {"type": "progress"}
+
+        menu_result = create_menu_result(menu_options=["dogs"], flow=mock_flow)
+        abort_result = create_abort_result(reason="already_configured", flow=mock_flow)
+        progress_result = create_progress_result(
+            step_id="validate",
+            progress_action="validating",
+            flow=mock_flow,
+        )
+
+        assert menu_result == {"type": "menu"}
+        assert abort_result == {"type": "abort"}
+        assert progress_result == {"type": "progress"}
+        mock_flow.async_show_menu.assert_called_once_with(
+            step_id="menu",
+            menu_options=["dogs"],
+            description_placeholders=None,
+        )
+        mock_flow.async_abort.assert_called_once_with(
+            reason="already_configured",
+            description_placeholders=None,
+        )
+        mock_flow.async_show_progress.assert_called_once_with(
+            step_id="validate",
+            progress_action="validating",
+            description_placeholders=None,
+        )
+
 
 class TestErrorHandling:
     """Test error handling functions."""
@@ -217,6 +277,29 @@ class TestErrorHandling:
             errors={},
         )
         assert errors == {"test_field": "required"}
+
+    def test_validate_required_field_legacy_api_type_error_on_missing_values(
+        self,
+    ) -> None:
+        """Test legacy API requires errors, field, and value args."""
+        with pytest.raises(TypeError, match="legacy validate_required_field requires"):
+            validate_required_field({})
+
+    def test_validate_required_field_type_error_on_missing_field_and_value(
+        self,
+    ) -> None:
+        """Test new API requires at least field_name and value."""
+        with pytest.raises(TypeError, match="requires field_name and value"):
+            validate_required_field("test_field")
+
+    def test_validate_required_field_legacy_api_custom_error_key(self) -> None:
+        """Test legacy API supports positional custom error key overrides."""
+        errors: dict[str, str] = {}
+
+        is_valid = validate_required_field(errors, "test_field", "", "missing")
+
+        assert is_valid is False
+        assert errors == {"test_field": "missing"}
 
     def test_validate_min_max_valid(self) -> None:
         """Test validate_min_max with valid value."""

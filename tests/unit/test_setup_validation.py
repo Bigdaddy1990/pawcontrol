@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.pawcontrol.const import CONF_DOGS, CONF_MODULES
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from custom_components.pawcontrol.exceptions import ConfigurationError
 from custom_components.pawcontrol.setup.validation import (
     _extract_enabled_modules,
@@ -67,6 +68,18 @@ async def test_async_validate_entry_config_empty_dogs(mock_config_entry) -> None
 
 
 @pytest.mark.asyncio
+async def test_async_validate_entry_config_none_dogs(mock_config_entry) -> None:
+    """Test validation normalizes None dogs config to an empty list."""
+    mock_config_entry.data = {CONF_DOGS: None}
+
+    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
+
+    assert dogs == []
+    assert profile == "standard"
+    assert modules == frozenset()
+
+
+@pytest.mark.asyncio
 async def test_async_validate_entry_config_invalid_dogs_type(mock_config_entry) -> None:
     """Test validation fails with invalid dogs type."""
     mock_config_entry.data = {CONF_DOGS: "invalid"}
@@ -99,6 +112,17 @@ def test_validate_profile_standard(mock_config_entry) -> None:
     assert profile == "standard"
 
 
+def test_validate_profile_keeps_known_profile(mock_config_entry) -> None:
+    """Known entity profiles should be preserved."""
+    known_profile = next(
+        profile for profile in ENTITY_PROFILES if profile != "standard"
+    )
+    mock_config_entry.options = {"entity_profile": known_profile}
+
+    profile = _validate_profile(mock_config_entry)
+    assert profile == known_profile
+
+
 def test_validate_profile_unknown_fallback(mock_config_entry) -> None:
     """Test profile validation falls back to standard for unknown profile."""
     mock_config_entry.options = {"entity_profile": "unknown_profile"}
@@ -110,6 +134,22 @@ def test_validate_profile_unknown_fallback(mock_config_entry) -> None:
 def test_validate_profile_none_fallback(mock_config_entry) -> None:
     """Test profile validation falls back to standard for None."""
     mock_config_entry.options = {"entity_profile": None}
+
+    profile = _validate_profile(mock_config_entry)
+    assert profile == "standard"
+
+
+def test_validate_profile_coerces_non_string_values(mock_config_entry) -> None:
+    """Test profile validation coerces non-string values before fallback."""
+    mock_config_entry.options = {"entity_profile": 123}
+
+    profile = _validate_profile(mock_config_entry)
+    assert profile == "standard"
+
+
+def test_validate_profile_missing_option_uses_default(mock_config_entry) -> None:
+    """Test profile validation uses the default profile when key is absent."""
+    mock_config_entry.options = {}
 
     profile = _validate_profile(mock_config_entry)
     assert profile == "standard"
@@ -198,3 +238,71 @@ def test_extract_enabled_modules_unknown_module() -> None:
 
     assert "gps" in modules
     assert "unknown_module" not in modules
+
+
+def test_extract_enabled_modules_skips_falsey_values() -> None:
+    """False-y module values should not be treated as enabled."""
+    dogs_config: list[DogConfigData] = [
+        {
+            "dog_id": "buddy",
+            "dog_name": "Buddy",
+            CONF_MODULES: {
+                "gps": 1,
+                "feeding": 0,
+                "health": False,
+            },
+        },
+    ]
+
+    modules = _extract_enabled_modules(dogs_config)
+
+    assert "gps" in modules
+    assert "feeding" not in modules
+    assert "health" not in modules
+
+
+def test_extract_enabled_modules_deduplicates_modules() -> None:
+    """Modules enabled for multiple dogs should be emitted once."""
+    dogs_config: list[DogConfigData] = [
+        {
+            "dog_id": "buddy",
+            "dog_name": "Buddy",
+            CONF_MODULES: {"gps": True, "feeding": True},
+        },
+        {
+            "dog_id": "max",
+            "dog_name": "Max",
+            CONF_MODULES: {"gps": True},
+        },
+    ]
+
+    modules = _extract_enabled_modules(dogs_config)
+
+    assert modules == frozenset({"gps", "feeding"})
+
+
+@pytest.mark.asyncio
+async def test_async_validate_entry_config_without_dogs_key(mock_config_entry) -> None:
+    """Missing dogs config should normalize to an empty list."""
+    mock_config_entry.data = {}
+
+    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
+
+    assert dogs == []
+    assert profile == "standard"
+    assert modules == frozenset()
+
+
+def test_extract_enabled_modules_returns_frozenset_type() -> None:
+    """The helper should return an immutable module collection."""
+    dogs_config: list[DogConfigData] = [
+        {
+            "dog_id": "buddy",
+            "dog_name": "Buddy",
+            CONF_MODULES: {"gps": True},
+        },
+    ]
+
+    modules = _extract_enabled_modules(dogs_config)
+
+    assert isinstance(modules, frozenset)

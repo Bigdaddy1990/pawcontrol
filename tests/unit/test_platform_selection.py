@@ -1,6 +1,8 @@
 """Tests for platform selection helpers."""
 
 from collections.abc import Mapping
+import logging
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 from homeassistant.config_entries import ConfigEntry
@@ -41,6 +43,18 @@ def _clear_platform_cache() -> None:
     pawcontrol_init._PLATFORM_CACHE.clear()
     yield
     pawcontrol_init._PLATFORM_CACHE.clear()
+
+
+@pytest.fixture(autouse=True)
+def _reset_debug_logging_state() -> None:
+    logger = logging.getLogger(pawcontrol_init.__package__)
+    original_level = logger.level
+    original_default = pawcontrol_init._DEFAULT_LOGGER_LEVEL
+    pawcontrol_init._DEBUG_LOGGER_ENTRIES.clear()
+    yield
+    pawcontrol_init._DEBUG_LOGGER_ENTRIES.clear()
+    pawcontrol_init._DEFAULT_LOGGER_LEVEL = original_default
+    logger.setLevel(original_level)
 
 
 @pytest.mark.parametrize(
@@ -235,6 +249,83 @@ def test_platform_cache_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
     for idx in range(2, 5):
         cache_key = (idx, "standard", frozenset({f"module_{idx}"}))
         assert cache_key not in pawcontrol_init._PLATFORM_CACHE
+
+
+def test_platform_cache_cleanup_short_circuits_below_half_capacity() -> None:
+    half_capacity = pawcontrol_init._MAX_CACHE_SIZE // 2
+    cache_key = (1, "standard", frozenset({MODULE_GPS}))
+    pawcontrol_init._PLATFORM_CACHE[cache_key] = ((Platform.SENSOR,), 0.0)
+
+    assert len(pawcontrol_init._PLATFORM_CACHE) < half_capacity
+    pawcontrol_init._cleanup_platform_cache()
+    assert cache_key in pawcontrol_init._PLATFORM_CACHE
+
+
+def test_platform_cache_cleanup_uses_wall_clock_for_large_timestamps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now_wall = 2_000_000_000.0
+    now_monotonic = 1_000.0
+    ttl = pawcontrol_init._CACHE_TTL_SECONDS
+
+    monkeypatch.setattr(pawcontrol_init.time, "time", lambda: now_wall)
+    monkeypatch.setattr(pawcontrol_init.time, "monotonic", lambda: now_monotonic)
+
+    for idx in range(pawcontrol_init._MAX_CACHE_SIZE // 2):
+        key = (idx, "standard", frozenset({f"module_{idx}"}))
+        pawcontrol_init._PLATFORM_CACHE[key] = ((Platform.SENSOR,), now_monotonic)
+
+    wall_expired_key = (9999, "standard", frozenset({"wall_expired"}))
+    pawcontrol_init._PLATFORM_CACHE[wall_expired_key] = (
+        (Platform.SWITCH,),
+        now_wall - ttl - 1,
+    )
+
+    pawcontrol_init._cleanup_platform_cache()
+
+    assert wall_expired_key not in pawcontrol_init._PLATFORM_CACHE
+
+
+def test_enable_and_disable_debug_logging_restores_logger_level(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package_logger = Mock()
+    package_logger.level = logging.INFO
+
+    monkeypatch.setattr(
+        pawcontrol_init.logging, "getLogger", lambda *_args: package_logger
+    )
+
+    entry = SimpleNamespace(entry_id="entry-debug", options={"debug_logging": True})
+
+    assert pawcontrol_init._enable_debug_logging(entry) is True
+    assert package_logger.setLevel.call_args_list[0].args == (logging.DEBUG,)
+
+    pawcontrol_init._disable_debug_logging(entry)
+    assert package_logger.setLevel.call_args_list[-1].args == (logging.INFO,)
+
+
+def test_disable_debug_logging_keeps_debug_when_other_entries_remain(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package_logger = Mock()
+    package_logger.level = logging.WARNING
+
+    monkeypatch.setattr(
+        pawcontrol_init.logging, "getLogger", lambda *_args: package_logger
+    )
+
+    first_entry = SimpleNamespace(entry_id="entry-1", options={"debug_logging": True})
+    second_entry = SimpleNamespace(entry_id="entry-2", options={"debug_logging": True})
+
+    assert pawcontrol_init._enable_debug_logging(first_entry) is True
+    assert pawcontrol_init._enable_debug_logging(second_entry) is True
+
+    pawcontrol_init._disable_debug_logging(first_entry)
+    assert package_logger.setLevel.call_args_list[-1].args == (logging.DEBUG,)
+
+    pawcontrol_init._disable_debug_logging(second_entry)
+    assert package_logger.setLevel.call_args_list[-1].args == (logging.WARNING,)
 
 
 @pytest.mark.asyncio

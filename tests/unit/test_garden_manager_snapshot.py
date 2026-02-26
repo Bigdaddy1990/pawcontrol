@@ -13,6 +13,9 @@ from custom_components.pawcontrol.garden_manager import (
     GardenSessionPayload,
     GardenSessionStatus,
     GardenStats,
+    _parse_datetime_or_none,
+    _parse_datetime_or_now,
+    _stats_from_payload,
 )
 from custom_components.pawcontrol.types import (
     GardenFavoriteActivity,
@@ -155,3 +158,52 @@ def test_garden_session_payload_roundtrip() -> None:
     assert restored.session_id == "garden-round-trip"
     assert restored.activities[0].activity_type is GardenActivityType.DIGGING
     assert restored.total_duration_seconds == 900
+
+
+def test_datetime_helpers_handle_empty_and_invalid_values() -> None:
+    """Datetime parsing helpers should gracefully fallback for bad input."""
+    invalid = "definitely-not-a-date"
+
+    assert _parse_datetime_or_none(None) is None
+    assert _parse_datetime_or_none(invalid) is None
+
+    parsed_or_now = _parse_datetime_or_now(invalid)
+    assert isinstance(parsed_or_now, type(dt_util.utcnow()))
+
+
+def test_stats_from_payload_applies_defaults_for_missing_fields() -> None:
+    """Stats payload conversion should default optional and missing fields."""
+    payload = {
+        "total_sessions": 3,
+        "last_garden_visit": "invalid-value",
+    }
+
+    stats = _stats_from_payload(payload)
+
+    assert stats.total_sessions == 3
+    assert stats.total_time_minutes == 0.0
+    assert stats.total_poop_count == 0
+    assert stats.favorite_activities == []
+    assert stats.weekly_summary == {}
+    assert stats.last_garden_visit is None
+
+
+def test_session_add_activity_updates_poop_counter() -> None:
+    """Adding poop activities should increment per-session poop totals."""
+    now = dt_util.utcnow()
+    session = GardenSession(
+        session_id="garden-activity-count",
+        dog_id="dog",
+        dog_name="Buddy",
+        start_time=now,
+    )
+
+    session.add_activity(
+        GardenActivity(activity_type=GardenActivityType.PLAY, timestamp=now),
+    )
+    session.add_activity(
+        GardenActivity(activity_type=GardenActivityType.POOP, timestamp=now),
+    )
+
+    assert len(session.activities) == 2
+    assert session.poop_count == 1

@@ -11,11 +11,13 @@ import pytest
 from custom_components.pawcontrol.setup.cleanup import (
     _async_cancel_background_monitor,
     _async_cleanup_managers,
+    _async_reload_entry_wrapper,
     _async_run_manager_method,
     _async_shutdown_core_managers,
     _clear_coordinator_references,
     _remove_listeners,
     async_cleanup_runtime_data,
+    async_register_cleanup,
 )
 from custom_components.pawcontrol.types import PawControlRuntimeData
 
@@ -71,8 +73,7 @@ async def test_async_run_manager_method_none_manager() -> None:
 @pytest.mark.asyncio
 async def test_async_run_manager_method_missing_method() -> None:
     """Test manager method invocation with missing method."""
-    manager = MagicMock()
-    # Method doesn't exist
+    manager = object()
 
     await _async_run_manager_method(
         manager,
@@ -126,6 +127,54 @@ async def test_async_cancel_background_monitor_none_task(mock_runtime_data) -> N
 
 
 @pytest.mark.asyncio
+async def test_async_cancel_background_monitor_cancelled_task(
+    mock_runtime_data,
+) -> None:
+    """Cancelled monitor tasks should be swallowed and cleared."""
+
+    class _CancelledTask:
+        def cancel(self) -> None:
+            return None
+
+        def __await__(self):
+            if False:
+                yield None
+            raise asyncio.CancelledError
+
+    mock_task = _CancelledTask()
+    mock_task.cancel = MagicMock()
+    mock_runtime_data.background_monitor_task = mock_task
+
+    await _async_cancel_background_monitor(mock_runtime_data)
+
+    mock_task.cancel.assert_called_once()
+    assert mock_runtime_data.background_monitor_task is None
+
+
+@pytest.mark.asyncio
+async def test_async_cancel_background_monitor_task_error(mock_runtime_data) -> None:
+    """Unexpected monitor task errors should be handled and cleared."""
+
+    class _FailingTask:
+        def cancel(self) -> None:
+            return None
+
+        def __await__(self):
+            if False:
+                yield None
+            raise RuntimeError("boom")
+
+    mock_task = _FailingTask()
+    mock_task.cancel = MagicMock()
+    mock_runtime_data.background_monitor_task = mock_task
+
+    await _async_cancel_background_monitor(mock_runtime_data)
+
+    mock_task.cancel.assert_called_once()
+    assert mock_runtime_data.background_monitor_task is None
+
+
+@pytest.mark.asyncio
 async def test_async_cleanup_managers_success(mock_runtime_data) -> None:
     """Test successful manager cleanup."""
     mock_runtime_data.door_sensor_manager.async_cleanup = AsyncMock()
@@ -173,6 +222,17 @@ def test_remove_listeners_with_none(mock_runtime_data) -> None:
 
     _remove_listeners(mock_runtime_data)
     # Should not raise
+
+
+def test_remove_listeners_swallows_listener_errors(mock_runtime_data) -> None:
+    """Listener unsubscribe errors should not interrupt cleanup."""
+    mock_runtime_data.daily_reset_unsub = MagicMock(side_effect=RuntimeError("daily"))
+    mock_runtime_data.reload_unsub = MagicMock(side_effect=RuntimeError("reload"))
+
+    _remove_listeners(mock_runtime_data)
+
+    mock_runtime_data.daily_reset_unsub.assert_called_once()
+    mock_runtime_data.reload_unsub.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -228,3 +288,85 @@ async def test_async_cleanup_runtime_data_full_flow(mock_runtime_data) -> None:
     mock_runtime_data.coordinator.clear_runtime_managers.assert_called_once()
     mock_runtime_data.daily_reset_unsub.assert_called_once()
     mock_runtime_data.reload_unsub.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_run_manager_method_start_failure() -> None:
+    """Synchronous manager method errors are swallowed."""
+    manager = MagicMock()
+    manager.test_method = MagicMock(side_effect=RuntimeError("boom"))
+
+    await _async_run_manager_method(
+        manager,
+        "test_method",
+        "test description",
+        timeout=10,
+    )
+
+    manager.test_method.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_run_manager_method_await_failure() -> None:
+    """Awaited manager coroutine errors are swallowed."""
+    manager = MagicMock()
+
+    async def failing_method() -> None:
+        raise RuntimeError("boom")
+
+    manager.test_method = failing_method
+
+    await _async_run_manager_method(
+        manager,
+        "test_method",
+        "test description",
+        timeout=10,
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_register_cleanup_stores_reload_unsub() -> None:
+    """register_cleanup stores callable unsubscribe and registers unload hook."""
+    hass = MagicMock()
+    runtime_data = MagicMock()
+    reload_unsub = MagicMock()
+    entry = MagicMock(entry_id="entry-1")
+    entry.add_update_listener.return_value = reload_unsub
+    entry.async_on_unload = MagicMock()
+
+    await async_register_cleanup(hass, entry, runtime_data)
+
+    assert runtime_data.reload_unsub is reload_unsub
+    entry.async_on_unload.assert_called_once_with(reload_unsub)
+
+
+@pytest.mark.asyncio
+async def test_async_register_cleanup_ignores_non_callable_unsub() -> None:
+    """register_cleanup should ignore non-callable listener return values."""
+    hass = MagicMock()
+
+    class _RuntimeData:
+        pass
+
+    runtime_data = _RuntimeData()
+    entry = MagicMock(entry_id="entry-1")
+    entry.add_update_listener.return_value = "not-callable"
+
+    await async_register_cleanup(hass, entry, runtime_data)
+
+    assert not hasattr(runtime_data, "reload_unsub")
+
+
+@pytest.mark.asyncio
+async def test_reload_wrapper_calls_async_reload_entry() -> None:
+    """Reload wrapper should proxy through to integration async_reload_entry."""
+    hass = MagicMock()
+    entry = MagicMock()
+    wrapper = _async_reload_entry_wrapper(hass)
+
+    with patch(
+        "custom_components.pawcontrol.async_reload_entry", new=AsyncMock()
+    ) as reload:
+        await wrapper(hass, entry)
+
+    reload.assert_awaited_once_with(hass, entry)
