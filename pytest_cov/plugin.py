@@ -17,8 +17,8 @@ _COVERAGE_AVAILABLE = coverage is not None
 
 
 def _coverage_available() -> bool:
-    """Return whether the optional coverage dependency is currently loaded."""
-    return coverage is not None
+    """Return whether the ``coverage`` dependency can be used."""
+    return _COVERAGE_AVAILABLE and coverage is not None
 
 
 def _split_report_target(value: str) -> tuple[str, str | None]:

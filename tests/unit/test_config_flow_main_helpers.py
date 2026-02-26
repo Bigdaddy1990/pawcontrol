@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -176,8 +175,7 @@ async def test_validate_dog_input_cached_reuses_recent_cached_result(
     assert second == dog_input
     assert len(calls) == 1
 
-    original_utcnow = dt_util.utcnow
-    monkeypatch.setattr(dt_util, "utcnow", lambda: original_utcnow().replace(year=2099))
+    flow._existing_dog_ids.add("another-dog")
     third = await flow._validate_dog_input_cached(dog_input)
     assert third == dog_input
     assert len(calls) == 2

@@ -74,6 +74,12 @@ for _name in _LEGACY_EXPORTS:
     if _name in _SERIALIZE_EXPORTS:
         continue
     globals()[_name] = getattr(_legacy_utils, _name)
+
+# Keep serialization helpers bound to ``utils.serialize`` re-exports.
+globals().update(
+    {symbol.__name__: symbol for symbol in _SERIALIZE_SYMBOLS},
+)
+
 __all__ = sorted(_LEGACY_EXPORTS | _SERIALIZE_EXPORTS | _EXPLICIT_LEGACY_EXPORTS)
 
 
