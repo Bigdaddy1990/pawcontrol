@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 
-from custom_components.pawcontrol import options_flow_main
+from custom_components.pawcontrol import options_flow_door_sensor, options_flow_main
 from custom_components.pawcontrol.const import (
     CONF_API_ENDPOINT,
     CONF_API_TOKEN,
@@ -2017,8 +2017,12 @@ async def test_configure_door_sensor_runtime_cache_unavailable(
 
     with (
         patch(
-            "custom_components.pawcontrol.options_flow_support.require_runtime_data",
-            side_effect=RuntimeDataUnavailableError("store unavailable"),
+            "custom_components.pawcontrol.options_flow_door_sensor._resolve_require_runtime_data",
+            return_value=Mock(
+                side_effect=options_flow_door_sensor.RuntimeDataUnavailableError(
+                    "store unavailable"
+                ),
+            ),
         ),
         patch(
             "custom_components.pawcontrol.options_flow_support.async_create_issue",

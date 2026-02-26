@@ -197,7 +197,7 @@ def test_format_expires_in_hours_error_boundary_cases() -> None:
     )
     assert (
         services._format_expires_in_hours_error(generic)
-        == "expires_in_hours must be a number"
+        == "expires_in_hours is invalid"
     )
 
 
