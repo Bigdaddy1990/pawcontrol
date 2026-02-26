@@ -50,15 +50,30 @@ async def test_async_validate_entry_config_rejects_non_list_dogs() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_validate_entry_config_rejects_invalid_dog_payload() -> None:
+@pytest.mark.parametrize(
+    "invalid_dog_payload",
+    [
+        {"dog_id": "", "dog_name": "Buddy"},
+        {"dog_id": "buddy", "dog_name": ""},
+        {"dog_id": "buddy"},
+        {"dog_name": "Buddy"},
+        {},
+    ],
+)
+async def test_async_validate_entry_config_rejects_invalid_dog_payload(
+    invalid_dog_payload: dict[str, str],
+) -> None:
     """Each dog must include non-empty id and name."""
     entry = SimpleNamespace(
         entry_id="entry-3",
-        data={CONF_DOGS: [{"dog_id": "", "dog_name": "Buddy"}]},
+        data={CONF_DOGS: [invalid_dog_payload]},
         options={},
     )
 
-    with pytest.raises(ConfigurationError, match="Invalid dog configuration"):
+    with pytest.raises(
+        ConfigurationError,
+        match="each entry must include non-empty dog_id and dog_name",
+    ):
         await async_validate_entry_config(entry)
 
 
@@ -75,23 +90,28 @@ async def test_async_validate_entry_config_accepts_none_dogs(
     assert dogs == []
     assert profile == "standard"
     assert enabled_modules == frozenset()
-    assert "No dogs configured" in caplog.text
+    assert any(
+        record.levelname == "DEBUG" and "No dogs configured" in record.message
+        for record in caplog.records
+    )
 
 
 def test_validate_profile_falls_back_for_unknown(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Unknown profiles should fall back to standard and log a warning."""
+    caplog.set_level("WARNING")
     entry = SimpleNamespace(options={"entity_profile": "mystery"})
 
     assert _validate_profile(entry) == "standard"
-    assert "Unknown profile" in caplog.text
+    assert "Unknown profile 'mystery', using 'standard'" in caplog.text
 
 
 def test_extract_enabled_modules_ignores_invalid_and_unknown(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Module extraction should ignore malformed and unknown module declarations."""
+    caplog.set_level("WARNING")
     modules = _extract_enabled_modules([
         {"dog_id": "buddy", CONF_MODULES: "invalid"},
         {
@@ -102,5 +122,8 @@ def test_extract_enabled_modules_ignores_invalid_and_unknown(
     ])
 
     assert modules == frozenset({"gps"})
-    assert "configuration is not a mapping" in caplog.text
-    assert "Ignoring unknown PawControl modules" in caplog.text
+    assert (
+        "Ignoring modules for dog buddy because configuration is not a mapping"
+        in caplog.text
+    )
+    assert "Ignoring unknown PawControl modules: new_module" in caplog.text
