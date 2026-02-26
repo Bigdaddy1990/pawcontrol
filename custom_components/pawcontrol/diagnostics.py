@@ -7,7 +7,7 @@ redacting sensitive fields so support tooling and the bundled dashboard can
 ingest the data without custom adapters.
 """
 
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence, Set
 import importlib
 import logging
 from typing import TYPE_CHECKING, Any, TypedDict, cast
@@ -649,11 +649,23 @@ def _device_registry_entries_for_config_entry(
         entry
         for entry in devices.values()
         if getattr(entry, "config_entry_id", None) == entry_id
-        or (
-            isinstance(getattr(entry, "config_entries", None), set)
-            and entry_id in entry.config_entries
-        )
+        or _device_entry_has_config_entry(entry, entry_id)
     ]
+
+
+def _device_entry_has_config_entry(entry: object, entry_id: str) -> bool:
+    """Return whether a registry entry references the target config entry.
+
+    Home Assistant uses a set for ``DeviceEntry.config_entries`` at runtime, but
+    test doubles and compatibility shims may provide other set-like containers.
+    This helper keeps diagnostics fallback logic resilient without widening
+    matching to string-like values.
+    """
+    config_entries = getattr(entry, "config_entries", None)
+    if not isinstance(config_entries, Set):
+        return False
+
+    return entry_id in config_entries
 
 
 async def async_get_config_entry_diagnostics(
@@ -678,7 +690,7 @@ async def async_get_config_entry_diagnostics(
         entry.entry_id,
     )
 
-    # Get runtime data using the shared helper (runtime adoption still being proven)  # noqa: E501
+    # Resolve runtime data through the shared runtime-data helper.
     runtime_data = get_runtime_data(hass, entry)
     coordinator = runtime_data.coordinator if runtime_data else None
     # Base diagnostics structure
