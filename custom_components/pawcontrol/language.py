@@ -29,6 +29,10 @@ def normalize_language(
     default: str = "en",
 ) -> str:
     """Return a normalized language code constrained to ``supported`` values."""
+    if default == "":
+        msg = "default language must be a non-empty string"
+        raise ValueError(msg)
+
     normalized_default = _normalize_code(default)
     if not normalized_default:
         msg = "default language must be a non-empty string"
