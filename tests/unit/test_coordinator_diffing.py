@@ -391,6 +391,15 @@ class TestShouldNotifyEntities:
         assert should_notify_entities(diff, module="gps") is True
         assert should_notify_entities(diff, module="feeding") is False
 
+    def test_should_notify_entities_dog_with_unchanged_diff(self) -> None:
+        """Unchanged dog diffs should not notify for that specific dog."""
+        diff = CoordinatorDataDiff(
+            dog_diffs={"buddy": DogDataDiff("buddy")},
+            added_dogs=frozenset({"new_dog"}),
+        )
+
+        assert should_notify_entities(diff, dog_id="buddy") is False
+
 
 class TestSmartDiffTracker:
     """Test SmartDiffTracker class."""
@@ -477,6 +486,26 @@ class TestSmartDiffTracker:
 
         changed = tracker.get_changed_entities(diff)
         assert changed == frozenset({"buddy", "old_dog"})
+
+    def test_smart_diff_tracker_get_changed_entities_returns_empty_when_no_diff(
+        self,
+    ) -> None:
+        """No stored or supplied diff should return an empty set."""
+        tracker = SmartDiffTracker()
+
+        assert tracker.get_changed_entities() == frozenset()
+
+    def test_smart_diff_tracker_get_changed_entities_skips_missing_dog(
+        self,
+    ) -> None:
+        """Requested dogs missing from dog_diffs should be ignored."""
+        tracker = SmartDiffTracker()
+        diff = CoordinatorDataDiff(
+            dog_diffs={"buddy": DogDataDiff("buddy")},
+            added_dogs=frozenset({"buddy"}),
+        )
+
+        assert tracker.get_changed_entities(diff, dog_id="max") == frozenset()
 
 
 class TestGetChangedFields:
