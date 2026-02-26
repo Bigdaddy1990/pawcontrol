@@ -70,11 +70,29 @@ def test_time_selector_passthrough() -> None:
     assert time_selector("12:00:00") == "12:00:00"
 
 
+def test_date_selector_passthrough() -> None:
+    """Date selector should return provided values unchanged."""
+    date_selector = selector.DateSelector(selector.DateSelectorConfig())
+    assert date_selector("2026-01-30") == "2026-01-30"
+
+
 def test_boolean_selector_defaults_to_empty_config() -> None:
     """Boolean selector fallback should store an empty configuration dict."""
     selector_instance = selector.BooleanSelector()
     assert selector_instance.config == {}
     assert selector_instance(True) is True
+
+
+def test_selector_repr_includes_class_and_config() -> None:
+    """Fallback selectors should expose a debuggable ``repr`` value."""
+    selector_instance = selector.NumberSelector(
+        selector.NumberSelectorConfig(min=1.0, max=5.0),
+    )
+
+    representation = repr(selector_instance)
+
+    assert "NumberSelector" in representation
+    assert "config=" in representation
 
 
 def test_selector_namespace_is_callable() -> None:

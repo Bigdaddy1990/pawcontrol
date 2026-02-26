@@ -78,6 +78,29 @@ async def test_async_validate_entry_config_rejects_invalid_dog_payload(
 
 
 @pytest.mark.asyncio
+async def test_async_validate_entry_config_rejects_non_mapping_dog_entry() -> None:
+    """Each dog entry must be represented as a mapping payload."""
+    entry = SimpleNamespace(
+        entry_id="entry-non-mapping-dog",
+        data={CONF_DOGS: ["buddy"]},
+        options={},
+    )
+
+    with pytest.raises(
+        ConfigurationError,
+        match="Dog configuration entries must be mappings",
+    ):
+        await async_validate_entry_config(entry)
+
+
+def test_validate_profile_none_falls_back_to_standard() -> None:
+    """Explicit None profile values should be normalized to standard."""
+    entry = SimpleNamespace(options={"entity_profile": None})
+
+    assert _validate_profile(entry) == "standard"
+
+
+@pytest.mark.asyncio
 async def test_async_validate_entry_config_accepts_none_dogs(
     caplog: pytest.LogCaptureFixture,
 ) -> None:

@@ -2,7 +2,12 @@
 
 import pytest
 
-from custom_components.pawcontrol.language import normalize_language
+from custom_components.pawcontrol.language import _normalize_code, normalize_language
+
+
+def test_normalize_code_handles_none_value() -> None:
+    """Internal normalization should treat ``None`` as an empty code."""
+    assert _normalize_code(None) == ""
 
 
 def test_normalize_language_uses_default_for_missing_language() -> None:
