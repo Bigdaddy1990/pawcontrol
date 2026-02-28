@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from types import SimpleNamespace
+from collections.abc import Callable
 
 import pytest
 
@@ -131,6 +132,10 @@ def test_normalize_dog_id_strips_and_normalizes() -> None:
     assert normalize_dog_id("  My Pup  ") == "my_pup"
 
 
+def test_normalize_dog_id_returns_empty_for_none() -> None:
+    assert normalize_dog_id(None) == ""
+
+
 def test_normalize_dog_id_rejects_non_string() -> None:
     with pytest.raises(InputCoercionError):
         normalize_dog_id(123)
@@ -145,6 +150,22 @@ def test_coerce_helpers_reject_invalid_types() -> None:
 
     with pytest.raises(InputCoercionError):
         coerce_float("weight", "")
+
+
+@pytest.mark.parametrize(
+    ("helper", "field", "value"),
+    [
+        (coerce_int, "age", True),
+        (coerce_float, "weight", False),
+    ],
+)
+def test_coerce_helpers_reject_boolean_values(
+    helper: Callable[[str, object], object],
+    field: str,
+    value: bool,
+) -> None:
+    with pytest.raises(InputCoercionError):
+        helper(field, value)
 
 
 def test_validate_sensor_entity_id_accepts_valid_entity() -> None:
