@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, Mock
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 import pytest
 
 import custom_components.pawcontrol as pawcontrol_init
@@ -353,3 +354,79 @@ async def test_async_unload_entry_clears_platform_cache(
     result = await pawcontrol_init.async_unload_entry(hass, entry)
     assert result is True
     assert pawcontrol_init._PLATFORM_CACHE == {}
+
+
+def test_should_skip_optional_setup_handles_missing_or_mocked_services() -> None:
+    """Skip optional setup when service registry is unavailable or mocked."""
+    assert pawcontrol_init._should_skip_optional_setup(SimpleNamespace(services=None))
+
+    class _MockServices:
+        __module__ = "unittest.mock"
+
+        async def async_call(self) -> None:
+            return None
+
+    mock_services = _MockServices()
+    assert pawcontrol_init._should_skip_optional_setup(
+        SimpleNamespace(services=mock_services)
+    )
+
+    class _RealServices:
+        async def async_call(self) -> None:
+            return None
+
+    assert (
+        pawcontrol_init._should_skip_optional_setup(
+            SimpleNamespace(services=_RealServices())
+        )
+        is False
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_reload_entry_returns_when_unload_fails(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reload should stop if unloading the existing entry fails."""
+    entry = ConfigEntry(domain="pawcontrol", title="Reload")
+    unload_mock = AsyncMock(return_value=False)
+    setup_mock = AsyncMock()
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_unload_entry",
+        unload_mock,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        setup_mock,
+    )
+
+    await pawcontrol_init.async_reload_entry(hass, entry)
+
+    unload_mock.assert_awaited_once_with(hass, entry)
+    setup_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_reload_entry_reraises_not_ready(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reload should propagate ConfigEntryNotReady for retry scheduling."""
+    entry = ConfigEntry(domain="pawcontrol", title="Reload")
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_unload_entry",
+        AsyncMock(return_value=True),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        AsyncMock(side_effect=ConfigEntryNotReady("not ready")),
+    )
+
+    with pytest.raises(ConfigEntryNotReady):
+        await pawcontrol_init.async_reload_entry(hass, entry)

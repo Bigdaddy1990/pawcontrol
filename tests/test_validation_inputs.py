@@ -1,10 +1,10 @@
 """Unit tests for PawControl input validation helpers."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from types import SimpleNamespace
-from collections.abc import Callable
 
 import pytest
 
