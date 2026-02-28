@@ -1,7 +1,5 @@
 """Tests for `custom_components.pawcontrol.utils` package exports."""
 
-from __future__ import annotations
-
 import importlib
 
 import pytest
@@ -50,4 +48,4 @@ def test_utils_getattr_unknown_symbol_raises_attribute_error() -> None:
     module = _reloaded_utils_module()
 
     with pytest.raises(AttributeError):
-        getattr(module, "definitely_not_exported")
+        module.definitely_not_exported

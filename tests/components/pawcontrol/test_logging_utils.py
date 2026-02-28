@@ -1,7 +1,5 @@
 """Tests for logging and redaction helpers."""
 
-from __future__ import annotations
-
 import logging
 from types import ModuleType
 from unittest.mock import Mock
