@@ -295,17 +295,15 @@ def test_manual_event_helper_coercions_handle_invalid_shapes() -> None:
 
 def test_coerce_automation_entries_preserves_explicit_boolean_values() -> None:
     """Automation-entry coercion should keep native booleans and coerce truthy values."""
-    entries = _coerce_automation_entries(
-        [
-            {
-                "manual_breaker_event": " breaker.event ",
-                "manual_check_event": " check.event ",
-                "configured_guard": True,
-                "configured_breaker": False,
-                "configured_check": 1,
-            }
-        ]
-    )
+    entries = _coerce_automation_entries([
+        {
+            "manual_breaker_event": " breaker.event ",
+            "manual_check_event": " check.event ",
+            "configured_guard": True,
+            "configured_breaker": False,
+            "configured_check": 1,
+        }
+    ])
 
     assert entries == [
         {

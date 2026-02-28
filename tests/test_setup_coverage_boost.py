@@ -161,7 +161,9 @@ async def test_async_forward_platforms_accepts_non_awaitable_forward_result() ->
 
 
 @pytest.mark.asyncio
-async def test_optional_setup_managers_skip_notifications_when_no_items_created() -> None:
+async def test_optional_setup_managers_skip_notifications_when_no_items_created() -> (
+    None
+):
     """Helper/script notifications should be skipped for empty generation payloads."""
     from custom_components.pawcontrol.setup import platform_setup
 
