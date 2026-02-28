@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 from homeassistant import data_entry_flow
 from homeassistant.const import CONF_NAME
 import pytest
+import voluptuous as vol
 from voluptuous import Schema
 
 from custom_components.pawcontrol.flow_helpers import (
@@ -415,6 +416,21 @@ class TestSchemaBuilding:
         # Schema should be a vol.Schema
         assert schema is not None
 
+    def test_build_select_schema_required_without_default_uses_required_marker(
+        self,
+    ) -> None:
+        """Required select schemas should not inject implicit defaults."""
+        schema = build_select_schema(
+            key="required_key",
+            options=["option1", "option2"],
+            required=True,
+            translation_key="my_translation",
+        )
+
+        marker = next(iter(schema))
+        assert marker.schema == "required_key"
+        assert isinstance(marker, vol.Required)
+
     def test_build_number_schema(self) -> None:
         """Test build_number_schema function."""
         schema = build_number_schema(
@@ -426,6 +442,22 @@ class TestSchemaBuilding:
 
         assert schema is not None
 
+    def test_build_number_schema_required_without_default_uses_required_marker(
+        self,
+    ) -> None:
+        """Required numeric schemas should allow omitted defaults."""
+        schema = build_number_schema(
+            key="weight",
+            min_value=1,
+            max_value=10,
+            required=True,
+            unit="kg",
+        )
+
+        marker = next(iter(schema))
+        assert marker.schema == "weight"
+        assert isinstance(marker, vol.Required)
+
     def test_build_text_schema(self) -> None:
         """Test build_text_schema function."""
         schema = build_text_schema(
@@ -434,6 +466,20 @@ class TestSchemaBuilding:
         )
 
         assert schema is not None
+
+    def test_build_text_schema_required_without_default_uses_required_marker(
+        self,
+    ) -> None:
+        """Required text schemas should create required markers without defaults."""
+        schema = build_text_schema(
+            key="name",
+            required=True,
+            autocomplete="name",
+        )
+
+        marker = next(iter(schema))
+        assert marker.schema == "name"
+        assert isinstance(marker, vol.Required)
 
     def test_build_boolean_schema(self) -> None:
         """Test build_boolean_schema function."""
@@ -476,6 +522,16 @@ class TestFlowStateManagement:
         retrieved = get_flow_data(mock_flow, "test_key")
 
         assert retrieved is None
+
+    def test_clear_flow_data_without_key_resets_store(self) -> None:
+        """Clearing without a key should reset the entire flow data mapping."""
+        mock_flow = MagicMock()
+        store_flow_data(mock_flow, "first", 1)
+        store_flow_data(mock_flow, "second", 2)
+
+        clear_flow_data(mock_flow)
+
+        assert mock_flow._flow_data == {}
 
     def test_flow_data_isolation(self) -> None:
         """Test that flow data is isolated by key."""
@@ -524,3 +580,46 @@ class TestEdgeCases:
         """Test merge_errors with no arguments."""
         merged = merge_errors()
         assert merged == {}
+
+
+def test_build_schema_helpers_required_with_default_markers() -> None:
+    """Required schema helpers should preserve explicit default values."""
+    select_schema = build_select_schema(
+        key="size",
+        options=["small", "medium"],
+        required=True,
+        default="small",
+    )
+    number_schema = build_number_schema(
+        key="age",
+        min_value=1,
+        max_value=20,
+        required=True,
+        default=3,
+    )
+    text_schema = build_text_schema(
+        key="nickname",
+        required=True,
+        default="buddy",
+    )
+
+    select_marker = next(iter(select_schema))
+    number_marker = next(iter(number_schema))
+    text_marker = next(iter(text_schema))
+
+    assert isinstance(select_marker, vol.Required)
+    assert select_marker.default() == "small"
+    assert isinstance(number_marker, vol.Required)
+    assert number_marker.default() == 3
+    assert isinstance(text_marker, vol.Required)
+    assert text_marker.default() == "buddy"
+
+
+def test_clear_flow_data_ignores_non_mapping_store() -> None:
+    """clear_flow_data should no-op when the stored context is not a dictionary."""
+    flow = MagicMock()
+    flow._flow_data = "not-a-dict"
+
+    clear_flow_data(flow)
+
+    assert flow._flow_data == "not-a-dict"
