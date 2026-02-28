@@ -314,7 +314,7 @@ jobs:
 
       - name: Upload coverage artifact
         if: always() && !cancelled() && inputs.upload-coverage-artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.coverage-artifact-name }}
           path: |
@@ -324,7 +324,7 @@ jobs:
 
       - name: Upload junit artifact
         if: always() && !cancelled() && inputs.upload-junit-artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.junit-artifact-name }}
           path: ${{ env.JUNIT_PATH }}
@@ -350,7 +350,7 @@ jobs:
 
       - name: Upload GitHub Pages bundle
         if: inputs.publish-pages == true && steps.pytest.outcome == 'success'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.pages-artifact-name }}
           path: ${{ env.PAGES_ARTIFACT_DIR }}
