@@ -317,3 +317,49 @@ def test_publish_uses_custom_prune_max_age(tmp_path, monkeypatch) -> None:
 
     assert result.published is True
     assert captured_window == dt.timedelta(days=5)
+
+
+def test_parse_coverage_percent_handles_invalid_line_rate(tmp_path) -> None:
+    """Invalid line-rate attributes should safely degrade to 0.0."""
+    coverage_xml = tmp_path / "coverage.xml"
+    coverage_xml.write_text(
+        """<?xml version='1.0' ?><coverage line-rate='not-a-number'></coverage>""",
+        encoding="utf-8",
+    )
+
+    assert publish_coverage._parse_coverage_percent(coverage_xml) == 0.0
+
+
+def test_render_prefixes_uses_default_template_when_empty() -> None:
+    """A missing prefix template list should still render the default target."""
+    prefixes = publish_coverage._render_prefixes(
+        prefix="coverage",
+        templates=[],
+        run_id="",
+        run_attempt="",
+        commit_sha="",
+        ref="",
+    )
+
+    assert prefixes == ["coverage/latest"]
+
+
+def test_prune_expired_runs_returns_empty_when_contents_is_not_a_list(
+    monkeypatch,
+) -> None:
+    """Non-list content responses should be treated as no-op for pruning."""
+
+    class _Publisher(publish_coverage.GitHubPagesPublisher):
+        def _request_json(
+            self,
+            method: str,
+            url: str,
+            *,
+            payload: dict[str, object] | None = None,
+        ) -> object:
+            del method, url, payload
+            return {"unexpected": "payload"}
+
+    publisher = _Publisher("token", "owner/repo", "gh-pages")
+
+    assert publisher.prune_expired_runs("coverage", dt.timedelta(days=30)) == []
