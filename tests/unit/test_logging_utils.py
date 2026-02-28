@@ -135,3 +135,29 @@ def test_log_helpers_emit_expected_records(caplog: pytest.LogCaptureFixture) -> 
 
     assert "https://example.com/path" in caplog.text
     assert "RuntimeError" in caplog.text
+
+
+def test_structured_logger_exception_and_level_delegation(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Exception logging and level delegation should mirror stdlib logger."""
+    logger = logging_utils.StructuredLogger("pawcontrol.test.exception")
+
+    with caplog.at_level(logging.ERROR, logger="pawcontrol.test.exception"):
+        try:
+            raise RuntimeError("boom")
+        except RuntimeError:
+            logger.exception("Failed update", dog_name="Milo", api_token="hidden")
+
+    assert "Failed update" in caplog.text
+    assert "dog_name='Milo'" in caplog.text
+    assert "api_token='***REDACTED***'" in caplog.text
+    assert logger.isEnabledFor(logging.ERROR)
+
+
+def test_get_logger_returns_stdlib_logger() -> None:
+    """Public get_logger helper should proxy to logging.getLogger."""
+    logger = logging_utils.get_logger("pawcontrol.test.stdlib")
+
+    assert isinstance(logger, logging.Logger)
+    assert logger.name == "pawcontrol.test.stdlib"
