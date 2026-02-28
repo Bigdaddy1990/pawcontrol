@@ -16,7 +16,11 @@ from custom_components.pawcontrol.coordinator_runtime import (
     RuntimeCycleInfo,
     summarize_entity_budgets,
 )
-from custom_components.pawcontrol.exceptions import UpdateFailed
+from custom_components.pawcontrol.exceptions import (
+    ConfigEntryAuthFailed,
+    UpdateFailed,
+    ValidationError,
+)
 
 # ---------------------------------------------------------------------------
 # EntityBudgetSnapshot
@@ -305,3 +309,54 @@ class TestCoordinatorRuntimeExecuteCycle:
             ["rex", "max"], {}, empty_payload_factory=dict
         )
         assert info.dog_count == 2
+
+    @pytest.mark.asyncio
+    async def test_execute_cycle_raises_auth_failure_from_task_group(self) -> None:
+        runtime = self._make_runtime()
+        runtime._resilience.execute_with_resilience = AsyncMock(
+            side_effect=ConfigEntryAuthFailed("auth failed")
+        )
+
+        with pytest.raises(ConfigEntryAuthFailed, match="auth failed"):
+            await runtime.execute_cycle(["rex"], {}, empty_payload_factory=dict)
+
+    @pytest.mark.asyncio
+    async def test_execute_cycle_validation_error_uses_empty_payload(self) -> None:
+        runtime = self._make_runtime()
+        runtime._resilience.execute_with_resilience = AsyncMock(
+            side_effect=[
+                ValidationError("dog_id", "rex", "invalid"),
+                {"dog_info": {"dog_id": "max"}, "status": "online"},
+            ]
+        )
+        runtime._metrics.record_cycle.return_value = (0.5, False)
+
+        payload, info = await runtime.execute_cycle(
+            ["rex", "max"],
+            {"max": {"dog_info": {"dog_id": "max"}, "status": "online"}},
+            empty_payload_factory=dict,
+        )
+
+        assert payload["rex"] == {}
+        assert info.errors == 1
+        runtime._logger.error.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_fetch_dog_data_returns_payload_without_module_tasks(self) -> None:
+        runtime = self._make_runtime()
+
+        payload = await runtime._fetch_dog_data("rex")
+
+        assert payload["dog_info"]["dog_id"] == "rex"
+        assert payload["status"] == "online"
+        assert isinstance(payload["last_update"], str)
+
+    @pytest.mark.asyncio
+    async def test_fetch_dog_data_raises_validation_error_without_registry_entry(
+        self,
+    ) -> None:
+        runtime = self._make_runtime()
+        runtime._registry.get.return_value = None
+
+        with pytest.raises(ValidationError, match="Dog configuration not found"):
+            await runtime._fetch_dog_data("ghost")
