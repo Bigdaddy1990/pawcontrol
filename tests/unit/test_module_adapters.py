@@ -280,14 +280,12 @@ def test_normalise_health_alert_defaults_and_details(
     """Health alert normalization should default unknown fields safely."""
     module, _ = module_adapters
 
-    alert = module._normalise_health_alert(
-        {
-            "type": "heart_rate",
-            "severity": "EMERGENCY",
-            "details": {"threshold": 180},
-            "action_required": 1,
-        }
-    )
+    alert = module._normalise_health_alert({
+        "type": "heart_rate",
+        "severity": "EMERGENCY",
+        "details": {"threshold": 180},
+        "action_required": 1,
+    })
 
     assert alert["type"] == "heart_rate"
     assert alert["message"] == "Heart Rate"
@@ -302,12 +300,10 @@ def test_normalise_health_alert_accepts_supported_severity(
     """Known severities should pass through normalization unchanged."""
     module, _ = module_adapters
 
-    alert = module._normalise_health_alert(
-        {
-            "type": "temperature",
-            "severity": "critical",
-        }
-    )
+    alert = module._normalise_health_alert({
+        "type": "temperature",
+        "severity": "critical",
+    })
 
     assert alert["type"] == "temperature"
     assert alert["severity"] == "critical"
@@ -319,16 +315,14 @@ def test_normalise_health_medication_preserves_optional_nones(
     """Medication payload normalization should keep explicit optional fields."""
     module, _ = module_adapters
 
-    reminder = module._normalise_health_medication(
-        {
-            "medication": "antibiotic",
-            "dosage": None,
-            "frequency": "daily",
-            "next_dose": 1704067200,
-            "notes": None,
-            "with_meals": "yes",
-        }
-    )
+    reminder = module._normalise_health_medication({
+        "medication": "antibiotic",
+        "dosage": None,
+        "frequency": "daily",
+        "next_dose": 1704067200,
+        "notes": None,
+        "with_meals": "yes",
+    })
 
     assert reminder == {
         "name": "antibiotic",
@@ -347,7 +341,7 @@ def test_base_module_adapter_cache_snapshot_without_ttl(
     module, _ = module_adapters
 
     adapter = module._BaseModuleAdapter(ttl=None)
-    assert adapter.cleanup(datetime.now(timezone.utc)) == 0
+    assert adapter.cleanup(datetime.now(UTC)) == 0
     assert adapter.cache_metrics().entries == 0
     assert adapter.cache_snapshot() == {
         "stats": {
