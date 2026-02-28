@@ -32,6 +32,21 @@ def test_service_guard_result_to_mapping() -> None:
     assert payload["executed"] is False
 
 
+def test_service_guard_result_to_mapping_omits_optional_fields() -> None:
+    """Optional metadata should be omitted when not provided."""
+    result = ServiceGuardResult(
+        domain="notify",
+        service="mobile_app",
+        executed=True,
+    )
+
+    assert result.to_mapping() == {
+        "domain": "notify",
+        "service": "mobile_app",
+        "executed": True,
+    }
+
+
 def test_service_guard_result_bool_protocol() -> None:
     """Guard result instances should mirror the executed boolean state."""
     assert bool(ServiceGuardResult("notify", "mobile_app", True)) is True
@@ -257,3 +272,22 @@ def test_service_guard_snapshot_accumulate_handles_write_ignored_mapping() -> No
         "reasons": {},
         "last_results": snapshot.history(),
     }
+
+
+def test_service_guard_snapshot_accumulate_coerces_existing_reason_counts() -> None:
+    """Reason counters should be coerced from numeric values before incrementing."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+    ])
+
+    metrics: JSONMutableMapping = {
+        "executed": 0,
+        "skipped": 0,
+        "reasons": {"cooldown": True},
+        "last_results": [],
+    }
+
+    payload = snapshot.accumulate(metrics)
+
+    assert payload["reasons"] == {"cooldown": 2}
+    assert metrics["reasons"] == {"cooldown": 2}
