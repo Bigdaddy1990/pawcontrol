@@ -121,6 +121,49 @@ def test_bind_exception_alias_combine_with_current_creates_hybrid_alias() -> Non
             compat.sys.modules[module_name] = original_module
 
 
+def test_sync_config_entry_symbols_populates_missing_module_exports() -> None:
+    """Config-entry symbol sync should install fallback classes when absent."""
+
+    config_entries_module = ModuleType("homeassistant.config_entries")
+    core_module = ModuleType("homeassistant.core")
+
+    compat._sync_config_entry_symbols(config_entries_module, core_module)
+
+    assert config_entries_module.ConfigEntry is compat.ConfigEntry
+    assert config_entries_module.ConfigEntryState is compat.ConfigEntryState
+    assert config_entries_module.ConfigEntryChange is compat.ConfigEntryChange
+    assert core_module.ConfigEntry is compat.ConfigEntry
+    assert core_module.ConfigEntryState is compat.ConfigEntryState
+    assert core_module.ConfigEntryChange is compat.ConfigEntryChange
+
+
+def test_sync_config_entry_symbols_preserves_valid_homeassistant_exports() -> None:
+    """Config-entry symbol sync should keep Home Assistant compatible symbols."""
+
+    class NativeConfigEntry:
+        def __init__(self, domain: str, entry_id: str) -> None:
+            self.domain = domain
+            self.entry_id = entry_id
+
+    class NativeState(compat.Enum):
+        LOADED = "loaded"
+
+    class NativeChange(compat.Enum):
+        ADDED = "added"
+
+    config_entries_module = ModuleType("homeassistant.config_entries")
+    config_entries_module.ConfigEntry = NativeConfigEntry
+    config_entries_module.ConfigEntryState = NativeState
+    config_entries_module.ConfigEntryChange = NativeChange
+
+    compat._sync_config_entry_symbols(config_entries_module, None)
+
+    assert compat.ConfigEntry is NativeConfigEntry
+    assert compat.ConfigEntryState is NativeState
+    assert compat.ConfigEntryChange is NativeChange
+
+
+
 @pytest.mark.asyncio
 async def test_fallback_service_registry_invokes_sync_and_async_handlers() -> None:
     """Fallback registry should support sync/async handlers and missing lookups."""
