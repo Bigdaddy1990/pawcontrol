@@ -11,6 +11,24 @@ def test_normalize_language_raises_for_empty_default() -> None:
         normalize_language("de", default="")
 
 
+def test_normalize_language_raises_for_default_that_normalizes_empty() -> None:
+    """Defaults that collapse to empty values should be rejected."""
+    with pytest.raises(ValueError, match="default language must be a non-empty string"):
+        normalize_language("de", default=" _ ")
+
+
+def test_normalize_language_handles_none_value() -> None:
+    """A ``None`` language should resolve to the normalized default."""
+    assert normalize_language(None, default="EN_us") == "en"
+
+
+def test_normalize_code_returns_empty_for_none() -> None:
+    """Internal normalization should gracefully handle ``None`` values."""
+    from custom_components.pawcontrol.language import _normalize_code
+
+    assert _normalize_code(None) == ""
+
+
 def test_normalize_language_uses_default_when_language_missing() -> None:
     """Missing language values should return the configured default."""
     assert normalize_language(None, default="de") == "de"
