@@ -62,3 +62,17 @@ def test_utils_getattr_raises_for_unknown_symbol() -> None:
     """Unknown helper names must raise ``AttributeError``."""
     with pytest.raises(AttributeError):
         _ = utils.not_a_real_helper
+
+
+def test_utils_reload_ignores_legacy_serialize_name_collisions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy names colliding with serialize helpers must stay ignored."""
+    collision = object()
+    monkeypatch.setattr(_legacy, "serialize_datetime", collision, raising=False)
+
+    import importlib
+
+    reloaded = importlib.reload(utils)
+
+    assert reloaded.serialize_datetime is serialize_module.serialize_datetime
