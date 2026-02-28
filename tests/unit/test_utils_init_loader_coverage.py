@@ -36,6 +36,8 @@ def loaded_utils_module(
     legacy_module.ensure_utc_datetime = _legacy_ensure_utc_datetime
     legacy_module.ensure_local_datetime = _legacy_ensure_local_datetime
     legacy_module.async_fire_event = _legacy_async_fire_event
+    # Force overlap with serialize exports so the ``continue`` branch executes.
+    legacy_module.serialize_datetime = object()
 
     module_path = Path(real_legacy_module.__file__).resolve().with_name("__init__.py")
     module_ast = ast.parse(module_path.read_text())
