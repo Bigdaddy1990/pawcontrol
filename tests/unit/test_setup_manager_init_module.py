@@ -67,6 +67,105 @@ async def test_async_initialize_coordinator_refresh_network_error_raises_not_rea
 
 
 @pytest.mark.asyncio
+async def test_async_initialize_coordinator_prepare_network_error_raises_not_ready(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Network issues during prepare should be wrapped in ConfigEntryNotReady."""
+
+    async def _wait_for_prepare(coro: object, **_: object) -> object:
+        await coro
+        raise OSError("network")
+
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(),
+    )
+
+    monkeypatch.setattr(manager_init.asyncio, "wait_for", _wait_for_prepare)
+
+    with pytest.raises(ConfigEntryNotReady, match="pre-setup"):
+        await manager_init._async_initialize_coordinator(
+            coordinator,
+            skip_optional_setup=False,
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_coordinator_refresh_timeout_raises_not_ready(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timeout in refresh step should raise the initialization timeout wrapper."""
+    calls = 0
+
+    async def _wait_for_refresh(coro: object, **_: object) -> object:
+        nonlocal calls
+        calls += 1
+        await coro
+        if calls == 2:
+            raise TimeoutError
+        return None
+
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(),
+    )
+
+    monkeypatch.setattr(manager_init.asyncio, "wait_for", _wait_for_refresh)
+
+    with pytest.raises(ConfigEntryNotReady, match="initialization timeout"):
+        await manager_init._async_initialize_coordinator(
+            coordinator,
+            skip_optional_setup=False,
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_coordinator_refresh_auth_failure_is_reraised(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Refresh auth failures should be passed through unchanged."""
+    calls = 0
+
+    async def _wait_for_refresh(coro: object, **_: object) -> object:
+        nonlocal calls
+        calls += 1
+        await coro
+        if calls == 2:
+            raise ConfigEntryAuthFailed("refresh failed")
+        return None
+
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(),
+    )
+
+    monkeypatch.setattr(manager_init.asyncio, "wait_for", _wait_for_refresh)
+
+    with pytest.raises(ConfigEntryAuthFailed, match="refresh failed"):
+        await manager_init._async_initialize_coordinator(
+            coordinator,
+            skip_optional_setup=False,
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_coordinator_success_runs_prepare_and_refresh() -> None:
+    """Coordinator initialization should run prepare and first refresh when enabled."""
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(),
+    )
+
+    await manager_init._async_initialize_coordinator(
+        coordinator,
+        skip_optional_setup=False,
+    )
+
+    coordinator.async_prepare_entry.assert_awaited_once_with()
+    coordinator.async_config_entry_first_refresh.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
 async def test_async_initialize_manager_with_timeout_handles_failures() -> None:
     """Manager wrapper should pass through timeout and generic exceptions."""
     with pytest.raises(TimeoutError):
@@ -156,6 +255,96 @@ async def test_async_create_optional_managers_creates_gps_managers_and_migrates_
         entry,
         options={"entity_profile": "advanced"},
     )
+
+
+@pytest.mark.asyncio
+async def test_async_create_optional_managers_skips_gps_managers_when_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GPS-related managers should remain unset when no dog enables GPS."""
+
+    class _ScriptManager:
+        def ensure_resilience_threshold_options(self):
+            return None
+
+    monkeypatch.setattr(
+        manager_init, "PawControlHelperManager", lambda _h, _e: object()
+    )
+    monkeypatch.setattr(
+        manager_init, "PawControlScriptManager", lambda _h, _e: _ScriptManager()
+    )
+    monkeypatch.setattr(manager_init, "DoorSensorManager", lambda _h, _id: object())
+    monkeypatch.setattr(manager_init, "GardenManager", lambda _h, _id: object())
+    monkeypatch.setattr(manager_init, "WeatherHealthManager", lambda _h: object())
+
+    result = await manager_init._async_create_optional_managers(
+        SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=MagicMock())),
+        SimpleNamespace(entry_id="entry-1", options={}, data={}),
+        [{"dog_id": "buddy", "modules": {"gps": False}}],
+        {"notification_manager": object()},
+        skip_optional_setup=False,
+    )
+
+    assert result["gps_geofence_manager"] is None
+    assert result["geofencing_manager"] is None
+
+
+@pytest.mark.asyncio
+async def test_async_create_core_managers_returns_expected_instances(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Core manager creation should wire all manager constructors correctly."""
+    created: dict[str, object] = {}
+
+    class _DataManager:
+        def __init__(self, *args, **kwargs) -> None:
+            created["data_manager_args"] = (args, kwargs)
+
+    class _NotificationManager:
+        def __init__(self, *args, **kwargs) -> None:
+            created["notification_manager_args"] = (args, kwargs)
+
+    class _FeedingManager:
+        def __init__(self, *args, **kwargs) -> None:
+            created["feeding_manager_args"] = (args, kwargs)
+
+    class _WalkManager:
+        def __init__(self, *args, **kwargs) -> None:
+            created["walk_manager_args"] = (args, kwargs)
+
+    class _EntityFactory:
+        def __init__(self, *args, **kwargs) -> None:
+            created["entity_factory_args"] = (args, kwargs)
+
+    monkeypatch.setattr(manager_init, "PawControlDataManager", _DataManager)
+    monkeypatch.setattr(
+        manager_init, "PawControlNotificationManager", _NotificationManager
+    )
+    monkeypatch.setattr(manager_init, "FeedingManager", _FeedingManager)
+    monkeypatch.setattr(manager_init, "WalkManager", _WalkManager)
+    monkeypatch.setattr(manager_init, "EntityFactory", _EntityFactory)
+
+    coordinator = object()
+    hass = object()
+    entry = SimpleNamespace(entry_id="entry-77")
+    dogs = [{"dog_id": "buddy"}, {"dog_id": "max"}]
+    session = object()
+
+    result = await manager_init._async_create_core_managers(
+        hass,
+        entry,
+        coordinator,
+        dogs,
+        session,
+    )
+
+    assert result["dog_ids"] == ["buddy", "max"]
+    assert created["data_manager_args"][0] == (hass, "entry-77")
+    assert created["data_manager_args"][1]["coordinator"] is coordinator
+    assert created["notification_manager_args"][1]["session"] is session
+    assert created["feeding_manager_args"][0] == (hass,)
+    assert created["walk_manager_args"][0] == ()
+    assert created["entity_factory_args"][1]["prewarm"] is True
 
 
 @pytest.mark.asyncio
@@ -328,6 +517,61 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides(
         enabled=True,
         use_home_location=True,
         home_zone_radius=150,
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_geofencing_manager_uses_entry_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Entry-level defaults should be used when per-dog settings are absent."""
+    geofencing_manager = SimpleNamespace(async_initialize=AsyncMock())
+
+    async def _capture_initialization(
+        _manager_name: str, coro: object, **_: object
+    ) -> None:
+        await coro
+
+    monkeypatch.setattr(
+        manager_init,
+        "_async_initialize_manager_with_timeout",
+        _capture_initialization,
+    )
+
+    entry = SimpleNamespace(
+        options={
+            "geofence_settings": {
+                "geofencing_enabled": True,
+                "use_home_location": False,
+                "geofence_radius_m": 80,
+            },
+            "dog_options": {"buddy": "invalid"},
+        }
+    )
+    initialization_tasks: list[asyncio.Task[None]] = []
+
+    await manager_init._async_initialize_geofencing_manager(
+        geofencing_manager,
+        ["buddy"],
+        entry,
+        initialization_tasks,
+    )
+    await asyncio.gather(*initialization_tasks)
+
+    geofencing_manager.async_initialize.assert_awaited_once_with(
+        dogs=["buddy"],
+        enabled=True,
+        use_home_location=False,
+        home_zone_radius=80,
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_manager_with_timeout_success() -> None:
+    """Successful initialization should complete without raising."""
+    await manager_init._async_initialize_manager_with_timeout(
+        "demo",
+        AsyncMock(return_value=None)(),
     )
 
 
