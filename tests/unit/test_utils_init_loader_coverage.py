@@ -1,11 +1,14 @@
 """Direct execution tests for ``custom_components.pawcontrol.utils.__init__``."""
 
+import ast
 import importlib.util
 from pathlib import Path
 import sys
 from types import ModuleType
 
 import pytest
+
+from custom_components.pawcontrol.utils import _legacy as real_legacy_module
 
 
 @pytest.fixture
@@ -35,25 +38,29 @@ def loaded_utils_module(
     legacy_module.async_fire_event = _legacy_async_fire_event
     legacy_module.serialize_datetime = object()
 
-    for explicit_name in (
-        "ErrorContext",
-        "DateTimeConvertible",
-        "JSONMutableMapping",
-        "JSONMappingLike",
-        "Number",
-        "PawControlDeviceLinkMixin",
-        "_coerce_json_mutable",
-        "async_call_add_entities",
-        "async_call_hass_service_if_available",
-        "async_capture_service_guard_results",
-        "build_error_context",
-        "deep_merge_dicts",
-        "is_number",
-        "normalise_entity_attributes",
-        "resolve_default_feeding_amount",
-        "sanitize_dog_id",
-    ):
-        setattr(legacy_module, explicit_name, object())
+    module_path = (
+        Path(__file__).resolve().parents[2]
+        / "custom_components"
+        / "pawcontrol"
+        / "utils"
+        / "__init__.py"
+    )
+    module_ast = ast.parse(module_path.read_text())
+    imported_legacy_symbols = {
+        alias.name
+        for node in module_ast.body
+        if isinstance(node, ast.ImportFrom) and node.module == "_legacy"
+        for alias in node.names
+    }
+
+    all_legacy_symbols = {
+        *{name for name in dir(real_legacy_module) if not name.startswith("_")},
+        *imported_legacy_symbols,
+    }
+
+    for explicit_name in all_legacy_symbols:
+        if not hasattr(legacy_module, explicit_name):
+            setattr(legacy_module, explicit_name, object())
 
     serialize_module = ModuleType(f"{package_name}.serialize")
 
@@ -77,13 +84,6 @@ def loaded_utils_module(
     monkeypatch.setitem(sys.modules, f"{package_name}._legacy", legacy_module)
     monkeypatch.setitem(sys.modules, f"{package_name}.serialize", serialize_module)
 
-    module_path = (
-        Path(__file__).resolve().parents[2]
-        / "custom_components"
-        / "pawcontrol"
-        / "utils"
-        / "__init__.py"
-    )
     spec = importlib.util.spec_from_file_location(
         package_name,
         module_path,
