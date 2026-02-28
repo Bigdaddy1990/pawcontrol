@@ -332,7 +332,9 @@ def test_format_local_timestamp_handles_empty_invalid_and_naive() -> None:
 def test_string_sequence_normalises_supported_input_shapes() -> None:
     """String sequence helper should coerce scalar, sequence, and byte payloads."""
     assert PawControlOptionsFlow._string_sequence(None) == []
-    assert PawControlOptionsFlow._string_sequence("  tracker.event  ") == ["tracker.event"]
+    assert PawControlOptionsFlow._string_sequence("  tracker.event  ") == [
+        "tracker.event"
+    ]
     assert PawControlOptionsFlow._string_sequence("   ") == []
     assert PawControlOptionsFlow._string_sequence(["  alpha  ", 42, "", " beta "]) == [
         "alpha",
@@ -344,13 +346,16 @@ def test_string_sequence_normalises_supported_input_shapes() -> None:
 
 def test_coerce_manual_event_with_default_falls_back_for_non_string_values() -> None:
     """Manual event coercion should preserve defaults when values are non-string."""
-    assert PawControlOptionsFlow._coerce_manual_event_with_default("  manual.event  ", None) == (
-        "manual.event"
+    assert PawControlOptionsFlow._coerce_manual_event_with_default(
+        "  manual.event  ", None
+    ) == ("manual.event")
+    assert (
+        PawControlOptionsFlow._coerce_manual_event_with_default(" ", "default.event")
+        is None
     )
-    assert PawControlOptionsFlow._coerce_manual_event_with_default(" ", "default.event") is None
-    assert PawControlOptionsFlow._coerce_manual_event_with_default(123, "default.event") == (
-        "default.event"
-    )
+    assert PawControlOptionsFlow._coerce_manual_event_with_default(
+        123, "default.event"
+    ) == ("default.event")
 
 
 def test_manual_event_choices_handles_disabled_and_unknown_sources(
