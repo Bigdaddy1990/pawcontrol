@@ -126,3 +126,39 @@ async def test_async_reproduce_platform_states_skips_when_preprocess_returns_non
     )
 
     assert calls == 0
+
+
+@pytest.mark.asyncio
+async def test_async_reproduce_platform_states_logs_missing_entity_with_title_case(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Missing entities should emit a platform-prefixed warning and skip handler."""
+    processed_states: list[str] = []
+    handled = False
+
+    def preprocess(state: State) -> str:
+        processed_states.append(state.entity_id)
+        return state.state
+
+    async def handler(
+        _hass: HomeAssistant,
+        _wanted_state: State,
+        _existing_state: State,
+        _processed: str,
+        _context: Context | None,
+    ) -> None:
+        nonlocal handled
+        handled = True
+
+    await async_reproduce_platform_states(
+        hass,
+        [State("switch.pawcontrol_absent", STATE_ON)],
+        "switch",
+        preprocess,
+        handler,
+    )
+
+    assert processed_states == ["switch.pawcontrol_absent"]
+    assert handled is False
+    assert "Switch entity switch.pawcontrol_absent not found" in caplog.text
