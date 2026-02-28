@@ -174,6 +174,22 @@ def test_validate_device_endpoint_rejects_invalid_values(
 
 
 @pytest.mark.unit
+def test_validate_device_endpoint_accepts_http_and_https(
+    device_api_module: ModuleType,
+) -> None:
+    """Endpoint validation should preserve valid URLs."""
+    https_endpoint = device_api_module.validate_device_endpoint(
+        "https://device.pawcontrol.invalid",
+    )
+    http_endpoint = device_api_module.validate_device_endpoint(
+        "http://device.pawcontrol.invalid:8123",
+    )
+
+    assert str(https_endpoint) == "https://device.pawcontrol.invalid"
+    assert str(http_endpoint) == "http://device.pawcontrol.invalid:8123"
+
+
+@pytest.mark.unit
 def test_device_client_forwards_bearer_token_and_feeding_path(
     device_api_module: ModuleType,
     session_factory,
@@ -268,6 +284,50 @@ def test_device_client_http_error_mapping(
         asyncio.run(client.async_get_json("/status"))
 
     assert message in str(excinfo.value)
+
+
+@pytest.mark.unit
+def test_device_client_rate_limit_uses_default_retry_after_when_invalid(
+    device_api_module: ModuleType,
+    session_factory,
+) -> None:
+    """Rate-limit responses without a valid ``Retry-After`` should default to 60s."""
+    session = session_factory()
+    response = Mock()
+    response.status = 429
+    response.headers = {"Retry-After": "not-a-number"}
+    session.request = AsyncMock(return_value=response)
+
+    client = device_api_module.PawControlDeviceClient(
+        session=session,
+        endpoint="https://device.pawcontrol.invalid",
+    )
+
+    with pytest.raises(device_api_module.RateLimitError) as excinfo:
+        asyncio.run(client.async_get_json("/status"))
+
+    assert excinfo.value.kwargs["retry_after"] == 60
+
+
+@pytest.mark.unit
+def test_device_client_non_json_payload_raises_network_error(
+    device_api_module: ModuleType,
+    session_factory,
+) -> None:
+    """Non-JSON responses should be translated to ``NetworkError``."""
+    session = session_factory()
+    response = Mock()
+    response.status = 200
+    response.json = AsyncMock(side_effect=ValueError("not-json"))
+    session.request = AsyncMock(return_value=response)
+
+    client = device_api_module.PawControlDeviceClient(
+        session=session,
+        endpoint="https://device.pawcontrol.invalid",
+    )
+
+    with pytest.raises(device_api_module.NetworkError, match="non-JSON"):
+        asyncio.run(client.async_get_json("/status"))
 
 
 @pytest.mark.unit
