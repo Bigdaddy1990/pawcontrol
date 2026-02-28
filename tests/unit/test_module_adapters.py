@@ -159,6 +159,37 @@ def test_expiring_cache_handles_hits_and_expiration(
     assert metrics.entries == 0
 
 
+def test_expiring_cache_snapshot_metadata_and_clear(
+    module_adapters: tuple[Any, _DtUtilStub],
+) -> None:
+    """Snapshot metadata should include cleanup fields and reset after clear."""
+    module, dt_stub = module_adapters
+    cache = module._ExpiringCache(ttl=timedelta(seconds=15))
+
+    cache.set("buddy", {"walks": 1})
+    dt_stub.advance(timedelta(seconds=20))
+    evicted = cache.cleanup(dt_stub.utcnow())
+
+    assert evicted == 1
+    snapshot = cache.snapshot()
+    assert snapshot["stats"]["entries"] == 0
+    assert snapshot["metadata"]["ttl_seconds"] == 15.0
+    assert snapshot["metadata"]["last_cleanup"] == dt_stub.utcnow()
+    assert snapshot["metadata"]["last_expired_count"] == 1
+    assert snapshot["metadata"]["expired_total"] == 1
+
+    cache.clear()
+    assert cache.snapshot() == {
+        "stats": {
+            "entries": 0,
+            "hits": 0,
+            "misses": 0,
+            "hit_rate": 0.0,
+        },
+        "metadata": {"ttl_seconds": 15.0},
+    }
+
+
 def test_feeding_adapter_uses_manager_and_cache(
     module_adapters: tuple[Any, _DtUtilStub],
     session_factory,
@@ -263,6 +294,23 @@ def test_normalise_health_alert_defaults_and_details(
     assert alert["severity"] == "medium"
     assert alert["action_required"] is True
     assert alert["details"] == {"threshold": 180}
+
+
+def test_normalise_health_alert_accepts_supported_severity(
+    module_adapters: tuple[Any, _DtUtilStub],
+) -> None:
+    """Known severities should pass through normalization unchanged."""
+    module, _ = module_adapters
+
+    alert = module._normalise_health_alert(
+        {
+            "type": "temperature",
+            "severity": "critical",
+        }
+    )
+
+    assert alert["type"] == "temperature"
+    assert alert["severity"] == "critical"
 
 
 def test_normalise_health_medication_preserves_optional_nones(
