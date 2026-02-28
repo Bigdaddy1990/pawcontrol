@@ -341,7 +341,9 @@ def test_attach_runtime_store_history_adds_only_mapping_and_sequence_payloads() 
 
 
 @pytest.mark.asyncio
-async def test_system_health_info_returns_default_payload_when_no_entry(hass: Any) -> None:
+async def test_system_health_info_returns_default_payload_when_no_entry(
+    hass: Any,
+) -> None:
     """System health should return a stable fallback payload without an entry."""
     info = await system_health_info(hass)
 

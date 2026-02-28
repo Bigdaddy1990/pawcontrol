@@ -3,10 +3,36 @@
 from typing import Any
 
 from custom_components.pawcontrol.flow_steps.health_helpers import (
+    build_dog_health_placeholders,
     build_health_settings_payload,
     normalise_string_sequence,
     summarise_health_summary,
 )
+from custom_components.pawcontrol.types import DOG_HEALTH_PLACEHOLDERS_TEMPLATE
+
+
+def test_build_dog_health_placeholders_returns_immutable_copy() -> None:
+    """Health placeholders should be frozen and not mutate the template."""
+    placeholders = build_dog_health_placeholders(
+        dog_name="Luna",
+        dog_age="4",
+        dog_weight="22.4",
+        suggested_ideal_weight="20.0",
+        suggested_activity="moderate",
+        medication_enabled="yes",
+        bcs_info="BCS info",
+        special_diet_count="3",
+        health_diet_info="Diet guidance",
+    )
+
+    assert placeholders["dog_name"] == "Luna"
+    assert placeholders["medication_enabled"] == "yes"
+    assert DOG_HEALTH_PLACEHOLDERS_TEMPLATE["dog_name"] == ""
+
+    mutable_copy = dict(placeholders)
+    mutable_copy["dog_name"] = "Nova"
+
+    assert placeholders["dog_name"] == "Luna"
 
 
 def test_normalise_string_sequence_handles_mixed_values() -> None:
@@ -34,6 +60,12 @@ def test_summarise_health_summary_renders_issues_and_warnings() -> None:
         summarise_health_summary(summary)
         == "Issues detected | Issues: limping | Warnings: meds overdue"
     )
+
+
+def test_summarise_health_summary_defaults_for_non_mapping_and_healthy() -> None:
+    """Summary helper should handle invalid payloads and healthy snapshots."""
+    assert summarise_health_summary(None) == "No recent health summary"
+    assert summarise_health_summary({"healthy": True}) == "Healthy"
 
 
 def test_build_health_settings_payload_uses_coercion_defaults() -> None:
