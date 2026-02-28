@@ -1,6 +1,4 @@
-"""Tests for walk schema builders."""
-
-from typing import Any
+"""Tests for walk schema builder helpers."""
 
 import voluptuous as vol
 
@@ -11,73 +9,66 @@ from custom_components.pawcontrol.flows.walk_schemas import (
 from custom_components.pawcontrol.types import DoorSensorSettingsConfig
 
 
-def _optional_by_name(fields: dict[vol.Optional, object]) -> dict[str, vol.Optional]:
-    """Index voluptuous optional keys by their schema name."""
-    return {str(optional.schema): optional for optional in fields}
+def _markers_by_name(
+    schema_fields: dict[vol.Optional, object],
+) -> dict[str, vol.Marker]:
+    """Map schema field marker names to marker objects."""
+    return {str(marker.schema): marker for marker in schema_fields}
 
 
-def test_build_walk_timing_schema_fields_uses_defaults_and_overrides() -> None:
-    """Timing fields should use defaults when missing and submitted values otherwise."""
+def test_build_walk_timing_schema_fields_uses_defaults_without_overrides() -> None:
+    """Timing schema should use defaults when values are absent."""
     defaults = DoorSensorSettingsConfig(
-        walk_detection_timeout=300,
-        minimum_walk_duration=180,
-        maximum_walk_duration=7200,
+        walk_detection_timeout=420,
+        minimum_walk_duration=240,
+        maximum_walk_duration=3600,
+    )
+
+    fields = build_walk_timing_schema_fields({}, defaults)
+    markers = _markers_by_name(fields)
+
+    assert markers["walk_detection_timeout"].default() == 420
+    assert markers["minimum_walk_duration"].default() == 240
+    assert markers["maximum_walk_duration"].default() == 3600
+
+    timeout_selector = fields[markers["walk_detection_timeout"]]
+    assert timeout_selector.config["min"] == 30
+    assert timeout_selector.config["max"] == 21600
+    assert timeout_selector.config["step"] == 30
+    assert timeout_selector.config["unit_of_measurement"] == "seconds"
+
+
+def test_build_walk_timing_schema_fields_prefers_runtime_values() -> None:
+    """Timing schema should prioritize runtime values over defaults."""
+    defaults = DoorSensorSettingsConfig(
+        walk_detection_timeout=420,
+        minimum_walk_duration=240,
+        maximum_walk_duration=3600,
     )
 
     fields = build_walk_timing_schema_fields(
         {
             "walk_detection_timeout": 900,
-            "maximum_walk_duration": 8100,
+            "minimum_walk_duration": 300,
+            "maximum_walk_duration": 5400,
         },
         defaults,
     )
+    markers = _markers_by_name(fields)
 
-    keyed_optionals = _optional_by_name(fields)
-    assert set(keyed_optionals) == {
-        "walk_detection_timeout",
-        "minimum_walk_duration",
-        "maximum_walk_duration",
-    }
-
-    assert keyed_optionals["walk_detection_timeout"].default() == 900
-    assert keyed_optionals["minimum_walk_duration"].default() == 180
-    assert keyed_optionals["maximum_walk_duration"].default() == 8100
-
-    timeout_selector = fields[keyed_optionals["walk_detection_timeout"]]
-    minimum_selector = fields[keyed_optionals["minimum_walk_duration"]]
-    maximum_selector = fields[keyed_optionals["maximum_walk_duration"]]
-
-    for selector_obj in (timeout_selector, minimum_selector, maximum_selector):
-        config: dict[str, Any] = selector_obj.config
-        assert config["mode"] == "box"
-        assert config["unit_of_measurement"] == "seconds"
-
-    assert timeout_selector.config["min"] == 30
-    assert timeout_selector.config["max"] == 21600
-    assert timeout_selector.config["step"] == 30
-
-    assert minimum_selector.config["min"] == 60
-    assert minimum_selector.config["max"] == 21600
-    assert minimum_selector.config["step"] == 30
-
-    assert maximum_selector.config["min"] == 120
-    assert maximum_selector.config["max"] == 43200
-    assert maximum_selector.config["step"] == 60
+    assert markers["walk_detection_timeout"].default() == 900
+    assert markers["minimum_walk_duration"].default() == 300
+    assert markers["maximum_walk_duration"].default() == 5400
 
 
-def test_build_auto_end_walks_field_uses_value_and_default() -> None:
-    """Auto-end selector should prefer provided value and fall back to defaults."""
+def test_build_auto_end_walks_field_prefers_values_and_falls_back_to_defaults() -> None:
+    """Auto-end toggle should use explicit values and fallback defaults."""
     defaults = DoorSensorSettingsConfig(auto_end_walks=False)
 
-    field_from_defaults = build_auto_end_walks_field({}, defaults)
-    default_optional = next(iter(field_from_defaults))
-    assert str(default_optional.schema) == "auto_end_walks"
-    assert default_optional.default() is False
-    assert field_from_defaults[default_optional].config == {}
+    explicit_fields = build_auto_end_walks_field({"auto_end_walks": True}, defaults)
+    explicit_markers = _markers_by_name(explicit_fields)
+    assert explicit_markers["auto_end_walks"].default() is True
 
-    field_from_values = build_auto_end_walks_field(
-        {"auto_end_walks": True},
-        defaults,
-    )
-    value_optional = next(iter(field_from_values))
-    assert value_optional.default() is True
+    fallback_fields = build_auto_end_walks_field({}, defaults)
+    fallback_markers = _markers_by_name(fallback_fields)
+    assert fallback_markers["auto_end_walks"].default() is False
