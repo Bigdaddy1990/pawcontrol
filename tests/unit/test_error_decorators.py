@@ -30,6 +30,7 @@ from custom_components.pawcontrol.exceptions import (
     NetworkError,
     PawControlError,
     RateLimitError,
+    ValidationError,
 )
 
 
@@ -79,6 +80,21 @@ class TestValidateDogExists:
         instance = MockInstance()
         with pytest.raises(PawControlError):
             instance.get_dog("buddy")
+
+    def test_validate_dog_exists_requires_dog_id_argument(self) -> None:
+        """Test decorator raises validation error when dog id is missing."""
+
+        class MockInstance:
+            def __init__(self) -> None:
+                self.coordinator = MagicMock()
+                self.coordinator.data = {"buddy": {"name": "Buddy"}}
+
+            @validate_dog_exists()
+            def get_dog(self, dog_id: str | None = None) -> str:
+                return f"Dog {dog_id}"
+
+        with pytest.raises(ValidationError, match="Dog ID is required"):
+            MockInstance().get_dog()
 
 
 class TestValidateGPSCoordinates:
@@ -180,6 +196,21 @@ class TestValidateRange:
         instance = MockInstance()
         with pytest.raises(PawControlError):
             instance.set_weight(150.0)
+
+    def test_validate_range_rejects_missing_and_non_numeric_values(self) -> None:
+        """Test decorator raises for missing and non-numeric range inputs."""
+
+        class MockInstance:
+            @validate_range("weight", 0.5, 100.0, field_name="dog weight")
+            def set_weight(self, weight: float | None = None) -> float | None:
+                return weight
+
+        instance = MockInstance()
+        with pytest.raises(ValidationError, match="Value is required"):
+            instance.set_weight()
+
+        with pytest.raises(ValidationError, match="Must be numeric"):
+            instance.set_weight("heavy")
 
 
 class TestHandleErrors:
@@ -318,6 +349,26 @@ class TestRetryOnError:
         # Should fail immediately without retries
         assert instance.call_count == 1
 
+    def test_retry_on_error_sync_function_retries_until_success(self) -> None:
+        """Test sync retry wrapper retries and eventually returns success."""
+
+        class MockInstance:
+            call_count = 0
+
+            @retry_on_error(max_attempts=3, delay=0.01, exceptions=(NetworkError,))
+            def fetch_data(self) -> str:
+                self.call_count += 1
+                if self.call_count < 3:
+                    raise NetworkError("network error")
+                return "success"
+
+        with patch("time.sleep") as sleep:
+            instance = MockInstance()
+            assert instance.fetch_data() == "success"
+
+        assert instance.call_count == 3
+        assert sleep.call_count == 2
+
 
 class TestRequireCoordinator:
     """Test require_coordinator decorator."""
@@ -386,6 +437,21 @@ class TestRequireCoordinatorData:
         instance = MockInstance()
         with pytest.raises(PawControlError):
             instance.get_data()
+
+    def test_require_coordinator_data_allows_partial_updates(self) -> None:
+        """allow_partial=True should bypass last_update_success checks."""
+
+        class MockInstance:
+            def __init__(self) -> None:
+                self.coordinator = MagicMock()
+                self.coordinator.data = {"buddy": {"name": "Buddy"}}
+                self.coordinator.last_update_success = False
+
+            @require_coordinator_data(allow_partial=True)
+            def get_data(self) -> str:
+                return "success"
+
+        assert MockInstance().get_data() == "success"
 
 
 class TestExceptionMapping:
@@ -464,6 +530,40 @@ async def test_create_repair_issue_from_exception() -> None:
     ) as mock_ir:
         await create_repair_issue_from_exception(mock_hass, error)
         mock_ir.async_create_issue.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_map_to_repair_issue_creates_issue_and_reraises() -> None:
+    """Decorator should create a repair issue when hass is available."""
+
+    class MockInstance:
+        def __init__(self) -> None:
+            self.hass = AsyncMock()
+
+        @map_to_repair_issue("network_issue", severity="error")
+        async def perform(self) -> None:
+            raise NetworkError("offline")
+
+    with patch("custom_components.pawcontrol.error_decorators.issue_registry") as ir:
+        with pytest.raises(NetworkError):
+            await MockInstance().perform()
+
+    ir.async_create_issue.assert_called_once()
+
+
+def test_map_to_repair_issue_without_hass_only_reraises() -> None:
+    """Decorator should not create issues when no hass context is available."""
+
+    class MockInstance:
+        @map_to_repair_issue("storage_issue")
+        def perform(self) -> None:
+            raise PawControlError("boom")
+
+    with patch("custom_components.pawcontrol.error_decorators.issue_registry") as ir:
+        with pytest.raises(PawControlError):
+            MockInstance().perform()
+
+    ir.async_create_issue.assert_not_called()
 
 
 class TestEdgeCases:
