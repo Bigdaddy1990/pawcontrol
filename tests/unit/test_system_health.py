@@ -8,6 +8,15 @@ import pytest
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.system_health import (
     _attach_runtime_store_history,
+    _coerce_automation_entries,
+    _coerce_event_counters,
+    _coerce_event_history,
+    _coerce_int_mapping,
+    _coerce_listener_metadata,
+    _coerce_mapping_of_str_lists,
+    _coerce_positive_int,
+    _coerce_preferred_events,
+    _coerce_str_list,
     _default_service_execution_snapshot,
     _normalise_manual_events_snapshot,
     _resolve_indicator_thresholds,
@@ -249,6 +258,64 @@ def test_normalise_manual_events_snapshot_coerces_nested_payloads() -> None:
         "by_reason": {"manual": 0},
     }
     assert payload["active_listeners"] == ["listener.one"]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("7", 7),
+        (0, None),
+        (-3, None),
+        ("not-a-number", None),
+        (None, None),
+    ],
+)
+def test_coerce_positive_int_accepts_only_positive_numbers(
+    value: object,
+    expected: int | None,
+) -> None:
+    """Positive-int coercion should reject invalid, empty, and non-positive values."""
+    assert _coerce_positive_int(value) == expected
+
+
+def test_manual_event_helper_coercions_handle_invalid_shapes() -> None:
+    """Manual resilience helper coercers should drop unsupported payload structures."""
+    assert _coerce_str_list("  ") == []
+    assert _coerce_event_history("not-a-sequence") == []
+    assert _coerce_int_mapping([("a", 1)]) == {}
+    assert _coerce_event_counters("not-a-mapping") == {
+        "total": 0,
+        "by_event": {},
+        "by_reason": {},
+    }
+    assert _coerce_mapping_of_str_lists({"  ": ["keep"]}) == {}
+    assert _coerce_listener_metadata("not-a-mapping") == {}
+    assert _coerce_preferred_events("not-a-mapping") == {}
+
+
+def test_coerce_automation_entries_preserves_explicit_boolean_values() -> None:
+    """Automation-entry coercion should keep native booleans and coerce truthy values."""
+    entries = _coerce_automation_entries(
+        [
+            {
+                "manual_breaker_event": " breaker.event ",
+                "manual_check_event": " check.event ",
+                "configured_guard": True,
+                "configured_breaker": False,
+                "configured_check": 1,
+            }
+        ]
+    )
+
+    assert entries == [
+        {
+            "manual_breaker_event": "breaker.event",
+            "manual_check_event": "check.event",
+            "configured_guard": True,
+            "configured_breaker": False,
+            "configured_check": True,
+        }
+    ]
 
 
 def test_resolve_indicator_thresholds_uses_script_snapshot_before_options() -> None:
