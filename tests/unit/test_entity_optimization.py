@@ -83,6 +83,36 @@ def test_significant_change_tracker_thresholds_and_reset() -> None:
     assert tracker.is_significant_change("sensor.temp", "value", 10.0) is True
 
 
+def test_significant_change_tracker_percentage_and_full_reset_paths() -> None:
+    """Cover percentage thresholds and global reset handling."""
+    tracker = eo.SignificantChangeTracker()
+
+    assert tracker.is_significant_change("sensor.power", "watt", 0.0) is True
+    # old_value == 0 should skip percentage math and still be significant.
+    assert (
+        tracker.is_significant_change(
+            "sensor.power",
+            "watt",
+            0.1,
+            percentage_threshold=0.5,
+        )
+        is True
+    )
+    # Percentage threshold should block small relative changes.
+    assert (
+        tracker.is_significant_change(
+            "sensor.power",
+            "watt",
+            0.11,
+            percentage_threshold=0.5,
+        )
+        is False
+    )
+
+    tracker.reset()
+    assert tracker.is_significant_change("sensor.power", "watt", 0.11) is True
+
+
 def test_helper_functions_for_intervals_and_write_reduction() -> None:
     """Helper calculations should map volatility and reduction values correctly."""
     assert eo.calculate_optimal_update_interval("gps", "high") == 15
@@ -162,3 +192,26 @@ def test_entity_update_scheduler_registers_callbacks_and_updates_entities(
 
     scheduler.async_shutdown()
     assert set(unsubscribed) == {10, 30, 60, 300, 900}
+
+
+def test_entity_update_batcher_unregister_entity_removes_pending_entries() -> None:
+    """Unregistering an entity should also clear it from pending updates."""
+    batcher = eo.EntityUpdateBatcher(hass=object(), batch_window_ms=0)
+    batcher.register_entity("sensor.temp", _FakeEntity())
+
+    async def _run() -> None:
+        await batcher.schedule_update("sensor.temp")
+
+    asyncio.run(_run())
+    assert "sensor.temp" in batcher._pending
+
+    batcher.unregister_entity("sensor.temp")
+    assert "sensor.temp" not in batcher._pending
+
+
+def test_entity_update_scheduler_unregister_missing_entity_is_noop() -> None:
+    """Unregistering a missing entity should not mutate scheduler state."""
+    scheduler = eo.EntityUpdateScheduler(hass=object())
+    scheduler.unregister_entity("sensor.missing")
+
+    assert scheduler.get_stats() == {"total_entities": 0, "intervals": {}}

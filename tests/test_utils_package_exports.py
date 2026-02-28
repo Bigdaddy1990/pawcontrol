@@ -49,3 +49,20 @@ def test_utils_getattr_unknown_symbol_raises_attribute_error() -> None:
 
     with pytest.raises(AttributeError):
         module.definitely_not_exported
+
+
+def test_reload_skips_legacy_serialize_name_collisions(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Legacy symbols that collide with serialize exports stay lazily resolved."""
+    module = _reloaded_utils_module()
+
+    monkeypatch.setattr(
+        module._legacy_utils,
+        "serialize_datetime",
+        object(),
+        raising=False,
+    )
+
+    reloaded = _reloaded_utils_module()
+
+    assert "serialize_datetime" not in reloaded.__dict__
+    assert reloaded.serialize_datetime is serialize.serialize_datetime

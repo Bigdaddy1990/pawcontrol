@@ -35,6 +35,13 @@ def test_validate_unique_dog_name_allows_optional_empty_name() -> None:
     )
 
 
+def test_validate_unique_dog_name_returns_valid_non_duplicate_name() -> None:
+    assert (
+        validate_unique_dog_name("Milo", required=True, existing_names={"luna"})
+        == "Milo"
+    )
+
+
 def test_validate_coordinate_pair_returns_validated_float_values() -> None:
     latitude, longitude = validate_coordinate_pair("52.52", "13.405")
 
