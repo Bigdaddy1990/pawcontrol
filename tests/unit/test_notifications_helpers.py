@@ -46,6 +46,7 @@ def test_string_default_uses_fallback_for_non_strings() -> None:
 def test_validate_time_input_accepts_supported_representations() -> None:
     """Time validation should accept datetime and common HH:MM formats."""
     _validate_time_input(None, NOTIFICATION_QUIET_START_FIELD)
+    _validate_time_input("   ", NOTIFICATION_QUIET_START_FIELD)
     _validate_time_input(datetime(2025, 1, 1, 22, 0, 0), NOTIFICATION_QUIET_START_FIELD)
     _validate_time_input(0, NOTIFICATION_QUIET_START_FIELD)
     _validate_time_input("22:00", NOTIFICATION_QUIET_START_FIELD)
