@@ -11,6 +11,7 @@ from custom_components.pawcontrol.geofencing import (
     GeofenceType,
     GeofenceZone,
     PawControlGeofencing,
+    _sanitize_zone_metadata,
     calculate_distance,
 )
 from custom_components.pawcontrol.types import (
@@ -165,6 +166,65 @@ def test_from_storage_payload_sanitizes_metadata() -> None:
     assert zone.metadata["color"] is None
     assert zone.metadata["notes"] == "memo"
     assert "tags" not in zone.metadata
+
+
+@pytest.mark.unit
+def test_sanitize_zone_metadata_accepts_mapping_tags_values() -> None:
+    """Metadata tag mappings should keep only string values."""
+    metadata = _sanitize_zone_metadata(
+        {
+            "auto_created": True,
+            "tags": {"first": "garden", "second": 3, "third": "safe"},
+        }
+    )
+
+    assert metadata["auto_created"] is True
+    assert metadata["tags"] == ["garden", "safe"]
+
+
+@pytest.mark.unit
+def test_from_storage_payload_defaults_for_legacy_values() -> None:
+    """Legacy payloads without optional fields should use safe defaults."""
+    payload: GeofenceZoneStoragePayload = cast(
+        GeofenceZoneStoragePayload,
+        {
+            "id": "legacy",
+            "name": "Legacy",
+            "type": GeofenceType.SAFE_ZONE.value,
+            "latitude": 1.0,
+            "longitude": 2.0,
+            "radius": 30.0,
+            "enabled": False,
+            "alerts_enabled": False,
+            "created_at": "invalid-datetime",
+            "updated_at": "also-invalid",
+            "metadata": ["not", "a", "mapping"],
+        },
+    )
+
+    zone = GeofenceZone.from_storage_payload(payload)
+
+    assert zone.enabled is False
+    assert zone.alerts_enabled is False
+    assert zone.description == ""
+    assert zone.metadata == {}
+
+
+@pytest.mark.unit
+def test_contains_location_applies_hysteresis_multiplier() -> None:
+    """Hysteresis should widen the effective radius for containment checks."""
+    zone = GeofenceZone(
+        id="yard",
+        name="Yard",
+        type=GeofenceType.SAFE_ZONE,
+        latitude=52.52,
+        longitude=13.405,
+        radius=50.0,
+    )
+    location = GPSLocation(latitude=52.52045, longitude=13.405, accuracy=3.0)
+
+    assert zone.contains_location(location) is False
+    assert zone.contains_location(location, hysteresis=1.2) is True
 
 
 @pytest.mark.unit
