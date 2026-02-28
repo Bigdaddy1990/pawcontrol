@@ -1,5 +1,7 @@
 """Tests for package-level exports in ``custom_components.pawcontrol.utils``."""
 
+import pytest
+
 import custom_components.pawcontrol.utils as utils
 from custom_components.pawcontrol.utils import _legacy, serialize as serialize_module
 
@@ -43,3 +45,20 @@ def test_utils_exports_include_legacy_public_members() -> None:
     legacy_public_names = {name for name in vars(_legacy) if not name.startswith("_")}
 
     assert legacy_public_names <= set(utils.__all__)
+
+
+def test_utils_getattr_resolves_serialize_helpers_lazily() -> None:
+    """Serialize helpers should resolve via package ``__getattr__``."""
+    for helper_name in (
+        "serialize_datetime",
+        "serialize_timedelta",
+        "serialize_dataclass",
+        "serialize_entity_attributes",
+    ):
+        assert getattr(utils, helper_name) is getattr(serialize_module, helper_name)
+
+
+def test_utils_getattr_raises_for_unknown_symbol() -> None:
+    """Unknown helper names must raise ``AttributeError``."""
+    with pytest.raises(AttributeError):
+        _ = utils.not_a_real_helper
