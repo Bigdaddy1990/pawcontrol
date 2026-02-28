@@ -1,36 +1,43 @@
 """Tests for the options flow main menu mixin."""
 
-from homeassistant.data_entry_flow import FlowResultType
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
 
 from custom_components.pawcontrol.options_flow_menu import MenuOptionsMixin
-from custom_components.pawcontrol.types import PUSH_SETTINGS_MENU_ACTION
 
 
-class _MenuFlow(MenuOptionsMixin):
-    """Minimal host implementation for menu mixin tests."""
+class _MenuHost(MenuOptionsMixin):
+    """Test host implementing the menu API expected by the mixin."""
 
-    def async_show_menu(self, *, step_id: str, menu_options: list[str]):
-        return {
-            "type": FlowResultType.MENU,
-            "step_id": step_id,
-            "menu_options": menu_options,
-        }
+    def __init__(self) -> None:
+        self.last_call: dict[str, Any] | None = None
+
+    def async_show_menu(
+        self, *, step_id: str, menu_options: list[str]
+    ) -> dict[str, Any]:
+        """Record call arguments and return a fake Home Assistant flow result."""
+        self.last_call = {"step_id": step_id, "menu_options": menu_options}
+        return {"type": "menu", "step_id": step_id, "menu_options": menu_options}
 
 
-async def test_async_step_init_exposes_expected_menu_order() -> None:
-    """The init step should expose every expected options section in order."""
-    flow = _MenuFlow()
+@pytest.mark.asyncio
+async def test_async_step_init_returns_expected_menu_options() -> None:
+    """The mixin should expose the complete init menu in the expected order."""
+    host = _MenuHost()
 
-    result = await flow.async_step_init()
+    result = await host.async_step_init()
 
-    assert result["type"] == FlowResultType.MENU
-    assert result["step_id"] == "init"
-    assert result["menu_options"] == [
+    assert host.last_call is not None
+    assert host.last_call["step_id"] == "init"
+    assert host.last_call["menu_options"] == [
         "entity_profiles",
         "manage_dogs",
         "performance_settings",
         "gps_settings",
-        PUSH_SETTINGS_MENU_ACTION,
+        "push_settings",
         "geofence_settings",
         "weather_settings",
         "notifications",
@@ -41,3 +48,8 @@ async def test_async_step_init_exposes_expected_menu_order() -> None:
         "advanced_settings",
         "import_export",
     ]
+    assert result == {
+        "type": "menu",
+        "step_id": "init",
+        "menu_options": host.last_call["menu_options"],
+    }
