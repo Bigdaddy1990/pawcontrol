@@ -490,6 +490,75 @@ class TestSchemaBuilding:
 
         assert schema is not None
 
+    def test_build_select_schema_required_without_default(self) -> None:
+        """Required select schemas should omit defaults when not provided."""
+        schema = build_select_schema(
+            key="size",
+            options=["small", "large"],
+            required=True,
+        )
+
+        marker = next(iter(schema))
+        assert marker.schema == "size"
+        assert marker.default is vol.UNDEFINED
+
+    def test_build_select_schema_translation_key(self) -> None:
+        """Select schema should propagate translation keys when configured."""
+        schema = build_select_schema(
+            key="food_type",
+            options=["wet", "dry"],
+            translation_key="food_type",
+        )
+
+        selector_instance = schema[next(iter(schema))]
+        assert selector_instance.config["translation_key"] == "food_type"
+
+    def test_build_number_schema_required_without_default(self) -> None:
+        """Required number schemas should support markers without defaults."""
+        schema = build_number_schema(
+            key="walk_minutes",
+            min_value=5,
+            max_value=180,
+            required=True,
+        )
+
+        marker = next(iter(schema))
+        assert marker.schema == "walk_minutes"
+        assert marker.default is vol.UNDEFINED
+
+    def test_build_number_schema_with_unit(self) -> None:
+        """Number schema should attach units when supplied."""
+        schema = build_number_schema(
+            key="weight",
+            min_value=1,
+            max_value=100,
+            unit="kg",
+        )
+
+        selector_instance = schema[next(iter(schema))]
+        assert selector_instance.config["unit_of_measurement"] == "kg"
+
+    def test_build_text_schema_required_without_default(self) -> None:
+        """Required text schemas should create required marker without default."""
+        schema = build_text_schema(
+            key="nickname",
+            required=True,
+        )
+
+        marker = next(iter(schema))
+        assert marker.schema == "nickname"
+        assert marker.default is vol.UNDEFINED
+
+    def test_build_text_schema_with_autocomplete(self) -> None:
+        """Text schema should include autocomplete metadata when provided."""
+        schema = build_text_schema(
+            key="dog_name",
+            autocomplete="name",
+        )
+
+        selector_instance = schema[next(iter(schema))]
+        assert selector_instance.config["autocomplete"] == "name"
+
 
 class TestFlowStateManagement:
     """Test flow state management functions."""
@@ -542,6 +611,24 @@ class TestFlowStateManagement:
 
         assert get_flow_data(mock_flow, "key1") == {"value": 1}
         assert get_flow_data(mock_flow, "key2") == {"value": 2}
+
+    def test_clear_flow_data_ignores_non_dict_storage(self) -> None:
+        """Clearing flow data should no-op when storage is not a dictionary."""
+        mock_flow = MagicMock()
+        mock_flow._flow_data = []
+
+        clear_flow_data(mock_flow)
+
+        assert mock_flow._flow_data == []
+
+    def test_clear_flow_data_without_key_resets_dictionary(self) -> None:
+        """Clearing without a key should reset all stored flow data."""
+        mock_flow = MagicMock()
+        mock_flow._flow_data = {"dog": "Luna", "mode": "auto"}
+
+        clear_flow_data(mock_flow)
+
+        assert mock_flow._flow_data == {}
 
 
 class TestEdgeCases:
