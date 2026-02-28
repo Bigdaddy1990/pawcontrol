@@ -96,3 +96,50 @@ async def test_async_setup_platforms_runs_optional_helpers_and_scripts(
     forward.assert_awaited_once_with(hass, entry)
     helpers.assert_awaited_once_with(hass, entry, runtime_data)
     scripts.assert_awaited_once_with(hass, entry, runtime_data)
+
+
+@pytest.mark.asyncio
+async def test_async_setup_platforms_skips_optional_helpers_and_scripts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Optional setup should be skipped when explicitly disabled in options."""
+    from custom_components.pawcontrol.setup import platform_setup
+
+    forward = AsyncMock()
+    helpers = AsyncMock()
+    scripts = AsyncMock()
+
+    monkeypatch.setattr(platform_setup, "_async_forward_platforms", forward)
+    monkeypatch.setattr(platform_setup, "_async_setup_helpers", helpers)
+    monkeypatch.setattr(platform_setup, "_async_setup_scripts", scripts)
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace()
+    runtime_data = SimpleNamespace(
+        config_entry_options={"skip_optional_setup": True},
+    )
+
+    await platform_setup.async_setup_platforms(hass, entry, runtime_data)
+
+    forward.assert_awaited_once_with(hass, entry)
+    helpers.assert_not_awaited()
+    scripts.assert_not_awaited()
+
+
+def test_resolve_enabled_modules_normalises_mapping_and_collection_inputs() -> None:
+    """Enabled modules should be normalized for both dict and list option shapes."""
+    from custom_components.pawcontrol.setup import platform_setup
+
+    mapped = platform_setup._resolve_enabled_modules(
+        {"enabled_modules": {"gps": 1, "feeding": 0}},
+    )
+    listed = platform_setup._resolve_enabled_modules(
+        {"enabled_modules": ["gps", 99]},
+    )
+    invalid = platform_setup._resolve_enabled_modules(
+        {"enabled_modules": "gps"},
+    )
+
+    assert mapped == {"gps": True, "feeding": False}
+    assert listed == frozenset({"gps", "99"})
+    assert invalid == frozenset()
