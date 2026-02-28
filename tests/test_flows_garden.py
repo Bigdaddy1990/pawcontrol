@@ -1,7 +1,5 @@
 """Tests for garden flow helper mixin."""
 
-from __future__ import annotations
-
 import voluptuous as vol
 
 from custom_components.pawcontrol.flows.garden import GardenModuleSelectorMixin

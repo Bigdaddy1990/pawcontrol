@@ -1,7 +1,5 @@
 """Tests for feeding options flow mixin helpers."""
 
-from __future__ import annotations
-
 from copy import deepcopy
 
 from homeassistant.data_entry_flow import FlowResultType

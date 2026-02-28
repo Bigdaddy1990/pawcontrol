@@ -10,6 +10,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.pawcontrol import config_flow_reauth
 from custom_components.pawcontrol.config_flow_reauth import ReauthFlowMixin
 from custom_components.pawcontrol.const import CONF_DOGS, CONF_MODULES
+from custom_components.pawcontrol.exceptions import FlowValidationError, ValidationError
 from custom_components.pawcontrol.types import DOG_ID_FIELD
 
 
@@ -136,3 +137,63 @@ async def test_check_config_health_reports_duplicate_ids_and_module_warnings(
     assert any("High entity count" in warning for warning in summary["warnings"])
     assert summary["invalid_modules"] == 1
     assert summary["estimated_entities"] == 300
+
+
+@pytest.mark.asyncio
+async def test_validate_reauth_entry_enhanced_raises_for_dog_id_issues(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dog identifier validation failures should abort reauth validation."""
+    entry = MockConfigEntry(
+        domain="pawcontrol",
+        data={CONF_DOGS: [{DOG_ID_FIELD: "buddy"}]},
+        options={},
+    )
+    flow = _Flow(entry)
+
+    def _raise_dog_id_failure(
+        _dog: Mapping[str, object],
+        *,
+        existing_ids: object,
+        existing_names: object,
+    ) -> None:
+        raise FlowValidationError(field_errors={DOG_ID_FIELD: "missing"})
+
+    monkeypatch.setattr(
+        config_flow_reauth,
+        "validate_dog_config_payload",
+        _raise_dog_id_failure,
+    )
+
+    with pytest.raises(ValidationError, match="Dog payload invalid during reauth"):
+        await flow._validate_reauth_entry_enhanced(entry)
+
+
+@pytest.mark.asyncio
+async def test_validate_reauth_entry_enhanced_raises_when_all_dogs_are_invalid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """If every dog payload is invalid, reauth should fail fast."""
+    entry = MockConfigEntry(
+        domain="pawcontrol",
+        data={CONF_DOGS: [{DOG_ID_FIELD: "buddy"}, {DOG_ID_FIELD: "luna"}]},
+        options={},
+    )
+    flow = _Flow(entry)
+
+    def _raise_non_critical_failure(
+        _dog: Mapping[str, object],
+        *,
+        existing_ids: object,
+        existing_names: object,
+    ) -> None:
+        raise FlowValidationError(field_errors={"dog_name": "missing"})
+
+    monkeypatch.setattr(
+        config_flow_reauth,
+        "validate_dog_config_payload",
+        _raise_non_critical_failure,
+    )
+
+    with pytest.raises(ValidationError, match="All dog configurations are invalid"):
+        await flow._validate_reauth_entry_enhanced(entry)

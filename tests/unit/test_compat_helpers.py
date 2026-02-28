@@ -123,7 +123,6 @@ def test_bind_exception_alias_combine_with_current_creates_hybrid_alias() -> Non
 
 def test_sync_config_entry_symbols_populates_missing_module_exports() -> None:
     """Config-entry symbol sync should install fallback classes when absent."""
-
     config_entries_module = ModuleType("homeassistant.config_entries")
     core_module = ModuleType("homeassistant.core")
 
@@ -161,7 +160,6 @@ def test_sync_config_entry_symbols_preserves_valid_homeassistant_exports() -> No
     assert compat.ConfigEntry is NativeConfigEntry
     assert compat.ConfigEntryState is NativeState
     assert compat.ConfigEntryChange is NativeChange
-
 
 
 @pytest.mark.asyncio
