@@ -7,6 +7,7 @@ import pytest
 from custom_components.pawcontrol.service_guard import (
     ServiceGuardResult,
     ServiceGuardSnapshot,
+    _coerce_int,
     normalise_guard_history,
     normalise_guard_result_payload,
 )
@@ -291,3 +292,33 @@ def test_service_guard_snapshot_accumulate_coerces_existing_reason_counts() -> N
 
     assert payload["reasons"] == {"cooldown": 2}
     assert metrics["reasons"] == {"cooldown": 2}
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (True, 1),
+        (7, 7),
+        (3.9, 3),
+        ("9", 9),
+        ("bad", 0),
+        (None, 0),
+    ],
+)
+def test_coerce_int_handles_supported_and_invalid_input(
+    value: object, expected: int
+) -> None:
+    """Integer coercion should safely handle bools, numerics, and invalid input."""
+    assert _coerce_int(value) == expected
+
+
+def test_service_guard_snapshot_from_sequence_tracks_unknown_reason() -> None:
+    """Missing reasons should aggregate under the unknown counter."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("script", "turn_on", False),
+        ServiceGuardResult("script", "turn_on", False, reason="cooldown"),
+    ])
+
+    assert snapshot.executed == 0
+    assert snapshot.skipped == 2
+    assert snapshot.reasons == {"unknown": 1, "cooldown": 1}
