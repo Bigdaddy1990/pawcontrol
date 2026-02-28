@@ -36,15 +36,8 @@ def loaded_utils_module(
     legacy_module.ensure_utc_datetime = _legacy_ensure_utc_datetime
     legacy_module.ensure_local_datetime = _legacy_ensure_local_datetime
     legacy_module.async_fire_event = _legacy_async_fire_event
-    legacy_module.serialize_datetime = object()
 
-    module_path = (
-        Path(__file__).resolve().parents[2]
-        / "custom_components"
-        / "pawcontrol"
-        / "utils"
-        / "__init__.py"
-    )
+    module_path = Path(real_legacy_module.__file__).resolve().with_name("__init__.py")
     module_ast = ast.parse(module_path.read_text())
     imported_legacy_symbols = {
         alias.name
@@ -118,5 +111,8 @@ def test_utils_init_re_exports_and_lazy_serialize_helpers(
         module.__getattr__("serialize_timedelta")
         is serialize_module.serialize_timedelta
     )
+    assert module.serialize_datetime is serialize_module.serialize_datetime
+    assert module.serialize_timedelta is serialize_module.serialize_timedelta
+
     with pytest.raises(AttributeError):
         module.__getattr__("not_exported")
