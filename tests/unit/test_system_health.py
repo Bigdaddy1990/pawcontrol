@@ -7,6 +7,8 @@ import pytest
 
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.system_health import (
+    _attach_runtime_store_history,
+    _default_service_execution_snapshot,
     _normalise_manual_events_snapshot,
     _resolve_indicator_thresholds,
     system_health_info,
@@ -286,3 +288,64 @@ def test_resolve_indicator_thresholds_uses_script_snapshot_before_options() -> N
     assert breaker_thresholds.critical_count == 5
     assert breaker_thresholds.source == "resilience_script"
     assert breaker_thresholds.source_key == "default"
+
+
+def test_default_service_execution_snapshot_uses_expected_defaults() -> None:
+    """The default snapshot should expose safe baseline guard and breaker state."""
+    snapshot = _default_service_execution_snapshot()
+
+    assert snapshot["status"]["overall"]["level"] == "normal"
+    assert snapshot["guard_summary"]["total_calls"] == 0
+    assert snapshot["guard_summary"]["indicator"]["level"] == "normal"
+    assert snapshot["breaker_overview"]["status"] == "healthy"
+    assert snapshot["breaker_overview"]["indicator"]["level"] == "normal"
+    assert snapshot["manual_events"] == {
+        "available": False,
+        "event_history": [],
+        "last_event": None,
+        "last_trigger": None,
+        "event_counters": {"total": 0, "by_event": {}, "by_reason": {}},
+        "active_listeners": [],
+    }
+
+
+def test_attach_runtime_store_history_adds_only_mapping_and_sequence_payloads() -> None:
+    """History attachment should ignore malformed payload sections."""
+    info: dict[str, object] = {"existing": True}
+
+    _attach_runtime_store_history(
+        info,
+        {
+            "assessment": {"level": "watch"},
+            "assessment_timeline_segments": [
+                {"status": "current", "level": "ok"},
+                "skip",
+            ],
+            "assessment_timeline_summary": {"total_events": 1},
+        },
+    )
+
+    assert info["runtime_store_history"] == {
+        "assessment": {"level": "watch"},
+        "assessment_timeline_segments": [
+            {"status": "current", "level": "ok"},
+            "skip",
+        ],
+        "assessment_timeline_summary": {"total_events": 1},
+    }
+    assert info["runtime_store_assessment"] == {"level": "watch"}
+    assert info["runtime_store_timeline_segments"] == [
+        {"status": "current", "level": "ok"},
+    ]
+    assert info["runtime_store_timeline_summary"] == {"total_events": 1}
+
+
+@pytest.mark.asyncio
+async def test_system_health_info_returns_default_payload_when_no_entry(hass: Any) -> None:
+    """System health should return a stable fallback payload without an entry."""
+    info = await system_health_info(hass)
+
+    assert info["can_reach_backend"] is False
+    assert info["remaining_quota"] == "unknown"
+    assert info["service_execution"]["status"]["overall"]["level"] == "normal"
+    assert info["runtime_store"]["status"] == "missing"
