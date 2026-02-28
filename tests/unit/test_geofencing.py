@@ -171,12 +171,10 @@ def test_from_storage_payload_sanitizes_metadata() -> None:
 @pytest.mark.unit
 def test_sanitize_zone_metadata_accepts_mapping_tags_values() -> None:
     """Metadata tag mappings should keep only string values."""
-    metadata = _sanitize_zone_metadata(
-        {
-            "auto_created": True,
-            "tags": {"first": "garden", "second": 3, "third": "safe"},
-        }
-    )
+    metadata = _sanitize_zone_metadata({
+        "auto_created": True,
+        "tags": {"first": "garden", "second": 3, "third": "safe"},
+    })
 
     assert metadata["auto_created"] is True
     assert metadata["tags"] == ["garden", "safe"]
