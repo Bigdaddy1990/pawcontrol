@@ -143,3 +143,51 @@ def test_resolve_enabled_modules_normalises_mapping_and_collection_inputs() -> N
     assert mapped == {"gps": True, "feeding": False}
     assert listed == frozenset({"gps", "99"})
     assert invalid == frozenset()
+
+
+@pytest.mark.asyncio
+async def test_async_forward_platforms_accepts_non_awaitable_forward_result() -> None:
+    """Platform forwarding should succeed when HA returns a non-awaitable result."""
+    from custom_components.pawcontrol.setup import platform_setup
+
+    forward = MagicMock(return_value=None)
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_forward_entry_setups=forward),
+    )
+
+    await platform_setup._async_forward_platforms(hass, SimpleNamespace(entry_id="e1"))
+
+    forward.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_optional_setup_managers_skip_notifications_when_no_items_created() -> None:
+    """Helper/script notifications should be skipped for empty generation payloads."""
+    from custom_components.pawcontrol.setup import platform_setup
+
+    helper_create = AsyncMock(return_value={"buddy": []})
+    script_create = AsyncMock(return_value={"buddy": [], "__entry__": []})
+    notify = AsyncMock()
+
+    runtime_data = SimpleNamespace(
+        helper_manager=SimpleNamespace(async_create_helpers_for_dogs=helper_create),
+        script_manager=SimpleNamespace(async_generate_scripts_for_dogs=script_create),
+        dogs=[{"dog_id": "buddy"}],
+        config_entry_options={"enabled_modules": ["gps"]},
+        notification_manager=SimpleNamespace(async_send_notification=notify),
+    )
+
+    await platform_setup._async_setup_helpers(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        runtime_data,
+    )
+    await platform_setup._async_setup_scripts(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        runtime_data,
+    )
+
+    helper_create.assert_awaited_once()
+    script_create.assert_awaited_once()
+    notify.assert_not_awaited()
