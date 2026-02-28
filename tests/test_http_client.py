@@ -1,7 +1,5 @@
 """Unit tests for shared aiohttp session validation helpers."""
 
-from __future__ import annotations
-
 from functools import wraps
 
 import pytest
