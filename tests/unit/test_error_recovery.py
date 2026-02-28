@@ -4,6 +4,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 import pytest
 
 from custom_components.pawcontrol.error_recovery import (
@@ -13,7 +14,12 @@ from custom_components.pawcontrol.error_recovery import (
     get_error_recovery_coordinator,
     handle_error_with_recovery,
 )
-from custom_components.pawcontrol.exceptions import AuthenticationError, NetworkError
+from custom_components.pawcontrol.exceptions import (
+    AuthenticationError,
+    ConfigurationError,
+    GPSUnavailableError,
+    NetworkError,
+)
 
 
 @pytest.mark.asyncio
@@ -140,3 +146,83 @@ async def test_recovery_summary_and_singleton_helper(hass: HomeAssistant) -> Non
         fallback_value=42,
     )
     assert helper_result["fallback_used"] is True
+
+
+@pytest.mark.asyncio
+async def test_async_setup_registers_default_patterns(hass: HomeAssistant) -> None:
+    """Setup should register built-in exception patterns with expected flags."""
+    coordinator = ErrorRecoveryCoordinator(hass)
+
+    await coordinator.async_setup()
+
+    network_pattern = coordinator._patterns[NetworkError]
+    assert network_pattern.retry_strategy is True
+    assert network_pattern.circuit_breaker is True
+    assert network_pattern.create_repair_issue is True
+
+    config_pattern = coordinator._patterns[ConfigurationError]
+    assert config_pattern.retry_strategy is False
+    assert config_pattern.severity == "critical"
+
+    gps_pattern = coordinator._patterns[GPSUnavailableError]
+    assert gps_pattern.create_repair_issue is False
+    assert gps_pattern.severity == "low"
+
+
+@pytest.mark.asyncio
+async def test_handle_error_without_matching_pattern_tracks_unrecovered(
+    hass: HomeAssistant,
+) -> None:
+    """Unknown errors should be recorded as unrecovered when no fallback exists."""
+    coordinator = ErrorRecoveryCoordinator(hass)
+
+    result = await coordinator.handle_error(ValueError("bad input"))
+
+    assert result == {
+        "error_type": "ValueError",
+        "error_message": "bad input",
+        "recovered": False,
+        "recovery_method": None,
+        "fallback_used": False,
+        "repair_issue_created": False,
+    }
+    stats = coordinator.get_stats()["ValueError"]
+    assert stats.total_count == 1
+    assert stats.unrecovered_count == 1
+
+
+@pytest.mark.asyncio
+async def test_create_repair_issue_uses_fallback_severity_for_unknown_levels(
+    hass: HomeAssistant,
+) -> None:
+    """Unexpected severity labels should default to an error-level repair issue."""
+    coordinator = ErrorRecoveryCoordinator(hass)
+    pattern = ErrorPattern(
+        exception_type=NetworkError,
+        create_repair_issue=True,
+        severity="unexpected",
+    )
+
+    with patch(
+        "custom_components.pawcontrol.error_recovery.ir.async_create_issue"
+    ) as issue:
+        await coordinator._create_repair_issue(
+            NetworkError("offline"),
+            pattern,
+            {"host": "dog-collar"},
+        )
+
+    assert issue.call_args.kwargs["severity"] is ir.IssueSeverity.ERROR
+
+
+def test_reset_stats_clears_collected_metrics(hass: HomeAssistant) -> None:
+    """Reset helper should remove accumulated stats entries."""
+    coordinator = ErrorRecoveryCoordinator(hass)
+    coordinator._stats["NetworkError"] = ErrorStats(
+        exception_type="NetworkError",
+        total_count=2,
+    )
+
+    coordinator.reset_stats()
+
+    assert coordinator.get_stats() == {}
