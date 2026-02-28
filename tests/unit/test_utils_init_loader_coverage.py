@@ -1,7 +1,5 @@
 """Direct execution tests for ``custom_components.pawcontrol.utils.__init__``."""
 
-from __future__ import annotations
-
 import importlib.util
 from pathlib import Path
 import sys
@@ -11,9 +9,10 @@ import pytest
 
 
 @pytest.fixture
-def loaded_utils_module(monkeypatch: pytest.MonkeyPatch) -> tuple[ModuleType, ModuleType]:
+def loaded_utils_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[ModuleType, ModuleType]:
     """Load the real ``utils/__init__.py`` with controlled sibling modules."""
-
     package_name = "_coverage_utils_pkg"
 
     legacy_module = ModuleType(f"{package_name}._legacy")
@@ -104,7 +103,6 @@ def test_utils_init_re_exports_and_lazy_serialize_helpers(
     loaded_utils_module: tuple[ModuleType, ModuleType],
 ) -> None:
     """The package init should preserve exports while deferring serialize lookups."""
-
     module, serialize_module = loaded_utils_module
 
     assert module.normalize_value("value") == "value"
@@ -113,7 +111,12 @@ def test_utils_init_re_exports_and_lazy_serialize_helpers(
     assert "normalize_value" in module.__all__
     assert module.__all__ == sorted(module.__all__)
 
-    assert module.__getattr__("serialize_datetime") is serialize_module.serialize_datetime
-    assert module.__getattr__("serialize_timedelta") is serialize_module.serialize_timedelta
+    assert (
+        module.__getattr__("serialize_datetime") is serialize_module.serialize_datetime
+    )
+    assert (
+        module.__getattr__("serialize_timedelta")
+        is serialize_module.serialize_timedelta
+    )
     with pytest.raises(AttributeError):
         module.__getattr__("not_exported")
