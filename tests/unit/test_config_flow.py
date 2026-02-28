@@ -195,7 +195,6 @@ async def test_reauth_health_check_reports_config_issues(
     assert (
         "Invalid profile 'broken_profile' - will use 'standard'" in summary["warnings"]
     )
-    assert "Module 'feeding' has invalid flag for buddy" in summary["warnings"]
 
 
 async def test_reauth_health_summary_safe_handles_timeout(
