@@ -75,6 +75,27 @@ def test_pii_redactor_recursive_toggle() -> None:
     assert deep["outer"]["email"] == "[EMAIL]"
 
 
+def test_pii_redactor_handles_non_string_text_and_lists() -> None:
+    """PII redactor should pass through non-strings and redact list members."""
+    redactor = PIIRedactor()
+
+    assert redactor.redact_text(123) == 123
+
+    payload = {
+        "events": [
+            {"email": "person@example.com"},
+            "call 555-123-4567",
+            42,
+        ]
+    }
+
+    redacted = redactor.redact_dict(payload)
+
+    assert redacted["events"][0]["email"] == "[EMAIL]"
+    assert redacted["events"][1] == "call [PHONE]"
+    assert redacted["events"][2] == 42
+
+
 def test_gps_anonymizer_rounds_coordinates_and_dict_keys() -> None:
     """GPS anonymizer should round tuple and dict-based coordinates."""
     anonymizer = GPSAnonymizer(precision=2)
@@ -126,6 +147,17 @@ async def test_privacy_manager_sanitizes_and_prepares_diagnostics() -> None:
     assert sanitized["device_id"] != "dog-1"
     assert diagnostics["mac_address"] != "aa:bb:cc:dd:ee:ff"
     assert diagnostics["device_id"] != "dog-1"
+
+
+@pytest.mark.asyncio
+async def test_privacy_manager_accepts_custom_redaction_rule() -> None:
+    """Privacy manager should expose PIIRedactor custom rules."""
+    manager = PrivacyManager(hass=object())
+    manager.add_redaction_rule(RedactionRule(field_names=["api_key"]))
+
+    sanitized = await manager.async_sanitize_data({"api_key": "top-secret"})
+
+    assert sanitized["api_key"] == "[REDACTED]"
 
 
 @pytest.mark.asyncio
