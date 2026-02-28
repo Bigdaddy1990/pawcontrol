@@ -9,6 +9,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
+    CONF_MODULES,
     CONF_NAME,
     DOMAIN,
 )
@@ -157,3 +158,62 @@ async def test_reconfigure_step_shows_form(
 
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "reconfigure"
+
+
+async def test_reauth_health_check_reports_config_issues(
+    hass: HomeAssistant,
+) -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    CONF_DOG_NAME: "Buddy",
+                    CONF_MODULES: {"feeding": "yes"},
+                },
+                {
+                    CONF_DOG_ID: "buddy",
+                    CONF_DOG_NAME: "Buddy 2",
+                    CONF_MODULES: {"walking": True},
+                },
+            ]
+        },
+        options={"entity_profile": "broken_profile"},
+    )
+    entry.add_to_hass(hass)
+
+    flow = PawControlConfigFlow()
+    flow.hass = hass
+
+    summary = await flow._check_config_health_enhanced(entry)
+
+    assert summary["healthy"] is False
+    assert summary["total_dogs"] == 2
+    assert summary["validated_dogs"] == 2
+    assert "Duplicate dog IDs detected" in summary["issues"]
+    assert (
+        "Invalid profile 'broken_profile' - will use 'standard'" in summary["warnings"]
+    )
+
+
+async def test_reauth_health_summary_safe_handles_timeout(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: []},
+        options={},
+    )
+    flow = PawControlConfigFlow()
+    flow.hass = hass
+
+    async def _raise_timeout(_entry: MockConfigEntry) -> object:
+        raise TimeoutError
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _raise_timeout)
+
+    summary = await flow._get_health_status_summary_safe(entry)
+
+    assert summary == "Health check timeout"
