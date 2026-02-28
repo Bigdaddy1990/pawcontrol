@@ -672,3 +672,72 @@ def test_create_runtime_data_syncs_script_history_and_telemetry(
     script_manager.attach_runtime_manual_history.assert_called_once_with(runtime_data)
     script_manager.sync_manual_event_history.assert_called_once_with()
     telemetry_update.assert_called_once_with(runtime_data)
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_managers_orchestrates_all_steps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Top-level manager initialization should call each setup stage in order."""
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry-abc")
+    dogs = [{"dog_id": "buddy"}]
+    profile = "standard"
+
+    session = object()
+    coordinator = object()
+    core_managers = {"dog_ids": ["buddy"]}
+    optional_managers = {"helper_manager": None}
+    runtime_data = object()
+
+    initialize_coordinator = AsyncMock()
+    create_core = AsyncMock(return_value=core_managers)
+    create_optional = AsyncMock(return_value=optional_managers)
+    initialize_all = AsyncMock()
+    attach_managers = MagicMock()
+    create_runtime = MagicMock(return_value=runtime_data)
+    register_monitors = MagicMock()
+
+    monkeypatch.setattr(manager_init, "async_get_clientsession", lambda _h: session)
+    monkeypatch.setattr(manager_init, "PawControlCoordinator", lambda *_: coordinator)
+    monkeypatch.setattr(
+        manager_init, "_async_initialize_coordinator", initialize_coordinator
+    )
+    monkeypatch.setattr(manager_init, "_async_create_core_managers", create_core)
+    monkeypatch.setattr(
+        manager_init, "_async_create_optional_managers", create_optional
+    )
+    monkeypatch.setattr(manager_init, "_async_initialize_all_managers", initialize_all)
+    monkeypatch.setattr(
+        manager_init, "_attach_managers_to_coordinator", attach_managers
+    )
+    monkeypatch.setattr(manager_init, "_create_runtime_data", create_runtime)
+    monkeypatch.setattr(manager_init, "_register_runtime_monitors", register_monitors)
+
+    result = await manager_init.async_initialize_managers(
+        hass,
+        entry,
+        dogs,
+        profile,
+        skip_optional_setup=False,
+    )
+
+    assert result is runtime_data
+    initialize_coordinator.assert_awaited_once_with(coordinator, False)
+    create_core.assert_awaited_once_with(hass, entry, coordinator, dogs, session)
+    create_optional.assert_awaited_once_with(hass, entry, dogs, core_managers, False)
+    initialize_all.assert_awaited_once_with(
+        core_managers, optional_managers, dogs, entry
+    )
+    attach_managers.assert_called_once_with(
+        coordinator, core_managers, optional_managers
+    )
+    create_runtime.assert_called_once_with(
+        entry,
+        coordinator,
+        core_managers,
+        optional_managers,
+        dogs,
+        profile,
+    )
+    register_monitors.assert_called_once_with(runtime_data)
