@@ -544,9 +544,11 @@ async def test_map_to_repair_issue_creates_issue_and_reraises() -> None:
         async def perform(self) -> None:
             raise NetworkError("offline")
 
-    with patch("custom_components.pawcontrol.error_decorators.issue_registry") as ir:
-        with pytest.raises(NetworkError):
-            await MockInstance().perform()
+    with (
+        patch("custom_components.pawcontrol.error_decorators.issue_registry") as ir,
+        pytest.raises(NetworkError),
+    ):
+        await MockInstance().perform()
 
     ir.async_create_issue.assert_called_once()
 
@@ -559,11 +561,68 @@ def test_map_to_repair_issue_without_hass_only_reraises() -> None:
         def perform(self) -> None:
             raise PawControlError("boom")
 
-    with patch("custom_components.pawcontrol.error_decorators.issue_registry") as ir:
-        with pytest.raises(PawControlError):
-            MockInstance().perform()
+    with (
+        patch("custom_components.pawcontrol.error_decorators.issue_registry") as ir,
+        pytest.raises(PawControlError),
+    ):
+        MockInstance().perform()
 
     ir.async_create_issue.assert_not_called()
+
+
+def test_require_coordinator_decorator_raises_without_instance_args() -> None:
+    """Calling the wrapper without ``self`` should raise a decorator error."""
+
+    @require_coordinator
+    def _wrapped() -> str:
+        return "ok"
+
+    with pytest.raises(PawControlError, match="Decorator requires an instance method"):
+        _wrapped()
+
+
+def test_require_coordinator_data_raises_without_coordinator_attribute() -> None:
+    """Decorator should reject instances that do not expose ``coordinator``."""
+
+    class MockInstance:
+        @require_coordinator_data()
+        def get_data(self) -> str:
+            return "success"
+
+    with pytest.raises(PawControlError, match="coordinator attribute"):
+        MockInstance().get_data()
+
+
+def test_require_coordinator_data_rejects_failed_last_update() -> None:
+    """allow_partial=False should enforce ``last_update_success`` guard."""
+
+    class MockInstance:
+        def __init__(self) -> None:
+            self.coordinator = MagicMock()
+            self.coordinator.data = {"buddy": {"name": "Buddy"}}
+            self.coordinator.last_update_success = False
+
+        @require_coordinator_data()
+        def get_data(self) -> str:
+            return "success"
+
+    with pytest.raises(PawControlError, match="last update failed"):
+        MockInstance().get_data()
+
+
+@pytest.mark.asyncio
+async def test_create_repair_issue_from_exception_uses_fallback_issue_id() -> None:
+    """Unknown mapped exceptions should use the ``error_<code>`` fallback ID."""
+    mock_hass = MagicMock()
+    error = PawControlError("boom", error_code="custom_failure")
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.issue_registry"
+    ) as mock_ir:
+        await create_repair_issue_from_exception(mock_hass, error)
+
+    issue_id = mock_ir.async_create_issue.call_args.args[2]
+    assert issue_id == "error_custom_failure"
 
 
 class TestEdgeCases:
