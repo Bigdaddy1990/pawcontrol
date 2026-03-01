@@ -230,3 +230,32 @@ async def test_text_reproduce_state_invalid_state(
 
     assert len(calls) == 0
     assert "Cannot reproduce text state" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_reproduce_helper_logs_when_entity_missing(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Log and skip state reproduction when target entity is missing."""
+    calls: list[tuple[str, str, str]] = []
+
+    async def _handler(
+        _hass: HomeAssistant,
+        target_state: State,
+        current_state: State,
+        processed: str,
+        _context: object,
+    ) -> None:
+        calls.append((target_state.entity_id, current_state.entity_id, processed))
+
+    await pawcontrol_switch.async_reproduce_platform_states(
+        hass,
+        [State("switch.pawcontrol_missing", STATE_ON)],
+        "switch",
+        lambda state: state.state,
+        _handler,
+    )
+
+    assert calls == []
+    assert "Switch entity switch.pawcontrol_missing not found" in caplog.text
