@@ -218,25 +218,27 @@ def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
 
 def test_execute_cycle_logs_low_success_rate_warning(
     mock_hass: object,
-    caplog,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Cycles with a low (but non-zero) success rate should emit a warning."""
-    runtime, registry = _build_runtime(mock_hass, ["buddy", "flaky", "offline"])
+    dog_ids = ["buddy", "flaky", "offline"]
+    failing_dogs = {"flaky", "offline"}
+    runtime, registry = _build_runtime(mock_hass, dog_ids)
 
     current_data: dict[str, CoordinatorDogData] = {
-        "buddy": _baseline_data(registry, "buddy", "online"),
-        "flaky": _baseline_data(registry, "flaky", "offline"),
-        "offline": _baseline_data(registry, "offline", "offline"),
+        dog_id: _baseline_data(registry, dog_id, "offline") for dog_id in dog_ids
     }
+    current_data["buddy"] = _baseline_data(registry, "buddy", "online")
 
     async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:
-        if dog_id == "buddy":
-            return {
-                "dog_info": registry.get(dog_id),
-                "status": "online",
-                "last_update": "now",
-            }
-        raise NetworkError("Temporary network failure")
+        if dog_id in failing_dogs:
+            raise NetworkError("Temporary network failure")
+
+        return {
+            "dog_info": registry.get(dog_id),
+            "status": "online",
+            "last_update": "now",
+        }
 
     runtime._resilience.execute_with_resilience = AsyncMock(
         side_effect=fake_execute,
@@ -245,7 +247,7 @@ def test_execute_cycle_logs_low_success_rate_warning(
     with caplog.at_level(logging.WARNING):
         data, cycle = asyncio.run(
             runtime.execute_cycle(
-                ["buddy", "flaky", "offline"],
+                dog_ids,
                 current_data,
                 empty_payload_factory=registry.empty_payload,
             ),
@@ -307,15 +309,20 @@ def test_fetch_dog_data_maps_module_exceptions(mock_hass: object) -> None:
 
 
 def test_adaptive_polling_controller_increases_interval_for_slow_cycles() -> None:
+    initial_interval_seconds = 30.0
+    target_cycle_seconds = 20.0
+    slow_cycle_duration_seconds = 30.0
+    entity_saturation = 0.5
+
     controller = AdaptivePollingController(
-        initial_interval_seconds=30.0,
-        target_cycle_ms=20_000.0,
+        initial_interval_seconds=initial_interval_seconds,
+        target_cycle_ms=target_cycle_seconds * 1000,
     )
     initial_interval = controller.current_interval
-    controller.update_entity_saturation(0.5)
+    controller.update_entity_saturation(entity_saturation)
 
     new_interval = controller.record_cycle(
-        duration=30.0,
+        duration=slow_cycle_duration_seconds,
         success=True,
         error_ratio=0.0,
     )
