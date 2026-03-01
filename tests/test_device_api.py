@@ -1,7 +1,5 @@
 """Unit tests for device API HTTP helpers."""
 
-from __future__ import annotations
-
 from typing import Any
 
 import pytest
