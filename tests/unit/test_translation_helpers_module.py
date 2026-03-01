@@ -401,6 +401,51 @@ def test_load_bundled_component_translations_handles_oserror(
     assert translation_helpers._load_bundled_component_translations("de") == {}
 
 
+def test_load_bundled_component_translations_uses_lru_cache(
+    tmp_path: pytest.TempPathFactory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Repeated lookups for the same language should reuse cached payloads."""
+    translation_helpers._load_bundled_component_translations.cache_clear()
+    module_file = tmp_path / "translation_helpers.py"
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    translation_file = translations_dir / "de.json"
+    translation_file.write_text('{"common": {"action": "Aktion"}}', encoding="utf-8")
+    module_file.write_text("", encoding="utf-8")
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    read_count = 0
+    original_read_text = translation_helpers.Path.read_text
+
+    def _read_with_counter(path_obj: object, *args: object, **kwargs: object) -> str:
+        nonlocal read_count
+        read_count += 1
+        return original_read_text(path_obj, *args, **kwargs)
+
+    monkeypatch.setattr(translation_helpers.Path, "read_text", _read_with_counter)
+
+    first = translation_helpers._load_bundled_component_translations("de")
+    second = translation_helpers._load_bundled_component_translations("de")
+
+    assert first == {"component.pawcontrol.common.action": "Aktion"}
+    assert second == first
+    assert read_count == 1
+
+
+def test_get_cached_component_translation_lookup_normalizes_none_language() -> None:
+    """None should normalize to English and reuse the same fallback mapping."""
+    cached = {"component.pawcontrol.common.en": "English"}
+    hass = SimpleNamespace(data={"pawcontrol": {"translations": {"en": cached}}})
+
+    translations, fallback = (
+        translation_helpers.get_cached_component_translation_lookup(hass, None)
+    )
+
+    assert translations is cached
+    assert fallback is cached
+
+
 def test_component_translation_helpers_resolve_component_key() -> None:
     """Component key helper should produce namespaced keys and resolve them."""
     key = translation_helpers.component_translation_key("action")
