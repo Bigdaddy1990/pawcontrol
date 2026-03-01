@@ -107,6 +107,27 @@ def test_adaptive_polling_honours_idle_grace_before_idle_ramp() -> None:
     assert second == pytest.approx(156.25)
 
 
+def test_adaptive_polling_increases_interval_for_slow_cycles() -> None:
+    """Slow successful cycles should increase the polling interval."""
+    controller = AdaptivePollingController(
+        initial_interval_seconds=120.0,
+        min_interval_seconds=30.0,
+        max_interval_seconds=900.0,
+        idle_interval_seconds=900.0,
+        idle_grace_seconds=600.0,
+    )
+    controller.update_entity_saturation(0.1)
+
+    interval = controller.record_cycle(
+        duration=240.0,
+        success=True,
+        error_ratio=0.0,
+    )
+
+    assert interval > 120.0
+    assert interval <= 900.0
+
+
 def test_adaptive_polling_resets_idle_tracking_after_activity() -> None:
     """High error ratio marks activity and prevents immediate idle ramping."""
     controller = AdaptivePollingController(
