@@ -218,39 +218,43 @@ def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
 
 def test_execute_cycle_logs_low_success_rate_warning(
     mock_hass: object,
-    caplog: pytest.LogCaptureFixture,
+    caplog,
 ) -> None:
-    runtime, registry = _build_runtime(mock_hass, ["buddy", "max", "luna"])
+    """Cycles with a low (but non-zero) success rate should emit a warning."""
+    runtime, registry = _build_runtime(mock_hass, ["buddy", "flaky", "offline"])
 
     current_data: dict[str, CoordinatorDogData] = {
-        dog_id: _baseline_data(registry, dog_id, "online")
-        for dog_id in ("buddy", "max", "luna")
+        "buddy": _baseline_data(registry, "buddy", "online"),
+        "flaky": _baseline_data(registry, "flaky", "offline"),
+        "offline": _baseline_data(registry, "offline", "offline"),
     }
 
     async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:
-        if dog_id in {"max", "luna"}:
-            raise NetworkError("Temporary network failure")
-        return {
-            "dog_info": registry.get(dog_id),
-            "status": "online",
-            "last_update": "now",
-        }
+        if dog_id == "buddy":
+            return {
+                "dog_info": registry.get(dog_id),
+                "status": "online",
+                "last_update": "now",
+            }
+        raise NetworkError("Temporary network failure")
 
-    runtime._resilience.execute_with_resilience = AsyncMock(side_effect=fake_execute)
+    runtime._resilience.execute_with_resilience = AsyncMock(
+        side_effect=fake_execute,
+    )
 
     with caplog.at_level(logging.WARNING):
         data, cycle = asyncio.run(
             runtime.execute_cycle(
-                ["buddy", "max", "luna"],
+                ["buddy", "flaky", "offline"],
                 current_data,
                 empty_payload_factory=registry.empty_payload,
             ),
         )
 
-    assert data["buddy"]["status"] == "online"
     assert cycle.success
-    assert cycle.errors == 2
-    assert "Low success rate" in caplog.text
+    assert cycle.success_rate < 0.5
+    assert data["buddy"]["status"] == "online"
+    assert "Low success rate: 1/3 dogs updated successfully" in caplog.text
 
 
 def test_fetch_dog_data_maps_module_exceptions(mock_hass: object) -> None:
