@@ -51,7 +51,9 @@ def test_utils_getattr_unknown_symbol_raises_attribute_error() -> None:
         module.definitely_not_exported
 
 
-def test_reload_skips_legacy_serialize_name_collisions(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_reload_skips_legacy_serialize_name_collisions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Legacy symbols that collide with serialize exports stay lazily resolved."""
     module = _reloaded_utils_module()
 

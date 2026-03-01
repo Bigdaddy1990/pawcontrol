@@ -1,7 +1,5 @@
 """Unit tests for options flow host protocols."""
 
-from __future__ import annotations
-
 from typing import get_type_hints
 
 from custom_components.pawcontrol import options_flow_hosts
@@ -25,7 +23,9 @@ class _HostImplementation:
     def _coerce_bool(self, value: object, default: bool) -> bool:
         return bool(value) if value is not None else default
 
-    def _normalise_options_snapshot(self, options: dict[str, object]) -> dict[str, object]:
+    def _normalise_options_snapshot(
+        self, options: dict[str, object]
+    ) -> dict[str, object]:
         return options
 
     def _build_dog_selector_schema(self):

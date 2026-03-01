@@ -174,14 +174,15 @@ def test_cached_lookup_for_english_reuses_same_mapping() -> None:
     cached = {"component.pawcontrol.common.en": "English"}
     hass = SimpleNamespace(data={"pawcontrol": {"translations": {"en": cached}}})
 
-    translations, fallback = translation_helpers.get_cached_component_translation_lookup(
-        hass,
-        "EN",
+    translations, fallback = (
+        translation_helpers.get_cached_component_translation_lookup(
+            hass,
+            "EN",
+        )
     )
 
     assert translations is cached
     assert fallback is cached
-
 
 
 def test_get_cached_component_translations_uses_bundled_when_cache_missing(
@@ -233,7 +234,6 @@ def test_get_cached_component_translations_uses_bundled_for_cached_empty_mapping
     assert translation_helpers.get_cached_component_translations(hass, "de") == {
         "component.pawcontrol.common.de": "Bundled"
     }
-
 
 
 @pytest.mark.asyncio
