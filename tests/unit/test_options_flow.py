@@ -1792,6 +1792,39 @@ async def test_dog_module_overrides_recorded(
     assert modules.get("grooming") is True
 
 
+@pytest.mark.asyncio
+async def test_configure_dog_modules_requires_selected_dog(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """The module step should fall back to the dog management menu without context."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+    flow._current_dog = None
+
+    result = await flow.async_step_configure_dog_modules()
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "manage_dogs"
+
+
+@pytest.mark.asyncio
+async def test_configure_dog_modules_rejects_non_string_dog_id(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """The module step should return a form error when dog id typing is invalid."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+    flow._current_dog = cast(DogConfigData, {**flow._dogs[0], DOG_ID_FIELD: 123})
+
+    result = await flow.async_step_configure_dog_modules({"module_feeding": True})
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "configure_dog_modules"
+    assert result["errors"] == {"base": "invalid_dog"}
+
+
 def test_module_description_placeholders_localize_grooming(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
