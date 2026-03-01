@@ -487,6 +487,59 @@ async def test_renderer_dog_dashboard_returns_empty_for_invalid_payload(
 
 
 @pytest.mark.asyncio
+async def test_renderer_activity_summary_uses_available_entities(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Activity summary should include only dogs with tracked activity sensors."""
+    renderer = DashboardRenderer(hass)
+    hass.states.async_set("sensor.fido_activity_level", "active")
+
+    template_result = {"type": "history-graph", "entities": ["sensor.fido_activity_level"]}
+    history_graph_template = AsyncMock(return_value=template_result)
+    monkeypatch.setattr(
+        renderer.templates,
+        "get_history_graph_template",
+        history_graph_template,
+    )
+
+    activity_summary = await renderer._render_activity_summary(
+        [
+            {CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido"},
+            {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"},
+            {CONF_DOG_NAME: "Missing Id"},
+        ]
+    )
+
+    assert activity_summary == template_result
+    history_graph_template.assert_awaited_once_with(
+        ["sensor.fido_activity_level"],
+        "Activity Summary",
+        24,
+    )
+
+
+@pytest.mark.asyncio
+async def test_renderer_activity_summary_returns_none_without_entities(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Activity summary should be skipped when no activity entities exist."""
+    renderer = DashboardRenderer(hass)
+    history_graph_template = AsyncMock()
+    monkeypatch.setattr(
+        renderer.templates,
+        "get_history_graph_template",
+        history_graph_template,
+    )
+
+    activity_summary = await renderer._render_activity_summary(
+        [{CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"}],
+    )
+
+    assert activity_summary is None
+    history_graph_template.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_write_dashboard_file_preserves_existing_file_on_error(
     hass, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
