@@ -352,3 +352,122 @@ def test_base_module_adapter_cache_snapshot_without_ttl(
         },
         "metadata": {"ttl_seconds": None},
     }
+
+
+def test_walk_module_adapter_defaults_error_and_cache(
+    module_adapters: tuple[Any, _DtUtilStub],
+) -> None:
+    """Walk adapter should cover empty/error defaults and cache successful payloads."""
+    module, _ = module_adapters
+    adapter = module.WalkModuleAdapter(ttl=timedelta(minutes=5))
+
+    async def _exercise() -> None:
+        assert await adapter.async_get_data("buddy") == {
+            "current_walk": None,
+            "last_walk": None,
+            "daily_walks": 0,
+            "total_distance": 0.0,
+            "walks_today": 0,
+            "total_duration_today": 0.0,
+            "total_distance_today": 0.0,
+            "weekly_walks": 0,
+            "weekly_distance": 0.0,
+            "needs_walk": False,
+            "walk_streak": 0,
+            "energy_level": "unknown",
+            "status": "unavailable",
+        }
+
+        manager = AsyncMock()
+        manager.async_get_walk_data = AsyncMock(return_value={})
+        adapter.attach(manager)
+
+        empty_payload = await adapter.async_get_data("buddy")
+        assert empty_payload["status"] == "empty"
+
+        manager.async_get_walk_data = AsyncMock(side_effect=RuntimeError("boom"))
+        error_payload = await adapter.async_get_data("max")
+        assert error_payload["status"] == "error"
+        assert error_payload["message"] == "boom"
+
+        live_payload = {
+            "current_walk": {"id": "w1"},
+            "last_walk": None,
+            "daily_walks": 1,
+            "total_distance": 2.2,
+            "walks_today": 1,
+            "total_duration_today": 25.0,
+            "total_distance_today": 2.2,
+            "weekly_walks": 3,
+            "weekly_distance": 7.5,
+            "needs_walk": False,
+            "walk_streak": 2,
+            "energy_level": "normal",
+            "status": "ok",
+        }
+        manager.async_get_walk_data = AsyncMock(return_value=live_payload)
+
+        result_first = await adapter.async_get_data("luna")
+        result_second = await adapter.async_get_data("luna")
+        assert result_first is live_payload
+        assert result_second is live_payload
+        manager.async_get_walk_data.assert_awaited_once_with("luna")
+
+    asyncio.run(_exercise())
+
+
+def test_gps_module_adapter_error_and_active_route_payload(
+    module_adapters: tuple[Any, _DtUtilStub],
+) -> None:
+    """GPS adapter should raise typed errors and build active-route payloads."""
+    module, _ = module_adapters
+    adapter = module.GPSModuleAdapter()
+
+    async def _exercise() -> None:
+        with pytest.raises(module.GPSUnavailableError, match="not available"):
+            await adapter.async_get_data("buddy")
+
+        manager = AsyncMock()
+        manager.async_get_current_location = AsyncMock(side_effect=RuntimeError("gps down"))
+        manager.async_get_active_route = AsyncMock()
+        adapter.attach(manager)
+
+        with pytest.raises(module.GPSUnavailableError, match="gps down"):
+            await adapter.async_get_data("buddy")
+
+        route = type(
+            "_Route",
+            (),
+            {
+                "is_active": True,
+                "start_time": datetime(2024, 1, 1, tzinfo=timezone.utc),
+                "duration_minutes": 12,
+                "distance_km": 1.8,
+                "gps_points": [object(), object()],
+            },
+        )()
+        location = type(
+            "_Location",
+            (),
+            {
+                "latitude": 48.12,
+                "longitude": 11.58,
+                "accuracy": 4.5,
+                "timestamp": datetime(2024, 1, 1, 8, 30, tzinfo=timezone.utc),
+                "source": type("_Source", (), {"value": "collar"})(),
+            },
+        )()
+        manager.async_get_current_location = AsyncMock(return_value=location)
+        manager.async_get_active_route = AsyncMock(return_value=route)
+
+        payload = await adapter.async_get_data("buddy")
+        assert payload["status"] == "tracking"
+        assert payload["source"] == "collar"
+        assert payload["active_route"] == {
+            "start_time": "2024-01-01T00:00:00+00:00",
+            "duration_minutes": 12,
+            "distance_km": 1.8,
+            "points_count": 2,
+        }
+
+    asyncio.run(_exercise())
