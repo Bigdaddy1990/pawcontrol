@@ -162,8 +162,11 @@ def test_sync_config_entry_symbols_preserves_valid_homeassistant_exports() -> No
     assert compat.ConfigEntryChange is NativeChange
 
 
-def test_register_exception_rebind_callback_unregisters_cleanly() -> None:
+def test_register_exception_rebind_callback_unregisters_cleanly(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Registered callbacks should receive updates until they are unregistered."""
+    monkeypatch.setattr(compat, "_EXCEPTION_REBIND_CALLBACKS", [])
     received: list[dict[str, type[Exception]]] = []
 
     unregister = compat.register_exception_rebind_callback(received.append)
