@@ -85,6 +85,44 @@ def test_resolve_binding_module_rejects_unknown_module_name() -> None:
         compat._resolve_binding_module("tests.unit.missing_alias_target")
 
 
+def test_resolve_binding_module_uses_caller_module_by_default() -> None:
+    """Resolving without an explicit module should return the caller module."""
+
+    def _inner() -> ModuleType:
+        return compat._resolve_binding_module(None)
+
+    resolved = _inner()
+    assert resolved is compat.sys.modules[__name__]
+
+
+def test_bind_exception_alias_ignores_non_module_registry_entries() -> None:
+    """Alias callbacks should no-op when module registry entries are invalid."""
+    module_name = "tests.unit.dynamic_alias_non_module"
+    dynamic_module = ModuleType(module_name)
+    dynamic_module.__dict__["__name__"] = module_name
+
+    original_module = compat.sys.modules.get(module_name)
+    compat.sys.modules[module_name] = dynamic_module
+    try:
+        unregister = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="LocalAlias",
+        )
+        assert dynamic_module.LocalAlias is compat.HomeAssistantError
+
+        compat.sys.modules[module_name] = object()
+        compat.ensure_homeassistant_exception_symbols()
+
+        assert dynamic_module.LocalAlias is compat.HomeAssistantError
+        unregister()
+    finally:
+        if original_module is None:
+            compat.sys.modules.pop(module_name, None)
+        else:
+            compat.sys.modules[module_name] = original_module
+
+
 def test_bind_exception_alias_combine_with_current_creates_hybrid_alias() -> None:
     """Alias binding should combine classes when requested and unregister cleanly."""
 
