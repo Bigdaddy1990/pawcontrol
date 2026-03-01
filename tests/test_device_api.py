@@ -185,3 +185,24 @@ async def test_async_get_json_uses_resilience_manager_when_available() -> None:
     assert payload == {"status": "ok"}
     assert resilience.calls == [("_async_request_protected", "GET", "/api/status")]
     assert session.calls == []
+
+
+@pytest.mark.asyncio
+async def test_endpoint_property_and_wrapper_helpers_delegate_to_async_request() -> None:
+    """Thin helper methods should delegate to the shared request implementation."""
+    session = _Session(_Response(status=200, payload={"ok": True}))
+    client = PawControlDeviceClient(session, endpoint="https://device.local")
+
+    assert str(client.base_url) == "https://device.local"
+
+    protected = await client._async_request_protected("GET", "/api/status")
+    assert protected.status == 200
+
+    async def _fake_get_json(path: str) -> dict[str, str]:
+        assert path == "/api/dogs/fido/feeding"
+        return {"dog": "fido"}
+
+    client.async_get_json = _fake_get_json  # type: ignore[method-assign]
+    payload = await client.async_get_feeding_payload("fido")
+
+    assert payload == {"dog": "fido"}
