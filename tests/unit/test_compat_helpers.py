@@ -260,8 +260,11 @@ async def test_fallback_service_registry_invokes_sync_and_async_handlers() -> No
     await registry.async_call("notify", "async", {"x": 2})
 
     assert calls == [("notify", "sync"), ("notify", "async")]
+    if hasattr(registry, "async_services"):
+        assert set(registry.async_services().get("notify", {})) == {"sync", "async"}
     if hasattr(registry, "has_service"):
         assert registry.has_service("notify", "sync") is True
+        assert registry.has_service("notify", "missing") is False
 
     if type(registry).__module__ == compat.__name__:
         with pytest.raises(KeyError, match=r"Service notify\.missing not registered"):
