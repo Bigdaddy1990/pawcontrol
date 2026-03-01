@@ -1,7 +1,5 @@
 """Tests for setup-time configuration validation helpers."""
 
-from __future__ import annotations
-
 import logging
 
 import pytest

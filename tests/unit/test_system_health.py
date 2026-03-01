@@ -8,6 +8,7 @@ import pytest
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.system_health import (
     _attach_runtime_store_history,
+    _coerce_int,
     _coerce_automation_entries,
     _coerce_event_counters,
     _coerce_event_history,
@@ -18,6 +19,7 @@ from custom_components.pawcontrol.system_health import (
     _coerce_preferred_events,
     _coerce_str_list,
     _default_service_execution_snapshot,
+    _extract_api_call_count,
     _normalise_manual_events_snapshot,
     _resolve_indicator_thresholds,
     system_health_info,
@@ -403,6 +405,49 @@ def test_attach_runtime_store_history_adds_only_mapping_and_sequence_payloads() 
         {"status": "current", "level": "ok"},
     ]
     assert info["runtime_store_timeline_summary"] == {"total_events": 1}
+
+
+def test_attach_runtime_store_history_skips_empty_payload() -> None:
+    """History attachment should leave the payload untouched when history is missing."""
+    info: dict[str, object] = {"existing": True}
+
+    _attach_runtime_store_history(info, None)
+
+    assert info == {"existing": True}
+
+
+@pytest.mark.parametrize(
+    ("value", "default", "expected"),
+    [
+        ("9", 0, 9),
+        ("bad", 7, 7),
+        (None, 5, 5),
+    ],
+)
+def test_coerce_int_handles_value_and_type_errors(
+    value: object,
+    default: int,
+    expected: int,
+) -> None:
+    """Integer coercion should return the fallback for invalid or missing values."""
+    assert _coerce_int(value, default=default) == expected
+
+
+@pytest.mark.parametrize(
+    ("stats", "expected"),
+    [
+        (None, 0),
+        ({"performance_metrics": None}, 0),
+        ({"performance_metrics": {"api_calls": "11"}}, 11),
+        ({"performance_metrics": {"api_calls": "invalid"}}, 0),
+    ],
+)
+def test_extract_api_call_count_handles_missing_or_invalid_shapes(
+    stats: object,
+    expected: int,
+) -> None:
+    """API call extraction should tolerate malformed coordinator statistics."""
+    assert _extract_api_call_count(stats) == expected
 
 
 @pytest.mark.asyncio
