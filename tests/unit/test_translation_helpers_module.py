@@ -377,6 +377,22 @@ def test_load_bundled_component_translations_handles_missing_or_invalid_payload(
     assert translation_helpers._load_bundled_component_translations("it") == {}
 
 
+def test_load_bundled_component_translations_handles_non_mapping_common_section(
+    tmp_path: pytest.TempPathFactory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-mapping ``common`` payloads should return an empty translation map."""
+    translation_helpers._load_bundled_component_translations.cache_clear()
+    module_file = tmp_path / "translation_helpers.py"
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "de.json").write_text('{"common": ["invalid"]}', encoding="utf-8")
+    module_file.write_text("", encoding="utf-8")
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    assert translation_helpers._load_bundled_component_translations("de") == {}
+
+
 def test_load_bundled_component_translations_handles_oserror(
     tmp_path: pytest.TempPathFactory,
     monkeypatch: pytest.MonkeyPatch,
@@ -464,3 +480,39 @@ def test_resolve_component_translation_uses_default_when_key_missing() -> None:
     )
 
     assert resolved == "Run"
+
+
+@pytest.mark.asyncio
+async def test_async_translation_lookup_normalizes_none_to_english(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """None should normalize to English and avoid a second fallback fetch."""
+    hass = SimpleNamespace(data={})
+    calls: list[str] = []
+
+    async def fake_get(*_args: object, **_kwargs: object) -> dict[str, str]:
+        language = _args[1]
+        calls.append(language)
+        return {f"component.pawcontrol.common.{language}": language}
+
+    monkeypatch.setattr(translation_helpers, "async_get_translations", fake_get)
+
+    translations, fallback = await translation_helpers.async_get_component_translation_lookup(
+        hass,
+        None,
+    )
+
+    assert translations == {"component.pawcontrol.common.en": "en"}
+    assert fallback is translations
+    assert calls == ["en"]
+
+
+def test_get_translation_cache_replaces_non_mapping_hass_data() -> None:
+    """Malformed ``hass.data`` values should be replaced with a dictionary."""
+    hass = SimpleNamespace(data="invalid")
+
+    cache = translation_helpers._get_translation_cache(hass)
+
+    assert cache == {}
+    assert isinstance(hass.data, dict)
+    assert isinstance(hass.data["pawcontrol"], dict)
