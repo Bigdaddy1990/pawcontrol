@@ -7,6 +7,8 @@ from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock
 
+import pytest
+
 from custom_components.pawcontrol.coordinator_runtime import (
     AdaptivePollingController,
     CoordinatorRuntime,
@@ -214,6 +216,43 @@ def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
     assert cycle.new_interval > initial_interval
 
 
+def test_execute_cycle_logs_low_success_rate_warning(
+    mock_hass: object,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    runtime, registry = _build_runtime(mock_hass, ["buddy", "max", "luna"])
+
+    current_data: dict[str, CoordinatorDogData] = {
+        dog_id: _baseline_data(registry, dog_id, "online")
+        for dog_id in ("buddy", "max", "luna")
+    }
+
+    async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:
+        if dog_id in {"max", "luna"}:
+            raise NetworkError("Temporary network failure")
+        return {
+            "dog_info": registry.get(dog_id),
+            "status": "online",
+            "last_update": "now",
+        }
+
+    runtime._resilience.execute_with_resilience = AsyncMock(side_effect=fake_execute)
+
+    with caplog.at_level(logging.WARNING):
+        data, cycle = asyncio.run(
+            runtime.execute_cycle(
+                ["buddy", "max", "luna"],
+                current_data,
+                empty_payload_factory=registry.empty_payload,
+            ),
+        )
+
+    assert data["buddy"]["status"] == "online"
+    assert cycle.success
+    assert cycle.errors == 2
+    assert "Low success rate" in caplog.text
+
+
 def test_fetch_dog_data_maps_module_exceptions(mock_hass: object) -> None:
     runtime, _ = _build_runtime(mock_hass, ["buddy"])
 
@@ -261,6 +300,23 @@ def test_fetch_dog_data_maps_module_exceptions(mock_hass: object) -> None:
     assert payload["health"]["error_type"] == "RuntimeError"
     assert payload["weather"] == {"state": "ok"}
     assert payload["status_snapshot"]["state"] == "away"
+
+
+def test_adaptive_polling_controller_increases_interval_for_slow_cycles() -> None:
+    controller = AdaptivePollingController(
+        initial_interval_seconds=30.0,
+        target_cycle_ms=20_000.0,
+    )
+    initial_interval = controller.current_interval
+    controller.update_entity_saturation(0.5)
+
+    new_interval = controller.record_cycle(
+        duration=30.0,
+        success=True,
+        error_ratio=0.0,
+    )
+
+    assert new_interval > initial_interval
 
 
 def test_summarize_entity_budgets_includes_totals() -> None:
