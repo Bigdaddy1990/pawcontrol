@@ -92,6 +92,30 @@ def test_build_reauth_placeholders_uses_entry_defaults() -> None:
     assert "Status: healthy" in placeholders["health_status"]
 
 
+def test_build_reauth_updates_uses_summary_fields() -> None:
+    """Reauth updates should include timestamped health details."""
+    entry = MockConfigEntry(domain="pawcontrol", data={}, options={})
+    flow = _Flow(entry)
+
+    data_updates, options_updates = flow._build_reauth_updates({
+        "healthy": False,
+        "validated_dogs": 1,
+        "total_dogs": 4,
+        "issues": ["missing modules"],
+        "warnings": ["fallback profile"],
+    })
+
+    assert data_updates["reauth_timestamp"]
+    assert data_updates["reauth_timestamp"] == options_updates["last_reauth"]
+    assert data_updates["reauth_version"] == 7
+    assert data_updates["health_status"] is False
+    assert data_updates["health_validated_dogs"] == 1
+    assert data_updates["health_total_dogs"] == 4
+    assert options_updates["reauth_health_issues"] == ["missing modules"]
+    assert options_updates["reauth_health_warnings"] == ["fallback profile"]
+    assert "Status: attention required" in options_updates["last_reauth_summary"]
+
+
 @pytest.mark.asyncio
 async def test_check_config_health_reports_duplicate_ids_and_module_warnings(
     monkeypatch: pytest.MonkeyPatch,
@@ -197,3 +221,35 @@ async def test_validate_reauth_entry_enhanced_raises_when_all_dogs_are_invalid(
 
     with pytest.raises(ValidationError, match="All dog configurations are invalid"):
         await flow._validate_reauth_entry_enhanced(entry)
+
+
+@pytest.mark.asyncio
+async def test_get_health_status_summary_safe_handles_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Health status summary should degrade gracefully on timeout."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+
+    async def _raise_timeout(_entry: MockConfigEntry) -> dict[str, object]:
+        raise TimeoutError
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _raise_timeout)
+
+    assert await flow._get_health_status_summary_safe(entry) == "Health check timeout"
+
+
+@pytest.mark.asyncio
+async def test_get_health_status_summary_safe_handles_unexpected_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Health status summary should expose unexpected health check failures."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+
+    async def _raise_runtime_error(_entry: MockConfigEntry) -> dict[str, object]:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _raise_runtime_error)
+
+    assert await flow._get_health_status_summary_safe(entry) == "Health check failed: boom"
