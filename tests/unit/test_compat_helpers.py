@@ -162,6 +162,43 @@ def test_sync_config_entry_symbols_preserves_valid_homeassistant_exports() -> No
     assert compat.ConfigEntryChange is NativeChange
 
 
+def test_register_exception_rebind_callback_unregisters_cleanly() -> None:
+    """Registered callbacks should receive updates until they are unregistered."""
+    received: list[dict[str, type[Exception]]] = []
+
+    unregister = compat.register_exception_rebind_callback(received.append)
+    compat._notify_exception_callbacks()
+    unregister()
+    compat._notify_exception_callbacks()
+
+    assert len(received) == 2
+
+
+def test_get_exception_uses_default_factory_for_invalid_exports() -> None:
+    """Invalid Home Assistant exports should fall back to generated exceptions."""
+    exceptions_module = ModuleType("homeassistant.exceptions")
+    exceptions_module.ConfigEntryError = object()
+
+    marker = RuntimeError
+    assert (
+        compat._get_exception(
+            "ConfigEntryError",
+            lambda: marker,
+            exceptions_module,
+        )
+        is marker
+    )
+
+
+def test_bind_exception_alias_rejects_modules_without_name() -> None:
+    """Binding should fail when the provided module object has no __name__."""
+    module_without_name = ModuleType("temporary")
+    del module_without_name.__dict__["__name__"]
+
+    with pytest.raises(RuntimeError, match="requires a named module"):
+        compat.bind_exception_alias("HomeAssistantError", module=module_without_name)
+
+
 @pytest.mark.asyncio
 async def test_fallback_service_registry_invokes_sync_and_async_handlers() -> None:
     """Fallback registry should support sync/async handlers and missing lookups."""
