@@ -36,6 +36,8 @@ from custom_components.pawcontrol.device_condition import (
     async_get_conditions,
 )
 from custom_components.pawcontrol.device_trigger import (
+    TRIGGER_DEFINITIONS,
+    TriggerDefinition,
     async_attach_trigger,
     async_get_trigger_capabilities,
     async_get_triggers,
@@ -107,6 +109,44 @@ async def test_async_get_triggers_returns_available(hass: HomeAssistant) -> None
     assert "walk_ended" in trigger_types
     assert "status_changed" in trigger_types
     assert all(CONF_METADATA in trigger for trigger in triggers)
+
+
+@pytest.mark.asyncio
+async def test_async_get_triggers_includes_configured_from_state(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Include a from-state filter when a trigger definition declares one."""
+    device_entry = _register_device(hass)
+    _register_entity(
+        hass,
+        device_entry,
+        entity_id="binary_sensor.pawcontrol_buddy_is_hungry",
+        platform="binary_sensor",
+        suffix="is_hungry",
+    )
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.device_trigger.TRIGGER_DEFINITIONS",
+        (
+            TriggerDefinition(
+                "hungry",
+                "binary_sensor",
+                "is_hungry",
+                from_state="off",
+                to_state="on",
+            ),
+            *TRIGGER_DEFINITIONS,
+        ),
+    )
+
+    triggers = await async_get_triggers(hass, device_entry.id)
+    hungry_trigger = next(
+        trigger for trigger in triggers if trigger[CONF_TYPE] == "hungry"
+    )
+
+    assert hungry_trigger[CONF_FROM] == "off"
+    assert hungry_trigger[CONF_TO] == "on"
 
 
 @pytest.mark.asyncio
