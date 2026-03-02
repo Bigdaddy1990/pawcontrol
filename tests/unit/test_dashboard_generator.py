@@ -494,7 +494,10 @@ async def test_renderer_activity_summary_uses_available_entities(
     renderer = DashboardRenderer(hass)
     hass.states.async_set("sensor.fido_activity_level", "active")
 
-    template_result = {"type": "history-graph", "entities": ["sensor.fido_activity_level"]}
+    template_result = {
+        "type": "history-graph",
+        "entities": ["sensor.fido_activity_level"],
+    }
     history_graph_template = AsyncMock(return_value=template_result)
     monkeypatch.setattr(
         renderer.templates,
@@ -502,13 +505,11 @@ async def test_renderer_activity_summary_uses_available_entities(
         history_graph_template,
     )
 
-    activity_summary = await renderer._render_activity_summary(
-        [
-            {CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido"},
-            {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"},
-            {CONF_DOG_NAME: "Missing Id"},
-        ]
-    )
+    activity_summary = await renderer._render_activity_summary([
+        {CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido"},
+        {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"},
+        {CONF_DOG_NAME: "Missing Id"},
+    ])
 
     assert activity_summary == template_result
     history_graph_template.assert_awaited_once_with(

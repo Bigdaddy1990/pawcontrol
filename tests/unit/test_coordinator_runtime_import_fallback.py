@@ -1,7 +1,5 @@
 """Tests for coordinator_runtime import fallbacks."""
 
-from __future__ import annotations
-
 from datetime import datetime
 import importlib
 import sys
@@ -25,11 +23,7 @@ async def test_coordinator_runtime_uses_datetime_fallback_when_dt_util_missing(
         level: int = 0,
     ) -> ModuleType:
         caller = globals_.get("__name__") if globals_ else None
-        if (
-            name == "homeassistant.util"
-            and "dt" in fromlist
-            and caller == module_name
-        ):
+        if name == "homeassistant.util" and "dt" in fromlist and caller == module_name:
             msg = "simulated missing homeassistant.util.dt"
             raise ImportError(msg)
         return original_import(name, globals_, locals_, fromlist, level)

@@ -252,4 +252,6 @@ async def test_get_health_status_summary_safe_handles_unexpected_error(
 
     monkeypatch.setattr(flow, "_check_config_health_enhanced", _raise_runtime_error)
 
-    assert await flow._get_health_status_summary_safe(entry) == "Health check failed: boom"
+    assert (
+        await flow._get_health_status_summary_safe(entry) == "Health check failed: boom"
+    )

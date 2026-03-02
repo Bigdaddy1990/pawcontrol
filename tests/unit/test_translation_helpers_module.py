@@ -386,7 +386,9 @@ def test_load_bundled_component_translations_handles_non_mapping_common_section(
     module_file = tmp_path / "translation_helpers.py"
     translations_dir = tmp_path / "translations"
     translations_dir.mkdir()
-    (translations_dir / "de.json").write_text('{"common": ["invalid"]}', encoding="utf-8")
+    (translations_dir / "de.json").write_text(
+        '{"common": ["invalid"]}', encoding="utf-8"
+    )
     module_file.write_text("", encoding="utf-8")
     monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
 
@@ -497,7 +499,10 @@ async def test_async_translation_lookup_normalizes_none_to_english(
 
     monkeypatch.setattr(translation_helpers, "async_get_translations", fake_get)
 
-    translations, fallback = await translation_helpers.async_get_component_translation_lookup(
+    (
+        translations,
+        fallback,
+    ) = await translation_helpers.async_get_component_translation_lookup(
         hass,
         None,
     )

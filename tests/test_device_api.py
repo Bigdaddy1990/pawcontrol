@@ -188,7 +188,9 @@ async def test_async_get_json_uses_resilience_manager_when_available() -> None:
 
 
 @pytest.mark.asyncio
-async def test_endpoint_property_and_wrapper_helpers_delegate_to_async_request() -> None:
+async def test_endpoint_property_and_wrapper_helpers_delegate_to_async_request() -> (
+    None
+):
     """Thin helper methods should delegate to the shared request implementation."""
     session = _Session(_Response(status=200, payload={"ok": True}))
     client = PawControlDeviceClient(session, endpoint="https://device.local")
