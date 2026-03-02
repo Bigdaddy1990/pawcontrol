@@ -428,7 +428,9 @@ def test_gps_module_adapter_error_and_active_route_payload(
             await adapter.async_get_data("buddy")
 
         manager = AsyncMock()
-        manager.async_get_current_location = AsyncMock(side_effect=RuntimeError("gps down"))
+        manager.async_get_current_location = AsyncMock(
+            side_effect=RuntimeError("gps down")
+        )
         manager.async_get_active_route = AsyncMock()
         adapter.attach(manager)
 
@@ -440,7 +442,7 @@ def test_gps_module_adapter_error_and_active_route_payload(
             (),
             {
                 "is_active": True,
-                "start_time": datetime(2024, 1, 1, tzinfo=timezone.utc),
+                "start_time": datetime(2024, 1, 1, tzinfo=UTC),
                 "duration_minutes": 12,
                 "distance_km": 1.8,
                 "gps_points": [object(), object()],
@@ -453,7 +455,7 @@ def test_gps_module_adapter_error_and_active_route_payload(
                 "latitude": 48.12,
                 "longitude": 11.58,
                 "accuracy": 4.5,
-                "timestamp": datetime(2024, 1, 1, 8, 30, tzinfo=timezone.utc),
+                "timestamp": datetime(2024, 1, 1, 8, 30, tzinfo=UTC),
                 "source": type("_Source", (), {"value": "collar"})(),
             },
         )()

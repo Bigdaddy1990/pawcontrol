@@ -8,10 +8,10 @@ import pytest
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.system_health import (
     _attach_runtime_store_history,
-    _coerce_int,
     _coerce_automation_entries,
     _coerce_event_counters,
     _coerce_event_history,
+    _coerce_int,
     _coerce_int_mapping,
     _coerce_listener_metadata,
     _coerce_mapping_of_str_lists,
