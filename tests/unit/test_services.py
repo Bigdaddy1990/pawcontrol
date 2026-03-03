@@ -252,10 +252,30 @@ def test_coerce_service_bool_rejects_invalid_values() -> None:
         services._coerce_service_bool("sometimes", field="enabled")
 
 
+def test_coerce_service_bool_rejects_numeric_non_boolean_values() -> None:
+    """Integer-like payloads other than 0/1 must be rejected explicitly."""
+    with pytest.raises(ServiceValidationError, match="got int"):
+        services._coerce_service_bool(2, field="enabled")
+
+
 def test_format_numeric_value_collapses_integer_floats() -> None:
     """Numeric formatter should avoid decimal suffixes for integer-like floats."""
     assert services._format_numeric_value(4.0) == "4"
     assert services._format_numeric_value(4.5) == "4.5"
+
+
+def test_format_expires_in_hours_error_rejects_boolean_values() -> None:
+    """Boolean payloads are not accepted as numeric expiry values."""
+    error = services.ValidationError(
+        "expires_in_hours",
+        True,
+        "unexpected",
+    )
+
+    assert (
+        services._format_expires_in_hours_error(error)
+        == "expires_in_hours must be a number"
+    )
 
 
 @pytest.mark.parametrize(
