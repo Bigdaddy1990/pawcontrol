@@ -118,6 +118,53 @@ async def test_remove_config_entry_device_considers_dog_options_mapping(
 
 
 @pytest.mark.asyncio
+async def test_remove_config_entry_device_uses_mapping_payloads(
+    hass: HomeAssistant,
+) -> None:
+    """Keep mapped dog definitions and data-level dog options in the active set."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: {
+                "Delta-9": {
+                    DOG_NAME_FIELD: "Delta",
+                }
+            },
+            CONF_DOG_OPTIONS: [
+                {DOG_ID_FIELD: "Ghost 55"},
+            ],
+        },
+        options={
+            CONF_DOGS: {
+                "Echo-11": {
+                    DOG_ID_FIELD: "Echo-11",
+                }
+            }
+        },
+    )
+
+    mapped_device = DeviceEntry(
+        id="device-mapped",
+        identifiers={(DOMAIN, sanitize_dog_id("Delta-9"))},
+    )
+    options_device = DeviceEntry(
+        id="device-options",
+        identifiers={(DOMAIN, sanitize_dog_id("Echo-11"))},
+    )
+    data_options_device = DeviceEntry(
+        id="device-data-options",
+        identifiers={(DOMAIN, sanitize_dog_id("Ghost 55"))},
+    )
+
+    assert await async_remove_config_entry_device(hass, entry, mapped_device) is False
+    assert await async_remove_config_entry_device(hass, entry, options_device) is False
+    assert (
+        await async_remove_config_entry_device(hass, entry, data_options_device)
+        is False
+    )
+
+
+@pytest.mark.asyncio
 async def test_async_get_or_create_dog_device_entry_updates_metadata(
     hass: HomeAssistant,
 ) -> None:
