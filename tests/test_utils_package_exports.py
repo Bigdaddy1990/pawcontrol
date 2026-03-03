@@ -48,7 +48,7 @@ def test_utils_getattr_unknown_symbol_raises_attribute_error() -> None:
     module = _reloaded_utils_module()
 
     with pytest.raises(AttributeError):
-        module.definitely_not_exported
+        _ = module.definitely_not_exported
 
 
 def test_reload_skips_legacy_serialize_name_collisions(

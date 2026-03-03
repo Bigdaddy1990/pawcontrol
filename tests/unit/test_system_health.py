@@ -296,7 +296,7 @@ def test_manual_event_helper_coercions_handle_invalid_shapes() -> None:
 
 
 def test_coerce_automation_entries_preserves_explicit_boolean_values() -> None:
-    """Automation-entry coercion should keep native booleans and coerce truthy values."""
+    """Automation-entry coercion should keep booleans and coerce truthy values."""
     entries = _coerce_automation_entries([
         {
             "manual_breaker_event": " breaker.event ",

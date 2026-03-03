@@ -1,5 +1,6 @@
 """Additional coverage for compatibility helpers."""
 
+from dataclasses import dataclass
 from types import ModuleType
 
 import pytest
@@ -177,10 +178,10 @@ def test_sync_config_entry_symbols_populates_missing_module_exports() -> None:
 def test_sync_config_entry_symbols_preserves_valid_homeassistant_exports() -> None:
     """Config-entry symbol sync should keep Home Assistant compatible symbols."""
 
+    @dataclass
     class NativeConfigEntry:
-        def __init__(self, domain: str, entry_id: str) -> None:
-            self.domain = domain
-            self.entry_id = entry_id
+        domain: str
+        entry_id: str
 
     class NativeState(compat.Enum):
         LOADED = "loaded"

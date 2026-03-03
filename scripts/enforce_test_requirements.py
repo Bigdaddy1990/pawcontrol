@@ -15,6 +15,12 @@ REQUIREMENT_FILES = [
 STANDARD_LIB = {name.replace(".", "_") for name in sys.stdlib_module_names}
 INTERNAL_PREFIXES = ("tests", "custom_components", "scripts")
 INTERNAL_MODULES: set[str] = set()
+REQUIREMENT_EQUIVALENTS: dict[str, set[str]] = {
+    # The pytest plugin installs Home Assistant as a transitive dependency, so
+    # tests importing `homeassistant` are satisfied when only the plugin is
+    # listed in requirements_test.txt.
+    "homeassistant": {"pytest_homeassistant_custom_component"},
+}
 
 
 def _extract_requirement_name(line: str) -> str | None:
@@ -98,6 +104,9 @@ def main() -> int:
                 continue
             normalized = module.lower().replace("-", "_")
             if normalized in requirements:
+                continue
+            equivalents = REQUIREMENT_EQUIVALENTS.get(normalized, set())
+            if equivalents.intersection(requirements):
                 continue
             missing.setdefault(file.as_posix(), set()).add(module)
 

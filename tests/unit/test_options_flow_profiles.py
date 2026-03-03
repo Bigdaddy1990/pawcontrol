@@ -18,7 +18,7 @@ def test_get_performance_impact_description_uses_known_and_fallback_values() -> 
 
 
 def test_get_profile_recommendation_enhanced_covers_all_priority_branches() -> None:
-    """Recommendation helper should prioritise low score, medium score, then dog/entity fit."""
+    """Recommendation helper should prioritize score bands before dog/entity fit."""
     host = _ProfileHost()
 
     assert (

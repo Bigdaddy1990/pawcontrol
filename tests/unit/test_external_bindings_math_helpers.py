@@ -21,7 +21,7 @@ def test_domain_store_replaces_non_mapping_bucket() -> None:
 
 
 def test_extract_coords_uses_accuracy_fallback_key() -> None:
-    """Coordinate extraction should fallback to `accuracy` when gps_accuracy is absent."""
+    """Coordinate extraction should use `accuracy` when gps_accuracy is absent."""
     state = SimpleNamespace(
         attributes={
             "latitude": 48.1372,
