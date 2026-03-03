@@ -421,6 +421,56 @@ def test_coordinator_resolver_invalidates_cache_when_entry_not_loaded() -> None:
     assert resolver._cached_entry_id is None
 
 
+def test_coordinator_resolver_returns_cached_and_filters_invalidation() -> None:
+    """Resolver should return cached coordinators and filter invalidations."""
+    hass = SimpleNamespace(data={})
+    resolver = services._CoordinatorResolver(hass)  # type: ignore[arg-type]
+    coordinator = SimpleNamespace(
+        hass=hass,
+        config_entry=SimpleNamespace(
+            entry_id="entry-a",
+            state=ConfigEntryState.LOADED,
+        ),
+    )
+
+    resolver._cache_coordinator(coordinator)  # type: ignore[arg-type]
+    assert resolver.resolve() is coordinator  # type: ignore[comparison-overlap]
+
+    resolver.invalidate(entry_id="entry-b")
+    assert resolver._cached_coordinator is coordinator
+
+    resolver.invalidate(entry_id="entry-a")
+    assert resolver._cached_coordinator is None
+
+
+def test_capture_cache_diagnostics_normalises_unexpected_payload_shapes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Diagnostics helper should coerce non-mapping snapshots and skip invalid keys."""
+    raw_capture = {
+        "snapshots": {
+            1: {"stats": {}},
+            "broken": "error-payload",
+        }
+    }
+    monkeypatch.setattr(
+        services,
+        "capture_cache_diagnostics",
+        lambda runtime: raw_capture,
+    )
+    monkeypatch.setattr(
+        services,
+        "ensure_cache_repair_aggregate",
+        lambda summary: None,
+    )
+
+    diagnostics = services._capture_cache_diagnostics(SimpleNamespace())
+
+    assert diagnostics is not None
+    assert list(diagnostics["snapshots"]) == ["broken"]
+    assert diagnostics["snapshots"]["broken"].error == "error-payload"
+
+
 def test_normalise_service_details_handles_sequence_and_scalar_payloads() -> None:
     """Service detail normaliser should preserve list/scalar payloads."""
     assert services._normalise_service_details(None) is None
@@ -576,6 +626,77 @@ def test_record_service_result_defaults_rejection_metrics_without_breakers() -> 
 
     diagnostics_payload = last_result["diagnostics"]
     assert diagnostics_payload["rejection_metrics"] == defaults
+
+
+def test_record_service_result_ignores_missing_runtime_stats() -> None:
+    """Telemetry recorder should no-op when runtime stats are unavailable."""
+    services._record_service_result(
+        None,
+        service="notify.test",
+        status="success",
+    )
+
+    runtime_data = SimpleNamespace()
+    services._record_service_result(
+        runtime_data,
+        service="notify.test",
+        status="success",
+    )
+
+
+def test_record_service_result_accepts_single_guard_object() -> None:
+    """A single guard result should be normalized into diagnostics and details."""
+    runtime_data = SimpleNamespace(performance_stats={})
+    guard = services.ServiceGuardResult(
+        domain="notify",
+        service="test",
+        executed=False,
+        reason="integration disabled",
+    )
+
+    services._record_service_result(
+        runtime_data,
+        service="notify.test",
+        status="error",
+        guard=guard,
+    )
+
+    result = runtime_data.performance_stats["last_service_result"]
+    assert result["guard"]["skipped"] == 1
+    assert result["details"]["guard"]["reasons"]["integration disabled"] == 1
+
+
+def test_record_delivery_failure_reason_handles_runtime_and_reason_defaults() -> None:
+    """Delivery failure reason helper should create buckets and fallback labels."""
+    services._record_delivery_failure_reason(None, reason="anything")
+
+    runtime_data = SimpleNamespace(performance_stats={"rejection_metrics": "invalid"})
+    services._record_delivery_failure_reason(runtime_data, reason="   ")
+
+    metrics = runtime_data.performance_stats["rejection_metrics"]
+    assert metrics["failure_reasons"]["unknown"] == 1
+    assert metrics["last_failure_reason"] == "unknown"
+
+
+def test_extract_service_context_handles_mapping_none_and_dynamic_context() -> None:
+    """Context extraction should preserve None metadata and class-name fallback."""
+    mapping_call = SimpleNamespace(
+        context={"id": None, "parent_id": "  parent-1  "},
+    )
+    context, metadata = services._extract_service_context(mapping_call)
+
+    assert context is not None
+    assert metadata == {"context_id": None, "parent_id": "parent-1"}
+
+    class Context:
+        def __init__(self) -> None:
+            self.id = "ctx-1"
+
+    obj_call = SimpleNamespace(context=Context())
+    context_obj, metadata_obj = services._extract_service_context(obj_call)
+
+    assert context_obj is obj_call.context
+    assert metadata_obj == {"context_id": "ctx-1"}
 
 
 def test_classify_error_reason_detects_notification_failures() -> None:
