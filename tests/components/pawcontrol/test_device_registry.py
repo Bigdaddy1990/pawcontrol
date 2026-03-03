@@ -155,13 +155,23 @@ async def test_remove_config_entry_device_uses_mapping_payloads(
         id="device-data-options",
         identifiers={(DOMAIN, sanitize_dog_id("Ghost 55"))},
     )
-
-    assert await async_remove_config_entry_device(hass, entry, mapped_device) is False
-    assert await async_remove_config_entry_device(hass, entry, options_device) is False
-    assert (
-        await async_remove_config_entry_device(hass, entry, data_options_device)
-        is False
+    orphaned_device = DeviceEntry(
+        id="device-orphaned",
+        identifiers={(DOMAIN, sanitize_dog_id("Zulu-1"))},
     )
+
+    test_cases = [
+        (mapped_device, "mapped data[CONF_DOGS]", False),
+        (options_device, "options[CONF_DOGS]", False),
+        (data_options_device, "data[CONF_DOG_OPTIONS]", False),
+        (orphaned_device, "orphaned identifier", True),
+    ]
+
+    for device, description, expected in test_cases:
+        result = await async_remove_config_entry_device(hass, entry, device)
+        assert result is expected, (
+            f"Expected {description} to return {expected} during removal check"
+        )
 
 
 @pytest.mark.asyncio
