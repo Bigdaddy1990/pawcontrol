@@ -352,14 +352,18 @@ async def test_async_setup_external_bindings_cancels_prior_pending_task(
     callback(
         SimpleNamespace(
             data={
-                "new_state": SimpleNamespace(attributes={"latitude": 1.0, "longitude": 2.0})
+                "new_state": SimpleNamespace(
+                    attributes={"latitude": 1.0, "longitude": 2.0}
+                )
             }
         )
     )
     callback(
         SimpleNamespace(
             data={
-                "new_state": SimpleNamespace(attributes={"latitude": 1.1, "longitude": 2.1})
+                "new_state": SimpleNamespace(
+                    attributes={"latitude": 1.1, "longitude": 2.1}
+                )
             }
         )
     )

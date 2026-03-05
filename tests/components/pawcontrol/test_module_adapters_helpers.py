@@ -133,13 +133,11 @@ def test_normalise_health_medication_optional_fields_and_nulls() -> None:
 
 
 def test_normalise_health_alert_defaults_without_mapping_details() -> None:
-    normalised = _normalise_health_alert(
-        {
-            "message": "",
-            "severity": "HIGH",
-            "details": ["ignored"],
-        }
-    )
+    normalised = _normalise_health_alert({
+        "message": "",
+        "severity": "HIGH",
+        "details": ["ignored"],
+    })
 
     assert normalised == {
         "type": "custom",
