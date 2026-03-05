@@ -482,12 +482,12 @@ def _translated_statistics_label(
     label: str,
 ) -> str:
     """Return a localized statistics label for the configured language."""
-    default_label = DEFAULT_STATISTICS_LABELS.get(
+    DEFAULT_STATISTICS_LABELS.get(
         label,
         " ".join(label.split("_")).capitalize(),
     )
     translations, fallback = translation_lookup
-    default_label = DEFAULT_STATISTICS_LABELS.get(label, label)
+    DEFAULT_STATISTICS_LABELS.get(label, label)
     return resolve_component_translation(
         translations,
         fallback,
