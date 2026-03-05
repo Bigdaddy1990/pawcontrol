@@ -631,6 +631,41 @@ def test_statistics_summary_template_includes_rejection_metrics(
     assert "    - script.evening_reset: executed - resumed schedule" in content
 
 
+def test_statistics_summary_template_formats_empty_guard_details(
+    hass: HomeAssistant,
+) -> None:
+    """Guard sections should show localized fallbacks when details are empty."""
+    templates = DashboardTemplates(hass)
+
+    card = templates.get_statistics_summary_template(
+        [
+            {
+                CONF_DOG_ID: "fido",
+                CONF_DOG_NAME: "Fido",
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_WALK: True,
+                    MODULE_HEALTH: True,
+                    MODULE_NOTIFICATIONS: True,
+                    MODULE_GPS: True,
+                },
+            }
+        ],
+        service_execution_metrics={"rejection_metrics": default_rejection_metrics()},
+        service_guard_metrics={
+            "executed": 0,
+            "skipped": 0,
+            "reasons": {},
+            "last_results": [],
+        },
+    )
+
+    content = card["content"]
+    assert "  - Skip reasons:" in content
+    assert "    - none" in content
+    assert "  - Recent guard results:" in content
+
+
 def test_statistics_summary_template_localizes_breaker_labels(
     hass: HomeAssistant,
 ) -> None:
