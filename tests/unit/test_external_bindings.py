@@ -187,3 +187,78 @@ async def test_async_setup_external_bindings_ignores_tiny_movement(
     await binding.task
 
     add_point.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_setup_external_bindings_skips_invalid_sources_and_duplicates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bindings should only be created for valid entity sources once per dog."""
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(gps_geofence_manager=object()),
+        gps_geofence_manager=object(),
+    )
+    tracked_entities: list[str] = []
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.external_bindings.require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.external_bindings.event_helper.async_track_state_change_event",
+        lambda _hass, entities, _callback: (
+            tracked_entities.append(entities[0]) or (lambda: None)
+        ),
+    )
+
+    hass = SimpleNamespace(data={}, async_create_task=asyncio.create_task)
+    entry = SimpleNamespace(
+        entry_id="entry-3",
+        data={
+            CONF_DOGS: [
+                {"dog_id": "manual", "gps_config": {CONF_GPS_SOURCE: "manual"}},
+                {"dog_id": "blank", "gps_config": {CONF_GPS_SOURCE: "   "}},
+                {"dog_id": "invalid", "gps_config": {CONF_GPS_SOURCE: "phone"}},
+                {"dog_id": "buddy", "gps_config": {CONF_GPS_SOURCE: "person.buddy"}},
+                {"dog_id": "buddy", "gps_config": {CONF_GPS_SOURCE: "person.buddy"}},
+                "not-a-dict",
+            ]
+        },
+    )
+
+    await async_setup_external_bindings(hass, entry)
+
+    assert tracked_entities == ["person.buddy"]
+    assert set(hass.data[DOMAIN][_STORE_KEY][entry.entry_id]) == {"buddy"}
+
+
+@pytest.mark.asyncio
+async def test_async_unload_external_bindings_handles_invalid_binding_objects() -> None:
+    """Unload should gracefully skip non-binding items and cancel active tasks."""
+
+    async def _run_forever() -> None:
+        await asyncio.Event().wait()
+
+    task = asyncio.create_task(_run_forever())
+    unsubscribed = {"called": False}
+    hass = SimpleNamespace(
+        data={
+            DOMAIN: {
+                _STORE_KEY: {
+                    "entry-4": {
+                        "valid": _Binding(
+                            unsub=lambda: unsubscribed.__setitem__("called", True),
+                            task=task,
+                        ),
+                        "invalid": object(),
+                    }
+                }
+            }
+        }
+    )
+
+    await async_unload_external_bindings(hass, SimpleNamespace(entry_id="entry-4"))
+
+    assert unsubscribed["called"] is True
+    with pytest.raises(asyncio.CancelledError):
+        await task
