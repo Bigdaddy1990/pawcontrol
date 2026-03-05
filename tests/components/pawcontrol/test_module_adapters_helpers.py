@@ -1,0 +1,116 @@
+from datetime import UTC, datetime, timedelta
+
+from custom_components.pawcontrol import module_adapters
+from custom_components.pawcontrol.module_adapters import (
+    _BaseModuleAdapter,
+    _ExpiringCache,
+    _normalise_health_alert,
+    _normalise_health_medication,
+)
+
+
+class _FrozenTime:
+    def __init__(self, now: datetime) -> None:
+        self._now = now
+
+    def utcnow(self) -> datetime:
+        return self._now
+
+
+class _DummyAdapter(_BaseModuleAdapter[dict[str, str]]):
+    pass
+
+
+def test_expiring_cache_tracks_hits_misses_metadata(monkeypatch):
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    monkeypatch.setattr(module_adapters, "dt_util", _FrozenTime(now))
+    cache = _ExpiringCache[dict[str, str]](ttl=timedelta(minutes=5))
+
+    cache.set("dog-1", {"status": "ok"})
+    assert cache.get("dog-1") == {"status": "ok"}
+    assert cache.get("missing") is None
+
+    metrics = cache.metrics()
+    assert metrics.entries == 1
+    assert metrics.hits == 1
+    assert metrics.misses == 1
+    assert metrics.hit_rate == 50.0
+
+    snapshot = cache.snapshot()
+    assert snapshot["stats"] == {
+        "entries": 1,
+        "hits": 1,
+        "misses": 1,
+        "hit_rate": 50.0,
+    }
+    assert snapshot["metadata"] == {"ttl_seconds": 300.0}
+
+
+def test_expiring_cache_cleanup_and_clear(monkeypatch):
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    monkeypatch.setattr(module_adapters, "dt_util", _FrozenTime(start))
+    cache = _ExpiringCache[str](ttl=timedelta(seconds=10))
+    cache.set("fresh", "value")
+
+    expired = cache.cleanup(start + timedelta(seconds=11))
+    assert expired == 1
+    assert cache.get("fresh") is None
+
+    metadata = cache.metadata()
+    assert metadata["last_expired_count"] == 1
+    assert metadata["expired_total"] == 1
+
+    cache.clear()
+    assert cache.metrics().entries == 0
+    assert cache.metadata() == {"ttl_seconds": 10.0}
+
+
+def test_base_module_adapter_snapshot_without_cache():
+    adapter = _DummyAdapter(ttl=None)
+
+    assert adapter.cleanup(datetime(2026, 1, 1, tzinfo=UTC)) == 0
+    assert adapter.cache_snapshot() == {
+        "stats": {"entries": 0, "hits": 0, "misses": 0, "hit_rate": 0.0},
+        "metadata": {"ttl_seconds": None},
+    }
+
+
+def test_normalise_health_alert_defaults_and_details():
+    payload = {
+        "type": "hydration",
+        "severity": "UNEXPECTED",
+        "details": {"source": "sensor", "score": 9},
+        "action_required": 1,
+    }
+
+    normalised = _normalise_health_alert(payload)
+
+    assert normalised == {
+        "type": "hydration",
+        "message": "Hydration",
+        "severity": "medium",
+        "action_required": True,
+        "details": {"source": "sensor", "score": 9},
+    }
+
+
+def test_normalise_health_medication_optional_fields_and_nulls():
+    payload = {
+        "medication": "Omega 3",
+        "dosage": None,
+        "frequency": "daily",
+        "next_dose": 123,
+        "notes": None,
+        "with_meals": "yes",
+    }
+
+    normalised = _normalise_health_medication(payload)
+
+    assert normalised == {
+        "name": "Omega 3",
+        "dosage": None,
+        "frequency": "daily",
+        "next_dose": "123",
+        "notes": None,
+        "with_meals": True,
+    }
