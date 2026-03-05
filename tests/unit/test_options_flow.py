@@ -43,6 +43,7 @@ from custom_components.pawcontrol.const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
+from custom_components.pawcontrol.exceptions import FlowValidationError
 from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
 from custom_components.pawcontrol.runtime_data import RuntimeDataUnavailableError
 from custom_components.pawcontrol.types import (
@@ -1109,6 +1110,48 @@ async def test_health_settings_normalises_snapshot(
     assert health["vet_reminders"] is True
     assert health["grooming_reminders"] is False
     assert health["health_alerts"] is True
+
+
+@pytest.mark.asyncio
+async def test_health_settings_shows_field_errors_from_flow_validation(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """Health settings should surface field validation errors in the form."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    with patch.object(
+        flow,
+        "_build_health_settings",
+        side_effect=FlowValidationError(field_errors={"weight_tracking": "invalid"}),
+    ):
+        result = await flow.async_step_health_settings({"weight_tracking": "bad"})
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "health_settings"
+    assert result["errors"] == {"weight_tracking": "invalid"}
+
+
+@pytest.mark.asyncio
+async def test_health_settings_shows_update_failed_for_unexpected_error(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """Health settings should map unexpected failures to update_failed."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    with patch.object(
+        flow,
+        "_build_health_settings",
+        side_effect=RuntimeError("boom"),
+    ):
+        result = await flow.async_step_health_settings({"weight_tracking": "bad"})
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "health_settings"
+    assert result["errors"] == {"base": "update_failed"}
 
 
 @pytest.mark.asyncio
