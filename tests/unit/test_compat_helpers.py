@@ -270,3 +270,43 @@ async def test_fallback_service_registry_invokes_sync_and_async_handlers() -> No
     if type(registry).__module__ == compat.__name__:
         with pytest.raises(KeyError, match=r"Service notify\.missing not registered"):
             await registry.async_call("notify", "missing")
+
+
+def test_build_exception_adds_doc_and_extra_attrs() -> None:
+    """Generated fallback exceptions should include custom metadata when supplied."""
+    generated = compat._build_exception(
+        "CustomCompatError",
+        RuntimeError,
+        "compatibility error",
+        extra_attrs={"source": "test-suite"},
+    )
+
+    assert generated.__doc__ == "compatibility error"
+    assert generated.source == "test-suite"
+    assert issubclass(generated, RuntimeError)
+
+
+def test_import_optional_handles_import_error_and_missing_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Optional imports should return ``None`` for ImportError variants."""
+
+    native_import = __import__
+
+    def _raise_import_error(name: str, *args: object, **kwargs: object) -> ModuleType:
+        if name == "does.not.exist":
+            raise ImportError(name)
+        return native_import(name, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.__import__", _raise_import_error)
+    assert compat._import_optional("does.not.exist") is None
+
+    def _raise_module_not_found(
+        name: str, *args: object, **kwargs: object
+    ) -> ModuleType:
+        if name == "still.missing":
+            raise ModuleNotFoundError(name)
+        return native_import(name, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.__import__", _raise_module_not_found)
+    assert compat._import_optional("still.missing") is None
