@@ -1,7 +1,5 @@
 """Tests for device automation helper utilities."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -74,9 +72,7 @@ def test_coerce_runtime_data_handles_supported_shapes() -> None:
 def test_resolve_device_context_and_entity_id(hass: HomeAssistant) -> None:
     """Context and entity resolution should honor registry and runtime store data."""
     runtime_data = _RuntimeDataStub(coordinator=_CoordinatorStub(payload={}))
-    hass.data[DOMAIN] = {
-        "entry-1": DomainRuntimeStoreEntry(runtime_data=runtime_data)
-    }
+    hass.data[DOMAIN] = {"entry-1": DomainRuntimeStoreEntry(runtime_data=runtime_data)}
 
     device_registry = dr.async_get(hass)
     device_entry = device_registry.async_get_or_create(

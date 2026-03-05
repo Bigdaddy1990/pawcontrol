@@ -290,7 +290,6 @@ def test_import_optional_handles_import_error_and_missing_module(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Optional imports should return ``None`` for ImportError variants."""
-
     native_import = __import__
 
     def _raise_import_error(name: str, *args: object, **kwargs: object) -> ModuleType:
