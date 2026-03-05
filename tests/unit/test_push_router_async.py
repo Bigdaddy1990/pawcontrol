@@ -1,7 +1,5 @@
 """Async coverage tests for push GPS router behavior."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
