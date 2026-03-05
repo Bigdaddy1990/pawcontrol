@@ -2,7 +2,10 @@
 
 from types import SimpleNamespace
 
-from custom_components.pawcontrol.external_bindings import _domain_store, _extract_coords
+from custom_components.pawcontrol.external_bindings import (
+    _domain_store,
+    _extract_coords,
+)
 
 
 def test_extract_coords_uses_accuracy_fallback_key() -> None:
