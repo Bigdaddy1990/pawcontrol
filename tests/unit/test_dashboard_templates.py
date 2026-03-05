@@ -154,6 +154,44 @@ def test_statistics_summary_template_localises_general_sections(
     assert card["title"] == "Zusammenfassung"
 
 
+def test_statistics_summary_template_uses_english_defaults_when_labels_missing(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Summary card should use readable English defaults if translations miss keys."""
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.dashboard_templates.get_cached_component_translation_lookup",
+        lambda *_args, **_kwargs: ({}, {}),
+    )
+
+    templates = DashboardTemplates(hass)
+    card = templates.get_statistics_summary_template(
+        [
+            {
+                CONF_DOG_ID: "fido",
+                CONF_DOG_NAME: "Fido",
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_WALK: False,
+                    MODULE_HEALTH: False,
+                    MODULE_NOTIFICATIONS: True,
+                    MODULE_GPS: True,
+                },
+            }
+        ],
+        coordinator_statistics={"rejection_metrics": default_rejection_metrics()},
+    )
+
+    content = card["content"]
+    assert "## Paw Control Statistics" in content
+    assert "**Dogs managed:** 1" in content
+    assert "**Active modules:**" in content
+    assert "- Feeding: 1" in content
+    assert "- Notifications: 1" in content
+    assert "Resilience metrics" in content
+    assert "- Rejection rate: n/a" in content
+
+
 @pytest.mark.asyncio
 async def test_map_card_template_normalises_options(hass: HomeAssistant) -> None:
     """Map card helper should coerce raw option payloads."""
