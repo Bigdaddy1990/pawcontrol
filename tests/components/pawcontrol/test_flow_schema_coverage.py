@@ -17,6 +17,8 @@ from custom_components.pawcontrol.flow_steps.health_schemas import (
     build_health_settings_schema,
 )
 from custom_components.pawcontrol.flow_steps.notifications_helpers import (
+    _bool_default,
+    _string_default,
     _validate_time_input,
     build_notification_settings_payload,
 )
@@ -28,6 +30,8 @@ from custom_components.pawcontrol.types import (
     GEOFENCE_RADIUS_FIELD,
     GPS_ENABLED_FIELD,
     GPS_UPDATE_INTERVAL_FIELD,
+    NOTIFICATION_MOBILE_FIELD,
+    NOTIFICATION_PRIORITY_FIELD,
     NOTIFICATION_QUIET_END_FIELD,
     NOTIFICATION_QUIET_HOURS_FIELD,
     NOTIFICATION_QUIET_START_FIELD,
@@ -122,3 +126,44 @@ def test_notification_helpers_validate_and_coerce_values() -> None:
                 default if value in (None, "") else str(value)
             ),
         )
+
+
+def test_notification_default_helpers_fallback_for_type_mismatches() -> None:
+    """Default extractors should ignore wrong incoming value types."""
+    current = {
+        NOTIFICATION_QUIET_HOURS_FIELD: "yes",
+        NOTIFICATION_QUIET_START_FIELD: 2200,
+    }
+
+    assert _bool_default(current, NOTIFICATION_QUIET_HOURS_FIELD, False) is False
+    assert _string_default(current, NOTIFICATION_QUIET_START_FIELD, "22:00:00") == (
+        "22:00:00"
+    )
+
+
+def test_notification_payload_uses_current_defaults_when_input_missing() -> None:
+    """Payload builder should preserve current values when no new value is sent."""
+    current = {
+        NOTIFICATION_QUIET_HOURS_FIELD: False,
+        NOTIFICATION_QUIET_START_FIELD: "21:30:00",
+        NOTIFICATION_QUIET_END_FIELD: "06:45:00",
+        NOTIFICATION_PRIORITY_FIELD: False,
+        NOTIFICATION_MOBILE_FIELD: True,
+    }
+
+    payload = build_notification_settings_payload(
+        {
+            NOTIFICATION_REMINDER_REPEAT_FIELD: "15",
+        },
+        current,
+        coerce_bool=lambda value, default: default if value is None else bool(value),
+        coerce_time_string=lambda value, default: (
+            default if value in (None, "") else str(value)
+        ),
+    )
+
+    assert payload[NOTIFICATION_QUIET_HOURS_FIELD] is False
+    assert payload[NOTIFICATION_QUIET_START_FIELD] == "21:30:00"
+    assert payload[NOTIFICATION_QUIET_END_FIELD] == "06:45:00"
+    assert payload[NOTIFICATION_PRIORITY_FIELD] is False
+    assert payload[NOTIFICATION_MOBILE_FIELD] is True
