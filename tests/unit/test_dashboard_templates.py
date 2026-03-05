@@ -114,6 +114,8 @@ def test_statistics_summary_template_counts_modules(hass: HomeAssistant) -> None
     content = card["content"]
     assert "**Dogs managed:** 2" in content
     assert "Feeding: 1" in content
+    assert "Walks: 2" in content
+    assert "GPS: 1" in content
     assert "Notifications: 1" in content
 
 

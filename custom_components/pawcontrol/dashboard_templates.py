@@ -99,6 +99,43 @@ STATISTICS_LABEL_KEYS: Final[tuple[str, ...]] = (
     "last_rejecting_breaker",
 )
 
+DEFAULT_STATISTICS_LABELS: Final[Mapping[str, str]] = {
+    "statistics_header": "Statistics header",
+    "dogs_managed": "Dogs managed",
+    "active_modules": "Active modules",
+    "module_feeding": "Feeding",
+    "module_walks": "Walks",
+    "module_health": "Health",
+    "module_gps": "GPS",
+    "module_notifications": "Notifications",
+    "last_updated": "Last updated",
+    "summary_card_title": "Summary",
+    "resilience_metrics_header": "Resilience metrics",
+    "coordinator_resilience_label": "Coordinator telemetry",
+    "service_resilience_label": "Service execution telemetry",
+    "guard_metrics_header": "Guard outcomes",
+    "guard_executed": "Guarded calls executed",
+    "guard_skipped": "Guarded calls skipped",
+    "guard_reasons": "Skip reasons",
+    "guard_last_results": "Recent guard results",
+    "guard_result_executed": "executed",
+    "guard_result_skipped": "skipped",
+    "guard_result_reason": "reason",
+    "rejected_calls": "Rejected calls",
+    "rejecting_breakers": "Rejecting breakers",
+    "rejection_rate": "Rejection rate",
+    "last_rejection": "Last rejection",
+    "open_breaker_names": "Open breaker names",
+    "half_open_breaker_names": "Half-open breaker names",
+    "unknown_breaker_names": "Unknown breaker names",
+    "rejection_breaker_names": "Rejecting breaker names",
+    "open_breaker_ids": "Open breaker IDs",
+    "half_open_breaker_ids": "Half-open breaker IDs",
+    "unknown_breaker_ids": "Unknown breaker IDs",
+    "rejection_breaker_ids": "Rejecting breaker IDs",
+    "last_rejecting_breaker": "Last rejecting breaker",
+}
+
 STATISTICS_FALLBACK_KEYS: Final[tuple[str, ...]] = (
     "no_rejection_rate",
     "no_last_rejection",
@@ -363,12 +400,16 @@ def _translated_statistics_label(
     label: str,
 ) -> str:
     """Return a localized statistics label for the configured language."""
+    default_label = DEFAULT_STATISTICS_LABELS.get(
+        label,
+        " ".join(label.split("_")).capitalize(),
+    )
     translations, fallback = translation_lookup
     return resolve_component_translation(
         translations,
         fallback,
         f"dashboard_statistics_label_{label}",
-        default=label,
+        default=default_label,
     )
 
 
