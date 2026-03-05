@@ -343,6 +343,44 @@ class NotificationOverviewAttributes(TypedDict, total=False):
 _LOGGER = logging.getLogger(__name__)
 
 
+_STATISTICS_LABEL_DEFAULTS: Final[Mapping[str, str]] = {
+    "statistics_header": "Paw Control Statistics",
+    "dogs_managed": "Dogs managed",
+    "active_modules": "Active modules",
+    "module_feeding": "Feeding",
+    "module_walks": "Walks",
+    "module_health": "Health",
+    "module_gps": "GPS",
+    "module_notifications": "Notifications",
+    "last_updated": "Last updated",
+    "summary_card_title": "Summary",
+    "resilience_metrics_header": "Resilience metrics",
+    "coordinator_resilience_label": "Coordinator telemetry",
+    "service_resilience_label": "Service execution telemetry",
+    "guard_metrics_header": "Guard metrics",
+    "guard_executed": "Executed",
+    "guard_skipped": "Skipped",
+    "guard_reasons": "Skip reasons",
+    "guard_last_results": "Recent guard results",
+    "guard_result_executed": "executed",
+    "guard_result_skipped": "skipped",
+    "guard_result_reason": "reason",
+    "rejected_calls": "Rejected calls",
+    "rejecting_breakers": "Rejecting breakers",
+    "rejection_rate": "Rejection rate",
+    "last_rejection": "Last rejection",
+    "open_breaker_names": "Open breaker names",
+    "half_open_breaker_names": "Half-open breaker names",
+    "unknown_breaker_names": "Unknown breaker names",
+    "rejection_breaker_names": "Rejection breaker names",
+    "open_breaker_ids": "Open breaker IDs",
+    "half_open_breaker_ids": "Half-open breaker IDs",
+    "unknown_breaker_ids": "Unknown breaker IDs",
+    "rejection_breaker_ids": "Rejection breaker IDs",
+    "last_rejecting_breaker": "Last rejecting breaker",
+}
+
+
 def _translated_statistics_fallback(
     translation_lookup: TranslationLookup,
     label: str,
@@ -350,11 +388,17 @@ def _translated_statistics_fallback(
 ) -> str:
     """Return a localized fallback string for statistics summaries."""
     translations, fallback = translation_lookup
+    fallback_default = {
+        "no_rejection_rate": "n/a",
+        "no_last_rejection": "never",
+        "no_guard_reasons": default,
+        "no_guard_results": default,
+    }.get(label, default)
     return resolve_component_translation(
         translations,
         fallback,
         f"dashboard_statistics_fallback_{label}",
-        default=default,
+        default=fallback_default,
     )
 
 
@@ -368,7 +412,7 @@ def _translated_statistics_label(
         translations,
         fallback,
         f"dashboard_statistics_label_{label}",
-        default=label,
+        default=_STATISTICS_LABEL_DEFAULTS.get(label, label),
     )
 
 
