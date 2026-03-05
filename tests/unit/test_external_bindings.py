@@ -262,3 +262,121 @@ async def test_async_unload_external_bindings_handles_invalid_binding_objects() 
     assert unsubscribed["called"] is True
     with pytest.raises(asyncio.CancelledError):
         await task
+
+
+@pytest.mark.asyncio
+async def test_async_setup_external_bindings_skips_when_gps_manager_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup should no-op when no GPS manager is available in runtime data."""
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(gps_geofence_manager=None),
+        gps_geofence_manager=None,
+    )
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.external_bindings.require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+
+    hass = SimpleNamespace(data={}, async_create_task=asyncio.create_task)
+    entry = SimpleNamespace(entry_id="entry-none", data={CONF_DOGS: []})
+
+    await async_setup_external_bindings(hass, entry)
+
+    assert DOMAIN not in hass.data
+
+
+@pytest.mark.asyncio
+async def test_async_setup_external_bindings_cancels_prior_pending_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A new state update should cancel any in-flight task for the same dog."""
+    add_point = AsyncMock(return_value=False)
+
+    class _GpsManager:
+        async def async_get_current_location(self, _dog_id: str) -> Any:
+            return None
+
+        async def async_add_gps_point(self, **kwargs: Any) -> bool:
+            return await add_point(**kwargs)
+
+    sleep_gate = asyncio.Event()
+    sleep_calls = {"count": 0}
+
+    async def _small_sleep(_seconds: float) -> None:
+        sleep_calls["count"] += 1
+        if sleep_calls["count"] == 1:
+            await sleep_gate.wait()
+
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(
+            gps_geofence_manager=None,
+            async_patch_gps_update=AsyncMock(),
+        ),
+        gps_geofence_manager=_GpsManager(),
+    )
+    callbacks: dict[str, Any] = {}
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.external_bindings.require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.external_bindings.asyncio.sleep",
+        _small_sleep,
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.external_bindings.event_helper.async_track_state_change_event",
+        lambda _hass, entities, callback: (
+            callbacks.setdefault(entities[0], callback) or (lambda: None)
+        ),
+    )
+
+    hass = SimpleNamespace(data={}, async_create_task=asyncio.create_task)
+    entry = SimpleNamespace(
+        entry_id="entry-cancel",
+        data={
+            CONF_DOGS: [
+                {
+                    "dog_id": "buddy",
+                    "gps_config": {CONF_GPS_SOURCE: "person.buddy"},
+                }
+            ]
+        },
+    )
+
+    await async_setup_external_bindings(hass, entry)
+
+    callback = callbacks["person.buddy"]
+    callback(
+        SimpleNamespace(
+            data={
+                "new_state": SimpleNamespace(attributes={"latitude": 1.0, "longitude": 2.0})
+            }
+        )
+    )
+    callback(
+        SimpleNamespace(
+            data={
+                "new_state": SimpleNamespace(attributes={"latitude": 1.1, "longitude": 2.1})
+            }
+        )
+    )
+
+    sleep_gate.set()
+
+    binding = hass.data[DOMAIN][_STORE_KEY][entry.entry_id]["buddy"]
+    assert binding.task is not None
+    await binding.task
+    assert add_point.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_async_unload_external_bindings_handles_non_mapping_store() -> None:
+    """Unload should return without error when bindings store has invalid shape."""
+    hass = SimpleNamespace(data={DOMAIN: {_STORE_KEY: "invalid"}})
+
+    await async_unload_external_bindings(hass, SimpleNamespace(entry_id="entry-bad"))
+
+    assert hass.data[DOMAIN][_STORE_KEY] == "invalid"
