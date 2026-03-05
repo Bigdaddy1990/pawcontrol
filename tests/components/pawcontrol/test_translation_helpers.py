@@ -1,5 +1,6 @@
 """Tests for translation helper utilities."""
 
+import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -63,6 +64,53 @@ def test_cached_component_translations_use_runtime_cache_and_bundled_fallback() 
     translations, fallback = get_cached_component_translation_lookup(hass, "de")
     assert translations
     assert fallback == {"x": "y"}
+
+
+def test_bundled_translation_loader_handles_invalid_payloads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bundled translation loader should fail closed on invalid files."""
+    _load_bundled_component_translations.cache_clear()
+
+    monkeypatch.setattr("pathlib.Path.exists", lambda _self: True)
+    monkeypatch.setattr(
+        "pathlib.Path.read_text",
+        lambda _self, encoding="utf-8": (_ for _ in ()).throw(OSError("boom")),
+    )
+    assert _load_bundled_component_translations("en") == {}
+
+    _load_bundled_component_translations.cache_clear()
+    monkeypatch.setattr(
+        "pathlib.Path.read_text",
+        lambda _self, encoding="utf-8": "{bad-json",
+    )
+    assert _load_bundled_component_translations("en") == {}
+
+    _load_bundled_component_translations.cache_clear()
+    monkeypatch.setattr("pathlib.Path.read_text", lambda _self, encoding="utf-8": "{}")
+    assert _load_bundled_component_translations("en") == {}
+
+
+def test_bundled_translation_loader_filters_non_string_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bundled translation loader should only keep string keys/values."""
+    _load_bundled_component_translations.cache_clear()
+
+    monkeypatch.setattr("pathlib.Path.exists", lambda _self: True)
+    monkeypatch.setattr(
+        "pathlib.Path.read_text",
+        lambda _self, encoding="utf-8": json.dumps({
+            "common": {
+                "feed": "Feed",
+                "invalid_value": 123,
+            }
+        }),
+    )
+
+    assert _load_bundled_component_translations("en") == {
+        component_translation_key("feed"): "Feed",
+    }
 
 
 @pytest.mark.asyncio
