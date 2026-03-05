@@ -1,7 +1,7 @@
 """Unit tests for PawControl device actions."""
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_TYPE
 from homeassistant.exceptions import HomeAssistantError
@@ -190,3 +190,44 @@ async def test_async_call_action_requires_amount_for_log_feeding(monkeypatch) ->
             },
             {},
         )
+
+
+async def test_async_call_action_logs_unhandled_actions(monkeypatch) -> None:
+    """Unhandled action types should emit a debug log instead of raising."""
+    runtime_data = SimpleNamespace(
+        feeding_manager=SimpleNamespace(async_add_feeding=AsyncMock()),
+        walk_manager=SimpleNamespace(
+            async_start_walk=AsyncMock(), async_end_walk=AsyncMock()
+        ),
+    )
+    monkeypatch.setattr(
+        device_action,
+        "resolve_device_context",
+        lambda _hass, _device_id: SimpleNamespace(
+            dog_id="buddy",
+            runtime_data=runtime_data,
+        ),
+    )
+    monkeypatch.setattr(device_action, "ACTION_SCHEMA", lambda config: config)
+
+    debug_log = Mock()
+    monkeypatch.setattr(
+        device_action,
+        "_LOGGER",
+        SimpleNamespace(debug=debug_log),
+    )
+
+    await device_action.async_call_action(
+        SimpleNamespace(),
+        {
+            CONF_DEVICE_ID: "device-6",
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "custom_action",
+        },
+        {},
+    )
+
+    debug_log.assert_called_once_with(
+        "Unhandled PawControl device action: %s",
+        "custom_action",
+    )
