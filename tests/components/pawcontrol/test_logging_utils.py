@@ -73,6 +73,65 @@ def test_structured_logger_emit_skips_when_level_disabled() -> None:
     logger.logger.log.assert_not_called()
 
 
+def test_structured_logger_exception_critical_and_is_enabled_for() -> None:
+    """StructuredLogger should proxy exception/critical/isEnabledFor helpers."""
+    logger = StructuredLogger("pawcontrol.tests.logging.proxy")
+    logger.logger.log = Mock()  # type: ignore[method-assign]
+    logger.logger.isEnabledFor = Mock(return_value=True)  # type: ignore[method-assign]
+
+    logger.exception("boom", context="test")
+    logger.critical("critical", mode="emergency")
+
+    assert logger.isEnabledFor(logging.ERROR) is True
+    assert logger.logger.isEnabledFor.call_args_list[-1].args == (logging.ERROR,)
+
+    exception_call = logger.logger.log.call_args_list[0]
+    critical_call = logger.logger.log.call_args_list[1]
+
+    assert exception_call.kwargs["exc_info"] is True
+    assert "context='test'" in exception_call.args[1]
+    assert critical_call.args[0] == logging.CRITICAL
+    assert "mode='emergency'" in critical_call.args[1]
+
+
+def test_log_config_entry_setup_emits_structured_message() -> None:
+    """Setup logging helper should include all key setup fields."""
+    logger = Mock()
+
+    logging_utils.log_config_entry_setup(
+        logger,
+        entry_id="entry-123",
+        dogs_count=2,
+        profile="default",
+        duration_s=1.23,
+    )
+
+    message, entry_id, dogs_count, profile, duration_s = logger.info.call_args.args
+    assert message.startswith("PawControl entry setup complete")
+    assert entry_id == "entry-123"
+    assert dogs_count == 2
+    assert profile == "default"
+    assert duration_s == 1.23
+
+
+def test_structured_logger_warning_and_error_proxy_methods() -> None:
+    """warning/error helpers should route through the shared emit path."""
+    logger = StructuredLogger("pawcontrol.tests.logging.warning_error")
+    logger.logger.log = Mock()  # type: ignore[method-assign]
+
+    logger.warning("warn", dog="Milo")
+    logger.error("err", exc_info=True, source="api")
+
+    warning_call = logger.logger.log.call_args_list[0]
+    error_call = logger.logger.log.call_args_list[1]
+
+    assert warning_call.args[0] == logging.WARNING
+    assert "dog='Milo'" in warning_call.args[1]
+    assert error_call.args[0] == logging.ERROR
+    assert error_call.kwargs["exc_info"] is True
+    assert "source='api'" in error_call.args[1]
+
+
 def test_log_api_client_build_error_strips_credentials() -> None:
     """API endpoint logs must hide URL user credentials."""
     logger = Mock()
