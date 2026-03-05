@@ -204,6 +204,8 @@ def test_statistics_summary_template_uses_english_defaults_when_labels_missing(
     assert "- Notifications: 1" in content
     assert "Resilience metrics" in content
     assert "- Rejection rate: n/a" in content
+    assert "- Rejecting breaker names: none" in content
+    assert "- Rejecting breaker IDs: none" in content
 
 
 @pytest.mark.asyncio
