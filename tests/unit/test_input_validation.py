@@ -81,6 +81,21 @@ def test_sanitize_path_rejects_traversal_and_normalizes() -> None:
     assert normalized == str(Path("tests").resolve())
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "..\\secrets.txt",
+        "%2e%2e/secrets.txt",
+        "safe/%2E%2E/secrets.txt",
+    ],
+)
+def test_sanitize_path_rejects_encoded_and_windows_traversal(path: str) -> None:
+    sanitizer = InputSanitizer()
+
+    with pytest.raises(ValidationError, match="Path traversal"):
+        sanitizer.sanitize_path(path)
+
+
 def test_validator_integer_float_and_dict_paths() -> None:
     validator = InputValidator()
 

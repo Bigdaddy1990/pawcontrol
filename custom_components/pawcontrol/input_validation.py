@@ -68,8 +68,8 @@ class InputSanitizer:
 
     PATH_TRAVERSAL_PATTERNS = [
         re.compile(r"\.\./"),
-        re.compile(r"\.\./"),
         re.compile(r"\.\.\\"),
+        re.compile(r"%2e%2e", re.IGNORECASE),
     ]
 
     def sanitize_html(self, text: str) -> str:
@@ -178,17 +178,28 @@ class InputSanitizer:
             >>> sanitizer.sanitize_path("files/document.txt")
             'files/document.txt'
         """
+        decoded_path = urllib.parse.unquote(path)
+
         # Check for traversal patterns
         for pattern in self.PATH_TRAVERSAL_PATTERNS:
-            if pattern.search(path):
+            if pattern.search(decoded_path):
                 raise ValidationError(
                     "path",
                     value=path,
                     constraint="Path traversal sequences (../) are not allowed",
                 )
 
+        # Block traversal attempts that may bypass regex checks using path segments.
+        path_parts = Path(decoded_path).parts
+        if ".." in path_parts:
+            raise ValidationError(
+                "path",
+                value=path,
+                constraint="Path traversal sequences (../) are not allowed",
+            )
+
         # Normalize path
-        normalized = str(Path(path).resolve())
+        normalized = str(Path(decoded_path).resolve())
 
         return normalized
 
