@@ -647,8 +647,10 @@ def test_statistics_summary_template_includes_rejection_metrics(
     assert "    - script.evening_reset: executed - resumed schedule" in content
 
 
-def test_statistics_summary_template_guard_fallbacks(hass: HomeAssistant) -> None:
-    """Empty guard telemetry should use translated fallback values."""
+def test_statistics_summary_template_formats_empty_guard_details(
+    hass: HomeAssistant,
+) -> None:
+    """Guard sections should show localized fallbacks when details are empty."""
     templates = DashboardTemplates(hass)
 
     card = templates.get_statistics_summary_template(
