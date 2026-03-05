@@ -124,12 +124,23 @@ def resolve_component_translation(
     default: str | None = None,
 ) -> str:
     """Resolve a component-scoped translation key."""
-    return resolve_translation(
-        translations,
-        fallback,
-        component_translation_key(key),
-        default=default,
-    )
+    candidate_keys = [component_translation_key(key), key]
+
+    for separator in ("_label_", "_fallback_", "_template_"):
+        if separator in key:
+            candidate_keys.append(key.split(separator, maxsplit=1)[1])
+
+    for candidate in candidate_keys:
+        resolved = resolve_translation(
+            translations,
+            fallback,
+            candidate,
+            default=None,
+        )
+        if resolved != candidate:
+            return resolved
+
+    return default if default is not None else key
 
 
 def get_cached_component_translations(

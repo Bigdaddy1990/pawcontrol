@@ -114,6 +114,8 @@ def test_statistics_summary_template_counts_modules(hass: HomeAssistant) -> None
     content = card["content"]
     assert "**Dogs managed:** 2" in content
     assert "Feeding: 1" in content
+    assert "Walks: 2" in content
+    assert "GPS: 1" in content
     assert "Notifications: 1" in content
 
 
@@ -150,6 +152,44 @@ def test_statistics_summary_template_localises_general_sections(
     assert "- Benachrichtigungen: 1" in content
     assert "*Zuletzt aktualisiert:" in content
     assert card["title"] == "Zusammenfassung"
+
+
+def test_statistics_summary_template_uses_english_defaults_when_labels_missing(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Summary card should use readable English defaults if translations miss keys."""
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.dashboard_templates.get_cached_component_translation_lookup",
+        lambda *_args, **_kwargs: ({}, {}),
+    )
+
+    templates = DashboardTemplates(hass)
+    card = templates.get_statistics_summary_template(
+        [
+            {
+                CONF_DOG_ID: "fido",
+                CONF_DOG_NAME: "Fido",
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_WALK: False,
+                    MODULE_HEALTH: False,
+                    MODULE_NOTIFICATIONS: True,
+                    MODULE_GPS: True,
+                },
+            }
+        ],
+        coordinator_statistics={"rejection_metrics": default_rejection_metrics()},
+    )
+
+    content = card["content"]
+    assert "## Paw Control Statistics" in content
+    assert "**Dogs managed:** 1" in content
+    assert "**Active modules:**" in content
+    assert "- Feeding: 1" in content
+    assert "- Notifications: 1" in content
+    assert "Resilience metrics" in content
+    assert "- Rejection rate: n/a" in content
 
 
 @pytest.mark.asyncio
