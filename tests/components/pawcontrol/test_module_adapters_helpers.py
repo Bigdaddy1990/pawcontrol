@@ -65,6 +65,22 @@ def test_expiring_cache_cleanup_and_clear(monkeypatch) -> None:
     assert cache.metadata() == {"ttl_seconds": 10.0}
 
 
+def test_expiring_cache_get_evicts_expired_entries(monkeypatch) -> None:
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    cache = _ExpiringCache[str](ttl=timedelta(seconds=5))
+
+    monkeypatch.setattr(module_adapters, "dt_util", _FrozenTime(start))
+    cache.set("dog-1", "ready")
+
+    monkeypatch.setattr(
+        module_adapters,
+        "dt_util",
+        _FrozenTime(start + timedelta(seconds=6)),
+    )
+    assert cache.get("dog-1") is None
+    assert cache.metrics().entries == 0
+
+
 def test_base_module_adapter_snapshot_without_cache() -> None:
     adapter = _DummyAdapter(ttl=None)
 
@@ -114,3 +130,26 @@ def test_normalise_health_medication_optional_fields_and_nulls() -> None:
         "notes": None,
         "with_meals": True,
     }
+
+
+def test_normalise_health_alert_defaults_without_mapping_details() -> None:
+    normalised = _normalise_health_alert(
+        {
+            "message": "",
+            "severity": "HIGH",
+            "details": ["ignored"],
+        }
+    )
+
+    assert normalised == {
+        "type": "custom",
+        "message": "Custom",
+        "severity": "high",
+        "action_required": False,
+    }
+
+
+def test_normalise_health_medication_defaults_to_name_field() -> None:
+    normalised = _normalise_health_medication({"name": "Joint Support"})
+
+    assert normalised == {"name": "Joint Support"}
