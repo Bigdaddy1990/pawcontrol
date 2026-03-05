@@ -81,6 +81,20 @@ async def test_async_validate_dogs_config_rejects_invalid_dog_records() -> None:
         await _async_validate_dogs_config(entry)
 
 
+@pytest.mark.asyncio
+async def test_async_validate_dogs_config_accepts_none_payload_and_logs_empty_state(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A missing dogs payload should normalize to an empty list."""
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_DOGS: None})
+
+    with caplog.at_level(logging.DEBUG):
+        dogs = await _async_validate_dogs_config(entry)
+
+    assert dogs == []
+    assert "No dogs configured for entry" in caplog.text
+
+
 def test_validate_profile_defaults_to_standard_for_none_and_unknown(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -119,3 +133,15 @@ def test_extract_enabled_modules_ignores_invalid_module_payloads(
 
     assert modules == frozenset({"gps"})
     assert "configuration is not a mapping" in caplog.text
+
+
+def test_extract_enabled_modules_ignores_missing_modules_key() -> None:
+    """Dogs without module configuration should be ignored without warnings."""
+    dogs_config = [
+        {"dog_id": "dog-1", "dog_name": "Buddy"},
+        {"dog_id": "dog-2", "dog_name": "Luna", CONF_MODULES: {"gps": True}},
+    ]
+
+    modules = _extract_enabled_modules(dogs_config)
+
+    assert modules == frozenset({"gps"})
