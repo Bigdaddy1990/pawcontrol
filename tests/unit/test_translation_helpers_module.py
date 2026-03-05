@@ -484,6 +484,30 @@ def test_resolve_component_translation_uses_default_when_key_missing() -> None:
     assert resolved == "Run"
 
 
+def test_resolve_component_translation_accepts_unscoped_cached_keys() -> None:
+    """Unscoped translation cache keys should resolve for compatibility."""
+    resolved = translation_helpers.resolve_component_translation(
+        {"action": "Aktion"},
+        {},
+        "action",
+        "Run",
+    )
+
+    assert resolved == "Aktion"
+
+
+def test_resolve_component_translation_accepts_suffix_only_keys() -> None:
+    """Suffix-only cache keys should still resolve namespaced translation lookups."""
+    resolved = translation_helpers.resolve_component_translation(
+        {"dogs_managed": "Dogs managed"},
+        {},
+        "dashboard_statistics_label_dogs_managed",
+        "dogs_managed",
+    )
+
+    assert resolved == "Dogs managed"
+
+
 @pytest.mark.asyncio
 async def test_async_translation_lookup_normalizes_none_to_english(
     monkeypatch: pytest.MonkeyPatch,
