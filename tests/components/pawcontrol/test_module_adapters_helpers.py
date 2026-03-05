@@ -21,7 +21,7 @@ class _DummyAdapter(_BaseModuleAdapter[dict[str, str]]):
     pass
 
 
-def test_expiring_cache_tracks_hits_misses_metadata(monkeypatch):
+def test_expiring_cache_tracks_hits_misses_metadata(monkeypatch) -> None:
     now = datetime(2026, 1, 1, tzinfo=UTC)
     monkeypatch.setattr(module_adapters, "dt_util", _FrozenTime(now))
     cache = _ExpiringCache[dict[str, str]](ttl=timedelta(minutes=5))
@@ -46,7 +46,7 @@ def test_expiring_cache_tracks_hits_misses_metadata(monkeypatch):
     assert snapshot["metadata"] == {"ttl_seconds": 300.0}
 
 
-def test_expiring_cache_cleanup_and_clear(monkeypatch):
+def test_expiring_cache_cleanup_and_clear(monkeypatch) -> None:
     start = datetime(2026, 1, 1, tzinfo=UTC)
     monkeypatch.setattr(module_adapters, "dt_util", _FrozenTime(start))
     cache = _ExpiringCache[str](ttl=timedelta(seconds=10))
@@ -65,7 +65,7 @@ def test_expiring_cache_cleanup_and_clear(monkeypatch):
     assert cache.metadata() == {"ttl_seconds": 10.0}
 
 
-def test_base_module_adapter_snapshot_without_cache():
+def test_base_module_adapter_snapshot_without_cache() -> None:
     adapter = _DummyAdapter(ttl=None)
 
     assert adapter.cleanup(datetime(2026, 1, 1, tzinfo=UTC)) == 0
@@ -75,7 +75,7 @@ def test_base_module_adapter_snapshot_without_cache():
     }
 
 
-def test_normalise_health_alert_defaults_and_details():
+def test_normalise_health_alert_defaults_and_details() -> None:
     payload = {
         "type": "hydration",
         "severity": "UNEXPECTED",
@@ -94,7 +94,7 @@ def test_normalise_health_alert_defaults_and_details():
     }
 
 
-def test_normalise_health_medication_optional_fields_and_nulls():
+def test_normalise_health_medication_optional_fields_and_nulls() -> None:
     payload = {
         "medication": "Omega 3",
         "dosage": None,
