@@ -452,6 +452,47 @@ def test_load_bundled_component_translations_uses_lru_cache(
     assert read_count == 1
 
 
+def test_load_bundled_component_translations_fresh_returns_uncached_payload(
+    tmp_path: pytest.TempPathFactory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fresh loader should parse the current file contents on every call."""
+    module_file = tmp_path / "translation_helpers.py"
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    translation_file = translations_dir / "de.json"
+    translation_file.write_text('{"common": {"action": "Aktion"}}', encoding="utf-8")
+    module_file.write_text("", encoding="utf-8")
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    first = translation_helpers.load_bundled_component_translations_fresh("de")
+    translation_file.write_text('{"common": {"action": "Handlung"}}', encoding="utf-8")
+    second = translation_helpers.load_bundled_component_translations_fresh("de")
+
+    assert first == {"component.pawcontrol.common.action": "Aktion"}
+    assert second == {"component.pawcontrol.common.action": "Handlung"}
+
+
+def test_load_bundled_component_translations_fresh_handles_missing_and_invalid_files(
+    tmp_path: pytest.TempPathFactory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fresh loader should return empty mappings for invalid translation payloads."""
+    module_file = tmp_path / "translation_helpers.py"
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "de.json").write_text("not json", encoding="utf-8")
+    (translations_dir / "it.json").write_text(
+        '{"common": ["invalid"]}', encoding="utf-8"
+    )
+    module_file.write_text("", encoding="utf-8")
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    assert translation_helpers.load_bundled_component_translations_fresh("es") == {}
+    assert translation_helpers.load_bundled_component_translations_fresh("de") == {}
+    assert translation_helpers.load_bundled_component_translations_fresh("it") == {}
+
+
 def test_get_cached_component_translation_lookup_normalizes_none_language() -> None:
     """None should normalize to English and reuse the same fallback mapping."""
     cached = {"component.pawcontrol.common.en": "English"}
@@ -507,6 +548,28 @@ def test_resolve_component_translation_accepts_suffix_only_keys() -> None:
     )
 
     assert resolved == "Dogs managed"
+
+
+@pytest.mark.parametrize(
+    ("translation_key", "expected"),
+    [
+        ("dashboard_statistics_fallback_dogs_managed", "Fallback dogs"),
+        ("dashboard_statistics_template_dogs_managed", "Template dogs"),
+    ],
+)
+def test_resolve_component_translation_accepts_fallback_and_template_suffix_keys(
+    translation_key: str,
+    expected: str,
+) -> None:
+    """Fallback/template separator keys should resolve via suffix aliases."""
+    resolved = translation_helpers.resolve_component_translation(
+        {"dogs_managed": expected},
+        {},
+        translation_key,
+        "dogs_managed",
+    )
+
+    assert resolved == expected
 
 
 @pytest.mark.asyncio
