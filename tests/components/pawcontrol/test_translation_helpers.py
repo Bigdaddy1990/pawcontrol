@@ -51,6 +51,17 @@ def test_cache_initialization_for_non_mapping_hass_data() -> None:
     assert hass.data[DOMAIN]["translations"] is cache
 
 
+def test_cache_replaces_non_mapping_domain_bucket() -> None:
+    """Cache helper should repair invalid domain buckets before use."""
+    hass = SimpleNamespace(data={DOMAIN: 42})
+
+    cache = _get_translation_cache(hass)
+
+    assert cache == {}
+    assert isinstance(hass.data[DOMAIN], dict)
+    assert hass.data[DOMAIN]["translations"] is cache
+
+
 def test_cached_component_translations_use_runtime_cache_and_bundled_fallback() -> None:
     """Lookup should prefer runtime cache and fallback to bundled data when missing."""
     _load_bundled_component_translations.cache_clear()
