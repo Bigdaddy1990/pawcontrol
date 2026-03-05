@@ -29,8 +29,22 @@ from custom_components.pawcontrol.dashboard_templates import (
     DEFAULT_MAP_HOURS_TO_SHOW,
     DEFAULT_MAP_ZOOM,
     DashboardTemplates,
+    _translated_statistics_label,
 )
 from custom_components.pawcontrol.types import DogConfigData, ensure_dog_modules_config
+
+
+def test_statistics_label_fallback_matches_summary_defaults() -> None:
+    """Fallback labels should use the same user-facing wording as summaries."""
+    translation_lookup = ({}, {})
+
+    assert (
+        _translated_statistics_label(translation_lookup, "rejection_breaker_ids")
+        == "Rejecting breaker IDs"
+    )
+    assert _translated_statistics_label(translation_lookup, "guard_metrics_header") == (
+        "Guard outcomes"
+    )
 
 
 @pytest.mark.asyncio
