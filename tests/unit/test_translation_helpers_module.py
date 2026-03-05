@@ -1,5 +1,6 @@
 """Unit tests for translation helper utilities."""
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -545,3 +546,50 @@ def test_get_translation_cache_replaces_non_mapping_hass_data() -> None:
     assert cache == {}
     assert isinstance(hass.data, dict)
     assert isinstance(hass.data["pawcontrol"], dict)
+
+
+def test_load_bundled_component_translations_fresh_reads_valid_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fresh translation loading should return scoped string entries only."""
+    module_file = tmp_path / "translation_helpers.py"
+    module_file.write_text("# module placeholder", encoding="utf-8")
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "de.json").write_text(
+        '{"common": {"action": "Aktion", "count": 1}}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    assert translation_helpers.load_bundled_component_translations_fresh("de") == {
+        "component.pawcontrol.common.action": "Aktion"
+    }
+
+
+def test_load_bundled_component_translations_fresh_returns_empty_for_invalid_json(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fresh translation loading should gracefully handle malformed JSON files."""
+    module_file = tmp_path / "translation_helpers.py"
+    module_file.write_text("# module placeholder", encoding="utf-8")
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "de.json").write_text("{", encoding="utf-8")
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    assert translation_helpers.load_bundled_component_translations_fresh("de") == {}
+
+
+def test_resolve_translation_accepts_legacy_key_in_fallback() -> None:
+    """Legacy unscoped keys should resolve through fallback dictionaries."""
+    assert (
+        translation_helpers.resolve_translation(
+            {},
+            {"dashboard_statistics_template_dogs": "Dogs"},
+            "component.pawcontrol.common.dashboard_statistics_template_dogs",
+        )
+        == "Dogs"
+    )
