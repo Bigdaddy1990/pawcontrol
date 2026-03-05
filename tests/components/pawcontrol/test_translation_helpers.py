@@ -27,7 +27,10 @@ def test_component_key_and_resolution_priority() -> None:
 
     translations = {key: "Walk now"}
     fallback = {key: "Fallback walk"}
-    assert resolve_translation(translations, fallback, key, default="default") == "Walk now"
+    assert (
+        resolve_translation(translations, fallback, key, default="default")
+        == "Walk now"
+    )
     assert resolve_component_translation(translations, fallback, "walk") == "Walk now"
 
     assert resolve_translation({}, fallback, key, default="default") == "Fallback walk"
@@ -68,9 +71,7 @@ async def test_async_get_component_translations_caches_api_results(
 ) -> None:
     """Async helper should cache API responses by normalized language."""
     hass = SimpleNamespace(data={})
-    fake_api = AsyncMock(
-        return_value={component_translation_key("feed"): "Feed now"}
-    )
+    fake_api = AsyncMock(return_value={component_translation_key("feed"): "Feed now"})
     monkeypatch.setattr(
         "custom_components.pawcontrol.translation_helpers.async_get_translations",
         fake_api,
@@ -114,7 +115,9 @@ async def test_async_preload_component_translations_warms_requested_languages(
     """Preloading should normalize and cache each requested language."""
     hass = SimpleNamespace(data={})
 
-    async def _fake_get_translations(*_args: object, **_kwargs: object) -> dict[str, str]:
+    async def _fake_get_translations(
+        *_args: object, **_kwargs: object
+    ) -> dict[str, str]:
         return {}
 
     monkeypatch.setattr(
