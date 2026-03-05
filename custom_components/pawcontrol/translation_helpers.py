@@ -28,7 +28,7 @@ def _load_bundled_component_translations(language: str) -> dict[str, str]:
     try:
         payload = json.loads(translations_path.read_text(encoding="utf-8"))
     except OSError:
-        _LOGGER.debug("Failed to parse bundled translations: %s", translations_path)
+        _LOGGER.debug("Failed to read bundled translations: %s", translations_path)
         return {}
 
     except json.JSONDecodeError:
@@ -56,7 +56,7 @@ def load_bundled_component_translations_fresh(language: str) -> dict[str, str]:
     try:
         payload = json.loads(translations_path.read_text(encoding="utf-8"))
     except OSError:
-        _LOGGER.debug("Failed to parse bundled translations: %s", translations_path)
+        _LOGGER.debug("Failed to read bundled translations: %s", translations_path)
         return {}
     except json.JSONDecodeError:
         _LOGGER.debug("Failed to parse bundled translations: %s", translations_path)
