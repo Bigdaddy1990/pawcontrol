@@ -46,6 +46,33 @@ def _load_bundled_component_translations(language: str) -> dict[str, str]:
     return resolved
 
 
+def load_bundled_component_translations_fresh(language: str) -> dict[str, str]:
+    """Load bundled translations without using the process cache."""
+    base_path = Path(__file__).resolve().parent
+    translations_path = base_path / "translations" / f"{language}.json"
+    if not translations_path.exists():
+        return {}
+
+    try:
+        payload = json.loads(translations_path.read_text(encoding="utf-8"))
+    except OSError:
+        _LOGGER.debug("Failed to parse bundled translations: %s", translations_path)
+        return {}
+    except json.JSONDecodeError:
+        _LOGGER.debug("Failed to parse bundled translations: %s", translations_path)
+        return {}
+
+    common = payload.get("common")
+    if not isinstance(common, Mapping):
+        return {}
+
+    return {
+        component_translation_key(key): value
+        for key, value in common.items()
+        if isinstance(key, str) and isinstance(value, str)
+    }
+
+
 def component_translation_key(key: str) -> str:
     """Return the Home Assistant translation key for ``key``."""
     return f"component.{DOMAIN}.common.{key}"
@@ -81,6 +108,12 @@ def resolve_translation(
         return translations[translation_key]
     if translation_key in fallback:
         return fallback[translation_key]
+
+    legacy_key = translation_key.removeprefix(component_translation_key(""))
+    if legacy_key in translations:
+        return translations[legacy_key]
+    if legacy_key in fallback:
+        return fallback[legacy_key]
     return default if default is not None else translation_key
 
 

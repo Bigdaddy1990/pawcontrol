@@ -41,6 +41,7 @@ from .service_guard import ServiceGuardResultPayload, normalise_guard_history
 from .translation_helpers import (
     async_get_component_translation_lookup,
     get_cached_component_translation_lookup,
+    load_bundled_component_translations_fresh,
     resolve_component_translation,
 )
 from .types import (
@@ -1875,6 +1876,24 @@ class DashboardTemplates:
             translation_lookup,
             "statistics_header",
         )
+        if statistics_header == "statistics_header":
+            language = (hass_language or "en").split("-", maxsplit=1)[0].lower()
+            fresh_translations = load_bundled_component_translations_fresh(language)
+            fresh_fallback = (
+                fresh_translations
+                if language == "en"
+                else load_bundled_component_translations_fresh("en")
+            )
+            translations, fallback = translation_lookup
+            merged_translations = dict(fresh_translations)
+            merged_translations.update(translations)
+            merged_fallback = dict(fresh_fallback)
+            merged_fallback.update(fallback)
+            translation_lookup = (merged_translations, merged_fallback)
+            statistics_header = _translated_statistics_label(
+                translation_lookup,
+                "statistics_header",
+            )
         dogs_managed_label = _translated_statistics_label(
             translation_lookup,
             "dogs_managed",
