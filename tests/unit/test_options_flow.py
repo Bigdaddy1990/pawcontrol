@@ -2503,6 +2503,80 @@ def test_validate_import_payload_sanitises_modules(
     assert modules["health"] is False
 
 
+def test_build_export_payload_filters_invalid_dog_rows(
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Export payload should ignore malformed dogs and drop empty module maps."""
+    mock_config_entry.data = {
+        **mock_config_entry.data,
+        CONF_DOGS: [
+            "invalid",
+            {CONF_DOG_NAME: "Missing ID"},
+            {
+                CONF_DOG_ID: "buddy",
+                CONF_DOG_NAME: "Buddy",
+                CONF_MODULES: {},
+            },
+        ],
+    }
+
+    flow = PawControlOptionsFlow()
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    payload = flow._build_export_payload()
+
+    assert len(payload["dogs"]) == 1
+    assert payload["dogs"][0][CONF_DOG_ID] == "buddy"
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_error"),
+    [
+        pytest.param("not-a-mapping", "payload_not_mapping", id="payload-not-mapping"),
+        pytest.param({"version": 1}, "options_missing", id="missing-options"),
+        pytest.param(
+            {"version": 1, "options": {}, "dogs": "invalid"},
+            "dogs_invalid",
+            id="dogs-not-list",
+        ),
+        pytest.param(
+            {"version": 1, "options": {}, "dogs": ["invalid"]},
+            "dog_invalid",
+            id="dog-not-mapping",
+        ),
+    ],
+)
+def test_validate_import_payload_rejects_invalid_shapes(
+    mock_config_entry: ConfigEntry,
+    payload: object,
+    expected_error: str,
+) -> None:
+    """Import payload validation should fail fast for malformed payload shapes."""
+    flow = PawControlOptionsFlow()
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    with pytest.raises(FlowValidationError) as err:
+        flow._validate_import_payload(payload)
+
+    assert err.value.field_errors == {"payload": expected_error}
+
+
+def test_validate_import_payload_defaults_missing_created_at(
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Import payloads without timestamps should receive a generated one."""
+    flow = PawControlOptionsFlow()
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    payload = flow._build_export_payload()
+    payload.pop("created_at")
+
+    validated = flow._validate_import_payload(payload)
+
+    assert isinstance(validated["created_at"], str)
+    assert validated["created_at"]
+
+
 @pytest.mark.asyncio
 async def test_import_export_import_unsupported_version(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
