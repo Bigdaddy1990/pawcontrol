@@ -297,20 +297,18 @@ def test_manual_event_helper_coercions_handle_invalid_shapes() -> None:
 
 def test_normalise_manual_events_snapshot_uses_preference_fallbacks() -> None:
     """Preferred event values should fall back to nested preferred_events keys."""
-    payload = _normalise_manual_events_snapshot(
-        {
-            "available": True,
-            "preferred_events": {
-                "manual_guard_event": " guard.pref ",
-                "manual_breaker_event": " breaker.pref ",
-                "manual_check_event": " check.pref ",
-            },
-            "preferred_guard_event": "",
-            "preferred_breaker_event": None,
-            "preferred_check_event": "   ",
-            "listener_sources": {"listener": ["sensor.one", " "]},
-        }
-    )
+    payload = _normalise_manual_events_snapshot({
+        "available": True,
+        "preferred_events": {
+            "manual_guard_event": " guard.pref ",
+            "manual_breaker_event": " breaker.pref ",
+            "manual_check_event": " check.pref ",
+        },
+        "preferred_guard_event": "",
+        "preferred_breaker_event": None,
+        "preferred_check_event": "   ",
+        "listener_sources": {"listener": ["sensor.one", " "]},
+    })
 
     assert payload["preferred_guard_event"] == "guard.pref"
     assert payload["preferred_breaker_event"] == "breaker.pref"
@@ -320,16 +318,14 @@ def test_normalise_manual_events_snapshot_uses_preference_fallbacks() -> None:
 
 def test_coerce_listener_metadata_ignores_empty_listener_entries() -> None:
     """Listener metadata should only retain entries with usable content."""
-    metadata = _coerce_listener_metadata(
-        {
-            "listener.one": {
-                "sources": [" source.one ", ""],
-                "primary_source": "primary",
-            },
-            "listener.two": {"sources": ["", None]},
-            "listener.three": "invalid",
-        }
-    )
+    metadata = _coerce_listener_metadata({
+        "listener.one": {
+            "sources": [" source.one ", ""],
+            "primary_source": "primary",
+        },
+        "listener.two": {"sources": ["", None]},
+        "listener.three": "invalid",
+    })
 
     assert metadata == {
         "listener.one": {

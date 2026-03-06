@@ -158,14 +158,12 @@ def test_fresh_bundled_translation_loader_returns_filtered_common_section(
     monkeypatch.setattr("pathlib.Path.exists", lambda _self: True)
     monkeypatch.setattr(
         "pathlib.Path.read_text",
-        lambda _self, encoding="utf-8": json.dumps(
-            {
-                "common": {
-                    "walk": "Walk now",
-                    "invalid_value": 1,
-                }
+        lambda _self, encoding="utf-8": json.dumps({
+            "common": {
+                "walk": "Walk now",
+                "invalid_value": 1,
             }
-        ),
+        }),
     )
 
     assert load_bundled_component_translations_fresh("en") == {
