@@ -16,6 +16,7 @@ from custom_components.pawcontrol.translation_helpers import (
     component_translation_key,
     get_cached_component_translation_lookup,
     get_cached_component_translations,
+    load_bundled_component_translations_fresh,
     resolve_component_translation,
     resolve_translation,
 )
@@ -37,6 +38,14 @@ def test_component_key_and_resolution_priority() -> None:
     assert resolve_translation({}, fallback, key, default="default") == "Fallback walk"
     assert resolve_translation({}, {}, key, default="default") == "default"
     assert resolve_translation({}, {}, key) == key
+
+
+def test_resolve_translation_supports_legacy_unprefixed_keys() -> None:
+    """Legacy unprefixed translations should still be resolved."""
+    key = component_translation_key("feed")
+
+    assert resolve_translation({"feed": "Feed now"}, {}, key) == "Feed now"
+    assert resolve_translation({}, {"feed": "Fallback feed"}, key) == "Fallback feed"
 
 
 def test_cache_initialization_for_non_mapping_hass_data() -> None:
@@ -121,6 +130,46 @@ def test_bundled_translation_loader_filters_non_string_entries(
 
     assert _load_bundled_component_translations("en") == {
         component_translation_key("feed"): "Feed",
+    }
+
+
+def test_fresh_bundled_translation_loader_handles_io_and_parse_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fresh loader should fail closed when translation files are unreadable."""
+    monkeypatch.setattr("pathlib.Path.exists", lambda _self: True)
+    monkeypatch.setattr(
+        "pathlib.Path.read_text",
+        lambda _self, encoding="utf-8": (_ for _ in ()).throw(OSError("boom")),
+    )
+    assert load_bundled_component_translations_fresh("en") == {}
+
+    monkeypatch.setattr(
+        "pathlib.Path.read_text",
+        lambda _self, encoding="utf-8": "{bad-json",
+    )
+    assert load_bundled_component_translations_fresh("en") == {}
+
+
+def test_fresh_bundled_translation_loader_returns_filtered_common_section(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fresh loader should only include valid string key/value pairs."""
+    monkeypatch.setattr("pathlib.Path.exists", lambda _self: True)
+    monkeypatch.setattr(
+        "pathlib.Path.read_text",
+        lambda _self, encoding="utf-8": json.dumps(
+            {
+                "common": {
+                    "walk": "Walk now",
+                    "invalid_value": 1,
+                }
+            }
+        ),
+    )
+
+    assert load_bundled_component_translations_fresh("en") == {
+        component_translation_key("walk"): "Walk now"
     }
 
 
