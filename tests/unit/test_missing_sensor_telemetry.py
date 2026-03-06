@@ -156,7 +156,7 @@ def test_calculate_hours_since_uses_reference_timestamp() -> None:
 
 
 def test_calculate_hours_since_rejects_unparseable_timestamps() -> None:
-    reference = datetime(2024, 1, 1, 16, 0, tzinfo=timezone.utc)  # noqa: UP017
+    reference = datetime(2024, 1, 1, 16, 0, tzinfo=UTC)
     assert calculate_hours_since("not-a-timestamp", reference=reference) is None
 
 
