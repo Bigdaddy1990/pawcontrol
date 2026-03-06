@@ -1,6 +1,7 @@
 """Unit tests for PawControl system health output."""
 
 from typing import Any
+from unittest.mock import MagicMock
 
 from homeassistant.config_entries import ConfigEntry
 import pytest
@@ -8,6 +9,8 @@ import pytest
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.system_health import (
     _attach_runtime_store_history,
+    _build_breaker_overview,
+    _build_guard_summary,
     _coerce_automation_entries,
     _coerce_event_counters,
     _coerce_event_history,
@@ -22,6 +25,7 @@ from custom_components.pawcontrol.system_health import (
     _extract_api_call_count,
     _normalise_manual_events_snapshot,
     _resolve_indicator_thresholds,
+    async_register,
     system_health_info,
 )
 from custom_components.pawcontrol.types import DomainRuntimeStoreEntry
@@ -501,3 +505,125 @@ async def test_system_health_info_returns_default_payload_when_no_entry(
     assert info["remaining_quota"] == "unknown"
     assert info["service_execution"]["status"]["overall"]["level"] == "normal"
     assert info["runtime_store"]["status"] == "missing"
+
+
+def test_async_register_registers_system_health_callback() -> None:
+    """Integration registration should wire the system health callback."""
+    register = type("Register", (), {"async_register_info": MagicMock()})()
+
+    async_register(MagicMock(), register)
+
+    register.async_register_info.assert_called_once_with(system_health_info)
+
+
+@pytest.mark.asyncio
+async def test_system_health_info_handles_missing_runtime_and_coordinator(
+    hass: Any,
+) -> None:
+    """System health should gracefully fallback when runtime data is incomplete."""
+    missing_runtime_entry = ConfigEntry(domain=DOMAIN, data={}, options={})
+    _install_entry(hass, missing_runtime_entry)
+
+    info_missing_runtime = await system_health_info(hass)
+    assert info_missing_runtime["can_reach_backend"] is False
+    assert info_missing_runtime["remaining_quota"] == "unknown"
+
+    entry_with_runtime = ConfigEntry(domain=DOMAIN, data={}, options={})
+    runtime_data = _FakeRuntimeData()
+    runtime_data.performance_stats = {}
+    runtime_data.coordinator = None
+    runtime_data.script_manager = None
+    entry_with_runtime.runtime_data = runtime_data
+    _install_entry(hass, entry_with_runtime)
+
+    info_missing_coordinator = await system_health_info(hass)
+    assert info_missing_coordinator["can_reach_backend"] is False
+    assert info_missing_coordinator["remaining_quota"] == "unknown"
+
+
+@pytest.mark.asyncio
+async def test_system_health_info_untracked_quota_and_threshold_descriptions(
+    hass: Any,
+) -> None:
+    """Quota and indicator source labels should cover script/default branches."""
+    entry = ConfigEntry(domain=DOMAIN, data={}, options={"external_api_quota": "x"})
+
+    class _ScriptManager:
+        def get_resilience_escalation_snapshot(self) -> dict[str, object]:
+            return {
+                "manual_events": {
+                    "configured_breaker_events": ["breaker.event"],
+                    "configured_check_events": ["check.event"],
+                    "system_guard_event": "system.guard",
+                    "system_breaker_event": "system.breaker",
+                },
+                "thresholds": {
+                    "skip_threshold": {"default": 2},
+                    "breaker_threshold": {"default": 1},
+                },
+            }
+
+    runtime_data = _make_runtime_data(
+        performance_stats={
+            "service_guard_metrics": {"executed": 0, "skipped": 2, "reasons": {}},
+            "rejection_metrics": {
+                "open_breaker_count": 0,
+                "half_open_breaker_count": 1,
+                "unknown_breaker_count": 0,
+                "rejection_breaker_count": 0,
+                "rejection_rate": 0.0,
+            },
+        },
+        coordinator=_Coordinator({"performance_metrics": {"api_calls": 1}}),
+        script_manager=_ScriptManager(),
+    )
+    entry.runtime_data = runtime_data
+    _install_entry(hass, entry)
+
+    info = await system_health_info(hass)
+
+    assert info["remaining_quota"] == "untracked"
+    assert info["service_execution"]["manual_events"]["configured_breaker_events"] == [
+        "breaker.event"
+    ]
+    assert info["service_execution"]["manual_events"]["configured_check_events"] == [
+        "check.event"
+    ]
+    assert (
+        info["service_execution"]["manual_events"]["system_guard_event"]
+        == "system.guard"
+    )
+    assert (
+        info["service_execution"]["guard_summary"]["indicator"]["threshold_source"]
+        == "default"
+    )
+    assert (
+        info["service_execution"]["breaker_overview"]["indicator"]["threshold_source"]
+        == "default"
+    )
+
+    guard_thresholds, breaker_thresholds = _resolve_indicator_thresholds(
+        None,
+        {
+            "system_settings": {
+                "resilience_skip_threshold": 3,
+                "resilience_breaker_threshold": 2,
+            }
+        },
+    )
+    guard_indicator = _build_guard_summary(
+        {"executed": 1, "skipped": 2, "reasons": {}},
+        guard_thresholds,
+    )["indicator"]
+    breaker_indicator = _build_breaker_overview(
+        {
+            "open_breaker_count": 2,
+            "half_open_breaker_count": 0,
+            "unknown_breaker_count": 0,
+            "rejection_breaker_count": 0,
+            "rejection_rate": 0,
+        },
+        breaker_thresholds,
+    )["indicator"]
+    assert guard_indicator["threshold_source"] == "system_settings"
+    assert breaker_indicator["threshold_source"] == "system_settings"
