@@ -386,6 +386,22 @@ def test_validate_dog_update_input_covers_optional_field_paths() -> None:
     assert CONF_DOG_SIZE not in result
 
 
+def test_validate_dog_update_input_keeps_normalized_breed() -> None:
+    current_dog = {
+        CONF_DOG_ID: "buddy",
+        CONF_DOG_NAME: "Buddy",
+    }
+
+    result = validate_dog_update_input(
+        current_dog,
+        {
+            CONF_DOG_BREED: "  border collie  ",
+        },
+    )
+
+    assert result[CONF_DOG_BREED] == "border collie"
+
+
 def test_validate_dog_update_input_reports_multiple_errors() -> None:
     current_dog = {
         CONF_DOG_ID: "buddy",
@@ -464,3 +480,15 @@ def test_validate_dog_config_payload_surfaces_update_validation_errors() -> None
         )
 
     assert err.value.field_errors[CONF_DOG_BREED] == "breed_name_too_long"
+
+
+def test_is_dog_config_payload_valid_returns_true_for_valid_payload() -> None:
+    assert is_dog_config_payload_valid(
+        {
+            CONF_DOG_ID: "buddy",
+            CONF_DOG_NAME: "Buddy",
+            CONF_DOG_SIZE: "medium",
+            CONF_DOG_WEIGHT: 12,
+            CONF_DOG_AGE: 4,
+        },
+    )

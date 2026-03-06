@@ -151,6 +151,21 @@ def test_fresh_bundled_translation_loader_handles_io_and_parse_failures(
     assert load_bundled_component_translations_fresh("en") == {}
 
 
+def test_fresh_bundled_translation_loader_handles_missing_or_invalid_common_section(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fresh loader should return an empty mapping for missing/invalid payloads."""
+    monkeypatch.setattr("pathlib.Path.exists", lambda _self: False)
+    assert load_bundled_component_translations_fresh("en") == {}
+
+    monkeypatch.setattr("pathlib.Path.exists", lambda _self: True)
+    monkeypatch.setattr(
+        "pathlib.Path.read_text",
+        lambda _self, encoding="utf-8": json.dumps({"common": ["not-a-mapping"]}),
+    )
+    assert load_bundled_component_translations_fresh("en") == {}
+
+
 def test_fresh_bundled_translation_loader_returns_filtered_common_section(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

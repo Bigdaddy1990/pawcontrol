@@ -142,3 +142,28 @@ def test_enable_debug_logging_returns_false_when_disabled(
 
     assert _enable_debug_logging(disabled_entry) is False
     assert logger.level == logging.WARNING
+
+
+def test_disable_debug_logging_ignores_unknown_entry(
+    _reset_global_state: None,
+) -> None:
+    """Disabling debug logging for a non-enabled entry should be a no-op."""
+    logger = logging.getLogger("custom_components.pawcontrol")
+    logger.setLevel(logging.ERROR)
+
+    _disable_debug_logging(_DummyEntry("missing-entry", {"debug_logging": True}))
+
+    assert logger.level == logging.ERROR
+
+
+def test_get_platforms_ignores_non_mapping_modules(
+    _reset_global_state: None,
+) -> None:
+    """Non-mapping module payloads should not alter the platform set."""
+    dogs = [{"modules": ["gps", "health"]}]
+
+    assert get_platforms_for_profile_and_modules(dogs, "standard") == (
+        Platform.BUTTON,
+        Platform.SENSOR,
+        Platform.SWITCH,
+    )
