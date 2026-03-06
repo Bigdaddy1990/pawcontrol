@@ -1,10 +1,12 @@
 """Tests for JSON serialization helpers."""
 
+import importlib
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import pytest
 
+import custom_components.pawcontrol.utils as utils_module
 from custom_components.pawcontrol.utils.serialize import (
     serialize_dataclass,
     serialize_entity_attributes,
@@ -47,6 +49,29 @@ def test_serialize_dataclass_rejects_dataclass_type_object() -> None:
         serialize_dataclass(DogProfile)
 
 
+def test_serialize_dataclass_returns_dictionary_for_instances() -> None:
+    """serialize_dataclass should convert dataclass instances to dictionaries."""
+    profile = DogProfile(
+        name="Luna",
+        walk_duration=timedelta(minutes=30),
+        vaccination=VaccinationRecord(
+            dose=3,
+            applied_at=datetime(2026, 3, 1, 7, 0, tzinfo=UTC),
+        ),
+    )
+
+    result = serialize_dataclass(profile)
+
+    assert result == {
+        "name": "Luna",
+        "walk_duration": timedelta(minutes=30),
+        "vaccination": {
+            "dose": 3,
+            "applied_at": datetime(2026, 3, 1, 7, 0, tzinfo=UTC),
+        },
+    }
+
+
 def test_serialize_entity_attributes_serializes_nested_structures() -> None:
     """Complex nested attributes should be converted to JSON-safe values."""
     payload = {
@@ -86,3 +111,13 @@ def test_serialize_entity_attributes_serializes_nested_structures() -> None:
         ],
         "optional": None,
     }
+
+
+def test_serialize_module_reload_keeps_utils_re_exports_in_sync() -> None:
+    """Reloading serialize module should refresh utility package re-exports."""
+    reloaded = importlib.reload(importlib.import_module("custom_components.pawcontrol.utils.serialize"))
+
+    assert utils_module.serialize_datetime is reloaded.serialize_datetime
+    assert utils_module.serialize_timedelta is reloaded.serialize_timedelta
+    assert utils_module.serialize_dataclass is reloaded.serialize_dataclass
+    assert utils_module.serialize_entity_attributes is reloaded.serialize_entity_attributes
