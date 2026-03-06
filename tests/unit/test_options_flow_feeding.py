@@ -186,7 +186,9 @@ async def test_async_step_feeding_settings_persists_updates() -> None:
     )
 
 
-async def test_async_step_feeding_settings_returns_selector_when_no_current_dog() -> None:
+async def test_async_step_feeding_settings_returns_selector_when_no_current_dog() -> (
+    None
+):
     """Missing or invalid current dog data should return to the selector step."""
     flow = _FeedingFlow(dogs=[{"dog_id": "dog-1"}], current_dog=None)
 
@@ -214,15 +216,13 @@ async def test_async_step_feeding_settings_preserves_unselected_dog_options() ->
         },
     )
 
-    result = await flow.async_step_feeding_settings(
-        {
-            "meals_per_day": "4",
-            "feeding_reminders": True,
-            "portion_tracking": True,
-            "calorie_tracking": False,
-            "auto_schedule": False,
-        }
-    )
+    result = await flow.async_step_feeding_settings({
+        "meals_per_day": "4",
+        "feeding_reminders": True,
+        "portion_tracking": True,
+        "calorie_tracking": False,
+        "auto_schedule": False,
+    })
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     data = result["data"]

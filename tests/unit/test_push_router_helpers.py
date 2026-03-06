@@ -83,3 +83,46 @@ def test_entry_store_and_snapshot_recover_invalid_structures() -> None:
     assert snapshot["accepted_total"] == 0
     assert snapshot["rejected_total"] == 0
     assert snapshot["dogs"] == {}
+
+
+def test_dog_expected_source_handles_nested_and_flat_configs() -> None:
+    """Expected source should resolve nested gps_config and fallback flat keys."""
+    entry = SimpleNamespace(
+        data={
+            "dogs": [
+                {"dog_id": "dog-1", "gps_config": {"gps_source": " webhook "}},
+                {"dog_id": "dog-2", "gps_source": "mqtt"},
+                {"dog_id": "dog-3", "gps_config": {"gps_source": 1}},
+            ]
+        }
+    )
+
+    assert push_router._dog_expected_source(entry, "dog-1") == "webhook"
+    assert push_router._dog_expected_source(entry, "dog-2") == "mqtt"
+    assert push_router._dog_expected_source(entry, "dog-3") is None
+    assert push_router._dog_expected_source(entry, "missing") is None
+
+
+def test_limiter_reuses_matching_instance_and_replaces_with_new_limit() -> None:
+    """Limiter cache should reuse exact limiters and rebuild when limits change."""
+    entry_store: dict[str, object] = {"limiters": {}}
+
+    limiter_a = push_router._limiter(entry_store, "dog-1", "webhook", 10)
+    limiter_b = push_router._limiter(entry_store, "dog-1", "webhook", 10)
+    limiter_c = push_router._limiter(entry_store, "dog-1", "webhook", 20)
+
+    assert limiter_a is limiter_b
+    assert limiter_c is not limiter_a
+
+
+def test_bump_reason_limits_bucket_count_to_max_reasons() -> None:
+    """Reason buckets should be trimmed to avoid unbounded telemetry growth."""
+    dog_tel = {"by_reason": {f"reason-{idx}": idx for idx in range(30)}}
+
+    push_router._bump_reason(dog_tel, "reason-30")
+
+    by_reason = dog_tel["by_reason"]
+    assert isinstance(by_reason, dict)
+    assert len(by_reason) == 25
+    assert "reason-0" not in by_reason
+    assert "reason-29" in by_reason
