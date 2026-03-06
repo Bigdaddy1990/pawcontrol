@@ -130,6 +130,16 @@ def test_calculate_activity_level_handles_invalid_payloads() -> None:
     assert calculate_activity_level(_make_walk_payload(), health_data) == "high"
 
 
+def test_calculate_activity_level_uses_walk_baseline_when_health_level_not_string() -> (
+    None
+):
+    """Non-string health levels should not override computed walk activity."""
+    health_data = _make_health_payload({"activity_level": 42})
+    walk_data = _make_walk_payload({"walks_today": 1, "total_duration_today": 20.0})
+
+    assert calculate_activity_level(walk_data, health_data) == "low"
+
+
 def test_calculate_calories_burned_today_applies_multiplier() -> None:
     walk_data = _make_walk_payload({
         "total_distance_today": 2000.0,
@@ -160,6 +170,18 @@ def test_calculate_hours_since_rejects_unparseable_timestamps() -> None:
     assert calculate_hours_since("not-a-timestamp", reference=reference) is None
 
 
+def test_calculate_hours_since_uses_dt_util_now_when_reference_missing(
+    monkeypatch,
+) -> None:
+    frozen_now = datetime(2024, 1, 1, 16, 0, tzinfo=UTC)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.missing_sensors.dt_util.utcnow",
+        lambda: frozen_now,
+    )
+
+    assert calculate_hours_since("2024-01-01T10:00:00+00:00") == 6.0
+
+
 def test_derive_next_feeding_time_respects_schedule() -> None:
     feeding_data = _make_feeding_payload({"config": {"meals_per_day": 3}})
     assert derive_next_feeding_time(feeding_data) == "16:00"
@@ -187,3 +209,10 @@ def test_derive_next_feeding_time_handles_missing_or_invalid_fields() -> None:
         )
         is None
     )
+
+
+def test_derive_next_feeding_time_returns_none_when_config_is_not_mapping() -> None:
+    """Invalid config payloads should hit the defensive TypeError branch."""
+    feeding_data = _make_feeding_payload({"config": 1})
+
+    assert derive_next_feeding_time(feeding_data) is None
