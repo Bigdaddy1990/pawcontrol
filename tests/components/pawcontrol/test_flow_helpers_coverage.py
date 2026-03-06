@@ -142,6 +142,7 @@ def test_coerce_helpers_cover_edge_cases() -> None:
     assert coerce_bool("disabled") is False
     assert coerce_bool(None, default=True) is True
     assert coerce_bool(0) is False
+    assert coerce_bool([]) is False
 
     assert coerce_str("  fido  ") == "fido"
     assert coerce_str(None, default="fallback") == "fallback"
@@ -154,11 +155,25 @@ def test_coerce_helpers_cover_edge_cases() -> None:
     assert coerce_optional_float(5) == 5.0
     assert coerce_optional_float(" 2.5 ") == 2.5
     assert coerce_optional_float("bad") is None
+    assert coerce_optional_float(object()) is None
 
     assert coerce_optional_int(4) == 4
     assert coerce_optional_int(4.8) == 4
     assert coerce_optional_int(" 8 ") == 8
     assert coerce_optional_int("oops") is None
+    assert coerce_optional_int(object()) is None
+
+
+def test_validate_required_field_legacy_success_and_error_assignment() -> None:
+    """Legacy validation API should return bool and mutate the passed errors map."""
+    errors: dict[str, str] = {}
+
+    assert validate_required_field(errors, "name", "") is False
+    assert errors == {"name": "required"}
+
+    other_errors: dict[str, str] = {}
+    assert validate_required_field(other_errors, "name", "Buddy") is True
+    assert other_errors == {}
 
 
 def test_create_form_result_without_flow_and_validation_error() -> None:
@@ -264,3 +279,28 @@ def test_store_get_clear_flow_data_and_schema_helpers() -> None:
 
     assert isinstance(text_key, vol.Required)
     assert isinstance(bool_key, vol.Optional)
+
+
+def test_schema_builders_cover_required_variants_without_defaults() -> None:
+    """Schema helpers should create required keys when no default is provided."""
+    select_key = next(iter(build_select_schema("mode", ["a", "b"], required=True)))
+    number_key = next(
+        iter(
+            build_number_schema(
+                "weight", min_value=1, max_value=10, required=True, unit="kg"
+            )
+        )
+    )
+    text_key = next(iter(build_text_schema("nickname", required=True)))
+
+    assert isinstance(select_key, vol.Required)
+    assert isinstance(number_key, vol.Required)
+    assert isinstance(text_key, vol.Required)
+
+
+def test_get_flow_data_returns_default_when_internal_state_is_not_mapping() -> None:
+    """Reading flow data should gracefully fallback when _flow_data is invalid."""
+    flow = MagicMock()
+    flow._flow_data = "broken"
+
+    assert get_flow_data(flow, "dog_id", default="fallback") == "fallback"
