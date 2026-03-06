@@ -294,3 +294,71 @@ class TestAsyncUnregisterEntryMqtt:
         entry = _make_entry()
         # Must not raise even though entry is absent
         await async_unregister_entry_mqtt(hass, entry)
+
+
+@pytest.mark.asyncio
+async def test_register_handles_callback_payload_variants() -> None:
+    """Exercise callback parsing branches for str/invalid/non-dict payloads."""
+    hass = _make_hass()
+    entry = _make_entry(
+        mqtt_enabled=True,
+        mqtt_topic="topic/gps",
+        dogs=[{"gps_config": {"gps_source": "mqtt"}}],
+    )
+    callbacks: list = []
+
+    async def fake_subscribe(_hass, _topic, callback, **_kw):
+        callbacks.append(callback)
+        return MagicMock()
+
+    mock_mqtt = MagicMock()
+    mock_mqtt.async_subscribe = AsyncMock(side_effect=fake_subscribe)
+
+    with (
+        patch(
+            "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
+            new=AsyncMock(),
+        ),
+        patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
+        patch(
+            "custom_components.pawcontrol.mqtt_push.async_process_gps_push",
+            new=AsyncMock(),
+        ) as process_push,
+    ):
+        await async_register_entry_mqtt(hass, entry)
+        assert callbacks
+
+        await callbacks[0](MagicMock(payload='{"dog_id":"d1","nonce":"abc"}'))
+        await callbacks[0](MagicMock(payload=b"{bad-json"))
+        await callbacks[0](MagicMock(payload=b"[]"))
+        await callbacks[0](MagicMock(payload=123))
+
+    process_push.assert_awaited_once()
+    kwargs = process_push.await_args.kwargs
+    assert kwargs["source"] == "mqtt"
+    assert kwargs["nonce"] == "abc"
+
+
+@pytest.mark.asyncio
+async def test_register_logs_and_returns_when_subscribe_fails(caplog) -> None:
+    hass = _make_hass()
+    entry = _make_entry(
+        mqtt_enabled=True,
+        mqtt_topic="topic/gps",
+        dogs=[{"gps_config": {"gps_source": "mqtt"}}],
+    )
+
+    mock_mqtt = MagicMock()
+    mock_mqtt.async_subscribe = AsyncMock(side_effect=RuntimeError("boom"))
+
+    with (
+        patch(
+            "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
+            new=AsyncMock(),
+        ),
+        patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
+    ):
+        await async_register_entry_mqtt(hass, entry)
+
+    assert "Failed to subscribe MQTT topic" in caplog.text
+    assert hass.data.get("pawcontrol", {}).get("_mqtt_push", {}) == {}
