@@ -126,6 +126,17 @@ class _InstanceOnlyRequestSession:
         self.request = Mock()
 
 
+class _AsyncClassRequestWithSyncInstanceOverride:
+    """Session-like object overriding an async class request with sync call."""
+
+    def __init__(self) -> None:
+        self.closed = False
+        self.request = Mock()
+
+    async def request(self, *args: object, **kwargs: object) -> str:
+        return "ok"
+
+
 @pytest.mark.unit
 def test_ensure_shared_client_session_accepts_wrapped_request(
     http_client_module: ModuleType,
@@ -176,5 +187,18 @@ def test_ensure_shared_client_session_rejects_instance_only_sync_request(
 
     with pytest.raises(ValueError) as excinfo:
         ensure_shared(_InstanceOnlyRequestSession(), owner="TestHelper")
+
+    assert "aiohttp-compatible 'request' coroutine" in str(excinfo.value)
+
+
+@pytest.mark.unit
+def test_ensure_shared_client_session_rejects_sync_instance_override(
+    http_client_module: ModuleType,
+) -> None:
+    """Sync instance overrides must not bypass async class request metadata."""
+    ensure_shared = http_client_module.ensure_shared_client_session
+
+    with pytest.raises(ValueError) as excinfo:
+        ensure_shared(_AsyncClassRequestWithSyncInstanceOverride(), owner="TestHelper")
 
     assert "aiohttp-compatible 'request' coroutine" in str(excinfo.value)
