@@ -1,8 +1,8 @@
 """Tests for JSON serialization helpers."""
 
-import importlib
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+import importlib
 
 import pytest
 
@@ -115,9 +115,13 @@ def test_serialize_entity_attributes_serializes_nested_structures() -> None:
 
 def test_serialize_module_reload_keeps_utils_re_exports_in_sync() -> None:
     """Reloading serialize module should refresh utility package re-exports."""
-    reloaded = importlib.reload(importlib.import_module("custom_components.pawcontrol.utils.serialize"))
+    reloaded = importlib.reload(
+        importlib.import_module("custom_components.pawcontrol.utils.serialize")
+    )
 
     assert utils_module.serialize_datetime is reloaded.serialize_datetime
     assert utils_module.serialize_timedelta is reloaded.serialize_timedelta
     assert utils_module.serialize_dataclass is reloaded.serialize_dataclass
-    assert utils_module.serialize_entity_attributes is reloaded.serialize_entity_attributes
+    assert (
+        utils_module.serialize_entity_attributes is reloaded.serialize_entity_attributes
+    )

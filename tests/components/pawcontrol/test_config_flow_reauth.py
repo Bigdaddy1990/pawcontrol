@@ -65,6 +65,7 @@ class _Flow(ReauthFlowMixin):
         description_placeholders: Mapping[str, str] | None = None,
     ) -> dict[str, object]:
         self.last_form = {
+            "type": "form",
             "step_id": step_id,
             "data_schema": data_schema,
             "errors": dict(errors or {}),
