@@ -186,6 +186,62 @@ async def test_async_step_feeding_settings_persists_updates() -> None:
     )
 
 
+async def test_async_step_feeding_settings_returns_selector_when_no_current_dog() -> None:
+    """Missing or invalid current dog data should return to the selector step."""
+    flow = _FeedingFlow(dogs=[{"dog_id": "dog-1"}], current_dog=None)
+
+    missing_current = await flow.async_step_feeding_settings()
+    assert missing_current["type"] == FlowResultType.FORM
+    assert missing_current["step_id"] == "select_dog_for_feeding_settings"
+
+    flow = _FeedingFlow(dogs=[{"dog_id": "dog-1"}], current_dog={"dog_id": 123})
+    invalid_dog_id = await flow.async_step_feeding_settings()
+    assert invalid_dog_id["type"] == FlowResultType.FORM
+    assert invalid_dog_id["step_id"] == "select_dog_for_feeding_settings"
+
+
+async def test_async_step_feeding_settings_preserves_unselected_dog_options() -> None:
+    """Saving for a non-listed dog should not overwrite existing dog options map."""
+    flow = _FeedingFlow(
+        dogs=[{"dog_id": "dog-2"}],
+        current_dog={"dog_id": "dog-2"},
+        options={
+            DOG_OPTIONS_FIELD: {
+                "dog-1": {
+                    "feeding_settings": {"default_meals_per_day": 2},
+                }
+            }
+        },
+    )
+
+    result = await flow.async_step_feeding_settings(
+        {
+            "meals_per_day": "4",
+            "feeding_reminders": True,
+            "portion_tracking": True,
+            "calorie_tracking": False,
+            "auto_schedule": False,
+        }
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    data = result["data"]
+    assert data[DOG_OPTIONS_FIELD] == {
+        "dog-1": {
+            "feeding_settings": {
+                "default_meals_per_day": 2,
+            }
+        }
+    }
+    assert data["feeding_settings"] == {
+        "default_meals_per_day": 4,
+        "feeding_reminders": True,
+        "portion_tracking": True,
+        "calorie_tracking": False,
+        "auto_schedule": False,
+    }
+
+
 async def test_async_step_feeding_settings_reports_validation_and_generic_errors() -> (
     None
 ):
