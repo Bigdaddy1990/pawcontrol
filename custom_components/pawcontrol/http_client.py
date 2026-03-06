@@ -41,6 +41,11 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
         return iscoroutinefunction(candidate)
 
     request_attr = getattr(type(session), "request", None)
+    if not _is_coroutine(request) and _is_coroutine(request_attr):
+        raise ValueError(
+            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",  # noqa: E501
+        )
+
     if (
         not _is_coroutine(request)
         and not _is_coroutine(request_attr)
