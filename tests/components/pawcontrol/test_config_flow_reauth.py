@@ -21,6 +21,7 @@ class _Flow(ReauthFlowMixin):
         self.reauth_entry = entry
         self.context: dict[str, object] = {}
         self.hass = SimpleNamespace()
+        self.last_form: dict[str, Any] | None = None
 
     def _normalise_string_list(self, values: Any) -> list[str]:
         if not isinstance(values, list):
@@ -32,6 +33,44 @@ class _Flow(ReauthFlowMixin):
         if isinstance(dogs, list):
             return [dict(dog) for dog in dogs if isinstance(dog, dict)]
         return []
+
+    def _abort_if_unique_id_mismatch(self, *, reason: str) -> None:
+        self.context["abort_reason"] = reason
+
+    async def async_set_unique_id(self, unique_id: str | None = None) -> None:
+        self.context["unique_id"] = unique_id
+
+    async def async_update_reload_and_abort(
+        self,
+        entry: MockConfigEntry,
+        *,
+        data_updates: Mapping[str, object] | None = None,
+        options_updates: Mapping[str, object] | None = None,
+        reason: str,
+    ) -> dict[str, object]:
+        return {
+            "type": "abort",
+            "entry": entry,
+            "data_updates": dict(data_updates or {}),
+            "options_updates": dict(options_updates or {}),
+            "reason": reason,
+        }
+
+    def async_show_form(
+        self,
+        *,
+        step_id: str,
+        data_schema: object,
+        errors: dict[str, str] | None = None,
+        description_placeholders: Mapping[str, str] | None = None,
+    ) -> dict[str, object]:
+        self.last_form = {
+            "step_id": step_id,
+            "data_schema": data_schema,
+            "errors": dict(errors or {}),
+            "description_placeholders": dict(description_placeholders or {}),
+        }
+        return self.last_form
 
 
 @pytest.mark.parametrize(
@@ -255,3 +294,69 @@ async def test_get_health_status_summary_safe_handles_unexpected_error(
     assert (
         await flow._get_health_status_summary_safe(entry) == "Health check failed: boom"
     )
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_confirm_returns_unsuccessful_error() -> None:
+    """Declining confirmation should keep the user on the form."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+
+    result = await flow.async_step_reauth_confirm({"confirm": False})
+
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"] == {"base": "reauth_unsuccessful"}
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_confirm_uses_timeout_summary_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timeout during health checks should still allow successful reauth updates."""
+    entry = MockConfigEntry(
+        domain="pawcontrol",
+        data={CONF_DOGS: [{DOG_ID_FIELD: "buddy"}]},
+        options={},
+    )
+    flow = _Flow(entry)
+
+    async def _raise_timeout(_entry: MockConfigEntry) -> dict[str, object]:
+        raise TimeoutError
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _raise_timeout)
+
+    result = await flow.async_step_reauth_confirm({"confirm": True})
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "reauth_successful"
+    assert result["data_updates"]["health_total_dogs"] == 1
+    assert result["options_updates"]["reauth_health_issues"] == ["Health check timeout"]
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_confirm_timeout_shows_error_form(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timeout in unique-id update should return the timeout form error."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+
+    async def _raise_timeout(unique_id: str | None = None) -> None:
+        raise TimeoutError
+
+    async def _health(_entry: MockConfigEntry) -> dict[str, object]:
+        return {
+            "healthy": True,
+            "issues": [],
+            "warnings": [],
+            "validated_dogs": 0,
+            "total_dogs": 0,
+        }
+
+    monkeypatch.setattr(flow, "async_set_unique_id", _raise_timeout)
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _health)
+
+    result = await flow.async_step_reauth_confirm({"confirm": True})
+
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"] == {"base": "reauth_timeout"}
