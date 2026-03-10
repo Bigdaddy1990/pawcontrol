@@ -1,5 +1,6 @@
 """Tests for platform selection helpers."""
 
+import asyncio
 from collections.abc import Mapping
 import logging
 from types import SimpleNamespace
@@ -430,3 +431,41 @@ async def test_async_reload_entry_reraises_not_ready(
 
     with pytest.raises(ConfigEntryNotReady):
         await pawcontrol_init.async_reload_entry(hass, entry)
+
+
+@pytest.mark.asyncio
+async def test_async_monitor_background_tasks_restarts_stopped_garden_tasks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Background monitor should restart completed garden background tasks."""
+    sleep_mock = AsyncMock(side_effect=[None, asyncio.CancelledError()])
+    monkeypatch.setattr(pawcontrol_init.asyncio, "sleep", sleep_mock)
+
+    cleanup_restart = AsyncMock()
+    stats_restart = AsyncMock()
+    garden_manager = SimpleNamespace(
+        _cleanup_task=SimpleNamespace(done=lambda: True),
+        _stats_update_task=SimpleNamespace(done=lambda: True),
+        async_start_cleanup_task=cleanup_restart,
+        async_start_stats_update_task=stats_restart,
+    )
+    runtime_data = SimpleNamespace(garden_manager=garden_manager)
+
+    await pawcontrol_init._async_monitor_background_tasks(runtime_data)
+
+    cleanup_restart.assert_awaited_once_with()
+    stats_restart.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_async_monitor_background_tasks_logs_loop_errors_and_continues(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Unexpected monitor errors should be logged, then the task should continue."""
+    sleep_mock = AsyncMock(side_effect=[RuntimeError("boom"), asyncio.CancelledError()])
+    monkeypatch.setattr(pawcontrol_init.asyncio, "sleep", sleep_mock)
+
+    await pawcontrol_init._async_monitor_background_tasks(SimpleNamespace())
+
+    assert "Error in background task monitoring: boom" in caplog.text

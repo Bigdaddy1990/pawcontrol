@@ -1010,6 +1010,30 @@ def test_stamp_runtime_schema_defaults_and_upgrades_legacy_values(
     assert created_version == DomainRuntimeStoreEntryType.MINIMUM_COMPATIBLE_VERSION
 
 
+def test_stamp_runtime_schema_upgrades_created_version_below_minimum(
+    runtime_data: PawControlRuntimeDataType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy created versions below the minimum should be clamped upward."""
+    minimum = DomainRuntimeStoreEntryType.CURRENT_VERSION + 1
+    monkeypatch.setattr(
+        runtime_module.DomainRuntimeStoreEntry,
+        "MINIMUM_COMPATIBLE_VERSION",
+        minimum,
+    )
+
+    runtime_data.schema_version = DomainRuntimeStoreEntryType.CURRENT_VERSION
+    runtime_data.schema_created_version = DomainRuntimeStoreEntryType.CURRENT_VERSION
+
+    schema_version, created_version = _stamp_runtime_schema(
+        "legacy-created-version",
+        runtime_data,
+    )
+
+    assert schema_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
+    assert created_version == minimum
+
+
 def test_describe_runtime_store_status_reports_legacy_upgrade_required(
     runtime_data: PawControlRuntimeDataType,
     monkeypatch: pytest.MonkeyPatch,
