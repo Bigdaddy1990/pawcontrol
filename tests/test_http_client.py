@@ -36,6 +36,23 @@ class _ClosedSession:
         return None
 
 
+class _ClassCoroutineRequestSession:
+    closed = False
+
+    async def request(self, *_args: object, **_kwargs: object) -> None:
+        return None
+
+
+class _RequestFallbackSession:
+    closed = "nope"
+
+    def request(self, *_args: object, **_kwargs: object) -> None:
+        return None
+
+    async def _request(self, *_args: object, **_kwargs: object) -> None:
+        return None
+
+
 def test_rejects_none_session() -> None:
     with pytest.raises(ValueError, match="received None"):
         ensure_shared_client_session(None, owner="test-owner")
@@ -66,3 +83,20 @@ def test_accepts_wrapped_coroutine_request() -> None:
 def test_rejects_closed_session() -> None:
     with pytest.raises(ValueError, match="received a closed aiohttp ClientSession"):
         ensure_shared_client_session(_ClosedSession(), owner="test-owner")
+
+
+def test_rejects_instance_override_when_class_request_is_coroutine() -> None:
+    session = _ClassCoroutineRequestSession()
+    session.request = lambda *_args, **_kwargs: None
+
+    with pytest.raises(
+        ValueError,
+        match="without an aiohttp-compatible 'request' coroutine",
+    ):
+        ensure_shared_client_session(session, owner="test-owner")
+
+
+def test_accepts_private_request_coroutine_fallback() -> None:
+    session = _RequestFallbackSession()
+
+    assert ensure_shared_client_session(session, owner="test-owner") is session
