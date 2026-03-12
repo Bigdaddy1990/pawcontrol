@@ -298,6 +298,53 @@ def test_schema_builders_cover_required_variants_without_defaults() -> None:
     assert isinstance(text_key, vol.Required)
 
 
+def test_schema_builders_cover_optional_and_legacy_custom_error_paths() -> None:
+    """Schema helpers should cover optional default and legacy custom branches."""
+    legacy_errors: dict[str, str] = {}
+
+    assert validate_required_field(legacy_errors, "name", "", "missing_value") is False
+    assert legacy_errors["name"] == "missing_value"
+
+    select_key = next(iter(build_select_schema("mode", ["a", "b"], default="a")))
+    number_key = next(
+        iter(build_number_schema("walk_goal", min_value=1, max_value=10, default=5))
+    )
+    text_key = next(iter(build_text_schema("nickname", default="Luna")))
+
+    assert isinstance(select_key, vol.Optional)
+    assert isinstance(number_key, vol.Optional)
+    assert isinstance(text_key, vol.Optional)
+    assert select_key.default() == "a"
+    assert number_key.default() == 5
+    assert text_key.default() == "Luna"
+
+
+def test_schema_builders_cover_required_defaults() -> None:
+    """Schema helpers should support required selectors with explicit defaults."""
+    select_key = next(
+        iter(build_select_schema("mode", ["a", "b"], required=True, default="a"))
+    )
+    number_key = next(
+        iter(
+            build_number_schema(
+                "walk_goal",
+                min_value=1,
+                max_value=10,
+                required=True,
+                default=5,
+            )
+        )
+    )
+    text_key = next(iter(build_text_schema("nickname", required=True, default="Luna")))
+
+    assert isinstance(select_key, vol.Required)
+    assert isinstance(number_key, vol.Required)
+    assert isinstance(text_key, vol.Required)
+    assert select_key.default() == "a"
+    assert number_key.default() == 5
+    assert text_key.default() == "Luna"
+
+
 def test_get_flow_data_returns_default_when_internal_state_is_not_mapping() -> None:
     """Reading flow data should gracefully fallback when _flow_data is invalid."""
     flow = MagicMock()

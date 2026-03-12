@@ -115,6 +115,37 @@ def test_limiter_reuses_matching_instance_and_replaces_with_new_limit() -> None:
     assert limiter_c is not limiter_a
 
 
+def test_rate_limiter_allow_prunes_expired_and_enforces_capacity() -> None:
+    """Limiter should evict old events and reject bursts over configured max."""
+    limiter = push_router._RateLimiter(
+        window_seconds=60, max_events=2, events=push_router.deque()
+    )
+
+    assert limiter.allow(100.0) is True
+    assert limiter.allow(150.0) is True
+    assert limiter.allow(159.0) is False
+
+    assert limiter.allow(161.0) is True
+
+
+def test_dog_expected_source_returns_none_when_dogs_payload_not_list() -> None:
+    """Expected source lookup should reject malformed dog lists."""
+    entry = SimpleNamespace(data={"dogs": "not-a-list"})
+
+    assert push_router._dog_expected_source(entry, "dog-1") is None
+
+
+def test_dog_telemetry_repairs_invalid_nested_store() -> None:
+    """Dog telemetry helper should heal non-dict dog stores before updating counters."""
+    telemetry: dict[str, object] = {"dogs": "broken"}
+
+    dog_telemetry = push_router._dog_telemetry(telemetry, "dog-1")
+
+    assert dog_telemetry["accepted_total"] == 0
+    assert dog_telemetry["rejected_total"] == 0
+    assert telemetry["dogs"] == {"dog-1": dog_telemetry}
+
+
 def test_bump_reason_limits_bucket_count_to_max_reasons() -> None:
     """Reason buckets should be trimmed to avoid unbounded telemetry growth."""
     dog_tel = {"by_reason": {f"reason-{idx}": idx for idx in range(30)}}

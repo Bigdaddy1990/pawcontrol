@@ -139,7 +139,9 @@ async def test_async_get_json_uses_resilience_manager_when_available() -> None:
 async def test_async_get_feeding_payload_uses_expected_resource_path() -> None:
     """Feeding payload helper should resolve to the dog feeding endpoint."""
     response = _FakeResponse(json_payload={"scheduled": True})
-    client = PawControlDeviceClient(_FakeSession(response), endpoint="https://example.test")
+    client = PawControlDeviceClient(
+        _FakeSession(response), endpoint="https://example.test"
+    )
     client.async_get_json = AsyncMock(return_value={"scheduled": True})
 
     payload = await client.async_get_feeding_payload("dog-42")
@@ -152,7 +154,9 @@ async def test_async_get_feeding_payload_uses_expected_resource_path() -> None:
 async def test_async_request_protected_delegates_to_raw_request() -> None:
     """Protected request wrapper should delegate to the underlying request helper."""
     response = _FakeResponse(status=200)
-    client = PawControlDeviceClient(_FakeSession(response), endpoint="https://example.test")
+    client = PawControlDeviceClient(
+        _FakeSession(response), endpoint="https://example.test"
+    )
     client._async_request = AsyncMock(return_value=response)
 
     result = await client._async_request_protected("GET", "/api/status")
