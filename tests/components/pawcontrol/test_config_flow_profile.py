@@ -10,6 +10,7 @@ from custom_components.pawcontrol.config_flow_profile import (
     get_profile_selector_options,
     validate_profile_selection,
 )
+import custom_components.pawcontrol.config_flow_profile as profile_helpers
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 
 
@@ -22,6 +23,22 @@ def test_validate_profile_selection_rejects_unknown_profile() -> None:
     """Unsupported profile values should return the shared invalid marker."""
     with pytest.raises(vol.Invalid, match="invalid_profile"):
         validate_profile_selection({"entity_profile": "not-a-profile"})
+
+
+def test_validate_profile_selection_rejects_profile_removed_after_schema_init(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runtime guard should reject profiles removed after schema compilation."""
+    removed_profile = next(iter(ENTITY_PROFILES))
+    reduced_profiles = {
+        profile: config
+        for profile, config in ENTITY_PROFILES.items()
+        if profile != removed_profile
+    }
+    monkeypatch.setattr(profile_helpers, "ENTITY_PROFILES", reduced_profiles)
+
+    with pytest.raises(vol.Invalid, match="invalid_profile"):
+        validate_profile_selection({"entity_profile": removed_profile})
 
 
 def test_get_profile_selector_options_mirrors_profile_metadata() -> None:
