@@ -10,7 +10,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.pawcontrol import config_flow_reauth
 from custom_components.pawcontrol.config_flow_reauth import ReauthFlowMixin
 from custom_components.pawcontrol.const import CONF_DOGS, CONF_MODULES
-from custom_components.pawcontrol.exceptions import FlowValidationError, ValidationError
+from custom_components.pawcontrol.exceptions import (
+    ConfigEntryAuthFailed,
+    FlowValidationError,
+    ValidationError,
+)
 from custom_components.pawcontrol.types import DOG_ID_FIELD
 
 
@@ -361,3 +365,88 @@ async def test_async_step_reauth_confirm_timeout_shows_error_form(
 
     assert result["step_id"] == "reauth_confirm"
     assert result["errors"] == {"base": "reauth_timeout"}
+
+
+def test_build_reauth_placeholders_requires_reauth_entry() -> None:
+    """Placeholder generation should fail when the flow has no reauth entry."""
+    entry = MockConfigEntry(domain="pawcontrol", data={}, options={})
+    flow = _Flow(entry)
+    flow.reauth_entry = None
+
+    with pytest.raises(ConfigEntryAuthFailed, match="No entry available"):
+        flow._build_reauth_placeholders(
+            {
+                "healthy": True,
+                "validated_dogs": 0,
+                "total_dogs": 0,
+                "issues": [],
+                "warnings": [],
+            }
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_raises_when_entry_missing() -> None:
+    """Reauth should fail when the entry id cannot be resolved."""
+    entry = MockConfigEntry(domain="pawcontrol", data={}, options={})
+    flow = _Flow(entry)
+    flow.context["entry_id"] = "missing"
+    flow.hass.config_entries = SimpleNamespace(async_get_entry=lambda _: None)
+
+    with pytest.raises(ConfigEntryAuthFailed, match="entry not found"):
+        await flow.async_step_reauth({})
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_wraps_validation_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validation timeouts should surface as auth failures."""
+    entry = MockConfigEntry(domain="pawcontrol", entry_id="abc", data={}, options={})
+    flow = _Flow(entry)
+    flow.context["entry_id"] = "abc"
+    flow.hass.config_entries = SimpleNamespace(async_get_entry=lambda _: entry)
+
+    async def _timeout(_entry: MockConfigEntry) -> None:
+        raise TimeoutError
+
+    monkeypatch.setattr(flow, "_validate_reauth_entry_enhanced", _timeout)
+
+    with pytest.raises(ConfigEntryAuthFailed, match="validation timeout"):
+        await flow.async_step_reauth({})
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_confirm_missing_entry_raises_auth_failed() -> None:
+    """Reauth confirmation requires an active config entry."""
+    entry = MockConfigEntry(domain="pawcontrol", data={}, options={})
+    flow = _Flow(entry)
+    flow.reauth_entry = None
+
+    with pytest.raises(ConfigEntryAuthFailed, match="No entry available"):
+        await flow.async_step_reauth_confirm({"confirm": True})
+
+
+@pytest.mark.asyncio
+async def test_check_config_health_enhanced_handles_invalid_dogs_and_modules(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Health checks should flag invalid configs and malformed modules payloads."""
+    entry = MockConfigEntry(
+        domain="pawcontrol",
+        data={
+            CONF_DOGS: [
+                {DOG_ID_FIELD: "buddy", CONF_MODULES: ["bad"]},
+            ]
+        },
+        options={"entity_profile": "standard"},
+    )
+    flow = _Flow(entry)
+
+    monkeypatch.setattr(flow, "_is_dog_config_valid_for_reauth", lambda *_: False)
+
+    summary = await flow._check_config_health_enhanced(entry)
+
+    assert "Invalid dog config: buddy" in summary["issues"]
+    assert "No valid dog configurations found" in summary["issues"]
+    assert "Modules payload invalid for buddy" in summary["warnings"]
