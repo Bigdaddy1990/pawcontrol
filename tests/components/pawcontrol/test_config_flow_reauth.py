@@ -374,15 +374,13 @@ def test_build_reauth_placeholders_requires_reauth_entry() -> None:
     flow.reauth_entry = None
 
     with pytest.raises(ConfigEntryAuthFailed, match="No entry available"):
-        flow._build_reauth_placeholders(
-            {
-                "healthy": True,
-                "validated_dogs": 0,
-                "total_dogs": 0,
-                "issues": [],
-                "warnings": [],
-            }
-        )
+        flow._build_reauth_placeholders({
+            "healthy": True,
+            "validated_dogs": 0,
+            "total_dogs": 0,
+            "issues": [],
+            "warnings": [],
+        })
 
 
 @pytest.mark.asyncio
