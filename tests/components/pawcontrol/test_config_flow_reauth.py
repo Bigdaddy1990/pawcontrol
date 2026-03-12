@@ -417,6 +417,42 @@ async def test_async_step_reauth_wraps_validation_timeout(
 
 
 @pytest.mark.asyncio
+async def test_async_step_reauth_wraps_validation_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validation errors should be converted to auth failures."""
+    entry = MockConfigEntry(domain="pawcontrol", entry_id="abc", data={}, options={})
+    flow = _Flow(entry)
+    flow.context["entry_id"] = "abc"
+    flow.hass.config_entries = SimpleNamespace(async_get_entry=lambda _: entry)
+
+    async def _validation_error(_entry: MockConfigEntry) -> None:
+        raise ValidationError("entry_dogs", constraint="invalid")
+
+    monkeypatch.setattr(flow, "_validate_reauth_entry_enhanced", _validation_error)
+
+    with pytest.raises(ConfigEntryAuthFailed, match="Entry validation failed"):
+        await flow.async_step_reauth({})
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_wraps_unexpected_errors() -> None:
+    """Unexpected errors should bubble as authentication failures."""
+    entry = MockConfigEntry(domain="pawcontrol", entry_id="abc", data={}, options={})
+    flow = _Flow(entry)
+    flow.context["entry_id"] = "abc"
+    flow.hass.config_entries = SimpleNamespace(async_get_entry=lambda _: entry)
+
+    async def _confirm() -> dict[str, object]:
+        raise RuntimeError("boom")
+
+    flow.async_step_reauth_confirm = _confirm
+
+    with pytest.raises(ConfigEntryAuthFailed, match="Reauthentication failed: boom"):
+        await flow.async_step_reauth({})
+
+
+@pytest.mark.asyncio
 async def test_async_step_reauth_confirm_missing_entry_raises_auth_failed() -> None:
     """Reauth confirmation requires an active config entry."""
     entry = MockConfigEntry(domain="pawcontrol", data={}, options={})
@@ -425,6 +461,61 @@ async def test_async_step_reauth_confirm_missing_entry_raises_auth_failed() -> N
 
     with pytest.raises(ConfigEntryAuthFailed, match="No entry available"):
         await flow.async_step_reauth_confirm({"confirm": True})
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_confirm_uses_error_summary_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected health-check failures should still succeed with fallback details."""
+    entry = MockConfigEntry(
+        domain="pawcontrol",
+        data={CONF_DOGS: [{DOG_ID_FIELD: "buddy"}]},
+        options={},
+    )
+    flow = _Flow(entry)
+
+    async def _raise_runtime_error(_entry: MockConfigEntry) -> dict[str, object]:
+        raise RuntimeError("health boom")
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _raise_runtime_error)
+
+    result = await flow.async_step_reauth_confirm({"confirm": True})
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "reauth_successful"
+    assert result["options_updates"]["reauth_health_issues"] == [
+        "Health check error: health boom"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_confirm_surfaces_reauth_failed_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected confirmation errors should surface the generic reauth failure."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+
+    def _raise_abort(*, reason: str) -> None:
+        raise RuntimeError(reason)
+
+    async def _health(_entry: MockConfigEntry) -> dict[str, object]:
+        return {
+            "healthy": True,
+            "issues": [],
+            "warnings": [],
+            "validated_dogs": 0,
+            "total_dogs": 0,
+        }
+
+    monkeypatch.setattr(flow, "_abort_if_unique_id_mismatch", _raise_abort)
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _health)
+
+    result = await flow.async_step_reauth_confirm({"confirm": True})
+
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"] == {"base": "reauth_failed"}
 
 
 @pytest.mark.asyncio
