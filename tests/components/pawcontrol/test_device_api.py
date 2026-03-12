@@ -60,6 +60,9 @@ def test_validate_device_endpoint_requires_http_and_hostname() -> None:
     with pytest.raises(ValueError, match="endpoint must include a valid hostname"):
         validate_device_endpoint("https:///missing-host")
 
+    with pytest.raises(ValueError, match="endpoint must be provided"):
+        validate_device_endpoint("")
+
 
 @pytest.mark.asyncio
 async def test_async_request_adds_authorization_header() -> None:
@@ -130,3 +133,29 @@ async def test_async_get_json_uses_resilience_manager_when_available() -> None:
         "GET",
         "/api/dogs/1/feeding",
     )
+
+
+@pytest.mark.asyncio
+async def test_async_get_feeding_payload_uses_expected_resource_path() -> None:
+    """Feeding payload helper should resolve to the dog feeding endpoint."""
+    response = _FakeResponse(json_payload={"scheduled": True})
+    client = PawControlDeviceClient(_FakeSession(response), endpoint="https://example.test")
+    client.async_get_json = AsyncMock(return_value={"scheduled": True})
+
+    payload = await client.async_get_feeding_payload("dog-42")
+
+    assert payload == {"scheduled": True}
+    client.async_get_json.assert_awaited_once_with("/api/dogs/dog-42/feeding")
+
+
+@pytest.mark.asyncio
+async def test_async_request_protected_delegates_to_raw_request() -> None:
+    """Protected request wrapper should delegate to the underlying request helper."""
+    response = _FakeResponse(status=200)
+    client = PawControlDeviceClient(_FakeSession(response), endpoint="https://example.test")
+    client._async_request = AsyncMock(return_value=response)
+
+    result = await client._async_request_protected("GET", "/api/status")
+
+    assert result is response
+    client._async_request.assert_awaited_once_with("GET", "/api/status")
