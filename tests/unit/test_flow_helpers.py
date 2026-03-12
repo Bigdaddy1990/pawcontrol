@@ -513,6 +513,30 @@ class TestSchemaBuilding:
         selector_instance = schema[next(iter(schema))]
         assert selector_instance.config["translation_key"] == "food_type"
 
+    def test_build_select_schema_optional_without_default(self) -> None:
+        """Optional select schemas should preserve undefined defaults."""
+        schema = build_select_schema(
+            key="favorite_toy",
+            options=["ball", "rope"],
+        )
+
+        marker = next(iter(schema))
+        assert isinstance(marker, vol.Optional)
+        assert marker.default is vol.UNDEFINED
+
+    def test_build_select_schema_required_with_default(self) -> None:
+        """Required select schemas should support explicit defaults."""
+        schema = build_select_schema(
+            key="activity_mode",
+            options=["walk", "run"],
+            required=True,
+            default="walk",
+        )
+
+        marker = next(iter(schema))
+        assert isinstance(marker, vol.Required)
+        assert marker.default() == "walk"
+
     def test_build_number_schema_required_without_default(self) -> None:
         """Required number schemas should support markers without defaults."""
         schema = build_number_schema(
@@ -538,6 +562,32 @@ class TestSchemaBuilding:
         selector_instance = schema[next(iter(schema))]
         assert selector_instance.config["unit_of_measurement"] == "kg"
 
+    def test_build_number_schema_optional_without_default(self) -> None:
+        """Optional number schemas should keep undefined defaults."""
+        schema = build_number_schema(
+            key="play_minutes",
+            min_value=1,
+            max_value=60,
+        )
+
+        marker = next(iter(schema))
+        assert isinstance(marker, vol.Optional)
+        assert marker.default is vol.UNDEFINED
+
+    def test_build_number_schema_required_with_default(self) -> None:
+        """Required number schemas should accept explicit defaults."""
+        schema = build_number_schema(
+            key="daily_walk_goal",
+            min_value=5,
+            max_value=120,
+            required=True,
+            default=30,
+        )
+
+        marker = next(iter(schema))
+        assert isinstance(marker, vol.Required)
+        assert marker.default() == 30
+
     def test_build_text_schema_required_without_default(self) -> None:
         """Required text schemas should create required marker without default."""
         schema = build_text_schema(
@@ -558,6 +608,26 @@ class TestSchemaBuilding:
 
         selector_instance = schema[next(iter(schema))]
         assert selector_instance.config["autocomplete"] == "name"
+
+    def test_build_text_schema_optional_without_default(self) -> None:
+        """Optional text schemas should not inject implicit defaults."""
+        schema = build_text_schema(key="notes")
+
+        marker = next(iter(schema))
+        assert isinstance(marker, vol.Optional)
+        assert marker.default is vol.UNDEFINED
+
+    def test_build_text_schema_required_with_default(self) -> None:
+        """Required text schemas should allow explicit defaults."""
+        schema = build_text_schema(
+            key="display_name",
+            required=True,
+            default="Buddy",
+        )
+
+        marker = next(iter(schema))
+        assert isinstance(marker, vol.Required)
+        assert marker.default() == "Buddy"
 
 
 class TestFlowStateManagement:
