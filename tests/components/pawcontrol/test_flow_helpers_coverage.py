@@ -345,6 +345,22 @@ def test_schema_builders_cover_required_defaults() -> None:
     assert text_key.default() == "Luna"
 
 
+def test_build_select_schema_applies_translation_key_to_selector_config() -> None:
+    """Select schema helper should forward translation metadata."""
+    _key, select_selector = next(
+        iter(
+            build_select_schema(
+                "mode",
+                ["a", "b"],
+                required=True,
+                translation_key="mode",
+            ).items()
+        )
+    )
+
+    assert select_selector.config.get("translation_key") == "mode"
+
+
 def test_get_flow_data_returns_default_when_internal_state_is_not_mapping() -> None:
     """Reading flow data should gracefully fallback when _flow_data is invalid."""
     flow = MagicMock()
