@@ -71,6 +71,17 @@ def test_cache_replaces_non_mapping_domain_bucket() -> None:
     assert hass.data[DOMAIN]["translations"] is cache
 
 
+def test_cache_replaces_non_mapping_translation_cache_bucket() -> None:
+    """Cache helper should repair invalid translation cache buckets before use."""
+    hass = SimpleNamespace(data={DOMAIN: {"translations": 42}})
+
+    cache = _get_translation_cache(hass)
+
+    assert cache == {}
+    assert isinstance(hass.data[DOMAIN]["translations"], dict)
+    assert hass.data[DOMAIN]["translations"] is cache
+
+
 def test_cached_component_translations_use_runtime_cache_and_bundled_fallback() -> None:
     """Lookup should prefer runtime cache and fallback to bundled data when missing."""
     _load_bundled_component_translations.cache_clear()
@@ -84,6 +95,35 @@ def test_cached_component_translations_use_runtime_cache_and_bundled_fallback() 
     translations, fallback = get_cached_component_translation_lookup(hass, "de")
     assert translations
     assert fallback == {"x": "y"}
+
+
+def test_cached_component_translation_lookup_uses_self_fallback_for_english() -> None:
+    """English lookups should use the same mapping for translation and fallback."""
+    hass = SimpleNamespace(
+        data={
+            DOMAIN: {
+                "translations": {"en": {component_translation_key("door"): "Door"}},
+            },
+        },
+    )
+
+    translations, fallback = get_cached_component_translation_lookup(hass, "EN")
+
+    assert translations is fallback
+
+
+def test_resolve_component_translation_uses_separator_candidates() -> None:
+    """Resolution should include suffix candidates for known separator patterns."""
+    translations = {"quiet_hours": "Quiet hours"}
+
+    assert (
+        resolve_component_translation(
+            translations,
+            {},
+            "door_sensor_label_quiet_hours",
+        )
+        == "Quiet hours"
+    )
 
 
 def test_bundled_translation_loader_handles_invalid_payloads(
@@ -227,6 +267,46 @@ async def test_async_get_component_translations_falls_back_to_bundled(
     translations, fallback = await async_get_component_translation_lookup(hass, "de")
     assert translations == {component_translation_key("door"): "Door status"}
     assert fallback == {component_translation_key("door"): "Door status"}
+
+
+@pytest.mark.asyncio
+async def test_async_get_component_translations_keeps_cached_empty_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A cached empty mapping should short-circuit API lookups."""
+    hass = SimpleNamespace(data={DOMAIN: {"translations": {"en": {}}}})
+    fake_api = AsyncMock(return_value={component_translation_key("feed"): "Feed now"})
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.translation_helpers.async_get_translations",
+        fake_api,
+    )
+
+    assert await async_get_component_translations(hass, "en") == {}
+    fake_api.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_get_component_translations_uses_bundled_when_api_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty API response should fall back to bundled translations."""
+    hass = SimpleNamespace(data={})
+
+    async def _empty_api(*_args: object, **_kwargs: object) -> dict[str, str]:
+        return {}
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.translation_helpers.async_get_translations",
+        _empty_api,
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.translation_helpers._load_bundled_component_translations",
+        lambda _lang: {component_translation_key("door"): "Door status"},
+    )
+
+    assert await async_get_component_translations(hass, "de") == {
+        component_translation_key("door"): "Door status"
+    }
 
 
 @pytest.mark.asyncio
