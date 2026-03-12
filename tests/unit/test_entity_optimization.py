@@ -209,6 +209,50 @@ def test_entity_update_batcher_unregister_entity_removes_pending_entries() -> No
     assert "sensor.temp" not in batcher._pending
 
 
+def test_entity_update_batcher_skips_unknown_entities_and_empty_batches() -> None:
+    """Unknown entities should be dropped while empty batches are no-ops."""
+    batcher = eo.EntityUpdateBatcher(hass=object(), batch_window_ms=0)
+
+    async def _run() -> None:
+        await batcher.schedule_update("sensor.unknown")
+        if batcher._batch_task is not None:
+            await batcher._batch_task
+
+        # Directly process a second time with no pending updates.
+        await batcher._process_batch()
+
+    asyncio.run(_run())
+
+    assert batcher.get_stats() == {
+        "update_count": 0,
+        "batch_count": 1,
+        "pending_updates": 0,
+        "registered_entities": 0,
+        "avg_batch_size": 0.0,
+    }
+
+
+def test_skip_redundant_update_keeps_new_value_when_change_is_significant() -> None:
+    """Decorator should preserve the updated value when change is significant."""
+    tracker = eo.SignificantChangeTracker()
+
+    class _Decorated:
+        entity_id = "sensor.decorated.significant"
+
+        def __init__(self) -> None:
+            self._attr_latitude = 1.0
+            self._next = 2.0
+
+        @eo.skip_redundant_update(tracker, "latitude", absolute_threshold=0.5)
+        async def async_update(self) -> None:
+            self._attr_latitude = self._next
+
+    entity = _Decorated()
+
+    asyncio.run(entity.async_update())
+    assert entity._attr_latitude == 2.0
+
+
 def test_entity_update_scheduler_unregister_missing_entity_is_noop() -> None:
     """Unregistering a missing entity should not mutate scheduler state."""
     scheduler = eo.EntityUpdateScheduler(hass=object())
