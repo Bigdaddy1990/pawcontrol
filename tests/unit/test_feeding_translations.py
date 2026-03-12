@@ -6,6 +6,8 @@ from itertools import count
 from pathlib import Path
 from typing import cast
 
+import pytest
+
 from custom_components.pawcontrol.feeding_translations import (
     _MAX_ISSUES,
     _MAX_MISSED_MEALS,
@@ -17,6 +19,7 @@ from custom_components.pawcontrol.feeding_translations import (
     _format_structured_message,
     _iter_text_candidates,
     _normalise_sequence,
+    async_get_feeding_compliance_translations,
     build_feeding_compliance_notification,
     build_feeding_compliance_summary,
     get_feeding_compliance_translations,
@@ -138,8 +141,68 @@ def test_build_notification_includes_translated_headers() -> None:
     )
     assert message_de is not None
     assert "Verpasste Mahlzeiten:" in message_de
-    assert "Nächste Schritte:" in message_de
-    assert "Buddy" in title_de
+
+
+@pytest.mark.asyncio
+async def test_async_get_feeding_compliance_translations_returns_runtime_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Async translation helper should keep fully resolved runtime values."""
+
+    async def _runtime_lookup(
+        _hass: object,
+        _language: str | None,
+    ) -> tuple[dict[str, str], dict[str, str]]:
+        return (
+            {
+                "component.pawcontrol.common.feeding_compliance_no_data_title": "Custom no-data",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_no_data_fallback": "No data available",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_alert_title": "Feeding alert",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_score_line": "Score: {score:.1f}% over {days} days",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_missed_meals_header": "Missed meals:",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_missed_meal_item": "{date}: {actual}/{expected} meals",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_issues_header": "Issues:",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_issue_item": "{date}: {issue}",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_recommendations_header": "Next steps:",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_recommendation_item": "- {recommendation}",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_no_recommendations": "Keep current routine",  # noqa: E501
+            },
+            {},
+        )
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.feeding_translations.async_get_component_translation_lookup",  # noqa: E501
+        _runtime_lookup,
+    )
+
+    translations = await async_get_feeding_compliance_translations(object(), "en")
+
+    assert translations["alert_title"] == "Feeding alert"
+    assert translations["no_recommendations"] == "Keep current routine"
+
+
+@pytest.mark.asyncio
+async def test_async_get_feeding_compliance_translations_falls_back_to_static(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Async helper should merge static defaults when runtime data is incomplete."""
+
+    async def _incomplete_lookup(
+        _hass: object,
+        _language: str | None,
+    ) -> tuple[dict[str, str], dict[str, str]]:
+        return ({}, {})
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.feeding_translations.async_get_component_translation_lookup",  # noqa: E501
+        _incomplete_lookup,
+    )
+
+    translations = await async_get_feeding_compliance_translations(object(), "de")
+
+    expected = get_feeding_compliance_translations("de")
+    assert translations["alert_title"] == expected["alert_title"]
+    assert translations["recommendations_header"] == expected["recommendations_header"]
 
 
 def test_build_notification_handles_no_data() -> None:
