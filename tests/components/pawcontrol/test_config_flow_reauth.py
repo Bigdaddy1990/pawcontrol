@@ -451,6 +451,22 @@ async def test_async_step_reauth_wraps_unexpected_errors() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_step_reauth_wraps_timeout_errors() -> None:
+    """Timeouts at the top-level reauth step should map to auth failures."""
+    entry = MockConfigEntry(domain="pawcontrol", entry_id="abc", data={}, options={})
+    flow = _Flow(entry)
+    flow.context["entry_id"] = "abc"
+
+    def _raise_timeout(_entry_id: str) -> None:
+        raise TimeoutError
+
+    flow.hass.config_entries = SimpleNamespace(async_get_entry=_raise_timeout)
+
+    with pytest.raises(ConfigEntryAuthFailed, match="Reauthentication timeout"):
+        await flow.async_step_reauth({})
+
+
+@pytest.mark.asyncio
 async def test_async_step_reauth_confirm_missing_entry_raises_auth_failed() -> None:
     """Reauth confirmation requires an active config entry."""
     entry = MockConfigEntry(domain="pawcontrol", data={}, options={})
@@ -514,6 +530,90 @@ async def test_async_step_reauth_confirm_surfaces_reauth_failed_error(
 
     assert result["step_id"] == "reauth_confirm"
     assert result["errors"] == {"base": "reauth_failed"}
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_confirm_reraises_auth_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ConfigEntryAuthFailed should not be swallowed by generic handlers."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+
+    def _raise_auth_failed(*, reason: str) -> None:
+        raise ConfigEntryAuthFailed(reason)
+
+    monkeypatch.setattr(flow, "_abort_if_unique_id_mismatch", _raise_auth_failed)
+
+    with pytest.raises(ConfigEntryAuthFailed, match="wrong_account"):
+        await flow.async_step_reauth_confirm({"confirm": True})
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_confirm_builds_default_summary_when_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A None health payload should fall back to the zero-issue summary."""
+    entry = MockConfigEntry(
+        domain="pawcontrol",
+        data={CONF_DOGS: [{DOG_ID_FIELD: "buddy"}]},
+        options={},
+    )
+    flow = _Flow(entry)
+
+    async def _return_none(_entry: MockConfigEntry) -> None:
+        return None
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _return_none)
+
+    result = await flow.async_step_reauth_confirm({"confirm": True})
+
+    assert result["type"] == "abort"
+    assert result["data_updates"]["health_total_dogs"] == 1
+    assert result["options_updates"]["reauth_health_issues"] == []
+
+
+@pytest.mark.asyncio
+async def test_check_config_health_handles_validation_and_estimation_exceptions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Health checks should report warning details for runtime validation failures."""
+    entry = MockConfigEntry(
+        domain="pawcontrol",
+        data={CONF_DOGS: [{CONF_MODULES: {"feeding": True}}]},
+        options={"entity_profile": "standard"},
+    )
+    flow = _Flow(entry)
+
+    def _raise_validation_error(_dog: Mapping[str, object]) -> bool:
+        raise RuntimeError("bad dog")
+
+    monkeypatch.setattr(
+        flow, "_is_dog_config_valid_for_reauth", _raise_validation_error
+    )
+
+    class _ExplodingFactory:
+        def __init__(self, _hass: object) -> None:
+            pass
+
+        async def estimate_entity_count_async(
+            self,
+            _profile: str,
+            _modules: Mapping[str, bool],
+        ) -> int:
+            raise RuntimeError("factory boom")
+
+    monkeypatch.setattr(config_flow_reauth, "EntityFactory", _ExplodingFactory)
+
+    summary = await flow._check_config_health_enhanced(entry)
+
+    assert any(
+        "Dog config validation error" in warning for warning in summary["warnings"]
+    )
+    assert any(
+        "Entity estimation failed: bad dog" in warning
+        for warning in summary["warnings"]
+    )
 
 
 @pytest.mark.asyncio
