@@ -22,7 +22,7 @@ class _DummyCoordinator:
         self.last_update_success_time = datetime(2024, 1, 1, tzinfo=UTC)
         self.last_exception: Exception | None = None
 
-    def async_add_listener(self, _callback):  # pragma: no cover - protocol stub
+    def async_add_listener(self, _callback: "Callable[[], None]") -> "Callable[[], None]":  # pragma: no cover - protocol stub
         return lambda: None
 
     async def async_request_refresh(
