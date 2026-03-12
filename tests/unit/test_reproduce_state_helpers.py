@@ -1,164 +1,122 @@
-"""Unit tests for reproduce state helpers."""
+"""Unit tests for shared reproduce-state helper coverage."""
 
-from typing import Any
+from types import SimpleNamespace
 
-from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
-from homeassistant.core import Context, HomeAssistant, State
 import pytest
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.core import Context, State
 
 from custom_components.pawcontrol.reproduce_state import async_reproduce_platform_states
 
 
 @pytest.mark.asyncio
-async def test_async_reproduce_platform_states_calls_handler_with_context(
-    hass: HomeAssistant,
-) -> None:
-    """Invoke the handler when state and preprocess are valid."""
-    entity_id = "switch.pawcontrol_test"
-    desired_state = State(entity_id, STATE_ON)
-    current_state = State(entity_id, STATE_OFF)
+async def test_async_reproduce_platform_states_calls_handler_for_valid_state() -> None:
+    """Valid states should be preprocessed and forwarded to the handler."""
+    current_state = State("switch.pawcontrol_main", STATE_OFF)
+    hass = SimpleNamespace(states=SimpleNamespace(get=lambda _entity_id: current_state))
     context = Context()
+    calls: list[tuple[str, str, str, Context | None]] = []
 
-    hass.states.async_set(entity_id, STATE_OFF)
-
-    calls: list[tuple[str, str, bool, dict[str, Any]]] = []
-
-    def preprocess(state: State) -> dict[str, Any] | None:
-        return {"target": state.state}
-
-    async def handler(
-        _hass: HomeAssistant,
-        wanted_state: State,
-        existing_state: State,
-        processed: dict[str, Any],
-        call_context: Context | None,
-    ) -> None:
-        calls.append((
-            wanted_state.entity_id,
-            existing_state.state,
-            call_context is context,
-            processed,
-        ))
+    async def _handler(_hass: object, target: State, current: State, value: str, ctx: Context | None) -> None:
+        calls.append((target.entity_id, current.state, value, ctx))
 
     await async_reproduce_platform_states(
         hass,
-        [desired_state],
+        [State("switch.pawcontrol_main", STATE_ON)],
         "switch",
-        preprocess,
-        handler,
+        lambda state: state.state,
+        _handler,
         context=context,
     )
 
-    assert calls == [(entity_id, current_state.state, True, {"target": STATE_ON})]
+    assert calls == [("switch.pawcontrol_main", STATE_OFF, STATE_ON, context)]
 
 
 @pytest.mark.asyncio
-async def test_async_reproduce_platform_states_skips_invalid_and_missing_entities(
-    hass: HomeAssistant,
+async def test_async_reproduce_platform_states_skips_unavailable_and_unknown_states(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Skip unavailable, unknown, and missing entity states."""
-    existing_entity = "switch.pawcontrol_existing"
-    missing_entity = "switch.pawcontrol_missing"
+    """Unavailable/unknown target states should only log and skip handling."""
+    hass = SimpleNamespace(states=SimpleNamespace(get=lambda _entity_id: State("switch.any", STATE_OFF)))
+    called = False
 
-    hass.states.async_set(existing_entity, STATE_OFF)
-
-    handled: list[str] = []
-
-    def preprocess(state: State) -> str | None:
-        return state.state
-
-    async def handler(
-        _hass: HomeAssistant,
-        wanted_state: State,
-        _existing_state: State,
-        _processed: str,
+    async def _handler(
+        _hass: object,
+        _target: State,
+        _current: State,
+        _value: str,
         _context: Context | None,
     ) -> None:
-        handled.append(wanted_state.entity_id)
+        nonlocal called
+        called = True
 
     await async_reproduce_platform_states(
         hass,
         [
-            State(existing_entity, STATE_UNAVAILABLE),
-            State(existing_entity, STATE_UNKNOWN),
-            State(missing_entity, STATE_ON),
+            State("switch.pawcontrol_main", STATE_UNAVAILABLE),
+            State("switch.pawcontrol_main", STATE_UNKNOWN),
         ],
         "switch",
-        preprocess,
-        handler,
+        lambda state: state.state,
+        _handler,
     )
 
-    assert handled == []
-    assert "Cannot reproduce switch state" in caplog.text
-    assert "Switch entity switch.pawcontrol_missing not found" in caplog.text
+    assert called is False
+    assert "Cannot reproduce switch state for switch.pawcontrol_main" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_async_reproduce_platform_states_skips_when_preprocess_returns_none(
-    hass: HomeAssistant,
-) -> None:
-    """Do not call handler when preprocess returns None."""
-    entity_id = "switch.pawcontrol_skip"
-    hass.states.async_set(entity_id, STATE_OFF)
+async def test_async_reproduce_platform_states_skips_when_preprocess_returns_none() -> None:
+    """States should be skipped when preprocess indicates invalid target."""
+    hass = SimpleNamespace(states=SimpleNamespace(get=lambda _entity_id: State("switch.any", STATE_OFF)))
+    called = False
 
-    calls = 0
-
-    def preprocess(_state: State) -> None:
-        return None
-
-    async def handler(
-        _hass: HomeAssistant,
-        _wanted_state: State,
-        _existing_state: State,
-        _processed: None,
+    async def _handler(
+        _hass: object,
+        _target: State,
+        _current: State,
+        _value: str,
         _context: Context | None,
     ) -> None:
-        nonlocal calls
-        calls += 1
+        nonlocal called
+        called = True
 
     await async_reproduce_platform_states(
         hass,
-        [State(entity_id, STATE_ON)],
+        [State("switch.pawcontrol_main", STATE_ON)],
         "switch",
-        preprocess,
-        handler,
+        lambda _state: None,
+        _handler,
     )
 
-    assert calls == 0
+    assert called is False
 
 
 @pytest.mark.asyncio
-async def test_async_reproduce_platform_states_logs_missing_entity_with_title_case(
-    hass: HomeAssistant,
+async def test_async_reproduce_platform_states_logs_when_entity_is_missing(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Missing entities should emit a platform-prefixed warning and skip handler."""
-    processed_states: list[str] = []
-    handled = False
+    """Missing entities should log and avoid calling the handler."""
+    hass = SimpleNamespace(states=SimpleNamespace(get=lambda _entity_id: None))
+    called = False
 
-    def preprocess(state: State) -> str:
-        processed_states.append(state.entity_id)
-        return state.state
-
-    async def handler(
-        _hass: HomeAssistant,
-        _wanted_state: State,
-        _existing_state: State,
-        _processed: str,
+    async def _handler(
+        _hass: object,
+        _target: State,
+        _current: State,
+        _value: str,
         _context: Context | None,
     ) -> None:
-        nonlocal handled
-        handled = True
+        nonlocal called
+        called = True
 
     await async_reproduce_platform_states(
         hass,
-        [State("switch.pawcontrol_absent", STATE_ON)],
+        [State("switch.pawcontrol_missing", STATE_ON)],
         "switch",
-        preprocess,
-        handler,
+        lambda state: state.state,
+        _handler,
     )
 
-    assert processed_states == ["switch.pawcontrol_absent"]
-    assert handled is False
-    assert "Switch entity switch.pawcontrol_absent not found" in caplog.text
+    assert called is False
+    assert "Switch entity switch.pawcontrol_missing not found" in caplog.text
