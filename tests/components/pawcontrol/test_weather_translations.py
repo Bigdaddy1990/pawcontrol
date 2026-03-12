@@ -82,6 +82,48 @@ def test_load_static_common_translations_handles_invalid_json() -> None:
     assert common == {}
 
 
+def test_load_static_common_translations_ignores_non_mapping_common_payload() -> None:
+    """A non-dict ``common`` section should normalize to an empty mapping."""
+    with (
+        patch.object(Path, "exists", return_value=True),
+        patch.object(Path, "read_text", return_value='{"common": ["invalid"]}'),
+    ):
+        from custom_components.pawcontrol import weather_translations as module
+
+        common = module._load_static_common_translations("fr")
+
+    assert common == {}
+
+
+def test_load_static_common_translations_merges_fallback_and_requested_language() -> (
+    None
+):
+    """Requested language keys should override fallback English entries."""
+    payload_by_language = {
+        "en": '{"common": {"shared": "english", "en_only": "base"}}',
+        "fr": '{"common": {"shared": "french", "fr_only": "local"}}',
+    }
+
+    def _read_text(self: Path, encoding: str = "utf-8") -> str:
+        del encoding
+        language = self.stem
+        return payload_by_language[language]
+
+    with (
+        patch.object(Path, "exists", return_value=True),
+        patch.object(Path, "read_text", _read_text),
+    ):
+        from custom_components.pawcontrol import weather_translations as module
+
+        common = module._load_static_common_translations("fr")
+
+    assert common == {
+        "shared": "french",
+        "en_only": "base",
+        "fr_only": "local",
+    }
+
+
 async def test_async_get_weather_translations_prefers_requested_then_fallback() -> None:
     """Async translation helper should merge requested and fallback lookups."""
     requested: Mapping[str, str] = {
