@@ -48,7 +48,7 @@ class _SelectorNamespaceProtocol(Protocol):
 
     def __call__(self, config: Any) -> Any:
         """Return normalized selector config payload."""
-        pass
+        pass  # pragma: no cover
 
 
 try:  # pragma: no cover - exercised when Home Assistant is installed
