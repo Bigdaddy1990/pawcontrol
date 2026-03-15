@@ -1852,6 +1852,41 @@ async def test_configure_dog_modules_requires_selected_dog(
 
 
 @pytest.mark.asyncio
+async def test_manage_dogs_treats_non_sequence_payload_as_empty(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """The dog management menu should degrade gracefully for invalid dog payloads."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    mock_config_entry.data = {**mock_config_entry.data, CONF_DOGS: "not-a-list"}
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    result = await flow.async_step_manage_dogs()
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "manage_dogs"
+    assert result["description_placeholders"] == {
+        "current_dogs_count": "0",
+        "dogs_list": "No dogs configured",
+    }
+
+
+@pytest.mark.asyncio
+async def test_manage_dogs_unknown_action_returns_main_menu(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """Unexpected manage-dogs actions should route back to the options root step."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    result = await flow.async_step_manage_dogs({"action": "unknown-action"})
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+@pytest.mark.asyncio
 async def test_configure_dog_modules_rejects_non_string_dog_id(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
