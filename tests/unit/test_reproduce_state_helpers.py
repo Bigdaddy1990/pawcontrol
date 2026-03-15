@@ -2,9 +2,9 @@
 
 from types import SimpleNamespace
 
-import pytest
 from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Context, State
+import pytest
 
 from custom_components.pawcontrol.reproduce_state import async_reproduce_platform_states
 
@@ -17,7 +17,9 @@ async def test_async_reproduce_platform_states_calls_handler_for_valid_state() -
     context = Context()
     calls: list[tuple[str, str, str, Context | None]] = []
 
-    async def _handler(_hass: object, target: State, current: State, value: str, ctx: Context | None) -> None:
+    async def _handler(
+        _hass: object, target: State, current: State, value: str, ctx: Context | None
+    ) -> None:
         calls.append((target.entity_id, current.state, value, ctx))
 
     await async_reproduce_platform_states(
@@ -37,7 +39,9 @@ async def test_async_reproduce_platform_states_skips_unavailable_and_unknown_sta
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Unavailable/unknown target states should only log and skip handling."""
-    hass = SimpleNamespace(states=SimpleNamespace(get=lambda _entity_id: State("switch.any", STATE_OFF)))
+    hass = SimpleNamespace(
+        states=SimpleNamespace(get=lambda _entity_id: State("switch.any", STATE_OFF))
+    )
     called = False
 
     async def _handler(
@@ -66,9 +70,13 @@ async def test_async_reproduce_platform_states_skips_unavailable_and_unknown_sta
 
 
 @pytest.mark.asyncio
-async def test_async_reproduce_platform_states_skips_when_preprocess_returns_none() -> None:
+async def test_async_reproduce_platform_states_skips_when_preprocess_returns_none() -> (
+    None
+):
     """States should be skipped when preprocess indicates invalid target."""
-    hass = SimpleNamespace(states=SimpleNamespace(get=lambda _entity_id: State("switch.any", STATE_OFF)))
+    hass = SimpleNamespace(
+        states=SimpleNamespace(get=lambda _entity_id: State("switch.any", STATE_OFF))
+    )
     called = False
 
     async def _handler(

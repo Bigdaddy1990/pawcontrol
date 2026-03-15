@@ -249,6 +249,6 @@ def pytest_sessionfinish(session: object, exitstatus: int) -> None:
 
 def pytest_unconfigure(config: object) -> None:
     if hasattr(config, "_pawcontrol_cov"):
-        delattr(config, "_pawcontrol_cov")
+        del config._pawcontrol_cov
     if hasattr(config, "_pawcontrol_cov_include"):
-        delattr(config, "_pawcontrol_cov_include")
+        del config._pawcontrol_cov_include

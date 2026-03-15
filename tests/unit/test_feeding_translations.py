@@ -171,7 +171,7 @@ async def test_async_get_feeding_compliance_translations_returns_runtime_values(
         )
 
     monkeypatch.setattr(
-        "custom_components.pawcontrol.feeding_translations.async_get_component_translation_lookup",  # noqa: E501
+        "custom_components.pawcontrol.feeding_translations.async_get_component_translation_lookup",
         _runtime_lookup,
     )
 
@@ -194,7 +194,7 @@ async def test_async_get_feeding_compliance_translations_falls_back_to_static(
         return ({}, {})
 
     monkeypatch.setattr(
-        "custom_components.pawcontrol.feeding_translations.async_get_component_translation_lookup",  # noqa: E501
+        "custom_components.pawcontrol.feeding_translations.async_get_component_translation_lookup",
         _incomplete_lookup,
     )
 
