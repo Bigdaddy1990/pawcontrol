@@ -1,7 +1,12 @@
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
+
+from aiohttp import ClientSession
+import pytest
 
 from custom_components.pawcontrol import module_adapters
 from custom_components.pawcontrol.module_adapters import (
+    CoordinatorModuleAdapters,
     _BaseModuleAdapter,
     _ExpiringCache,
     _normalise_health_alert,
@@ -151,3 +156,77 @@ def test_normalise_health_medication_defaults_to_name_field() -> None:
     normalised = _normalise_health_medication({"name": "Joint Support"})
 
     assert normalised == {"name": "Joint Support"}
+
+
+@pytest.mark.asyncio
+async def test_coordinator_module_adapters_build_tasks_for_enabled_modules() -> None:
+    config_entry = SimpleNamespace(data={"dogs": []}, options={})
+    async with ClientSession() as session:
+        adapters = CoordinatorModuleAdapters(
+            session=session,
+            config_entry=config_entry,
+            use_external_api=False,
+            cache_ttl=timedelta(minutes=5),
+            api_client=None,
+        )
+
+        modules = {
+            "feeding": True,
+            "walk": False,
+            "gps": True,
+            "health": True,
+            "weather": True,
+            "garden": False,
+        }
+
+        tasks = adapters.build_tasks("dog-1", modules)
+
+        assert [task.module for task in tasks] == [
+            "feeding",
+            "gps",
+            "geofencing",
+            "health",
+            "weather",
+        ]
+
+        for task in tasks:
+            task.coroutine.close()
+
+
+@pytest.mark.asyncio
+async def test_coordinator_module_adapters_cache_lifecycle_and_detach() -> None:
+    config_entry = SimpleNamespace(data={"dogs": []}, options={})
+    async with ClientSession() as session:
+        adapters = CoordinatorModuleAdapters(
+            session=session,
+            config_entry=config_entry,
+            use_external_api=False,
+            cache_ttl=timedelta(minutes=5),
+            api_client=None,
+        )
+
+        adapters.attach_managers(
+            data_manager=object(),
+            feeding_manager=object(),
+            walk_manager=object(),
+            gps_geofence_manager=object(),
+            weather_health_manager=object(),
+            garden_manager=object(),
+        )
+        adapters.detach_managers()
+
+        await adapters.feeding.async_get_data("dog-1")
+        await adapters.geofencing.async_get_data("dog-1")
+        await adapters.health.async_get_data("dog-1")
+        await adapters.weather.async_get_data("dog-1")
+        await adapters.garden.async_get_data("dog-1")
+
+        metrics = adapters.cache_metrics()
+        assert metrics.entries == 5
+        assert metrics.hits == 0
+        assert metrics.misses == 5
+
+        adapters.clear_caches()
+        assert adapters.cache_metrics().entries == 0
+
+        assert adapters.cleanup_expired(datetime(2026, 1, 1, tzinfo=UTC)) == 0
