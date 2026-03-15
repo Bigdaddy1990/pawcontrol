@@ -161,6 +161,28 @@ def test_build_reauth_updates_uses_summary_fields() -> None:
     assert "Status: attention required" in options_updates["last_reauth_summary"]
 
 
+def test_is_dog_config_valid_for_reauth_delegates_to_payload_validator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reauth payload checks should delegate to the shared validator helper."""
+
+    seen_payloads: list[Mapping[str, object]] = []
+
+    def _fake_validator(dog_payload: Mapping[str, object]) -> bool:
+        seen_payloads.append(dog_payload)
+        return dog_payload.get(DOG_ID_FIELD) == "buddy"
+
+    monkeypatch.setattr(
+        config_flow_reauth,
+        "is_dog_config_payload_valid",
+        _fake_validator,
+    )
+
+    assert ReauthFlowMixin._is_dog_config_valid_for_reauth({DOG_ID_FIELD: "buddy"})
+    assert not ReauthFlowMixin._is_dog_config_valid_for_reauth({DOG_ID_FIELD: "luna"})
+    assert seen_payloads == [{DOG_ID_FIELD: "buddy"}, {DOG_ID_FIELD: "luna"}]
+
+
 @pytest.mark.asyncio
 async def test_check_config_health_reports_duplicate_ids_and_module_warnings(
     monkeypatch: pytest.MonkeyPatch,
