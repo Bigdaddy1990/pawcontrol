@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from homeassistant.util import dt as dt_util
 import pytest
@@ -1436,3 +1437,47 @@ async def test_run_maintenance_records_failure(monkeypatch) -> None:
         "runtime_available": True,
     }
     assert maintenance_last["details"] == {}
+
+
+@pytest.mark.asyncio
+async def test_shutdown_unsubscribes_and_clears_runtime_caches() -> None:
+    """Coordinator shutdown should release maintenance hooks and clear caches."""
+    clear_caches = MagicMock()
+    unsubscribe = MagicMock()
+    coordinator = SimpleNamespace(
+        _maintenance_unsub=unsubscribe,
+        _data={"dog": {"status": "ok"}},
+        _modules=SimpleNamespace(clear_caches=clear_caches),
+        logger=SimpleNamespace(info=MagicMock()),
+    )
+
+    await tasks.shutdown(coordinator)
+
+    unsubscribe.assert_called_once_with()
+    assert coordinator._maintenance_unsub is None
+    assert coordinator._data == {}
+    clear_caches.assert_called_once_with()
+    coordinator.logger.info.assert_called_once_with(
+        "Coordinator shutdown completed successfully"
+    )
+
+
+@pytest.mark.asyncio
+async def test_shutdown_skips_unsubscribe_when_not_registered() -> None:
+    """Shutdown should still clear runtime caches without a maintenance hook."""
+    clear_caches = MagicMock()
+    coordinator = SimpleNamespace(
+        _maintenance_unsub=None,
+        _data={"dog": {"status": "ok"}},
+        _modules=SimpleNamespace(clear_caches=clear_caches),
+        logger=SimpleNamespace(info=MagicMock()),
+    )
+
+    await tasks.shutdown(coordinator)
+
+    assert coordinator._maintenance_unsub is None
+    assert coordinator._data == {}
+    clear_caches.assert_called_once_with()
+    coordinator.logger.info.assert_called_once_with(
+        "Coordinator shutdown completed successfully"
+    )
