@@ -738,6 +738,33 @@ def _is_enum_type(value: Any) -> bool:
     return isinstance(value, type) and issubclass(value, Enum)
 
 
+def _ensure_config_entry_state_helpers(state_cls: type[Enum]) -> type[Enum]:
+    """Attach missing helper methods expected by the compatibility layer."""
+    if not hasattr(state_cls, "from_value"):
+
+        @classmethod
+        def _from_value(cls: type[Enum], value: str) -> Enum:
+            """Resolve enum members from either names or raw values."""
+            normalized = value.casefold()
+            try:
+                return cls[value.upper()]
+            except KeyError:
+                for member in cls:
+                    if member.name.casefold() == normalized:
+                        return member
+                    member_value = getattr(member, "value", None)
+                    if isinstance(member_value, str):
+                        if member_value.casefold() == normalized:
+                            return member
+                    elif str(member_value).casefold() == normalized:
+                        return member
+            raise ValueError(value)
+
+        state_cls.from_value = _from_value
+
+    return state_cls
+
+
 def _sync_config_entry_symbols(
     config_entries_module: Any | None,
     core_module: Any | None,
@@ -766,7 +793,9 @@ def _sync_config_entry_symbols(
             config_entries_module.ConfigEntry = ConfigEntry
         module_state = getattr(config_entries_module, "ConfigEntryState", None)
         if _is_enum_type(module_state):
-            globals()["ConfigEntryState"] = cast(type[Enum], module_state)
+            globals()["ConfigEntryState"] = _ensure_config_entry_state_helpers(
+                cast(type[Enum], module_state),
+            )
         else:
             config_entries_module.ConfigEntryState = ConfigEntryState
         module_change = getattr(
@@ -786,7 +815,9 @@ def _sync_config_entry_symbols(
             core_module.ConfigEntry = ConfigEntry
         state_cls = getattr(core_module, "ConfigEntryState", None)
         if _is_enum_type(state_cls):
-            globals()["ConfigEntryState"] = cast(type[Enum], state_cls)
+            globals()["ConfigEntryState"] = _ensure_config_entry_state_helpers(
+                cast(type[Enum], state_cls),
+            )
         else:
             core_module.ConfigEntryState = ConfigEntryState
         change_cls = getattr(core_module, "ConfigEntryChange", None)
