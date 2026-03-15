@@ -194,8 +194,13 @@ async def test_coordinator_module_adapters_build_tasks_for_enabled_modules() -> 
 
 
 @pytest.mark.asyncio
-async def test_coordinator_module_adapters_cache_lifecycle_and_detach() -> None:
+async def test_coordinator_module_adapters_cache_lifecycle_and_detach(
+    monkeypatch,
+) -> None:
     config_entry = SimpleNamespace(data={"dogs": []}, options={})
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    monkeypatch.setattr(module_adapters, "dt_util", _FrozenTime(now))
+
     async with ClientSession() as session:
         adapters = CoordinatorModuleAdapters(
             session=session,
@@ -213,20 +218,27 @@ async def test_coordinator_module_adapters_cache_lifecycle_and_detach() -> None:
             weather_health_manager=object(),
             garden_manager=object(),
         )
-        adapters.detach_managers()
 
         await adapters.feeding.async_get_data("dog-1")
+        await adapters.walk.async_get_data("dog-1")
         await adapters.geofencing.async_get_data("dog-1")
         await adapters.health.async_get_data("dog-1")
         await adapters.weather.async_get_data("dog-1")
         await adapters.garden.async_get_data("dog-1")
 
         metrics = adapters.cache_metrics()
-        assert metrics.entries == 5
+        assert metrics.entries == 6
         assert metrics.hits == 0
-        assert metrics.misses == 5
+        assert metrics.misses == 6
+
+        assert adapters.cleanup_expired(now + timedelta(minutes=4)) == 0
+        assert adapters.cache_metrics().entries == 6
+        assert adapters.cleanup_expired(now + timedelta(minutes=6)) == 6
+        assert adapters.cache_metrics().entries == 0
+
+        await adapters.feeding.async_get_data("dog-1")
+        assert adapters.cache_metrics().entries == 1
 
         adapters.clear_caches()
         assert adapters.cache_metrics().entries == 0
-
-        assert adapters.cleanup_expired(datetime(2026, 1, 1, tzinfo=UTC)) == 0
+        adapters.detach_managers()
