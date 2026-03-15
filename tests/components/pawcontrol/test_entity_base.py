@@ -23,8 +23,9 @@ class _DummyCoordinator:
         self.last_exception: Exception | None = None
 
     def async_add_listener(
-        self, _callback: Callable[[], None]
-    ) -> Callable[[], None]:  # pragma: no cover - protocol stub
+        self,
+        _callback: Callable[[], None],  # noqa: F821
+    ) -> Callable[[], None]:  # pragma: no cover - protocol stub  # noqa: F821
         return lambda: None
 
     async def async_request_refresh(
