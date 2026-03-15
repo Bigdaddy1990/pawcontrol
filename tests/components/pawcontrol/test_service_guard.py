@@ -1,0 +1,139 @@
+"""Tests for service guard telemetry helpers."""
+
+from custom_components.pawcontrol.service_guard import (
+    ServiceGuardResult,
+    ServiceGuardSnapshot,
+    normalise_guard_history,
+    normalise_guard_result_payload,
+)
+
+
+def test_service_guard_result_to_mapping_omits_empty_optional_fields() -> None:
+    """Optional payload keys should only be emitted when populated."""
+    executed = ServiceGuardResult(
+        domain="notify",
+        service="mobile_app",
+        executed=True,
+    )
+    skipped = ServiceGuardResult(
+        domain="light",
+        service="turn_on",
+        executed=False,
+        reason="quiet_hours",
+        description="Guard blocked call",
+    )
+
+    assert executed.to_mapping() == {
+        "domain": "notify",
+        "service": "mobile_app",
+        "executed": True,
+    }
+    assert skipped.to_mapping() == {
+        "domain": "light",
+        "service": "turn_on",
+        "executed": False,
+        "reason": "quiet_hours",
+        "description": "Guard blocked call",
+    }
+
+
+def test_service_guard_snapshot_accumulate_normalizes_existing_metrics() -> None:
+    """Accumulate should coerce numeric payloads and merge reasons."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("notify", "mobile_app", True),
+        ServiceGuardResult("light", "turn_on", False, reason="quiet_hours"),
+        ServiceGuardResult("switch", "toggle", False),
+    ])
+
+    metrics: dict[str, object] = {
+        "executed": "4",
+        "skipped": True,
+        "reasons": {"quiet_hours": 2.0, "invalid": "nope"},
+        "last_results": "not-a-list",
+    }
+
+    accumulated = snapshot.accumulate(metrics)
+
+    assert accumulated["executed"] == 5
+    assert accumulated["skipped"] == 3
+    assert accumulated["reasons"] == {
+        "quiet_hours": 3,
+        "invalid": 0,
+        "unknown": 1,
+    }
+    assert len(accumulated["last_results"]) == 3
+
+
+def test_service_guard_snapshot_zero_metrics_and_summary_payload() -> None:
+    """Summary and metrics helpers should export consistent structures."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("notify", "mobile_app", True)
+    ])
+
+    assert ServiceGuardSnapshot.zero_metrics() == {
+        "executed": 0,
+        "skipped": 0,
+        "reasons": {},
+        "last_results": [],
+    }
+    assert snapshot.to_summary() == {
+        "executed": 1,
+        "skipped": 0,
+        "reasons": {},
+        "results": [
+            {
+                "domain": "notify",
+                "service": "mobile_app",
+                "executed": True,
+            }
+        ],
+    }
+    assert snapshot.to_metrics() == {
+        "executed": 1,
+        "skipped": 0,
+        "reasons": {},
+        "last_results": [
+            {
+                "domain": "notify",
+                "service": "mobile_app",
+                "executed": True,
+            }
+        ],
+    }
+
+
+def test_normalise_helpers_filter_invalid_values() -> None:
+    """Normalization should drop empty fields and reject invalid history payloads."""
+    payload = {
+        "executed": 0,
+        "domain": "",
+        "service": "turn_off",
+        "reason": None,
+        "description": "blocked",
+    }
+
+    assert normalise_guard_result_payload(payload) == {
+        "executed": False,
+        "service": "turn_off",
+        "description": "blocked",
+    }
+
+    history = normalise_guard_history([
+        ServiceGuardResult("notify", "mobile_app", True),
+        payload,
+        "invalid",
+    ])
+    assert history == [
+        {
+            "domain": "notify",
+            "service": "mobile_app",
+            "executed": True,
+        },
+        {
+            "executed": False,
+            "service": "turn_off",
+            "description": "blocked",
+        },
+    ]
+
+    assert normalise_guard_history("not-a-sequence") == []
