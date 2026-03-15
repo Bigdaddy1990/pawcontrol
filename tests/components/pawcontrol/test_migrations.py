@@ -16,6 +16,7 @@ from custom_components.pawcontrol.migrations import (
     _coerce_modules_payload,
     _normalize_dog_entry,
     _normalize_dog_options,
+    _resolve_dog_identifier,
     async_migrate_entry,
 )
 from custom_components.pawcontrol.types import (
@@ -271,3 +272,37 @@ def test_resolve_identifier_gracefully_handles_coercion_errors(
     assert normalized[DOG_ID_FIELD] == "Fallback"
     assert normalized[DOG_NAME_FIELD] == "Fallback"
     assert _normalize_dog_entry({"id": "Bolt"}) is None
+
+
+def test_coerce_modules_payload_accepts_mapping_payloads() -> None:
+    """Mapping payloads should be normalized through module config helpers."""
+    payload = {"gps": 1, "feeding": "off", "unknown": True}
+
+    assert _coerce_modules_payload(payload) == {
+        "gps": True,
+        "feeding": False,
+    }
+
+
+def test_resolve_dog_identifier_uses_fallback_normalization() -> None:
+    """Fallback identifiers should be normalized when legacy keys are absent."""
+    candidate = {"name": "No Identifier"}
+
+    assert _resolve_dog_identifier(candidate, "  Daisy  ") == "daisy"
+
+
+def test_resolve_dog_identifier_returns_raw_fallback_on_normalize_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fallback ids keep their raw stripped value when normalization fails."""
+
+    def _raise_for_any(raw_value: object) -> str:
+        raise InputCoercionError("dog_id", raw_value, "boom")
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.migrations.normalize_dog_id",
+        _raise_for_any,
+    )
+
+    candidate = {"name": "No Identifier"}
+    assert _resolve_dog_identifier(candidate, "  Raw Fallback  ") == "Raw Fallback"
