@@ -18,9 +18,13 @@ from custom_components.pawcontrol.coordinator_runtime import (
 )
 from custom_components.pawcontrol.exceptions import (
     ConfigEntryAuthFailed,
+    GPSUnavailableError,
+    NetworkError,
+    RateLimitError,
     UpdateFailed,
     ValidationError,
 )
+from custom_components.pawcontrol.types import CoordinatorModuleTask
 
 # ---------------------------------------------------------------------------
 # EntityBudgetSnapshot
@@ -360,3 +364,58 @@ class TestCoordinatorRuntimeExecuteCycle:
 
         with pytest.raises(ValidationError, match="Dog configuration not found"):
             await runtime._fetch_dog_data("ghost")
+
+    @pytest.mark.asyncio
+    async def test_fetch_dog_data_maps_module_results_and_errors(self) -> None:
+        runtime = self._make_runtime()
+
+        async def _gps_unavailable() -> dict[str, object]:
+            raise GPSUnavailableError("rex", reason="no-fix")
+
+        async def _rate_limited() -> dict[str, object]:
+            raise RateLimitError("feeding", limit="10/min", retry_after=15)
+
+        async def _network_failed() -> dict[str, object]:
+            raise NetworkError("timeout")
+
+        async def _unexpected_error() -> dict[str, object]:
+            raise RuntimeError("boom")
+
+        async def _ok_payload() -> dict[str, object]:
+            return {"status": "ok", "value": 42}
+
+        runtime._modules.build_tasks.return_value = [
+            CoordinatorModuleTask(module="gps", coroutine=_gps_unavailable()),
+            CoordinatorModuleTask(module="feeding", coroutine=_rate_limited()),
+            CoordinatorModuleTask(module="walk", coroutine=_network_failed()),
+            CoordinatorModuleTask(module="weather", coroutine=_unexpected_error()),
+            CoordinatorModuleTask(module="garden", coroutine=_ok_payload()),
+        ]
+
+        with patch(
+            "custom_components.pawcontrol.coordinator_runtime.build_dog_status_snapshot",
+            return_value={"overall_status": "mixed"},
+        ) as snapshot_builder:
+            payload = await runtime._fetch_dog_data("rex")
+
+        assert payload["gps"] == {
+            "status": "unavailable",
+            "reason": "GPS data is not available for dog 'rex': no-fix",
+        }
+        assert payload["feeding"] == {
+            "status": "rate_limited",
+            "error": "Too many requests. Please wait before trying again.",
+            "retry_after": 15,
+        }
+        assert payload["walk"] == {
+            "status": "network_error",
+            "error": "timeout",
+        }
+        assert payload["weather"] == {
+            "status": "error",
+            "error": "boom",
+            "error_type": "RuntimeError",
+        }
+        assert payload["garden"] == {"status": "ok", "value": 42}
+        assert payload["status_snapshot"] == {"overall_status": "mixed"}
+        snapshot_builder.assert_called_once_with("rex", payload)
