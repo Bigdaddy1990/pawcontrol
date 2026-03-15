@@ -7,6 +7,8 @@ import pytest
 from custom_components.pawcontrol import module_adapters
 from custom_components.pawcontrol.module_adapters import (
     CoordinatorModuleAdapters,
+    GardenModuleAdapter,
+    WeatherModuleAdapter,
     _BaseModuleAdapter,
     _ExpiringCache,
     _normalise_health_alert,
@@ -194,7 +196,9 @@ async def test_coordinator_module_adapters_build_tasks_for_enabled_modules() -> 
 
 
 @pytest.mark.asyncio
-async def test_coordinator_module_adapters_build_tasks_for_walk_and_garden_only() -> None:
+async def test_coordinator_module_adapters_build_tasks_for_walk_and_garden_only() -> (
+    None
+):
     config_entry = SimpleNamespace(data={"dogs": []}, options={})
     async with ClientSession() as session:
         adapters = CoordinatorModuleAdapters(
@@ -271,3 +275,157 @@ async def test_coordinator_module_adapters_cache_lifecycle_and_detach(
         adapters.clear_caches()
         assert adapters.cache_metrics().entries == 0
         adapters.detach_managers()
+
+
+@pytest.mark.asyncio
+async def test_weather_module_adapter_builds_ready_payload_and_caches() -> None:
+    config_entry = SimpleNamespace(
+        data={
+            "dogs": [
+                {
+                    "dog_id": "dog-1",
+                    "dog_breed": "Border Collie",
+                    "dog_age": "36",
+                    "health_conditions": ["arthritis", ""],
+                },
+                "ignored",
+            ],
+        },
+        options={"weather_entity": "weather.home"},
+    )
+    adapter = WeatherModuleAdapter(
+        config_entry=config_entry,
+        ttl=timedelta(minutes=5),
+    )
+
+    now = datetime(2026, 1, 2, tzinfo=UTC)
+    update_calls: list[str] = []
+    recommendation_calls: list[tuple[str | None, int | None, list[str] | None]] = []
+
+    class _Manager:
+        async def async_update_weather_data(self, entity_id: str) -> None:
+            update_calls.append(entity_id)
+
+        def get_active_alerts(self) -> list[SimpleNamespace]:
+            return [
+                SimpleNamespace(
+                    alert_type=SimpleNamespace(value="heat"),
+                    severity=SimpleNamespace(value="high"),
+                    title="Heat warning",
+                    message="Avoid midday walks",
+                    recommendations=("walk at dawn",),
+                    duration_hours=5,
+                    affected_breeds=("Border Collie",),
+                    age_considerations=("puppy",),
+                ),
+            ]
+
+        def get_recommendations_for_dog(
+            self,
+            *,
+            dog_breed: str | None,
+            dog_age_months: int | None,
+            health_conditions: list[str] | None,
+        ) -> list[str]:
+            recommendation_calls.append(
+                (dog_breed, dog_age_months, health_conditions),
+            )
+            return ["Hydration first"]
+
+        def get_weather_health_score(self) -> int:
+            return 82
+
+        def get_current_conditions(self) -> SimpleNamespace:
+            return SimpleNamespace(
+                temperature_c=22.5,
+                humidity_percent=50,
+                uv_index=4,
+                wind_speed_kmh=12.0,
+                condition="sunny",
+                last_updated=now,
+            )
+
+    adapter.attach(_Manager())
+
+    payload = await adapter.async_get_data("dog-1")
+    cached = await adapter.async_get_data("dog-1")
+
+    assert update_calls == ["weather.home"]
+    assert recommendation_calls == [("Border Collie", 36, ["arthritis"])]
+    assert payload["status"] == "ready"
+    assert payload["health_score"] == 82
+    assert payload["conditions"]["last_updated"] == now.isoformat()
+    assert payload["alerts"][0]["severity"] == "high"
+    assert cached is payload
+
+
+@pytest.mark.asyncio
+async def test_weather_module_adapter_returns_error_payload_on_manager_failure() -> (
+    None
+):
+    config_entry = SimpleNamespace(
+        data={"dogs": [{"dog_id": "dog-1", "dog_age": "not-a-number"}]},
+        options={"weather_entity": "weather.home"},
+    )
+    adapter = WeatherModuleAdapter(
+        config_entry=config_entry,
+        ttl=timedelta(minutes=5),
+    )
+
+    class _BrokenManager:
+        async def async_update_weather_data(self, entity_id: str) -> None:
+            raise RuntimeError(f"cannot refresh {entity_id}")
+
+        def get_active_alerts(self) -> list[SimpleNamespace]:
+            raise RuntimeError("alerts unavailable")
+
+    adapter.attach(_BrokenManager())
+
+    payload = await adapter.async_get_data("dog-1")
+
+    assert payload == {
+        "status": "error",
+        "alerts": [],
+        "recommendations": [],
+        "message": "alerts unavailable",
+        "health_score": None,
+    }
+
+
+@pytest.mark.asyncio
+async def test_garden_module_adapter_default_error_and_idle_payloads() -> None:
+    adapter = GardenModuleAdapter(ttl=timedelta(minutes=5))
+
+    disabled_payload = await adapter.async_get_data("dog-1")
+    assert disabled_payload["status"] == "disabled"
+
+    class _BrokenManager:
+        def build_garden_snapshot(self, dog_id: str) -> dict[str, object]:
+            raise RuntimeError(f"snapshot failed for {dog_id}")
+
+    adapter.attach(_BrokenManager())
+    error_payload = await adapter.async_get_data("dog-2")
+    assert error_payload["status"] == "error"
+    assert error_payload["message"] == "snapshot failed for dog-2"
+
+    class _SnapshotManager:
+        def build_garden_snapshot(self, dog_id: str) -> dict[str, object]:
+            return {
+                "sessions_today": 2,
+                "time_today_minutes": 8.0,
+                "poop_today": 1,
+                "activities_today": 2,
+                "activities_total": 20,
+                "active_session": None,
+                "last_session": None,
+                "hours_since_last_session": 1.2,
+                "stats": {},
+                "pending_confirmations": [],
+                "weather_summary": None,
+            }
+
+    adapter.attach(_SnapshotManager())
+    idle_payload = await adapter.async_get_data("dog-3")
+
+    assert idle_payload["status"] == "idle"
+    assert idle_payload["sessions_today"] == 2
