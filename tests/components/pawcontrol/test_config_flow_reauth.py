@@ -775,3 +775,93 @@ async def test_check_config_health_enhanced_handles_invalid_dogs_and_modules(
     assert "Invalid dog config: buddy" in summary["issues"]
     assert "No valid dog configurations found" in summary["issues"]
     assert "Modules payload invalid for buddy" in summary["warnings"]
+
+
+@pytest.mark.asyncio
+async def test_validate_reauth_entry_enhanced_allows_invalid_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid profiles should only warn during reauth validation."""
+    entry = MockConfigEntry(
+        domain="pawcontrol",
+        data={CONF_DOGS: [{DOG_ID_FIELD: "buddy", CONF_MODULES: {"feeding": True}}]},
+        options={"entity_profile": "unsupported"},
+    )
+    flow = _Flow(entry)
+
+    monkeypatch.setattr(
+        config_flow_reauth,
+        "validate_dog_config_payload",
+        lambda *_args, **_kwargs: None,
+    )
+
+    await flow._validate_reauth_entry_enhanced(entry)
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_confirm_logs_unhealthy_summary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unhealthy health summaries should still complete reauth."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+
+    async def _unhealthy(_entry: MockConfigEntry) -> dict[str, object]:
+        return {
+            "healthy": False,
+            "issues": ["bad dog config"],
+            "warnings": [],
+            "validated_dogs": 0,
+            "total_dogs": 0,
+        }
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _unhealthy)
+
+    result = await flow.async_step_reauth_confirm({"confirm": True})
+
+    assert result["type"] == "abort"
+    assert result["data_updates"]["health_status"] is False
+
+
+@pytest.mark.asyncio
+async def test_async_step_reauth_confirm_uses_status_check_warning_on_form(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Display summary failures should fall back to status-check warnings."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+
+    async def _raise_summary_error(_entry: MockConfigEntry) -> dict[str, object]:
+        raise RuntimeError("display boom")
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _raise_summary_error)
+
+    result = await flow.async_step_reauth_confirm({"confirm": False})
+
+    assert result["step_id"] == "reauth_confirm"
+    assert (
+        "Status check failed: display boom"
+        in result["description_placeholders"]["health_status"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_health_status_summary_safe_success_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Successful health checks should render the status message."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+
+    async def _healthy(_entry: MockConfigEntry) -> dict[str, object]:
+        return {
+            "healthy": True,
+            "issues": [],
+            "warnings": [],
+            "validated_dogs": 1,
+            "total_dogs": 1,
+        }
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _healthy)
+
+    assert "Status: healthy" in await flow._get_health_status_summary_safe(entry)
