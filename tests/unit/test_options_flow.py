@@ -51,6 +51,7 @@ from custom_components.pawcontrol.types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    DOG_OPTIONS_FIELD,
     DOG_WEIGHT_FIELD,
     GEOFENCE_ALERTS_FIELD,
     GEOFENCE_ENABLED_FIELD,
@@ -1901,6 +1902,61 @@ async def test_configure_dog_modules_rejects_non_string_dog_id(
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "configure_dog_modules"
     assert result["errors"] == {"base": "invalid_dog"}
+
+
+def test_current_health_options_handles_non_mapping_payloads(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """Health options should ignore invalid per-dog and legacy payload shapes."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+
+    raw_options = dict(mock_config_entry.options)
+    raw_options[DOG_OPTIONS_FIELD] = {
+        "luna": {
+            DOG_ID_FIELD: "luna",
+            "health_settings": "invalid",
+        }
+    }
+    raw_options["health_settings"] = 123
+    mock_config_entry.options = raw_options
+
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    assert flow._current_health_options("luna") == {}
+
+
+@pytest.mark.asyncio
+async def test_select_dog_for_health_settings_invalid_selection_returns_init(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """Selecting an unknown dog should return to the root options menu."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    result = await flow.async_step_select_dog_for_health_settings(
+        {"dog_id": "unknown"},
+    )
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+@pytest.mark.asyncio
+async def test_health_settings_non_string_dog_id_routes_to_selector(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """Health settings should re-open dog selection when dog_id typing is invalid."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+    flow._current_dog = cast(DogConfigData, {**flow._dogs[0], DOG_ID_FIELD: 321})
+
+    result = await flow.async_step_health_settings()
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "select_dog_for_health_settings"
 
 
 def test_module_description_placeholders_localize_grooming(
