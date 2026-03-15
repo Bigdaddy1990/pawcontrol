@@ -7,11 +7,11 @@ import pytest
 from custom_components.pawcontrol import module_adapters
 from custom_components.pawcontrol.module_adapters import (
     CoordinatorModuleAdapters,
-    GardenModuleAdapter,
-    WeatherModuleAdapter,
     FeedingModuleAdapter,
+    GardenModuleAdapter,
     NetworkError,
     WalkModuleAdapter,
+    WeatherModuleAdapter,
     _BaseModuleAdapter,
     _ExpiringCache,
     _normalise_health_alert,

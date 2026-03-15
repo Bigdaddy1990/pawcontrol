@@ -22,8 +22,7 @@ def test_string_sequence_handles_scalar_sequence_and_none_values() -> None:
 def test_coerce_manual_event_with_default_prefers_trimmed_string() -> None:
     """Manual-event coercion should keep valid strings and fallback otherwise."""
     assert (
-        _SharedHost._coerce_manual_event_with_default("  walk  ", "fallback")
-        == "walk"
+        _SharedHost._coerce_manual_event_with_default("  walk  ", "fallback") == "walk"
     )
     assert _SharedHost._coerce_manual_event_with_default("   ", "fallback") is None
     assert _SharedHost._coerce_manual_event_with_default(12, "fallback") == "fallback"
@@ -34,21 +33,33 @@ def test_map_import_payload_error_covers_all_branches() -> None:
     """Import payload errors should map to deterministic flow error codes."""
     host = _SharedHost()
 
-    assert host._map_import_payload_error(FlowValidationError(base_errors=["invalid"])) == (
-        "dog_invalid"
+    assert host._map_import_payload_error(
+        FlowValidationError(base_errors=["invalid"])
+    ) == ("dog_invalid")
+    assert (
+        host._map_import_payload_error(
+            FlowValidationError(field_errors={CONF_MODULES: "dog_invalid_modules"}),
+        )
+        == "dog_invalid_modules"
     )
-    assert host._map_import_payload_error(
-        FlowValidationError(field_errors={CONF_MODULES: "dog_invalid_modules"}),
-    ) == "dog_invalid_modules"
-    assert host._map_import_payload_error(
-        FlowValidationError(field_errors={CONF_DOG_ID: "dog_id_already_exists"}),
-    ) == "dog_duplicate"
-    assert host._map_import_payload_error(
-        FlowValidationError(field_errors={CONF_DOG_ID: "missing"}),
-    ) == "dog_missing_id"
-    assert host._map_import_payload_error(
-        FlowValidationError(field_errors={CONF_DOG_NAME: "invalid"}),
-    ) == "dog_invalid"
+    assert (
+        host._map_import_payload_error(
+            FlowValidationError(field_errors={CONF_DOG_ID: "dog_id_already_exists"}),
+        )
+        == "dog_duplicate"
+    )
+    assert (
+        host._map_import_payload_error(
+            FlowValidationError(field_errors={CONF_DOG_ID: "missing"}),
+        )
+        == "dog_missing_id"
+    )
+    assert (
+        host._map_import_payload_error(
+            FlowValidationError(field_errors={CONF_DOG_NAME: "invalid"}),
+        )
+        == "dog_invalid"
+    )
     assert host._map_import_payload_error(FlowValidationError(field_errors={})) == (
         "dog_invalid"
     )
