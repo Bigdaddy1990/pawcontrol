@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable, MutableMapping
 from datetime import UTC, datetime
+from enum import Enum
 import sys
 import types
 
@@ -781,6 +782,91 @@ def test_registry_singletons_are_shared_between_helpers() -> None:
     assert entity_registry_second.async_entries_for_config_entry("entry-id") == [
         stored_entity,
     ]
+
+
+def test_ensure_config_entry_symbols_rebinds_late_stub_modules() -> None:
+    """Compatibility helpers should re-export ConfigEntry symbols on demand."""
+    from custom_components.pawcontrol import compat
+
+    class CustomState(Enum):
+        READY = "ready"
+
+    class CustomChange(Enum):
+        UPDATED = "updated"
+
+    config_entries_module = types.ModuleType("homeassistant.config_entries")
+    config_entries_module.ConfigEntryState = CustomState
+    config_entries_module.ConfigEntryChange = CustomChange
+    core_module = types.ModuleType("homeassistant.core")
+
+    previous_config_entries = sys.modules.get("homeassistant.config_entries")
+    previous_core = sys.modules.get("homeassistant.core")
+
+    try:
+        sys.modules["homeassistant.config_entries"] = config_entries_module
+        sys.modules["homeassistant.core"] = core_module
+
+        compat.ensure_homeassistant_config_entry_symbols()
+
+        assert config_entries_module.ConfigEntry is compat.ConfigEntry
+        assert core_module.ConfigEntry is compat.ConfigEntry
+        assert config_entries_module.ConfigEntryState is CustomState
+        assert config_entries_module.ConfigEntryChange is CustomChange
+        assert core_module.ConfigEntryState is compat.ConfigEntryState
+        assert core_module.ConfigEntryChange is compat.ConfigEntryChange
+    finally:
+        if previous_config_entries is None:
+            del sys.modules["homeassistant.config_entries"]
+        else:
+            sys.modules["homeassistant.config_entries"] = previous_config_entries
+
+        if previous_core is None:
+            del sys.modules["homeassistant.core"]
+        else:
+            sys.modules["homeassistant.core"] = previous_core
+
+
+def test_fallback_service_registry_supports_sync_async_and_errors() -> None:
+    """ServiceRegistry fallback should mirror basic HA service dispatch behavior."""
+    from custom_components.pawcontrol import compat
+
+    previous_ha_core = compat._ha_core
+    compat._ha_core = None
+    try:
+        service_registry_type = compat._fallback_service_registry()
+    finally:
+        compat._ha_core = previous_ha_core
+
+    service_registry = service_registry_type()
+    calls: list[tuple[str, str, dict[str, object]]] = []
+
+    def sync_handler(call: object) -> None:
+        calls.append((call.domain, call.service, dict(call.data)))
+
+    async def async_handler(call: object) -> None:
+        calls.append((call.domain, call.service, dict(call.data)))
+
+    service_registry.async_register("pawcontrol", "sync", sync_handler)
+    service_registry.async_register("pawcontrol", "async", async_handler)
+
+    assert service_registry.has_service("pawcontrol", "sync") is True
+    assert service_registry.has_service("pawcontrol", "missing") is False
+
+    asyncio.run(service_registry.async_call("pawcontrol", "sync", {"id": 1}))
+    asyncio.run(service_registry.async_call("pawcontrol", "async", {"id": 2}))
+
+    assert calls == [
+        ("pawcontrol", "sync", {"id": 1}),
+        ("pawcontrol", "async", {"id": 2}),
+    ]
+    assert set(service_registry.async_services()) == {"pawcontrol"}
+
+    try:
+        asyncio.run(service_registry.async_call("pawcontrol", "missing"))
+    except KeyError as err:
+        assert "pawcontrol.missing" in str(err)
+    else:
+        raise AssertionError("Missing services must raise KeyError")
 
 
 def test_entity_and_device_registry_factories_track_entries() -> None:
