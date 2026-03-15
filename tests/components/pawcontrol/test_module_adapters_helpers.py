@@ -194,6 +194,35 @@ async def test_coordinator_module_adapters_build_tasks_for_enabled_modules() -> 
 
 
 @pytest.mark.asyncio
+async def test_coordinator_module_adapters_build_tasks_for_walk_and_garden_only() -> None:
+    config_entry = SimpleNamespace(data={"dogs": []}, options={})
+    async with ClientSession() as session:
+        adapters = CoordinatorModuleAdapters(
+            session=session,
+            config_entry=config_entry,
+            use_external_api=False,
+            cache_ttl=timedelta(minutes=5),
+            api_client=None,
+        )
+
+        tasks = adapters.build_tasks(
+            "dog-1",
+            {
+                "feeding": False,
+                "walk": True,
+                "gps": False,
+                "health": False,
+                "weather": False,
+                "garden": True,
+            },
+        )
+
+        assert [task.module for task in tasks] == ["walk", "garden"]
+        for task in tasks:
+            task.coroutine.close()
+
+
+@pytest.mark.asyncio
 async def test_coordinator_module_adapters_cache_lifecycle_and_detach(
     monkeypatch,
 ) -> None:
@@ -227,13 +256,13 @@ async def test_coordinator_module_adapters_cache_lifecycle_and_detach(
         await adapters.garden.async_get_data("dog-1")
 
         metrics = adapters.cache_metrics()
-        assert metrics.entries == 6
+        assert metrics.entries == 5
         assert metrics.hits == 0
         assert metrics.misses == 6
 
         assert adapters.cleanup_expired(now + timedelta(minutes=4)) == 0
-        assert adapters.cache_metrics().entries == 6
-        assert adapters.cleanup_expired(now + timedelta(minutes=6)) == 6
+        assert adapters.cache_metrics().entries == 5
+        assert adapters.cleanup_expired(now + timedelta(minutes=6)) == 5
         assert adapters.cache_metrics().entries == 0
 
         await adapters.feeding.async_get_data("dog-1")
