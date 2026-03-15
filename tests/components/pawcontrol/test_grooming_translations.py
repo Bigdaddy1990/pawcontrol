@@ -116,3 +116,16 @@ def test_translated_grooming_template_handles_known_and_unknown_keys(
         )
         == "unknown template for Milo"
     )
+
+
+def test_translated_grooming_template_uses_token_without_hass() -> None:
+    """Known template keys should fall back to translation tokens without hass."""
+    assert (
+        grooming_translations.translated_grooming_template(
+            hass=None,
+            language="en",
+            template_key="start_failure",
+            reason="timeout",
+        )
+        == "grooming_template_start_failure"
+    )
