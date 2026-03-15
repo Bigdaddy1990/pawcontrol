@@ -45,7 +45,12 @@ def test_coerce_manual_event_with_default_prefers_trimmed_string(
     expected: str | None,
 ) -> None:
     """Manual-event coercion should keep valid strings and fallback otherwise."""
-    assert _SharedHost._coerce_manual_event_with_default(value, default) == expected
+    assert (
+        _SharedHost._coerce_manual_event_with_default("  walk  ", "fallback") == "walk"
+    )
+    assert _SharedHost._coerce_manual_event_with_default("   ", "fallback") is None
+    assert _SharedHost._coerce_manual_event_with_default(12, "fallback") == "fallback"
+    assert _SharedHost._coerce_manual_event_with_default(None, None) is None
 
 
 @pytest.mark.parametrize(
@@ -73,4 +78,33 @@ def test_map_import_payload_error_covers_all_branches(
     """Import payload errors should map to deterministic flow error codes."""
     host = _SharedHost()
 
-    assert host._map_import_payload_error(error) == expected_code
+    assert host._map_import_payload_error(
+        FlowValidationError(base_errors=["invalid"])
+    ) == ("dog_invalid")
+    assert (
+        host._map_import_payload_error(
+            FlowValidationError(field_errors={CONF_MODULES: "dog_invalid_modules"}),
+        )
+        == "dog_invalid_modules"
+    )
+    assert (
+        host._map_import_payload_error(
+            FlowValidationError(field_errors={CONF_DOG_ID: "dog_id_already_exists"}),
+        )
+        == "dog_duplicate"
+    )
+    assert (
+        host._map_import_payload_error(
+            FlowValidationError(field_errors={CONF_DOG_ID: "missing"}),
+        )
+        == "dog_missing_id"
+    )
+    assert (
+        host._map_import_payload_error(
+            FlowValidationError(field_errors={CONF_DOG_NAME: "invalid"}),
+        )
+        == "dog_invalid"
+    )
+    assert host._map_import_payload_error(FlowValidationError(field_errors={})) == (
+        "dog_invalid"
+    )

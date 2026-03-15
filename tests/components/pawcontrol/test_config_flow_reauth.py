@@ -165,7 +165,6 @@ def test_is_dog_config_valid_for_reauth_delegates_to_payload_validator(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Reauth payload checks should delegate to the shared validator helper."""
-
     seen_payloads: list[Mapping[str, object]] = []
 
     def _fake_validator(dog_payload: Mapping[str, object]) -> bool:

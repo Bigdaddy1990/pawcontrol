@@ -157,3 +157,51 @@ def test_bump_reason_limits_bucket_count_to_max_reasons() -> None:
     assert len(by_reason) == 25
     assert "reason-0" not in by_reason
     assert "reason-29" in by_reason
+
+
+def test_accept_and_reject_update_telemetry_counters() -> None:
+    """Accept/reject helpers should maintain aggregate and per-dog counters."""
+    telemetry: dict[str, object] = {}
+
+    push_router._accept(telemetry, "dog-1", "webhook", "2026-01-01T00:00:00+00:00")
+    result = push_router._reject(
+        telemetry,
+        "dog-1",
+        "webhook",
+        "2026-01-01T00:01:00+00:00",
+        "gps_source_mismatch",
+        409,
+    )
+
+    assert telemetry["accepted_total"] == 1
+    assert telemetry["rejected_total"] == 1
+    dog_telemetry = telemetry["dogs"]["dog-1"]
+    assert dog_telemetry["accepted_total"] == 1
+    assert dog_telemetry["rejected_total"] == 1
+    assert dog_telemetry["last_rejection_reason"] == "gps_source_mismatch"
+    assert result == {
+        "ok": False,
+        "status": 409,
+        "error": "gps_source_mismatch",
+        "dog_id": "dog-1",
+    }
+
+
+def test_snapshot_repairs_corrupted_telemetry_storage() -> None:
+    """Snapshot helper should repair malformed telemetry storage in-place."""
+    hass = SimpleNamespace(
+        data={
+            push_router.DOMAIN: {
+                "_push_router": {
+                    "entry-id": {
+                        "telemetry": "broken",
+                    }
+                }
+            }
+        }
+    )
+
+    snapshot = push_router.get_entry_push_telemetry_snapshot(hass, "entry-id")
+    assert snapshot["accepted_total"] == 0
+    assert snapshot["rejected_total"] == 0
+    assert snapshot["dogs"] == {}
