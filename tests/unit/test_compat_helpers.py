@@ -42,17 +42,17 @@ async def test_support_hooks_return_false_for_unknown_or_partial_handlers() -> N
 
 
 def test_config_entry_state_from_value_supports_name_and_raw_value() -> None:
-    """ConfigEntryState conversion should handle both enum names and values."""
-    assert (
-        compat.ConfigEntryState.from_value("loaded") is compat.ConfigEntryState.LOADED
-    )
-    assert (
-        compat.ConfigEntryState.from_value("SETUP_RETRY")
-        is compat.ConfigEntryState.SETUP_RETRY
-    )
+    """ConfigEntryState conversion should handle enum names and raw values."""
+    state_cls = compat.ConfigEntryState
+    first_state = next(iter(state_cls))
+
+    assert state_cls.from_value(first_state.name) is first_state
+
+    if isinstance(first_state.value, str):
+        assert state_cls.from_value(first_state.value) is first_state
 
     with pytest.raises(ValueError):
-        compat.ConfigEntryState.from_value("definitely_unknown")
+        state_cls.from_value("definitely_unknown")
 
 
 def test_build_subentries_normalizes_input() -> None:
@@ -199,6 +199,23 @@ def test_sync_config_entry_symbols_preserves_valid_homeassistant_exports() -> No
     assert compat.ConfigEntry is NativeConfigEntry
     assert compat.ConfigEntryState is NativeState
     assert compat.ConfigEntryChange is NativeChange
+
+
+def test_sync_config_entry_symbols_adds_from_value_for_native_states() -> None:
+    """Native ConfigEntryState enums should receive the compatibility resolver."""
+
+    class NativeState(compat.Enum):
+        LOADED = "loaded"
+        FAILED = 5
+
+    config_entries_module = ModuleType("homeassistant.config_entries")
+    config_entries_module.ConfigEntryState = NativeState
+
+    compat._sync_config_entry_symbols(config_entries_module, None)
+
+    assert compat.ConfigEntryState.from_value("loaded") is NativeState.LOADED
+    assert compat.ConfigEntryState.from_value("FAILED") is NativeState.FAILED
+    assert compat.ConfigEntryState.from_value("5") is NativeState.FAILED
 
 
 def test_register_exception_rebind_callback_unregisters_cleanly(

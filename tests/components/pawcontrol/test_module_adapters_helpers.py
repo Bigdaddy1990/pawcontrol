@@ -9,6 +9,9 @@ from custom_components.pawcontrol.module_adapters import (
     CoordinatorModuleAdapters,
     GardenModuleAdapter,
     WeatherModuleAdapter,
+    FeedingModuleAdapter,
+    NetworkError,
+    WalkModuleAdapter,
     _BaseModuleAdapter,
     _ExpiringCache,
     _normalise_health_alert,
@@ -26,6 +29,30 @@ class _FrozenTime:
 
 class _DummyAdapter(_BaseModuleAdapter[dict[str, str]]):
     pass
+
+
+class _FakeFeedingManager:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def async_get_feeding_data(self, dog_id: str) -> dict[str, object]:
+        self.calls += 1
+        return {"dog_id": dog_id}
+
+
+class _FailingDeviceClient:
+    async def async_get_feeding_payload(self, _: str) -> dict[str, object]:
+        raise RuntimeError("boom")
+
+
+class _FakeWalkManager:
+    def __init__(self, payload: dict[str, object]) -> None:
+        self._payload = payload
+        self.calls = 0
+
+    async def async_get_walk_data(self, _: str) -> dict[str, object]:
+        self.calls += 1
+        return self._payload
 
 
 def test_expiring_cache_tracks_hits_misses_metadata(monkeypatch) -> None:
@@ -95,6 +122,34 @@ def test_base_module_adapter_snapshot_without_cache() -> None:
     assert adapter.cache_snapshot() == {
         "stats": {"entries": 0, "hits": 0, "misses": 0, "hit_rate": 0.0},
         "metadata": {"ttl_seconds": None},
+    }
+
+
+def test_base_module_adapter_cache_helpers_with_disabled_ttl() -> None:
+    adapter = _DummyAdapter(ttl=None)
+
+    adapter._remember("dog-1", {"state": "cached"})
+
+    assert adapter._cached("dog-1") is None
+    assert adapter.cache_metrics() == module_adapters.ModuleCacheMetrics()
+
+
+def test_base_module_adapter_snapshot_sets_ttl_metadata(monkeypatch) -> None:
+    adapter = _DummyAdapter(ttl=timedelta(seconds=30))
+    assert adapter._cache is not None
+
+    monkeypatch.setattr(
+        module_adapters._ExpiringCache,
+        "snapshot",
+        lambda self: {
+            "stats": {"entries": 1, "hits": 0, "misses": 0, "hit_rate": 0.0},
+            "metadata": {},
+        },
+    )
+
+    assert adapter.cache_snapshot() == {
+        "stats": {"entries": 1, "hits": 0, "misses": 0, "hit_rate": 0.0},
+        "metadata": {"ttl_seconds": 30.0},
     }
 
 
