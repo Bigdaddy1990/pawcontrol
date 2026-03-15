@@ -3,6 +3,7 @@
 import pytest
 import voluptuous as vol
 
+import custom_components.pawcontrol.config_flow_profile as profile_helpers
 from custom_components.pawcontrol.config_flow_profile import (
     DEFAULT_PROFILE,
     PROFILE_TITLES,
@@ -10,7 +11,6 @@ from custom_components.pawcontrol.config_flow_profile import (
     get_profile_selector_options,
     validate_profile_selection,
 )
-import custom_components.pawcontrol.config_flow_profile as profile_helpers
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 
 
