@@ -509,7 +509,10 @@ async def test_health_module_adapter_merges_stored_feeding_and_walk_context() ->
                         "joint_support",
                         {"name": "omega", "with_meals": False},
                     ],
-                    "health_alerts": ["hydration", {"type": "weight", "severity": "low"}],
+                    "health_alerts": [
+                        "hydration",
+                        {"type": "weight", "severity": "low"},
+                    ],
                 },
             ]
 
@@ -537,7 +540,9 @@ async def test_health_module_adapter_merges_stored_feeding_and_walk_context() ->
 
     class _WalkManager:
         async def async_get_walk_data(self, _: str) -> dict[str, object]:
-            pytest.fail("walk manager should not be consulted when feeding sets activity")
+            pytest.fail(
+                "walk manager should not be consulted when feeding sets activity"
+            )
 
     adapter.attach(
         feeding_manager=_FeedingManager(),
