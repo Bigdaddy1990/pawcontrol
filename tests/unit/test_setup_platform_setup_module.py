@@ -236,6 +236,41 @@ async def test_async_setup_helpers_handles_notification_failure(
 
 
 @pytest.mark.asyncio
+async def test_async_setup_helpers_sends_notification_on_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Helper setup should send a system notification when helpers are created."""
+    create_helpers = AsyncMock(return_value={"buddy": ["helper.one", "helper.two"]})
+    notify = AsyncMock()
+    runtime_data = SimpleNamespace(
+        helper_manager=SimpleNamespace(async_create_helpers_for_dogs=create_helpers),
+        dogs=[{"dog_id": "buddy", "dog_name": "Buddy"}],
+        config_entry_options={"enabled_modules": ["gps"]},
+        notification_manager=SimpleNamespace(async_send_notification=notify),
+    )
+
+    class _Priority:
+        NORMAL = "normal"
+
+    class _Type:
+        SYSTEM_INFO = "system_info"
+
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "custom_components.pawcontrol.notifications",
+        SimpleNamespace(NotificationPriority=_Priority, NotificationType=_Type),
+    )
+
+    await platform_setup._async_setup_helpers(
+        SimpleNamespace(), SimpleNamespace(), runtime_data
+    )
+
+    notify.assert_awaited_once()
+    assert notify.await_args.kwargs["notification_type"] == _Type.SYSTEM_INFO
+    assert "Created 2 helpers" in notify.await_args.kwargs["message"]
+
+
+@pytest.mark.asyncio
 async def test_async_setup_scripts_handles_success_and_noncritical_failures(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
