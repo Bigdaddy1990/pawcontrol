@@ -66,6 +66,52 @@ def test_load_static_common_translations_handles_invalid_files(
     assert french_common["weather_alert_storm_warning_title"] == "English Storm"
 
 
+def test_load_static_common_translations_prefers_localized_overrides(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Localized values should override bundled English fallback strings."""
+    module_file = tmp_path / "weather_translations.py"
+    module_file.write_text("# fixture module path", encoding="utf-8")
+
+    _write_translation_fixture(
+        tmp_path,
+        "en",
+        '{"common": {"weather_alert_storm_warning_title": "English Storm", "weather_recommendation_extra_water": "Bring Water"}}',
+    )
+    _write_translation_fixture(
+        tmp_path,
+        "de",
+        '{"common": {"weather_alert_storm_warning_title": "Deutscher Sturm"}}',
+    )
+
+    monkeypatch.setattr(weather_translations, "__file__", str(module_file))
+
+    german_common = weather_translations._load_static_common_translations("de")
+
+    assert german_common["weather_alert_storm_warning_title"] == "Deutscher Sturm"
+    assert german_common["weather_recommendation_extra_water"] == "Bring Water"
+
+
+def test_get_weather_translations_falls_back_to_key_when_common_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing common entries should resolve to the raw weather key names."""
+    monkeypatch.setattr(
+        weather_translations,
+        "_load_static_common_translations",
+        lambda _language: {},
+    )
+
+    catalog = weather_translations.get_weather_translations("en")
+    first_alert = weather_translations.WEATHER_ALERT_KEYS[0]
+    first_recommendation = weather_translations.WEATHER_RECOMMENDATION_KEYS[0]
+
+    assert catalog["alerts"][first_alert]["title"] == first_alert
+    assert catalog["alerts"][first_alert]["message"] == first_alert
+    assert catalog["recommendations"][first_recommendation] == first_recommendation
+
+
 @pytest.mark.asyncio
 async def test_async_get_weather_translations_uses_lookup_and_resolution(
     monkeypatch: pytest.MonkeyPatch,
