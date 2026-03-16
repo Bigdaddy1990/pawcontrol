@@ -160,6 +160,94 @@ def test_bind_exception_alias_combine_with_current_creates_hybrid_alias() -> Non
             compat.sys.modules[module_name] = original_module
 
 
+def test_bind_exception_alias_prefers_more_specific_candidate() -> None:
+    """Alias binding should keep the most specific class when possible."""
+
+    class ExistingAlias(compat.HomeAssistantError):
+        """A pre-existing alias that is narrower than HomeAssistantError."""
+
+    class CandidateAlias(ExistingAlias):
+        """A candidate class that should replace the existing alias."""
+
+    original_home_assistant_error = compat.HomeAssistantError
+    module_name = "tests.unit.dynamic_alias_module_specific_candidate"
+    dynamic_module = ModuleType(module_name)
+    dynamic_module.__dict__["__name__"] = module_name
+    dynamic_module.LocalAlias = ExistingAlias
+
+    original_module = compat.sys.modules.get(module_name)
+    compat.sys.modules[module_name] = dynamic_module
+    compat.HomeAssistantError = CandidateAlias
+    try:
+        unregister = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="LocalAlias",
+            combine_with_current=True,
+        )
+        assert dynamic_module.LocalAlias is CandidateAlias
+        unregister()
+    finally:
+        compat.HomeAssistantError = original_home_assistant_error
+        if original_module is None:
+            compat.sys.modules.pop(module_name, None)
+        else:
+            compat.sys.modules[module_name] = original_module
+
+
+def test_bind_exception_alias_prefers_more_specific_existing_alias() -> None:
+    """Alias binding should preserve a narrower existing class when appropriate."""
+
+    class CandidateAlias(compat.HomeAssistantError):
+        """The mapped HomeAssistantError candidate."""
+
+    class ExistingAlias(CandidateAlias):
+        """A narrower existing alias that should be preserved."""
+
+    original_home_assistant_error = compat.HomeAssistantError
+    module_name = "tests.unit.dynamic_alias_module_specific_current"
+    dynamic_module = ModuleType(module_name)
+    dynamic_module.__dict__["__name__"] = module_name
+    dynamic_module.LocalAlias = ExistingAlias
+
+    original_module = compat.sys.modules.get(module_name)
+    compat.sys.modules[module_name] = dynamic_module
+    compat.HomeAssistantError = CandidateAlias
+    try:
+        unregister = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="LocalAlias",
+            combine_with_current=True,
+        )
+        assert dynamic_module.LocalAlias is ExistingAlias
+        unregister()
+    finally:
+        compat.HomeAssistantError = original_home_assistant_error
+        if original_module is None:
+            compat.sys.modules.pop(module_name, None)
+        else:
+            compat.sys.modules[module_name] = original_module
+
+
+def test_config_entry_supported_subentry_types_without_handler_method() -> None:
+    """Subentry support should fail closed when handlers omit capability hooks."""
+
+    class HandlerWithoutSubentrySupport:
+        pass
+
+    compat.HANDLERS.clear()
+    compat.HANDLERS["pawcontrol"] = HandlerWithoutSubentrySupport()
+    entry = compat.ConfigEntry(
+        domain="pawcontrol",
+        entry_id="entry-1",
+        data={},
+        options={},
+    )
+
+    assert entry.supported_subentry_types == {}
+
+
 def test_sync_config_entry_symbols_populates_missing_module_exports() -> None:
     """Config-entry symbol sync should install fallback classes when absent."""
     config_entries_module = ModuleType("homeassistant.config_entries")
