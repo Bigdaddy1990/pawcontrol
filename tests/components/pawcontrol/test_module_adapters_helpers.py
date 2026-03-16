@@ -9,6 +9,7 @@ from custom_components.pawcontrol.module_adapters import (
     CoordinatorModuleAdapters,
     FeedingModuleAdapter,
     GardenModuleAdapter,
+    HealthModuleAdapter,
     NetworkError,
     WalkModuleAdapter,
     WeatherModuleAdapter,
@@ -484,3 +485,92 @@ async def test_garden_module_adapter_default_error_and_idle_payloads() -> None:
 
     assert idle_payload["status"] == "idle"
     assert idle_payload["sessions_today"] == 2
+
+
+@pytest.mark.asyncio
+async def test_health_module_adapter_merges_stored_feeding_and_walk_context() -> None:
+    adapter = HealthModuleAdapter(ttl=timedelta(minutes=5))
+
+    class _DataManager:
+        async def async_get_module_history(
+            self,
+            module: str,
+            dog_id: str,
+            *,
+            limit: int,
+        ) -> list[dict[str, object]]:
+            assert module == "health"
+            assert dog_id == "dog-1"
+            assert limit == 1
+            return [
+                {
+                    "status": "monitor",
+                    "medications": [
+                        "joint_support",
+                        {"name": "omega", "with_meals": False},
+                    ],
+                    "health_alerts": ["hydration", {"type": "weight", "severity": "low"}],
+                },
+            ]
+
+    class _FeedingManager:
+        async def async_get_feeding_data(self, dog_id: str) -> dict[str, object]:
+            assert dog_id == "dog-1"
+            return {
+                "health_summary": {
+                    "current_weight": 19.5,
+                    "ideal_weight": 20.0,
+                    "life_stage": "adult",
+                    "body_condition_score": 5,
+                    "health_conditions": ["arthritis"],
+                },
+                "health_emergency": True,
+                "emergency_mode": {"reason": "low appetite"},
+                "medication_with_meals": True,
+                "health_feeding_status": "watch",
+                "daily_calorie_target": 900,
+                "total_calories_today": 500,
+                "weight_goal_progress": 62,
+                "weight_goal": "maintain",
+                "daily_activity_level": "moderate",
+            }
+
+    class _WalkManager:
+        async def async_get_walk_data(self, _: str) -> dict[str, object]:
+            pytest.fail("walk manager should not be consulted when feeding sets activity")
+
+    adapter.attach(
+        feeding_manager=_FeedingManager(),
+        data_manager=_DataManager(),
+        walk_manager=_WalkManager(),
+    )
+
+    payload = await adapter.async_get_data("dog-1")
+
+    assert payload["status"] == "attention"
+    assert payload["health_status"] == "watch"
+    assert payload["activity_level"] == "moderate"
+    assert payload["weight"] == 19.5
+    assert payload["medications"][-1] == {"name": "meal_medication", "with_meals": True}
+    assert payload["health_alerts"][0]["message"] == "Hydration"
+    assert payload["health_alerts"][-1]["type"] == "emergency_feeding"
+
+
+@pytest.mark.asyncio
+async def test_health_module_adapter_walk_fallback_without_feeding_context() -> None:
+    adapter = HealthModuleAdapter(ttl=timedelta(minutes=5))
+
+    class _WalkManager:
+        async def async_get_walk_data(self, _: str) -> dict[str, object]:
+            return {"daily_walks": []}
+
+    adapter.attach(
+        feeding_manager=None,
+        data_manager=None,
+        walk_manager=_WalkManager(),
+    )
+
+    payload = await adapter.async_get_data("dog-2")
+
+    assert payload["status"] == "healthy"
+    assert payload["activity_level"] == "low"
