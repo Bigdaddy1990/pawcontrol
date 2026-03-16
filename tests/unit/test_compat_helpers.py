@@ -160,6 +160,94 @@ def test_bind_exception_alias_combine_with_current_creates_hybrid_alias() -> Non
             compat.sys.modules[module_name] = original_module
 
 
+def test_bind_exception_alias_prefers_more_specific_candidate() -> None:
+    """Alias binding should keep the most specific class when possible."""
+
+    class ExistingAlias(compat.HomeAssistantError):
+        """A pre-existing alias that is narrower than HomeAssistantError."""
+
+    class CandidateAlias(ExistingAlias):
+        """A candidate class that should replace the existing alias."""
+
+    original_home_assistant_error = compat.HomeAssistantError
+    module_name = "tests.unit.dynamic_alias_module_specific_candidate"
+    dynamic_module = ModuleType(module_name)
+    dynamic_module.__dict__["__name__"] = module_name
+    dynamic_module.LocalAlias = ExistingAlias
+
+    original_module = compat.sys.modules.get(module_name)
+    compat.sys.modules[module_name] = dynamic_module
+    compat.HomeAssistantError = CandidateAlias
+    try:
+        unregister = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="LocalAlias",
+            combine_with_current=True,
+        )
+        assert dynamic_module.LocalAlias is CandidateAlias
+        unregister()
+    finally:
+        compat.HomeAssistantError = original_home_assistant_error
+        if original_module is None:
+            compat.sys.modules.pop(module_name, None)
+        else:
+            compat.sys.modules[module_name] = original_module
+
+
+def test_bind_exception_alias_prefers_more_specific_existing_alias() -> None:
+    """Alias binding should preserve a narrower existing class when appropriate."""
+
+    class CandidateAlias(compat.HomeAssistantError):
+        """The mapped HomeAssistantError candidate."""
+
+    class ExistingAlias(CandidateAlias):
+        """A narrower existing alias that should be preserved."""
+
+    original_home_assistant_error = compat.HomeAssistantError
+    module_name = "tests.unit.dynamic_alias_module_specific_current"
+    dynamic_module = ModuleType(module_name)
+    dynamic_module.__dict__["__name__"] = module_name
+    dynamic_module.LocalAlias = ExistingAlias
+
+    original_module = compat.sys.modules.get(module_name)
+    compat.sys.modules[module_name] = dynamic_module
+    compat.HomeAssistantError = CandidateAlias
+    try:
+        unregister = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="LocalAlias",
+            combine_with_current=True,
+        )
+        assert dynamic_module.LocalAlias is ExistingAlias
+        unregister()
+    finally:
+        compat.HomeAssistantError = original_home_assistant_error
+        if original_module is None:
+            compat.sys.modules.pop(module_name, None)
+        else:
+            compat.sys.modules[module_name] = original_module
+
+
+def test_config_entry_supported_subentry_types_without_handler_method() -> None:
+    """Subentry support should fail closed when handlers omit capability hooks."""
+
+    class HandlerWithoutSubentrySupport:
+        pass
+
+    compat.HANDLERS.clear()
+    compat.HANDLERS["pawcontrol"] = HandlerWithoutSubentrySupport()
+    entry = compat.ConfigEntry(
+        domain="pawcontrol",
+        entry_id="entry-1",
+        data={},
+        options={},
+    )
+
+    assert entry.supported_subentry_types == {}
+
+
 def test_sync_config_entry_symbols_populates_missing_module_exports() -> None:
     """Config-entry symbol sync should install fallback classes when absent."""
     config_entries_module = ModuleType("homeassistant.config_entries")
@@ -233,6 +321,42 @@ def test_register_exception_rebind_callback_unregisters_cleanly(
     assert len(received) == 2
 
 
+def test_bind_exception_alias_rebinding_replaces_previous_callback() -> None:
+    """Rebinding the same alias target should replace the stale callback."""
+    module_name = "tests.unit.dynamic_alias_rebind"
+    dynamic_module = ModuleType(module_name)
+    dynamic_module.__dict__["__name__"] = module_name
+
+    original_module = compat.sys.modules.get(module_name)
+    original_callbacks = list(compat._EXCEPTION_REBIND_CALLBACKS)
+    compat.sys.modules[module_name] = dynamic_module
+    try:
+        unregister_first = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="Alias",
+        )
+        callbacks_after_first = list(compat._EXCEPTION_REBIND_CALLBACKS)
+
+        unregister_second = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="Alias",
+        )
+        callbacks_after_second = list(compat._EXCEPTION_REBIND_CALLBACKS)
+
+        assert len(callbacks_after_second) == len(callbacks_after_first)
+
+        unregister_first()
+        unregister_second()
+    finally:
+        if original_module is None:
+            compat.sys.modules.pop(module_name, None)
+        else:
+            compat.sys.modules[module_name] = original_module
+        compat._EXCEPTION_REBIND_CALLBACKS[:] = original_callbacks
+
+
 def test_get_exception_uses_default_factory_for_invalid_exports() -> None:
     """Invalid Home Assistant exports should fall back to generated exceptions."""
     exceptions_module = ModuleType("homeassistant.exceptions")
@@ -256,6 +380,63 @@ def test_bind_exception_alias_rejects_modules_without_name() -> None:
 
     with pytest.raises(RuntimeError, match="requires a named module"):
         compat.bind_exception_alias("HomeAssistantError", module=module_without_name)
+
+
+def test_fallback_config_entry_state_helpers_cover_name_and_member_value() -> None:
+    """Fallback state helper should resolve enum names and values consistently."""
+    state_cls = compat.ConfigEntryState
+    first = next(iter(state_cls))
+
+    assert state_cls.from_value(first.name) is first
+    assert state_cls.from_value(str(first.value)) is first
+
+
+def test_sync_config_entry_symbols_uses_core_exports_when_compatible() -> None:
+    """Core module exports should be adopted when they match HA semantics."""
+
+    @dataclass
+    class NativeCoreEntry:
+        domain: str
+        entry_id: str
+
+    class NativeCoreState(compat.Enum):
+        LOADED = "loaded"
+
+    class NativeCoreChange(compat.Enum):
+        ADDED = "added"
+
+    core_module = ModuleType("homeassistant.core")
+    core_module.ConfigEntry = NativeCoreEntry
+    core_module.ConfigEntryState = NativeCoreState
+    core_module.ConfigEntryChange = NativeCoreChange
+
+    compat._sync_config_entry_symbols(None, core_module)
+
+    assert compat.ConfigEntry is NativeCoreEntry
+    assert compat.ConfigEntryState is NativeCoreState
+    assert compat.ConfigEntryChange is NativeCoreChange
+
+
+def test_should_use_module_entry_rejects_none_initializer() -> None:
+    """Entries exposing no initializer should not be treated as HA compatible."""
+
+    class InvalidEntry:
+        __init__ = None
+
+    assert compat._should_use_module_entry(InvalidEntry) is False
+
+
+def test_ensure_config_entry_state_helpers_handles_name_and_string_values() -> None:
+    """Installed from_value helper should resolve both names and string values."""
+
+    class NativeState(compat.Enum):
+        LOADED = "loaded"
+        FAILED = "FAILED"
+
+    helper_state = compat._ensure_config_entry_state_helpers(NativeState)
+
+    assert helper_state.from_value("loaded") is NativeState.LOADED
+    assert helper_state.from_value("failed") is NativeState.FAILED
 
 
 @pytest.mark.asyncio
