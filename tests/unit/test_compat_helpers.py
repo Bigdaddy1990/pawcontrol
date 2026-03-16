@@ -321,6 +321,42 @@ def test_register_exception_rebind_callback_unregisters_cleanly(
     assert len(received) == 2
 
 
+def test_bind_exception_alias_rebinding_replaces_previous_callback() -> None:
+    """Rebinding the same alias target should replace the stale callback."""
+    module_name = "tests.unit.dynamic_alias_rebind"
+    dynamic_module = ModuleType(module_name)
+    dynamic_module.__dict__["__name__"] = module_name
+
+    original_module = compat.sys.modules.get(module_name)
+    original_callbacks = list(compat._EXCEPTION_REBIND_CALLBACKS)
+    compat.sys.modules[module_name] = dynamic_module
+    try:
+        unregister_first = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="Alias",
+        )
+        callbacks_after_first = list(compat._EXCEPTION_REBIND_CALLBACKS)
+
+        unregister_second = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="Alias",
+        )
+        callbacks_after_second = list(compat._EXCEPTION_REBIND_CALLBACKS)
+
+        assert len(callbacks_after_second) == len(callbacks_after_first)
+
+        unregister_first()
+        unregister_second()
+    finally:
+        if original_module is None:
+            compat.sys.modules.pop(module_name, None)
+        else:
+            compat.sys.modules[module_name] = original_module
+        compat._EXCEPTION_REBIND_CALLBACKS[:] = original_callbacks
+
+
 def test_get_exception_uses_default_factory_for_invalid_exports() -> None:
     """Invalid Home Assistant exports should fall back to generated exceptions."""
     exceptions_module = ModuleType("homeassistant.exceptions")
@@ -344,6 +380,63 @@ def test_bind_exception_alias_rejects_modules_without_name() -> None:
 
     with pytest.raises(RuntimeError, match="requires a named module"):
         compat.bind_exception_alias("HomeAssistantError", module=module_without_name)
+
+
+def test_fallback_config_entry_state_helpers_cover_name_and_member_value() -> None:
+    """Fallback state helper should resolve enum names and values consistently."""
+    state_cls = compat.ConfigEntryState
+    first = next(iter(state_cls))
+
+    assert state_cls.from_value(first.name) is first
+    assert state_cls.from_value(str(first.value)) is first
+
+
+def test_sync_config_entry_symbols_uses_core_exports_when_compatible() -> None:
+    """Core module exports should be adopted when they match HA semantics."""
+
+    @dataclass
+    class NativeCoreEntry:
+        domain: str
+        entry_id: str
+
+    class NativeCoreState(compat.Enum):
+        LOADED = "loaded"
+
+    class NativeCoreChange(compat.Enum):
+        ADDED = "added"
+
+    core_module = ModuleType("homeassistant.core")
+    core_module.ConfigEntry = NativeCoreEntry
+    core_module.ConfigEntryState = NativeCoreState
+    core_module.ConfigEntryChange = NativeCoreChange
+
+    compat._sync_config_entry_symbols(None, core_module)
+
+    assert compat.ConfigEntry is NativeCoreEntry
+    assert compat.ConfigEntryState is NativeCoreState
+    assert compat.ConfigEntryChange is NativeCoreChange
+
+
+def test_should_use_module_entry_rejects_none_initializer() -> None:
+    """Entries exposing no initializer should not be treated as HA compatible."""
+
+    class InvalidEntry:
+        __init__ = None
+
+    assert compat._should_use_module_entry(InvalidEntry) is False
+
+
+def test_ensure_config_entry_state_helpers_handles_name_and_string_values() -> None:
+    """Installed from_value helper should resolve both names and string values."""
+
+    class NativeState(compat.Enum):
+        LOADED = "loaded"
+        FAILED = "FAILED"
+
+    helper_state = compat._ensure_config_entry_state_helpers(NativeState)
+
+    assert helper_state.from_value("loaded") is NativeState.LOADED
+    assert helper_state.from_value("failed") is NativeState.FAILED
 
 
 @pytest.mark.asyncio

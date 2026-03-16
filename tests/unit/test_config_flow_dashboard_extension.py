@@ -13,12 +13,17 @@ class _DashboardFlowHarness(DashboardFlowMixin):
     def __init__(self, dog_count: int) -> None:
         self._dogs = [{} for _ in range(dog_count)]
         self._enabled_modules = {}
+        self.show_form_calls: list[dict[str, object]] = []
 
     async def async_step_configure_external_entities(self) -> dict[str, str]:
         return {"step_id": "configure_external_entities"}
 
     async def async_step_final_setup(self) -> dict[str, str]:
         return {"step_id": "final_setup"}
+
+    def async_show_form(self, **kwargs: object) -> dict[str, object]:
+        self.show_form_calls.append(kwargs)
+        return {"type": "form", **kwargs}
 
 
 @pytest.mark.unit
@@ -78,3 +83,50 @@ async def test_dashboard_step_routes_to_external_entities_with_gps() -> None:
     assert result == {"step_id": "configure_external_entities"}
     assert flow._dashboard_config["show_maps"] is False
     assert flow._dashboard_config["dashboard_enabled"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_dashboard_step_routes_to_final_setup_without_gps() -> None:
+    """The dashboard step should finish setup when GPS is unavailable."""
+    flow = _DashboardFlowHarness(dog_count=1)
+
+    result = await flow.async_step_configure_dashboard({"show_statistics": False})
+
+    assert result == {"step_id": "final_setup"}
+    assert flow._dashboard_config["show_statistics"] is False
+    assert flow._dashboard_config["dashboard_mode"] == "cards"
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_dashboard_step_shows_form_with_localized_placeholders() -> None:
+    """The form branch should render placeholders and defaults for multi-dog mode."""
+    flow = _DashboardFlowHarness(dog_count=2)
+    flow._enabled_modules = {"gps": True}
+
+    class _HassConfig:
+        language = "de"
+
+    class _Hass:
+        config = _HassConfig()
+
+    flow.hass = _Hass()
+    result = await flow.async_step_configure_dashboard()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "configure_dashboard"
+    assert flow.show_form_calls
+    placeholders = result["description_placeholders"]
+    assert isinstance(placeholders, dict)
+    assert placeholders["dog_count"] == 2
+    assert "GPS-Karten werden angezeigt" in placeholders["dashboard_info"]
+    assert "Standortkarten" in placeholders["features"]
+
+
+@pytest.mark.unit
+def test_translated_dashboard_info_line_uses_english_fallback_for_unknown_language() -> None:
+    """Unsupported language codes should fall back to the english template."""
+    line = _translated_dashboard_info_line("zz", "maps")
+
+    assert line == "🗺️ GPS maps will be shown if GPS module is enabled"
