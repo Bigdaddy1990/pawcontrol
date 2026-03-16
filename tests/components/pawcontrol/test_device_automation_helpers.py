@@ -69,6 +69,24 @@ def test_coerce_runtime_data_handles_supported_shapes() -> None:
     assert _coerce_runtime_data({"coordinator": object()}) is None
 
 
+def test_coerce_runtime_data_accepts_reloaded_runtime_shapes() -> None:
+    """Runtime coercion should support reloaded class/module identity checks."""
+    runtime_data = _RuntimeDataStub(coordinator=_CoordinatorStub(payload={}))
+
+    reloaded_runtime_type = type("PawControlRuntimeData", (), {})
+    reloaded_runtime_type.__module__ = "custom_components.pawcontrol.types"
+    reloaded_runtime = reloaded_runtime_type()
+
+    reloaded_store_type = type("DomainRuntimeStoreEntry", (), {})
+    reloaded_store_type.__module__ = "custom_components.pawcontrol.types"
+    reloaded_store = reloaded_store_type()
+    reloaded_store.runtime_data = runtime_data
+
+    assert _coerce_runtime_data(None) is None
+    assert _coerce_runtime_data(reloaded_runtime) is reloaded_runtime
+    assert _coerce_runtime_data(reloaded_store) is runtime_data
+
+
 def test_resolve_device_context_and_entity_id(hass: HomeAssistant) -> None:
     """Context and entity resolution should honor registry and runtime store data."""
     runtime_data = _RuntimeDataStub(coordinator=_CoordinatorStub(payload={}))
@@ -106,6 +124,25 @@ def test_resolve_device_context_and_entity_id(hass: HomeAssistant) -> None:
     assert resolve_entity_id(hass, device_entry.id, "missing", "binary_sensor") is None
 
 
+def test_resolve_device_context_without_matching_runtime_data(
+    hass: HomeAssistant,
+) -> None:
+    """Context resolution should return ``None`` runtime data when store misses."""
+    hass.data[DOMAIN] = {"other-entry": object()}
+
+    device_registry = dr.async_get(hass)
+    device_entry = device_registry.async_get_or_create(
+        config_entry_id="entry-missing",
+        identifiers={(DOMAIN, "buddy")},
+    )
+
+    context = resolve_device_context(hass, device_entry.id)
+
+    assert context.device_id == device_entry.id
+    assert context.dog_id == "buddy"
+    assert context.runtime_data is None
+
+
 def test_resolve_dog_data_and_snapshot_paths() -> None:
     """Dog data and status snapshot helpers should handle mapping and fallback paths."""
     dog_data = {
@@ -130,3 +167,10 @@ def test_resolve_dog_data_and_snapshot_paths() -> None:
     assert generated_snapshot["dog_id"] == "buddy"
     assert generated_snapshot["state"] == "hungry"
     assert resolve_status_snapshot(runtime_data, None) is None
+
+
+def test_resolve_dog_data_returns_none_for_non_mapping_payload() -> None:
+    """Non-mapping coordinator payloads should not be treated as dog data."""
+    runtime_data = _RuntimeDataStub(coordinator=_CoordinatorStub(payload="invalid"))
+
+    assert resolve_dog_data(runtime_data, "buddy") is None
