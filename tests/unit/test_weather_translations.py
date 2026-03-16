@@ -104,12 +104,13 @@ def test_get_weather_translations_falls_back_to_key_when_common_missing(
     )
 
     catalog = weather_translations.get_weather_translations("en")
-    first_alert = weather_translations.WEATHER_ALERT_KEYS[0]
-    first_recommendation = weather_translations.WEATHER_RECOMMENDATION_KEYS[0]
+    # Use specific, representative keys for assertions to make the test more explicit.
+    alert_key = "extreme_cold_warning"
+    recommendation_key = "avoid_peak_hours"
 
-    assert catalog["alerts"][first_alert]["title"] == first_alert
-    assert catalog["alerts"][first_alert]["message"] == first_alert
-    assert catalog["recommendations"][first_recommendation] == first_recommendation
+    assert catalog["alerts"][alert_key]["title"] == alert_key
+    assert catalog["alerts"][alert_key]["message"] == alert_key
+    assert catalog["recommendations"][recommendation_key] == recommendation_key
 
 
 @pytest.mark.asyncio
