@@ -6,18 +6,18 @@ from typing import Any
 
 from homeassistant.const import Platform
 import pytest
-import custom_components.pawcontrol as pawcontrol_init
 
+import custom_components.pawcontrol as pawcontrol_init
 from custom_components.pawcontrol import (
     _DEBUG_LOGGER_ENTRIES,
     _MAX_CACHE_SIZE,
     _PLATFORM_CACHE,
     _WALL_CLOCK_HEURISTIC_THRESHOLD,
-    async_setup,
+    DOMAIN,
     _cleanup_platform_cache,
     _disable_debug_logging,
     _enable_debug_logging,
-    DOMAIN,
+    async_setup,
     get_platforms_for_profile_and_modules,
 )
 
