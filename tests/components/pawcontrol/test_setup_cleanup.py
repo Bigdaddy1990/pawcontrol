@@ -138,7 +138,9 @@ async def test_async_shutdown_core_managers_delegates_to_run_method(
 def test_clear_coordinator_references_swallows_errors() -> None:
     """Coordinator reference cleanup should not raise on manager errors."""
     runtime_data = SimpleNamespace(
-        coordinator=SimpleNamespace(clear_runtime_managers=Mock(side_effect=RuntimeError))
+        coordinator=SimpleNamespace(
+            clear_runtime_managers=Mock(side_effect=RuntimeError)
+        )
     )
 
     cleanup._clear_coordinator_references(runtime_data)
