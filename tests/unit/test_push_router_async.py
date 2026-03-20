@@ -45,6 +45,14 @@ async def test_async_process_gps_push_rejects_payload_and_missing_dog_id() -> No
         "dog_id": "unknown",
     }
 
+    invalid_payload = await push_router.async_process_gps_push(
+        hass,
+        entry,
+        payload=object(),
+        source="webhook",
+    )
+    assert invalid_payload["error"] == "invalid_payload"
+
     result = await push_router.async_process_gps_push(
         hass,
         entry,
