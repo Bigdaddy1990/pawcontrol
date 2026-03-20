@@ -52,3 +52,11 @@ def test_normalize_language_respects_supported_collection() -> None:
 
     assert normalize_language("de-AT", supported=supported, default="en") == "de"
     assert normalize_language("fr", supported=supported, default="en") == "en"
+
+
+def test_normalize_language_ignores_blank_supported_entries() -> None:
+    """Blank supported codes should be discarded after normalization."""
+    supported = {"EN_us", " _ ", "de-DE"}
+
+    assert normalize_language("en-GB", supported=supported, default="fr") == "en"
+    assert normalize_language("it", supported=supported, default="fr") == "fr"
