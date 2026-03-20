@@ -72,6 +72,102 @@ def test_check_nonce_rejects_replay_and_cleans_expired_entries() -> None:
     assert set(nonces) == {"valid", "fresh"}
 
 
+def test_entry_store_repairs_router_container() -> None:
+    """Entry store should replace malformed router containers in-place."""
+    hass = SimpleNamespace(data={push_router.DOMAIN: {"_push_router": []}})
+
+    entry_store = push_router._entry_store(hass, "entry-id")
+
+    assert isinstance(entry_store, dict)
+    assert isinstance(hass.data[push_router.DOMAIN]["_push_router"], dict)
+
+
+def test_entry_store_repairs_existing_entry_container() -> None:
+    """Entry store should replace malformed per-entry containers in-place."""
+    hass = SimpleNamespace(
+        data={push_router.DOMAIN: {"_push_router": {"entry-id": []}}}
+    )
+
+    entry_store = push_router._entry_store(hass, "entry-id")
+
+    assert isinstance(entry_store, dict)
+    assert isinstance(
+        hass.data[push_router.DOMAIN]["_push_router"]["entry-id"],
+        dict,
+    )
+
+
+def test_dog_telemetry_repairs_invalid_existing_dog_bucket() -> None:
+    """Dog telemetry should replace malformed existing dog buckets."""
+    telemetry: dict[str, object] = {"dogs": {"dog-1": []}}
+
+    dog_telemetry = push_router._dog_telemetry(telemetry, "dog-1")
+
+    assert isinstance(dog_telemetry, dict)
+    assert telemetry["dogs"] == {"dog-1": dog_telemetry}
+
+
+def test_bump_reason_repairs_non_mapping_bucket() -> None:
+    """Reason buckets should be recreated when previous data is malformed."""
+    dog_tel: dict[str, object] = {"by_reason": []}
+
+    push_router._bump_reason(dog_tel, "gps_source_mismatch")
+
+    assert dog_tel["by_reason"] == {"gps_source_mismatch": 1}
+
+
+def test_rate_limit_rejects_bool_values() -> None:
+    """Bool values should fall back to the safe default rate limit."""
+    entry = SimpleNamespace(options={CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: True})
+
+    assert push_router._rate_limit(entry, "webhook") == 60
+
+
+def test_check_nonce_repairs_non_mapping_nonce_store() -> None:
+    """Nonce helper should recreate malformed nonce stores before writing."""
+    entry_store: dict[str, object] = {"nonces": []}
+    entry = SimpleNamespace(options={CONF_PUSH_NONCE_TTL_SECONDS: 60})
+
+    assert push_router._check_nonce(entry_store, entry, "fresh", now=120.0) is True
+    assert entry_store["nonces"] == {"fresh": 120.0}
+
+
+def test_limiter_repairs_non_mapping_container() -> None:
+    """Limiter helper should recreate malformed limiter containers."""
+    entry_store: dict[str, object] = {"limiters": []}
+
+    limiter = push_router._limiter(entry_store, "dog-1", "webhook", 10)
+
+    assert isinstance(entry_store["limiters"], dict)
+    assert entry_store["limiters"]["dog-1:webhook"] is limiter
+
+
+def test_accept_and_reject_repair_invalid_source_buckets() -> None:
+    """Accept/reject helpers should recreate malformed per-source buckets."""
+    telemetry: dict[str, object] = {
+        "dogs": {
+            "dog-1": {
+                "by_source_accepted": [],
+                "by_source_rejected": [],
+            }
+        }
+    }
+
+    push_router._accept(telemetry, "dog-1", "webhook", "2026-01-01T00:00:00+00:00")
+    push_router._reject(
+        telemetry,
+        "dog-1",
+        "webhook",
+        "2026-01-01T00:01:00+00:00",
+        "gps_source_mismatch",
+        409,
+    )
+
+    dog_telemetry = telemetry["dogs"]["dog-1"]
+    assert dog_telemetry["by_source_accepted"] == {"webhook": 1}
+    assert dog_telemetry["by_source_rejected"] == {"webhook": 1}
+
+
 def test_entry_store_and_snapshot_recover_invalid_structures() -> None:
     """Entry store should self-heal malformed hass data and expose telemetry."""
     hass = SimpleNamespace(data={push_router.DOMAIN: "broken"})
@@ -205,3 +301,30 @@ def test_snapshot_repairs_corrupted_telemetry_storage() -> None:
     assert snapshot["accepted_total"] == 0
     assert snapshot["rejected_total"] == 0
     assert snapshot["dogs"] == {}
+
+
+def test_dog_expected_source_skips_non_mapping_entries() -> None:
+    """Expected source lookup should ignore malformed dog entries."""
+    entry = SimpleNamespace(
+        data={
+            "dogs": [
+                "broken",
+                {"dog_id": "dog-1", "gps_source": "webhook"},
+            ]
+        }
+    )
+
+    assert push_router._dog_expected_source(entry, "dog-1") == "webhook"
+
+
+def test_payload_limit_and_nonce_ttl_handle_none_values() -> None:
+    """None configuration values should fall back to defaults."""
+    entry = SimpleNamespace(
+        options={
+            CONF_PUSH_PAYLOAD_MAX_BYTES: None,
+            CONF_PUSH_NONCE_TTL_SECONDS: None,
+        }
+    )
+
+    assert push_router._payload_limit(entry) == DEFAULT_PUSH_PAYLOAD_MAX_BYTES
+    assert push_router._nonce_ttl(entry) == DEFAULT_PUSH_NONCE_TTL_SECONDS
