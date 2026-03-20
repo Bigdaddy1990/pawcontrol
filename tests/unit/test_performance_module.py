@@ -3,6 +3,8 @@
 import asyncio
 from types import SimpleNamespace
 
+import pytest
+
 from custom_components.pawcontrol import performance
 
 
@@ -61,6 +63,49 @@ def test_capture_cache_diagnostics_supports_summary_fallback() -> None:
         "repair_summary": {"status": "fallback"},
         "performance": {"status": "unavailable"},
     }
+
+
+def test_capture_cache_diagnostics_skips_failed_summary_collection() -> None:
+    class _DataManagerSummaryFailure:
+        def cache_snapshots(self) -> dict[str, object]:
+            return {"primary": {"entries": 3}}
+
+        def cache_repair_summary(
+            self,
+            snapshots: dict[str, object] | None = None,
+        ) -> dict[str, object]:
+            if snapshots is not None:
+                raise TypeError("legacy signature")
+            raise RuntimeError("summary unavailable")
+
+    runtime_data = SimpleNamespace(data_manager=_DataManagerSummaryFailure())
+
+    assert performance.capture_cache_diagnostics(runtime_data) == {
+        "snapshots": {"primary": {"entries": 3}}
+    }
+
+
+def test_performance_metric_defaults_and_monitor_summary_paths() -> None:
+    performance.reset_performance_metrics()
+    performance.enable_performance_monitoring()
+
+    metric = performance.PerformanceMetric(name="idle")
+    assert metric.avg_time_ms == 0.0
+    assert metric.p95_time_ms == 0.0
+    assert metric.p99_time_ms == 0.0
+
+    performance._performance_monitor._metrics[metric.name] = metric
+
+    summary = performance._performance_monitor.get_summary()
+    all_metrics = performance._performance_monitor.get_all_metrics()
+
+    assert summary["metric_count"] == 1
+    assert summary["total_calls"] == 0
+    assert summary["avg_call_time_ms"] == 0.0
+    assert summary["slowest_operations"][0]["name"] == "idle"
+    assert summary["most_called_operations"][0]["name"] == "idle"
+    assert all_metrics == {"idle": metric}
+    assert all_metrics is not performance._performance_monitor._metrics
 
 
 def test_performance_tracker_records_runs_and_failures() -> None:
@@ -124,6 +169,38 @@ def test_performance_tracker_handles_non_mapping_bucket_container() -> None:
     assert isinstance(runtime_data.performance_stats["performance_buckets"], dict)
     bucket = runtime_data.performance_stats["performance_buckets"]["refresh"]
     assert bucket["runs"] == 1
+
+
+def test_performance_tracker_creates_public_store_when_missing() -> None:
+    class _RuntimeData:
+        def __init__(self) -> None:
+            self.performance_stats = None
+
+    runtime_data = _RuntimeData()
+
+    with performance.performance_tracker(runtime_data, "refresh"):
+        pass
+
+    assert isinstance(runtime_data.performance_stats, dict)
+    bucket = runtime_data.performance_stats["performance_buckets"]["refresh"]
+    assert bucket["runs"] == 1
+
+
+def test_performance_tracker_replaces_non_mapping_bucket() -> None:
+    runtime_data = SimpleNamespace(
+        performance_stats={"performance_buckets": {"refresh": []}}
+    )
+
+    with performance.performance_tracker(runtime_data, "refresh"):
+        pass
+
+    bucket = runtime_data.performance_stats["performance_buckets"]["refresh"]
+    assert bucket == {
+        "runs": 1,
+        "failures": 0,
+        "durations_ms": bucket["durations_ms"],
+    }
+    assert len(bucket["durations_ms"]) == 1
 
 
 def test_record_maintenance_result_merges_legacy_history_and_metadata() -> None:
@@ -221,6 +298,49 @@ def test_track_performance_decorator_records_sync_and_async_calls() -> None:
     asyncio.run(_exercise())
 
 
+def test_track_performance_logs_slow_sync_and_async_calls(monkeypatch) -> None:
+    async def _exercise() -> None:
+        performance.reset_performance_metrics()
+        performance.enable_performance_monitoring()
+        perf_counter_values = iter([0.0, 0.2, 1.0, 1.2])
+        warnings: list[tuple[object, ...]] = []
+
+        monkeypatch.setattr(
+            performance.time,
+            "perf_counter",
+            lambda: next(perf_counter_values),
+        )
+        monkeypatch.setattr(
+            performance._LOGGER,
+            "warning",
+            lambda *args: warnings.append(args),
+        )
+
+        @performance.track_performance(slow_threshold_ms=100.0)
+        def sync_call() -> str:
+            return "sync"
+
+        @performance.track_performance(slow_threshold_ms=100.0)
+        async def async_call() -> str:
+            return "async"
+
+        assert sync_call() == "sync"
+        assert await async_call() == "async"
+        assert len(warnings) == 2
+        assert warnings[0] == (
+            "Slow operation: %s took %.2fms (threshold: %.2fms)",
+            "sync_call",
+            200.0,
+            100.0,
+        )
+        assert warnings[1][0] == "Slow operation: %s took %.2fms (threshold: %.2fms)"
+        assert warnings[1][1] == "async_call"
+        assert warnings[1][2] == pytest.approx(200.0)
+        assert warnings[1][3] == 100.0
+
+    asyncio.run(_exercise())
+
+
 def test_debounce_throttle_and_batch_calls() -> None:
     async def _exercise() -> None:
         calls: list[str] = []
@@ -264,3 +384,23 @@ def test_debounce_throttle_and_batch_calls() -> None:
         assert batched == [1]
 
     asyncio.run(_exercise())
+
+
+def test_debounce_cancels_pending_task_before_latest_call_runs() -> None:
+    async def _exercise() -> None:
+        calls: list[str] = []
+
+        @performance.debounce(0.03)
+        async def debounced(marker: str) -> str:
+            calls.append(marker)
+            return marker
+
+        assert await debounced("first") == "first"
+        assert await debounced("second") is None
+        assert await debounced("third") is None
+        await asyncio.sleep(0.05)
+
+        assert calls == ["first", "third"]
+
+    asyncio.run(_exercise())
+
