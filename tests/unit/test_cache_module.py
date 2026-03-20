@@ -413,3 +413,96 @@ def test_lru_cache_capacity_eviction_and_l1_hit_path() -> None:
         assert cache._l2.get_calls == 0
 
     asyncio.run(_run())
+
+
+def test_persistent_cache_async_save_filters_expired_entries(monkeypatch) -> None:
+    """Saving should persist only live entries and preserve hit counters."""
+
+    class _RecordingStore:
+        def __init__(self, _hass: object, _version: int, _key: str) -> None:
+            self.saved_payloads: list[dict[str, object]] = []
+
+        async def async_load(self) -> dict[str, object]:
+            return {}
+
+        async def async_save(self, data: dict[str, object]) -> None:
+            self.saved_payloads.append(data)
+
+    async def _run() -> None:
+        monkeypatch.setattr(cache_module, "Store", _RecordingStore)
+        persistent = cache_module.PersistentCache[dict[str, str]](object(), "paw")
+
+        await persistent.set("fresh", {"name": "Buddy"}, ttl=30)
+        await persistent.get("fresh")
+        await persistent.set("stale", {"name": "Old"}, ttl=1)
+
+        fake_store = persistent._store
+        assert isinstance(fake_store, _RecordingStore)
+
+        from unittest.mock import patch
+
+        with patch("custom_components.pawcontrol.cache.time.time", return_value=10.0):
+            persistent._cache["fresh"].timestamp = 5.0
+            persistent._cache["stale"].timestamp = 0.0
+            await persistent.async_save()
+
+        assert fake_store.saved_payloads == [
+            {
+                "fresh": {
+                    "value": {"name": "Buddy"},
+                    "timestamp": 5.0,
+                    "ttl_seconds": 30,
+                    "hit_count": 1,
+                }
+            }
+        ]
+
+    asyncio.run(_run())
+
+
+def test_cached_decorator_uses_positional_args_and_reuses_cached_result() -> None:
+    """Decorator should include positional args in cache keys and skip rework."""
+
+    class _FakeTwoLevelCache:
+        def __init__(self) -> None:
+            self.storage: dict[str, object] = {}
+            self.get_calls: list[str] = []
+            self.set_calls: list[tuple[str, object, float, float]] = []
+
+        async def get(self, key: str) -> object | None:
+            self.get_calls.append(key)
+            return self.storage.get(key)
+
+        async def set(
+            self,
+            key: str,
+            value: object,
+            *,
+            l1_ttl: float,
+            l2_ttl: float,
+        ) -> None:
+            self.storage[key] = value
+            self.set_calls.append((key, value, l1_ttl, l2_ttl))
+
+    async def _run() -> None:
+        fake_cache = _FakeTwoLevelCache()
+        call_count = 0
+
+        @cache_module.cached(fake_cache, "dog")
+        async def compute(dog_id: str, metric: str) -> str:
+            nonlocal call_count
+            call_count += 1
+            return f"{dog_id}:{metric}"
+
+        first = await compute("buddy", "walks")
+        second = await compute("buddy", "walks")
+
+        assert first == "buddy:walks"
+        assert second == first
+        assert call_count == 1
+        assert fake_cache.get_calls == ["dog:buddy:walks", "dog:buddy:walks"]
+        assert fake_cache.set_calls == [
+            ("dog:buddy:walks", "buddy:walks", 300.0, 1200.0)
+        ]
+
+    asyncio.run(_run())
