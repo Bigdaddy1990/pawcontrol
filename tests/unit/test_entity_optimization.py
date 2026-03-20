@@ -261,14 +261,14 @@ def test_entity_update_scheduler_unregister_missing_entity_is_noop() -> None:
     assert scheduler.get_stats() == {"total_entities": 0, "intervals": {}}
 
 
-def test_entity_update_batcher_async_setup_logs_initialization(
+async def test_entity_update_batcher_async_setup_logs_initialization(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Setup should emit the initialization debug log."""
     batcher = eo.EntityUpdateBatcher(hass=object(), batch_window_ms=0)
 
     with caplog.at_level("DEBUG"):
-        asyncio.run(batcher.async_setup())
+        await batcher.async_setup()
 
     assert "Entity update batcher initialized" in caplog.text
 
