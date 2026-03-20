@@ -320,6 +320,53 @@ def test_load_setup_flag_translations_from_mapping_filters_supported_keys() -> N
     }
 
 
+def test_load_setup_flag_translations_from_mapping_requires_common_mapping() -> None:
+    """Translation extraction should ignore payloads without a common mapping."""
+    assert (
+        PawControlOptionsFlow._load_setup_flag_translations_from_mapping(
+            {"common": ["not", "a", "mapping"]},
+        )
+        == {}
+    )
+
+
+async def test_load_setup_flag_translations_from_path_handles_missing_and_invalid_files(
+    hass: HomeAssistant,
+    tmp_path: Any,
+) -> None:
+    """Path-based translation loading should fail closed for bad inputs."""
+    missing = await PawControlOptionsFlow._load_setup_flag_translations_from_path(
+        tmp_path / "missing.json",
+        hass,
+    )
+    assert missing == {}
+
+    invalid_path = tmp_path / "invalid.json"
+    invalid_path.write_text(json.dumps(["not", "a", "mapping"]), encoding="utf-8")
+
+    invalid = await PawControlOptionsFlow._load_setup_flag_translations_from_path(
+        invalid_path,
+        hass,
+    )
+    assert invalid == {}
+
+    assert (
+        PawControlOptionsFlow._load_setup_flag_translations_from_path_sync(
+            tmp_path / "still-missing.json"
+        )
+        == {}
+    )
+
+    invalid_sync_path = tmp_path / "invalid-sync.json"
+    invalid_sync_path.write_text(json.dumps(["not", "a", "mapping"]), encoding="utf-8")
+    assert (
+        PawControlOptionsFlow._load_setup_flag_translations_from_path_sync(
+            invalid_sync_path
+        )
+        == {}
+    )
+
+
 def test_setup_flag_translations_for_language_merges_base_overlay_and_caches(
     tmp_path: Any,
 ) -> None:
@@ -377,6 +424,77 @@ def test_setup_flag_translations_for_language_merges_base_overlay_and_caches(
     assert translations["manual_event_source_badge_default"] == "Default"
     assert translations["setup_flags_panel_source_default"] == "Standard"
     assert cached is translations
+
+
+async def test_async_setup_flag_translations_for_language_merges_and_caches(
+    hass: HomeAssistant,
+    tmp_path: Any,
+) -> None:
+    """Async translation lookups should reuse cached localized overlays."""
+    strings_path = tmp_path / "strings.json"
+    strings_path.write_text(
+        json.dumps({
+            "common": {
+                "setup_flags_panel_flag_ready": "Ready",
+                "manual_event_source_badge_default": "Default",
+            }
+        }),
+        encoding="utf-8",
+    )
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "fr.json").write_text(
+        json.dumps({
+            "common": {
+                "setup_flags_panel_flag_ready": "Prêt",
+                "setup_flags_panel_source_default": "Par défaut",
+            }
+        }),
+        encoding="utf-8",
+    )
+
+    original_en = PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS
+    original_cache = dict(PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE)
+    try:
+        with (
+            patch.object(PawControlOptionsFlow, "_STRINGS_PATH", strings_path),
+            patch.object(PawControlOptionsFlow, "_TRANSLATIONS_DIR", translations_dir),
+        ):
+            PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS = None
+            PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE.clear()
+
+            translations = (
+                await PawControlOptionsFlow._async_setup_flag_translations_for_language(
+                    "fr",
+                    hass,
+                )
+            )
+            cached = (
+                await PawControlOptionsFlow._async_setup_flag_translations_for_language(
+                    "fr",
+                    hass,
+                )
+            )
+    finally:
+        PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS = original_en
+        PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE.clear()
+        PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE.update(original_cache)
+
+    assert translations["setup_flags_panel_flag_ready"] == "Prêt"
+    assert translations["manual_event_source_badge_default"] == "Default"
+    assert translations["setup_flags_panel_source_default"] == "Par défaut"
+    assert cached is translations
+
+
+async def test_async_prepare_setup_flag_translations_skips_non_hass_object(
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Preloading should no-op when the flow has no Home Assistant instance."""
+    flow = PawControlOptionsFlow()
+    flow.hass = object()
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    await flow._async_prepare_setup_flag_translations()
 
 
 def test_manual_event_defaults_and_schema_defaults_trim_values(
@@ -456,6 +574,22 @@ def test_manual_events_snapshot_returns_none_without_runtime_mapping(
         assert flow._manual_events_snapshot() is None
 
 
+def test_manual_events_snapshot_returns_none_without_hass_or_script_manager(
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Manual-event snapshot lookup should fail closed without runtime services."""
+    flow = PawControlOptionsFlow()
+    flow.initialize_from_config_entry(mock_config_entry)
+    assert flow._manual_events_snapshot() is None
+
+    flow.hass = cast(Any, SimpleNamespace())
+    with patch.object(options_flow_main, "_resolve_get_runtime_data") as resolver:
+        resolver.return_value = lambda _hass, _entry: SimpleNamespace(
+            script_manager=None
+        )
+        assert flow._manual_events_snapshot() is None
+
+
 def test_collect_manual_event_sources_combines_snapshot_metadata(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
@@ -505,6 +639,53 @@ def test_collect_manual_event_sources_combines_snapshot_metadata(
     assert sources["pawcontrol.listener_guard"] == {"config_entry", "disabled"}
     assert sources["pawcontrol.metadata_guard"] == {"blueprint", "options"}
     assert "default" not in sources["pawcontrol_manual_guard"]
+
+
+def test_collect_manual_event_sources_ignores_invalid_snapshot_entries(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Source collection should ignore malformed listener metadata."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    sources = flow._collect_manual_event_sources(
+        "manual_breaker_event",
+        cast(SystemOptions, {}),
+        manual_snapshot=cast(
+            Any,
+            {
+                "preferred_events": {"manual_breaker_event": "pawcontrol.snapshot"},
+                "listener_sources": {
+                    42: ["options"],
+                    "pawcontrol.invalid": ["not-a-source"],
+                },
+                "listener_metadata": {
+                    "pawcontrol.skip": "invalid",
+                    "pawcontrol.metadata": {
+                        "sources": ["not-a-source"],
+                        "primary_source": "still-not-valid",
+                    },
+                },
+            },
+        ),
+    )
+
+    assert sources["pawcontrol.snapshot"] == {"system_settings"}
+    assert "pawcontrol.invalid" not in sources
+    assert "pawcontrol.metadata" not in sources
+
+
+def test_normalise_entry_dogs_raises_for_invalid_payload(
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Dog normalization should reject malformed mappings."""
+    flow = PawControlOptionsFlow()
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    with pytest.raises(FlowValidationError):
+        flow._normalise_entry_dogs([cast(Any, {"dog_name": "Missing identifier"})])
 
 
 def test_initialize_from_config_entry_skips_invalid_dogs(
@@ -590,6 +771,29 @@ def test_manual_event_choices_handles_disabled_and_unknown_sources(
     assert by_value["from_disabled"].get("metadata_primary_source") == "disabled"
     assert "badge" not in by_value["from_unknown"]
     assert by_value["from_options"].get("metadata_primary_source") == "options"
+
+
+def test_manual_event_choices_skip_badges_when_sources_are_empty(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Manual-event options should tolerate entries without any source metadata."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    with patch.object(
+        flow,
+        "_collect_manual_event_sources",
+        return_value={"from_empty": cast(Any, set())},
+    ):
+        options = flow._manual_event_choices("manual_check_event", {})
+
+    by_value = {
+        entry.get("value"): entry for entry in options if isinstance(entry, dict)
+    }
+    assert "badge" not in by_value["from_empty"]
+    assert "metadata_primary_source" not in by_value["from_empty"]
 
 
 def test_resolve_manual_event_choices_skips_non_mapping_options(
