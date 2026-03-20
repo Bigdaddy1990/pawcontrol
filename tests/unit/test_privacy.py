@@ -198,3 +198,25 @@ def test_mask_and_user_id_helpers() -> None:
 
     anon = anonymize_user_id("user_12345")
     assert re.fullmatch(r"user_[0-9a-f]{8}", anon)
+
+
+@pytest.mark.asyncio
+async def test_privacy_manager_respects_disabled_toggles() -> None:
+    """Privacy manager should leave payloads untouched when all guards are disabled."""
+    manager = PrivacyManager(hass=object())
+    payload = {
+        "email": "person@example.com",
+        "latitude": 12.34567,
+        "longitude": 45.67891,
+        "device_id": "dog-1",
+    }
+
+    sanitized = await manager.async_sanitize_data(
+        payload,
+        redact_pii=False,
+        anonymize_gps=False,
+        hash_fields=None,
+    )
+
+    assert sanitized == payload
+    assert sanitized is not payload

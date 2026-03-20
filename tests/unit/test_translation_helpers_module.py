@@ -656,3 +656,91 @@ def test_resolve_translation_accepts_legacy_key_in_fallback() -> None:
         )
         == "Dogs"
     )
+
+
+def test_component_translation_helpers_support_separator_fallbacks() -> None:
+    """Component translation lookup should fall back to suffix keys and defaults."""
+    translations = {
+        translation_helpers.component_translation_key("dog_name"): "Hundename",
+        "title": "Titel",
+    }
+    fallback = {"title": "Fallback title", "button": "Knopf"}
+
+    assert translation_helpers.component_translation_key("button") == (
+        "component.pawcontrol.common.button"
+    )
+    assert (
+        translation_helpers.resolve_component_translation(
+            translations,
+            fallback,
+            "dog_name",
+        )
+        == "Hundename"
+    )
+    assert (
+        translation_helpers.resolve_component_translation(
+            translations,
+            fallback,
+            "profile_label_title",
+        )
+        == "Titel"
+    )
+    assert (
+        translation_helpers.resolve_component_translation(
+            {},
+            fallback,
+            "profile_fallback_button",
+        )
+        == "Knopf"
+    )
+    assert (
+        translation_helpers.resolve_component_translation(
+            {}, {}, "missing", default="x"
+        )
+        == "x"
+    )
+
+
+def test_load_bundled_component_translations_fresh_reads_current_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fresh bundled loader should bypass cache and read the current payload."""
+    module_file = tmp_path / "translation_helpers.py"
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    translation_file = translations_dir / "de.json"
+    translation_file.write_text(
+        '{"common": {"title": "Erste", "ignored": 5}}',
+        encoding="utf-8",
+    )
+    module_file.write_text("", encoding="utf-8")
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    assert translation_helpers.load_bundled_component_translations_fresh("de") == {
+        "component.pawcontrol.common.title": "Erste"
+    }
+
+    translation_file.write_text(
+        '{"common": {"title": "Zweite"}}',
+        encoding="utf-8",
+    )
+
+    assert translation_helpers.load_bundled_component_translations_fresh("de") == {
+        "component.pawcontrol.common.title": "Zweite"
+    }
+
+
+def test_load_bundled_component_translations_fresh_handles_invalid_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fresh bundled loader should return an empty mapping for invalid files."""
+    module_file = tmp_path / "translation_helpers.py"
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "de.json").write_text("not-json", encoding="utf-8")
+    module_file.write_text("", encoding="utf-8")
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    assert translation_helpers.load_bundled_component_translations_fresh("de") == {}
