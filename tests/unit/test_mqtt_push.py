@@ -209,6 +209,30 @@ class TestAsyncRegisterEntryMqtt:
         assert "_mqtt_push" in hass.data.get("pawcontrol", {})
 
     @pytest.mark.asyncio
+    async def test_repairs_non_mapping_mqtt_store_before_subscribing(self) -> None:
+        """A malformed MQTT store should be replaced with a mutable mapping."""
+        hass = _make_hass({"pawcontrol": {"_mqtt_push": "broken"}})
+        entry = _make_entry(
+            mqtt_enabled=True,
+            mqtt_topic="test/gps",
+            dogs=[{"gps_config": {"gps_source": "mqtt"}}],
+        )
+
+        mock_unsub = MagicMock()
+        mock_mqtt = MagicMock()
+        mock_mqtt.async_subscribe = AsyncMock(return_value=mock_unsub)
+
+        with (
+            patch(
+                "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
+                new=AsyncMock(),
+            ),
+            patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
+        ):
+            await async_register_entry_mqtt(hass, entry)
+
+        assert hass.data["pawcontrol"]["_mqtt_push"] == {entry.entry_id: mock_unsub}
+
     async def test_uses_default_topic_when_blank(self) -> None:
         """Blank mqtt_topic should fall back to the default."""
         hass = _make_hass()
