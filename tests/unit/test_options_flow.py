@@ -352,29 +352,25 @@ def test_setup_flag_translations_for_language_merges_base_overlay_and_caches(
         encoding="utf-8",
     )
 
-    original_en = PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS
-    original_cache = dict(PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE)
-    try:
-        with patch.object(
-            PawControlOptionsFlow,
-            "_STRINGS_PATH",
-            strings_path,
-        ), patch.object(
-            PawControlOptionsFlow,
-            "_TRANSLATIONS_DIR",
-            translations_dir,
-        ):
-            PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS = None
-            PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE.clear()
-
-            translations = PawControlOptionsFlow._setup_flag_translations_for_language(
-                "de"
-            )
-            cached = PawControlOptionsFlow._setup_flag_translations_for_language("de")
-    finally:
-        PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS = original_en
-        PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE.clear()
-        PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE.update(original_cache)
+    with patch.object(
+        PawControlOptionsFlow,
+        "_STRINGS_PATH",
+        strings_path,
+    ), patch.object(
+        PawControlOptionsFlow,
+        "_TRANSLATIONS_DIR",
+        translations_dir,
+    ), patch.object(
+        PawControlOptionsFlow,
+        "_SETUP_FLAG_EN_TRANSLATIONS",
+        None,
+    ), patch.object(
+        PawControlOptionsFlow,
+        "_SETUP_FLAG_TRANSLATION_CACHE",
+        {},
+    ):
+        translations = PawControlOptionsFlow._setup_flag_translations_for_language("de")
+        cached = PawControlOptionsFlow._setup_flag_translations_for_language("de")
 
     assert translations["setup_flags_panel_flag_ready"] == "Bereit"
     assert translations["manual_event_source_badge_default"] == "Default"
