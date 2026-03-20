@@ -305,16 +305,14 @@ def test_resolve_get_runtime_data_fallbacks() -> None:
 
 def test_load_setup_flag_translations_from_mapping_filters_supported_keys() -> None:
     """Only supported setup-flag translation keys should be retained."""
-    translations = PawControlOptionsFlow._load_setup_flag_translations_from_mapping(
-        {
-            "common": {
-                "setup_flags_panel_flag_ready": "Ready",
-                "manual_event_source_badge_default": "Default",
-                "unrelated_key": "Ignored",
-                "setup_flags_panel_source_default": 3,
-            }
+    translations = PawControlOptionsFlow._load_setup_flag_translations_from_mapping({
+        "common": {
+            "setup_flags_panel_flag_ready": "Ready",
+            "manual_event_source_badge_default": "Default",
+            "unrelated_key": "Ignored",
+            "setup_flags_panel_source_default": 3,
         }
-    )
+    })
 
     assert translations == {
         "setup_flags_panel_flag_ready": "Ready",
@@ -328,41 +326,40 @@ def test_setup_flag_translations_for_language_merges_base_overlay_and_caches(
     """Language lookups should merge English defaults with localized overlays."""
     strings_path = tmp_path / "strings.json"
     strings_path.write_text(
-        json.dumps(
-            {
-                "common": {
-                    "setup_flags_panel_flag_ready": "Ready",
-                    "manual_event_source_badge_default": "Default",
-                }
+        json.dumps({
+            "common": {
+                "setup_flags_panel_flag_ready": "Ready",
+                "manual_event_source_badge_default": "Default",
             }
-        ),
+        }),
         encoding="utf-8",
     )
     translations_dir = tmp_path / "translations"
     translations_dir.mkdir()
     (translations_dir / "de.json").write_text(
-        json.dumps(
-            {
-                "common": {
-                    "setup_flags_panel_flag_ready": "Bereit",
-                    "setup_flags_panel_source_default": "Standard",
-                }
+        json.dumps({
+            "common": {
+                "setup_flags_panel_flag_ready": "Bereit",
+                "setup_flags_panel_source_default": "Standard",
             }
-        ),
+        }),
         encoding="utf-8",
     )
 
     original_en = PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS
     original_cache = dict(PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE)
     try:
-        with patch.object(
-            PawControlOptionsFlow,
-            "_STRINGS_PATH",
-            strings_path,
-        ), patch.object(
-            PawControlOptionsFlow,
-            "_TRANSLATIONS_DIR",
-            translations_dir,
+        with (
+            patch.object(
+                PawControlOptionsFlow,
+                "_STRINGS_PATH",
+                strings_path,
+            ),
+            patch.object(
+                PawControlOptionsFlow,
+                "_TRANSLATIONS_DIR",
+                translations_dir,
+            ),
         ):
             PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS = None
             PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE.clear()
