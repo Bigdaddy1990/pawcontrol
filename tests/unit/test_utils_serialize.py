@@ -315,9 +315,11 @@ def test_serialize_module_rebinds_parent_utils_exports(
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    assert parent_module.serialize_datetime is module.serialize_datetime
-    assert parent_module.serialize_timedelta is module.serialize_timedelta
-    assert parent_module.serialize_dataclass is module.serialize_dataclass
-    assert (
-        parent_module.serialize_entity_attributes is module.serialize_entity_attributes
+    attributes_to_check = (
+        "serialize_datetime",
+        "serialize_timedelta",
+        "serialize_dataclass",
+        "serialize_entity_attributes",
     )
+    for attr_name in attributes_to_check:
+        assert getattr(parent_module, attr_name) is getattr(module, attr_name)
