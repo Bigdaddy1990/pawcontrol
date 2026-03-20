@@ -1,7 +1,6 @@
 """Tests for logging and redaction helpers."""
 
 import logging
-from types import ModuleType
 from unittest.mock import Mock
 
 import pytest
@@ -149,16 +148,11 @@ def test_log_api_client_build_error_strips_credentials() -> None:
     assert error_cls == "ValueError"
 
 
-def test_strip_url_credentials_returns_original_when_yarl_unavailable(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Credential stripping should be best-effort when yarl import fails."""
-    fake_yarl = ModuleType("yarl")
-    monkeypatch.setitem(__import__("sys").modules, "yarl", fake_yarl)
-
+def test_strip_url_credentials_uses_stdlib_parsing_without_extra_dependencies() -> None:
+    """Credential stripping should not depend on optional URL helper packages."""
     assert (
         logging_utils._strip_url_credentials("https://user:pass@example.com/path")
-        == "https://user:pass@example.com/path"
+        == "https://example.com/path"
     )
 
 
@@ -166,3 +160,28 @@ def test_get_logger_returns_stdlib_logger() -> None:
     """get_logger should delegate to logging.getLogger."""
     logger = logging_utils.get_logger("pawcontrol.tests.logger")
     assert isinstance(logger, logging.Logger)
+
+
+def test_strip_url_credentials_returns_clean_url_when_no_credentials() -> None:
+    """URLs without embedded credentials should be returned unchanged."""
+    clean_url = "https://example.com/path"
+
+    assert logging_utils._strip_url_credentials(clean_url) == clean_url
+
+
+def test_strip_url_credentials_logs_debug_when_url_parsing_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Credential stripping should log a debug message on parser failures."""
+    debug_logger = Mock()
+    get_logger = Mock(return_value=debug_logger)
+    monkeypatch.setattr(logging_utils.logging, "getLogger", get_logger)
+
+    original_url = "https://user:pass@example.com:bad/path"
+    assert logging_utils._strip_url_credentials(original_url) == original_url
+
+    get_logger.assert_called_once_with(logging_utils.__name__)
+    debug_logger.debug.assert_called_once_with(
+        "Failed to strip credentials from PawControl URL: %s",
+        "ValueError",
+    )

@@ -12,6 +12,7 @@ Python: 3.14+
 from collections.abc import Mapping
 import logging
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 # ---------------------------------------------------------------------------
 # Sensitive key registry — extend here when new credential fields are added.
@@ -359,13 +360,29 @@ def _strip_url_credentials(url: str) -> str:
         URL with credentials removed.
     """
     try:
-        # yarl is available in the HA environment
-        from yarl import URL
+        parsed = urlsplit(url)
+        if parsed.username is None and parsed.password is None:
+            return url
 
-        parsed = URL(url)
-        if parsed.user or parsed.password:
-            return str(parsed.with_user(None))
-    except Exception as exc:
+        hostname = parsed.hostname
+        if hostname is None:
+            return url
+
+        if ":" in hostname and not hostname.startswith("["):
+            hostname = f"[{hostname}]"
+
+        netloc = hostname
+        if parsed.port is not None:
+            netloc = f"{netloc}:{parsed.port}"
+
+        return urlunsplit((
+            parsed.scheme,
+            netloc,
+            parsed.path,
+            parsed.query,
+            parsed.fragment,
+        ))
+    except ValueError as exc:
         # Best-effort sanitization only: on failure, keep original URL but log
         # at DEBUG so we can diagnose parsing issues without exposing secrets.
         logging.getLogger(__name__).debug(
