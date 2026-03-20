@@ -295,10 +295,13 @@ def test_snapshot_returns_empty_mapping_for_non_dict_telemetry(
         lambda _hass, _entry_id: {"telemetry": "broken"},
     )
 
-    assert push_router.get_entry_push_telemetry_snapshot(
-        SimpleNamespace(),
-        "entry-id",
-    ) == {}
+    assert (
+        push_router.get_entry_push_telemetry_snapshot(
+            SimpleNamespace(),
+            "entry-id",
+        )
+        == {}
+    )
 
 
 def test_snapshot_repairs_corrupted_telemetry_storage() -> None:

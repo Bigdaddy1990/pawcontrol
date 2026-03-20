@@ -408,8 +408,9 @@ def test_resolve_indicator_thresholds_uses_script_snapshot_before_options() -> N
     assert breaker_thresholds.source_key == "default"
 
 
-def test_resolve_indicator_thresholds_falls_back_to_options_for_invalid_snapshot(
-) -> None:
+def test_resolve_indicator_thresholds_falls_back_to_options_for_invalid_snapshot() -> (
+    None
+):
     """Invalid script snapshots should gracefully defer to config-entry options."""
 
     class _BrokenScriptManager:
@@ -511,7 +512,9 @@ def test_system_health_threshold_helpers_cover_serialization_and_sources() -> No
         == "options flow system settings threshold"
     )
     assert (
-        _describe_guard_threshold_source(GuardIndicatorThresholds(source="default_ratio"))
+        _describe_guard_threshold_source(
+            GuardIndicatorThresholds(source="default_ratio")
+        )
         == "system default threshold"
     )
     assert (

@@ -9,12 +9,12 @@ from typing import cast
 import pytest
 
 from custom_components.pawcontrol.feeding_translations import (
-    _BoundedSequenceSnapshot,
     _MAX_ISSUES,
     _MAX_MISSED_MEALS,
     _MAX_RECOMMENDATIONS,
     _SEQUENCE_SCAN_LIMIT,
     _as_float,
+    _BoundedSequenceSnapshot,
     _collect_issue_summaries,
     _collect_missed_meals,
     _collect_recommendations,
