@@ -259,3 +259,24 @@ def test_entity_update_scheduler_unregister_missing_entity_is_noop() -> None:
     scheduler.unregister_entity("sensor.missing")
 
     assert scheduler.get_stats() == {"total_entities": 0, "intervals": {}}
+
+
+def test_entity_update_batcher_async_setup_logs_initialization(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Setup should emit the initialization debug log."""
+    batcher = eo.EntityUpdateBatcher(hass=object(), batch_window_ms=0)
+
+    with caplog.at_level("DEBUG"):
+        asyncio.run(batcher.async_setup())
+
+    assert "Entity update batcher initialized" in caplog.text
+
+
+def test_significant_change_tracker_updates_string_value_when_changed() -> None:
+    """Non-numeric changes should replace the tracked value when significant."""
+    tracker = eo.SignificantChangeTracker()
+
+    assert tracker.is_significant_change("sensor.mode", "state", "idle") is True
+    assert tracker.is_significant_change("sensor.mode", "state", "running") is True
+    assert tracker._last_values["sensor.mode.state"] == "running"
