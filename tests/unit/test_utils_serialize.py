@@ -292,10 +292,10 @@ def test_serialize_module_rebinds_parent_utils_exports(
 ) -> None:
     """Executing the module should refresh package-level serialize helper bindings."""
     import importlib.util
+    from pathlib import Path
     import sys
     import types
     import uuid
-    from pathlib import Path
 
     parent_module = types.ModuleType("custom_components.pawcontrol.utils")
     parent_module.serialize_datetime = object()
