@@ -44,6 +44,19 @@ def test_sanitize_html_and_string_filters() -> None:
     )
 
 
+def test_sanitize_string_trims_truncates_and_preserves_safe_control_chars() -> None:
+    """String sanitization should trim, clamp length, and keep tabs/newlines."""
+    sanitizer = InputSanitizer()
+
+    assert (
+        sanitizer.sanitize_string(
+            "  Buddy\twalk\nplan\x00  ",
+            max_length=16,
+        )
+        == "Buddy\twalk\nplan"
+    )
+
+
 def test_sanitize_url_rejects_invalid_protocols() -> None:
     sanitizer = InputSanitizer()
 
@@ -51,6 +64,7 @@ def test_sanitize_url_rejects_invalid_protocols() -> None:
         sanitizer.sanitize_url("https://example.com/path?q=1")
         == "https://example.com/path?q=1"
     )
+    assert sanitizer.sanitize_url("/local/path?dog=buddy") == "/local/path?dog=buddy"
 
     with pytest.raises(ValidationError, match="Only http and https"):
         sanitizer.sanitize_url("ftp://example.com")
@@ -205,6 +219,24 @@ def test_validator_email_phone_string_and_invalid_dict() -> None:
     assert not dict_result.is_valid
     assert "Missing required field: required_field" in dict_result.errors
     assert any(error.startswith("website:") for error in dict_result.errors)
+
+
+def test_validator_phone_and_string_success_paths() -> None:
+    """Phone sanitization and string validation should support valid inputs."""
+    validator = InputValidator()
+
+    phone = validator.validate_phone("  +1-555-123-4567 ext 89  ")
+    assert phone.is_valid
+    assert phone.sanitized_value == "+1-555-123-4567  89"
+
+    string_result = validator.validate_string(
+        "  Buddy  ",
+        min_length=3,
+        max_length=8,
+        pattern=r"^[A-Za-z]+$",
+    )
+    assert string_result.is_valid
+    assert string_result.sanitized_value == "Buddy"
 
 
 def test_validate_and_sanitize_success_and_failure() -> None:

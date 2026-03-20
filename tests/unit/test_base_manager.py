@@ -207,6 +207,16 @@ class TestBaseManager:
         assert diagnostics["is_shutdown"] is False
         assert diagnostics["is_ready"] is False
 
+    def test_get_lifecycle_diagnostics_reports_coordinator_presence(self) -> None:
+        """Lifecycle diagnostics should expose when a coordinator is attached."""
+        mock_hass = MagicMock()
+        mock_coordinator = MagicMock()
+        manager = DummyManager(mock_hass, mock_coordinator)
+
+        diagnostics = manager.get_lifecycle_diagnostics()
+
+        assert diagnostics["has_coordinator"] is True
+
     def test_manager_repr(self) -> None:
         """Test manager string representation."""
         mock_hass = MagicMock()
@@ -354,6 +364,19 @@ class TestEventManager:
 
         assert len(manager._listeners["test_event"]) == 0
 
+    def test_event_manager_unregister_listener_ignores_missing_entries(self) -> None:
+        """Removing unknown listeners should be a safe no-op."""
+        mock_hass = MagicMock()
+        manager = DummyEventManager(mock_hass)
+
+        callback = MagicMock()
+
+        manager._unregister_listener("missing_event", callback)
+        manager._register_listener("test_event", callback)
+        manager._unregister_listener("test_event", MagicMock())
+
+        assert manager._listeners["test_event"] == [callback]
+
     def test_event_manager_multiple_listeners(self) -> None:
         """Test multiple listeners for same event."""
         mock_hass = MagicMock()
@@ -390,6 +413,13 @@ class TestManagerRegistration:
         managers = get_registered_managers()
         assert "CustomManager" in managers
         assert managers["CustomManager"] == CustomManager
+
+    def test_get_registered_managers_returns_copy(self) -> None:
+        """Registry snapshots should not mutate the global registration state."""
+        managers = get_registered_managers()
+        managers["InjectedManager"] = DummyManager
+
+        assert "InjectedManager" not in get_registered_managers()
 
     def test_get_registered_managers(self) -> None:
         """Test getting registered managers."""
@@ -439,6 +469,23 @@ class TestBatchOperations:
 
         # Manager1 should be cleaned up
         assert manager1.is_shutdown
+
+    @pytest.mark.asyncio
+    async def test_setup_managers_suppresses_teardown_failures_during_rollback(
+        self,
+    ) -> None:
+        """Rollback should preserve the original setup error on teardown failure."""
+        mock_hass = MagicMock()
+        manager1 = DummyManager(mock_hass)
+        manager1.shutdown_should_fail = True
+        manager2 = DummyManager(mock_hass)
+        manager2.setup_should_fail = True
+
+        with pytest.raises(ManagerLifecycleError, match="setup failed"):
+            await setup_managers(manager1, manager2, stop_on_error=True)
+
+        assert manager1.is_setup is True
+        assert manager1.is_shutdown is False
 
     @pytest.mark.asyncio
     async def test_shutdown_managers(self) -> None:

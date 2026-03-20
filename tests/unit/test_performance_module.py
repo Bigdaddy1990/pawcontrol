@@ -438,6 +438,70 @@ def test_debounce_throttle_and_batch_calls() -> None:
     asyncio.run(_exercise())
 
 
+def test_track_performance_records_metrics_when_calls_raise() -> None:
+    async def _exercise() -> None:
+        performance.reset_performance_metrics()
+        performance.enable_performance_monitoring()
+
+        @performance.track_performance("sync_failure", log_slow=False)
+        def sync_call() -> None:
+            raise RuntimeError("sync boom")
+
+        @performance.track_performance("async_failure", log_slow=False)
+        async def async_call() -> None:
+            raise RuntimeError("async boom")
+
+        with pytest.raises(RuntimeError, match="sync boom"):
+            sync_call()
+
+        with pytest.raises(RuntimeError, match="async boom"):
+            await async_call()
+
+        sync_metric = performance._performance_monitor.get_metric("sync_failure")
+        async_metric = performance._performance_monitor.get_metric("async_failure")
+
+        assert sync_metric is not None
+        assert async_metric is not None
+        assert sync_metric.call_count == 1
+        assert async_metric.call_count == 1
+
+    asyncio.run(_exercise())
+
+
+def test_batch_calls_starts_a_new_task_after_previous_batch_finishes() -> None:
+    async def _exercise() -> None:
+        batched: list[int] = []
+
+        @performance.batch_calls(max_batch_size=2, max_wait_ms=10.0)
+        async def batch_target(value: int) -> None:
+            batched.append(value)
+
+        await batch_target(1)
+        await asyncio.sleep(0.03)
+        await batch_target(2)
+        await asyncio.sleep(0.03)
+
+        assert batched == [1, 2]
+
+    asyncio.run(_exercise())
+
+
+def test_capture_cache_diagnostics_counts_all_legacy_cache_slots() -> None:
+    runtime_data = SimpleNamespace(
+        caches={"alpha": object(), "beta": object()},
+        _caches={"gamma": object()},
+    )
+
+    diagnostics = performance.capture_cache_diagnostics(runtime_data)
+
+    assert diagnostics == {
+        "legacy": {
+            "caches": {"entries": 2},
+            "_caches": {"entries": 1},
+        }
+    }
+
+
 def test_debounce_cancels_pending_task_before_latest_call_runs() -> None:
     async def _exercise() -> None:
         calls: list[str] = []
