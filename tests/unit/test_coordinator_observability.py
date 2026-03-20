@@ -349,3 +349,20 @@ def test_normalise_webhook_status_handles_exception() -> None:
     default_status = normalise_webhook_status(None)
     assert default_status["configured"] is False
     assert default_status["secure"] is True
+
+
+@pytest.mark.unit
+def test_normalise_webhook_status_converts_iterable_insecure_configs_to_tuple() -> None:
+    class Manager:
+        @staticmethod
+        def webhook_security_status() -> WebhookSecurityStatus:
+            return {
+                "configured": True,
+                "secure": False,
+                "hmac_ready": False,
+                "insecure_configs": ["front-door", "garden"],
+            }
+
+    status = normalise_webhook_status(Manager())
+
+    assert status["insecure_configs"] == ("front-door", "garden")
