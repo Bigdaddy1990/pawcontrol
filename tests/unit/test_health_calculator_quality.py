@@ -69,6 +69,79 @@ class TestLifeStageCalculation:
             HealthCalculator.calculate_life_stage(-1)
 
 
+class TestCoreHealthCalculations:
+    """Tests for the calculator's numeric helper methods."""
+
+    @pytest.mark.parametrize(
+        ("current_weight", "ideal_weight", "visual_assessment", "expected"),
+        [
+            (10.0, None, None, BodyConditionScore.IDEAL),
+            (10.0, 10.0, 9, BodyConditionScore.SEVERELY_OBESE),
+            (6.5, 10.0, None, BodyConditionScore.EMACIATED),
+            (7.5, 10.0, None, BodyConditionScore.VERY_THIN),
+            (8.5, 10.0, None, BodyConditionScore.THIN),
+            (9.2, 10.0, None, BodyConditionScore.UNDERWEIGHT),
+            (10.3, 10.0, None, BodyConditionScore.IDEAL),
+            (11.2, 10.0, None, BodyConditionScore.OVERWEIGHT),
+            (12.3, 10.0, None, BodyConditionScore.HEAVY),
+            (13.5, 10.0, None, BodyConditionScore.OBESE),
+            (15.0, 10.0, None, BodyConditionScore.SEVERELY_OBESE),
+        ],
+    )
+    def test_estimate_body_condition_score_covers_thresholds(
+        self,
+        current_weight: float,
+        ideal_weight: float | None,
+        visual_assessment: int | None,
+        expected: BodyConditionScore,
+    ) -> None:
+        """Estimated scores should honor visual overrides and ratio thresholds."""
+        result = HealthCalculator.estimate_body_condition_score(
+            current_weight=current_weight,
+            ideal_weight=ideal_weight,
+            visual_assessment=visual_assessment,
+        )
+
+        assert result is expected
+
+    def test_calculate_bmi_handles_zero_height(self) -> None:
+        """BMI should safely fall back to zero for invalid heights."""
+        assert HealthCalculator.calculate_bmi(20.0, 50.0) == pytest.approx(80.0)
+        assert HealthCalculator.calculate_bmi(20.0, 0.0) == 0.0
+
+    def test_calculate_daily_calories_spay_neuter_adjustment_is_stage_specific(
+        self,
+    ) -> None:
+        """Adult and senior dogs get the neuter reduction, puppies do not."""
+        adult_intact = HealthCalculator.calculate_daily_calories(
+            weight=20.0,
+            life_stage=LifeStage.ADULT,
+            activity_level=ActivityLevel.MODERATE,
+            spayed_neutered=False,
+        )
+        adult_fixed = HealthCalculator.calculate_daily_calories(
+            weight=20.0,
+            life_stage=LifeStage.ADULT,
+            activity_level=ActivityLevel.MODERATE,
+            spayed_neutered=True,
+        )
+        puppy_intact = HealthCalculator.calculate_daily_calories(
+            weight=20.0,
+            life_stage=LifeStage.PUPPY,
+            activity_level=ActivityLevel.MODERATE,
+            spayed_neutered=False,
+        )
+        puppy_fixed = HealthCalculator.calculate_daily_calories(
+            weight=20.0,
+            life_stage=LifeStage.PUPPY,
+            activity_level=ActivityLevel.MODERATE,
+            spayed_neutered=True,
+        )
+
+        assert adult_fixed == pytest.approx(adult_intact * 0.9, abs=0.1)
+        assert puppy_fixed == puppy_intact
+
+
 class TestPortionCalculations:
     """Tests for the complex portion adjustment logic."""
 
@@ -141,6 +214,78 @@ class TestPortionCalculations:
         assert len(interactions["caution"]) == 2
         assert len(interactions["conflicting"]) == 2
         assert interactions["risk_level"] == "high"
+
+    def test_validate_portion_safety_reports_large_high_risk_conflicting_portions(
+        self,
+    ) -> None:
+        """Unsafe large portions should accumulate warnings and vet guidance."""
+        validation: DietValidationResult = {
+            "valid": False,
+            "conflicts": [
+                {
+                    "type": "age_conflict",
+                    "diets": ["puppy_formula"],
+                    "message": "Age conflict",
+                }
+            ],
+            "warnings": [],
+            "recommended_vet_consultation": True,
+            "total_diets": 1,
+        }
+
+        result = HealthCalculator.validate_portion_safety(
+            calculated_portion=1200.0,
+            dog_weight=20.0,
+            life_stage=LifeStage.ADULT,
+            special_diets=["prescription"],
+            diet_validation=validation,
+        )
+
+        assert result["safe"] is False
+        assert result["portion_per_kg"] == 60.0
+        assert any("too large" in warning for warning in result["warnings"])
+        assert (
+            "Diet conflicts detected - extra monitoring recommended"
+            in result["warnings"]
+        )
+        assert (
+            "Prescription diet detected - verify portions with veterinarian"
+            in result["recommendations"]
+        )
+        assert (
+            "Veterinary consultation recommended due to diet complexity"
+            in result["recommendations"]
+        )
+
+    def test_validate_portion_safety_handles_small_portions_and_zero_weight(
+        self,
+    ) -> None:
+        """Small portions warn without becoming unsafe, and zero weight stays stable."""
+        small_result = HealthCalculator.validate_portion_safety(
+            calculated_portion=100.0,
+            dog_weight=20.0,
+            life_stage=LifeStage.SENIOR,
+            special_diets=[],
+        )
+        zero_weight_result = HealthCalculator.validate_portion_safety(
+            calculated_portion=100.0,
+            dog_weight=0.0,
+            life_stage=LifeStage.ADULT,
+            special_diets=[],
+        )
+
+        assert small_result["safe"] is True
+        assert any("too small" in warning for warning in small_result["warnings"])
+        assert any(
+            "Consider increasing portion size" in recommendation
+            for recommendation in small_result["recommendations"]
+        )
+        assert zero_weight_result == {
+            "safe": True,
+            "warnings": [],
+            "recommendations": [],
+            "portion_per_kg": 0.0,
+        }
 
 
 class TestFeedingHistoryAnalysis:
