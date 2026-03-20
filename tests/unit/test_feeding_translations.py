@@ -9,16 +9,25 @@ from typing import cast
 import pytest
 
 from custom_components.pawcontrol.feeding_translations import (
+    _BoundedSequenceSnapshot,
     _MAX_ISSUES,
     _MAX_MISSED_MEALS,
     _MAX_RECOMMENDATIONS,
     _SEQUENCE_SCAN_LIMIT,
+    _as_float,
     _collect_issue_summaries,
     _collect_missed_meals,
     _collect_recommendations,
     _format_structured_message,
+    _is_structured_message_payload,
     _iter_text_candidates,
+    _load_static_common_translations,
+    _normalise_count,
+    _normalise_date,
     _normalise_sequence,
+    _normalise_text,
+    async_build_feeding_compliance_notification,
+    async_build_feeding_compliance_summary,
     async_get_feeding_compliance_translations,
     build_feeding_compliance_notification,
     build_feeding_compliance_summary,
@@ -96,6 +105,77 @@ def test_normalise_sequence_preserves_bounded_snapshot_identity() -> None:
     second_pass = list(typed_snapshot)
     assert second_pass == first_pass
     assert consumed == _SEQUENCE_SCAN_LIMIT
+
+
+def test_bounded_sequence_snapshot_supports_len_and_indexing() -> None:
+    """Snapshots should support sequence helpers without over-consuming items."""
+    consumed = 0
+
+    def _source() -> Iterator[int]:
+        nonlocal consumed
+        for index in range(_SEQUENCE_SCAN_LIMIT * 2):
+            consumed += 1
+            yield index
+
+    snapshot = _BoundedSequenceSnapshot(_source(), 4)
+
+    assert len(snapshot) == 4
+    assert consumed == 4
+    assert snapshot[0] == 0
+    assert snapshot[-1] == 3
+    assert list(snapshot[1:3]) == [1, 2]
+    assert consumed == 4
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("telemetry offline", False),
+        (b"telemetry offline", False),
+        (Path("telemetry.txt"), False),
+        (["telemetry", "offline"], True),
+        ((item for item in ("telemetry", "offline")), True),
+    ],
+)
+def test_is_structured_message_payload_distinguishes_textual_inputs(
+    value: object,
+    expected: bool,
+) -> None:
+    """Only non-text collections and iterables should be treated as structured."""
+    assert _is_structured_message_payload(value) is expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (True, 1.0),
+        (" 2.5 ", 2.5),
+        (3, 3.0),
+        ("nan", None),
+        ("not-a-number", None),
+    ],
+)
+def test_as_float_normalises_supported_values(
+    value: object,
+    expected: float | None,
+) -> None:
+    """Scalar parsing should accept finite values and reject invalid text."""
+    assert _as_float(value) == expected
+
+
+def test_normalise_helpers_cover_text_count_and_date_fallbacks() -> None:
+    """Human-readable helper functions should coerce supported input types."""
+    assert _normalise_count(" 4 ") == "4"
+    assert _normalise_count("2.5") == "2.5"
+    assert _normalise_count(object()) == "?"
+
+    assert _normalise_date(" 2026-03-20 ") == "2026-03-20"
+    assert _normalise_date(None) == "unknown"
+
+    assert _normalise_text(Path("/tmp/meal-plan.txt")) == "/tmp/meal-plan.txt"
+    assert _normalise_text(b"  telemetry offline  ") == "telemetry offline"
+    assert _normalise_text(memoryview(b"  Buddy  ")) == "Buddy"
+    assert _normalise_text(None) is None
 
 
 def test_format_structured_message_handles_recursive_mapping() -> None:
@@ -885,3 +965,66 @@ def test_collect_recommendations_limits_generator_consumption() -> None:
 
     assert len(summary) == _MAX_RECOMMENDATIONS
     assert consumed == _MAX_RECOMMENDATIONS
+
+
+def test_load_static_common_translations_falls_back_for_missing_locale() -> None:
+    """Missing locales should reuse the packaged English translation set."""
+    assert _load_static_common_translations(None) == _load_static_common_translations(
+        "en"
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_build_feeding_compliance_helpers_share_resolved_translations(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Async helpers should build summaries and notifications from lookup results."""
+    translations = {
+        "no_data_title": "{display_name} no data",
+        "no_data_fallback": "No data available",
+        "alert_title": "{display_name} feeding alert",
+        "score_line": "Score: {score}% over {days_analyzed} days.",
+        "missed_meals_header": "Missed meals:",
+        "missed_meal_item": "{date}: {actual}/{expected} meals",
+        "issues_header": "Issues:",
+        "issue_item": "{date}: {description}",
+        "recommendations_header": "Recommendations:",
+        "recommendation_item": "{recommendation}",
+        "no_recommendations": "Stay consistent",
+    }
+
+    async def _fake_lookup(_hass: object, _language: str | None) -> dict[str, str]:
+        return translations
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.feeding_translations.async_get_feeding_compliance_translations",
+        _fake_lookup,
+    )
+
+    compliance = {
+        "status": "completed",
+        "compliance_score": "91.5",
+        "days_analyzed": "4",
+        "missed_meals": [{"date": "2026-03-18", "actual": 1, "expected": 2}],
+        "recommendations": [{"summary": "Add a midday reminder"}],
+    }
+
+    summary = await async_build_feeding_compliance_summary(
+        object(),
+        "en",
+        display_name="Buddy",
+        compliance=compliance,
+    )
+    title, message = await async_build_feeding_compliance_notification(
+        object(),
+        "en",
+        display_name="Buddy",
+        compliance=compliance,
+    )
+
+    assert summary["title"] == "Buddy feeding alert"
+    assert summary["score_line"] == "Score: 91.5% over 4 days."
+    assert summary["missed_meals"] == ["2026-03-18: 1/2 meals"]
+    assert summary["recommendations"] == ["Add a midday reminder"]
+    assert title == summary["title"]
+    assert message == summary["message"]
