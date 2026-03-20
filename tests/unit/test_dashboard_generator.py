@@ -542,6 +542,98 @@ async def test_renderer_activity_summary_returns_none_without_entities(
 
 
 @pytest.mark.asyncio
+async def test_renderer_dog_dashboard_creates_and_executes_job(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Valid dog dashboard payloads should build a dog render job."""
+    renderer = DashboardRenderer(hass)
+    captured: dict[str, object] = {}
+
+    async def _capture_job(job: RenderJob) -> dict[str, object]:
+        captured["job"] = job
+        return {"views": [{"path": "overview", "cards": []}]}
+
+    monkeypatch.setattr(renderer, "_execute_render_job", _capture_job)
+
+    result = await renderer.render_dog_dashboard(
+        {CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}},
+        {"theme": "night"},
+    )
+
+    job = captured["job"]
+    assert isinstance(job, RenderJob)
+    assert job.job_type == "dog_dashboard"
+    assert job.config == {
+        "dog": {CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}}
+    }
+    assert job.options == {"theme": "night"}
+    assert result == {"views": [{"path": "overview", "cards": []}]}
+
+
+@pytest.mark.asyncio
+async def test_renderer_execute_render_job_processes_dog_dashboard_jobs(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Dog dashboard jobs should use the dedicated dog renderer path."""
+    renderer = DashboardRenderer(hass)
+    job = RenderJob(
+        "dog-job-1",
+        "dog_dashboard",
+        {"dog": {CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}}},
+    )
+    render_dog_job = AsyncMock(return_value={"views": [{"path": "overview"}]})
+    monkeypatch.setattr(renderer, "_render_dog_dashboard_job", render_dog_job)
+
+    result = await renderer._execute_render_job(job)
+
+    render_dog_job.assert_awaited_once_with(job)
+    assert job.status == "completed"
+    assert job.result == result
+    assert renderer._active_jobs == {}
+
+
+@pytest.mark.asyncio
+async def test_renderer_dog_overview_module_views_and_settings_skip_empty_results(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Dog overview helpers should skip empty module views and invalid dogs."""
+    renderer = DashboardRenderer(hass)
+    dog = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        "modules": {MODULE_NOTIFICATIONS: True},
+    }
+    overview_cards = [{"type": "entities", "title": "Overview"}]
+    monkeypatch.setattr(
+        renderer.dog_generator,
+        "generate_dog_overview_cards",
+        AsyncMock(return_value=overview_cards),
+    )
+    monkeypatch.setattr(
+        renderer.module_generator,
+        "generate_notification_cards",
+        AsyncMock(return_value=[]),
+    )
+
+    overview = await renderer._render_dog_overview_view(dog, {"theme": "night"})
+    module_views = await renderer._render_module_views(dog, {"theme": "night"})
+    settings = await renderer._render_settings_view(
+        [dog, {CONF_DOG_ID: "missing-name"}, {CONF_DOG_NAME: "Missing Id"}],
+        {},
+    )
+
+    assert overview == {
+        "title": "Overview",
+        "path": "overview",
+        "icon": "mdi:dog",
+        "cards": overview_cards,
+    }
+    assert module_views == []
+    assert len(settings["cards"]) == 2
+    assert settings["cards"][1]["title"] == "Fido Settings"
+
+
+@pytest.mark.asyncio
 async def test_renderer_execute_render_job_marks_timeout(
     hass, monkeypatch: pytest.MonkeyPatch
 ) -> None:
