@@ -59,3 +59,21 @@ def test_redact_sensitive_data_preserves_non_sensitive_scalars() -> None:
         "enabled": True,
         "ips": ["**REDACTED**", "not-an-ip"],
     }
+
+
+def test_compile_redaction_patterns_respects_boundaries() -> None:
+    """Configured keys should not match unrelated substrings."""
+    patterns = compile_redaction_patterns(["token"])
+
+    assert any(pattern.search("token") for pattern in patterns)
+    assert not any(pattern.search("tokenized") for pattern in patterns)
+
+
+def test_redact_sensitive_data_masks_mac_address_strings() -> None:
+    """MAC addresses should be redacted even when nested in list payloads."""
+    payload = ["AA:BB:CC:DD:EE:FF", {"safe": "garden"}]
+
+    assert redact_sensitive_data(payload, patterns=compile_redaction_patterns([])) == [
+        "**REDACTED**",
+        {"safe": "garden"},
+    ]
