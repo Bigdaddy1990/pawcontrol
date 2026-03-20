@@ -24,6 +24,7 @@ from custom_components.pawcontrol.dashboard_generator import (
 from custom_components.pawcontrol.dashboard_renderer import (
     DashboardRenderer,
     HomeAssistantError,
+    RenderJob,
 )
 
 
@@ -541,6 +542,263 @@ async def test_renderer_activity_summary_returns_none_without_entities(
 
 
 @pytest.mark.asyncio
+async def test_renderer_execute_render_job_wraps_unknown_job_types(
+    hass,
+) -> None:
+    """Unknown render jobs should surface a Home Assistant friendly error."""
+    renderer = DashboardRenderer(hass)
+    job = RenderJob("job-1", "unsupported", {"dogs": []})
+
+    with pytest.raises(HomeAssistantError, match="Dashboard rendering failed"):
+        await renderer._execute_render_job(job)  # type: ignore[arg-type]
+
+    assert job.status == "error"
+    assert "Unknown job type" in (job.error or "")
+    assert renderer._active_jobs == {}
+
+
+@pytest.mark.asyncio
+async def test_renderer_main_and_dog_jobs_build_expected_views(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Dashboard jobs should aggregate the views returned by helper renderers."""
+    renderer = DashboardRenderer(hass)
+
+    overview_view = {"path": "overview", "cards": []}
+    statistics_view = {"path": "statistics", "cards": []}
+    settings_view = {"path": "settings", "cards": []}
+    dog_overview_view = {"path": "overview", "cards": []}
+    module_view = {"path": "feeding", "cards": []}
+
+    monkeypatch.setattr(
+        renderer,
+        "_render_overview_view",
+        AsyncMock(return_value=overview_view),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "_render_dog_views_batch",
+        AsyncMock(return_value=[{"path": "fido", "cards": []}]),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "_render_statistics_view",
+        AsyncMock(return_value=statistics_view),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "_render_settings_view",
+        AsyncMock(return_value=settings_view),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "_render_dog_overview_view",
+        AsyncMock(return_value=dog_overview_view),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "_render_module_views",
+        AsyncMock(return_value=[module_view]),
+    )
+
+    main_job = RenderJob(
+        "main-1",
+        "main_dashboard",
+        {"dogs": [{CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}}]},
+        {"show_statistics": True, "show_settings": True},
+    )
+    dog_job = RenderJob(
+        "dog-1",
+        "dog_dashboard",
+        {"dog": {CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}}},
+        {},
+    )
+
+    main_result = await renderer._render_main_dashboard_job(main_job)
+    dog_result = await renderer._render_dog_dashboard_job(dog_job)
+
+    assert [view["path"] for view in main_result["views"]] == [
+        "overview",
+        "fido",
+        "statistics",
+        "settings",
+    ]
+    assert [view["path"] for view in dog_result["views"]] == [
+        "overview",
+        "feeding",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_renderer_overview_view_uses_navigation_url_and_skips_failures(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Overview rendering should keep successful cards even when one task fails."""
+    renderer = DashboardRenderer(hass)
+    dog_config = [{CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}}]
+
+    welcome_card = {"type": "markdown"}
+    dog_grid_card = {"type": "grid"}
+
+    monkeypatch.setattr(
+        renderer.overview_generator,
+        "generate_welcome_card",
+        AsyncMock(return_value=welcome_card),
+    )
+    dogs_grid = AsyncMock(return_value=dog_grid_card)
+    monkeypatch.setattr(
+        renderer.overview_generator,
+        "generate_dogs_grid",
+        dogs_grid,
+    )
+    monkeypatch.setattr(
+        renderer.overview_generator,
+        "generate_quick_actions",
+        AsyncMock(side_effect=RuntimeError("boom")),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "_render_activity_summary",
+        AsyncMock(return_value=None),
+    )
+
+    result = await renderer._render_overview_view(
+        dog_config,
+        {"dashboard_url": "/lovelace/paws", "show_activity_summary": True},
+    )
+
+    assert result["path"] == "overview"
+    assert result["cards"] == [welcome_card, dog_grid_card]
+    dogs_grid.assert_awaited_once_with(dog_config, "/lovelace/paws")
+
+
+@pytest.mark.asyncio
+async def test_renderer_dog_view_batch_and_module_rendering_skip_invalid_results(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Dog and module batch renderers should discard invalid or failing payloads."""
+    renderer = DashboardRenderer(hass)
+    dogs = [
+        {CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {"feeding": True}},
+        {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy", "modules": {"feeding": True}},
+    ]
+
+    async def _single_dog_view(
+        dog_config: dict[str, object], index: int, options: dict[str, object]
+    ) -> dict[str, object] | None:
+        if dog_config[CONF_DOG_ID] == "fido":
+            return {"path": "fido", "cards": [], "index": index, **options}
+        raise RuntimeError("dog view failure")
+
+    monkeypatch.setattr(renderer, "_render_single_dog_view", _single_dog_view)
+
+    dog_views = await renderer._render_dog_views_batch(dogs, {"theme": "modern"})
+
+    assert [view["path"] for view in dog_views] == ["fido"]
+
+    feeding_cards = [{"type": "entities"}]
+    monkeypatch.setattr(
+        renderer.module_generator,
+        "generate_feeding_cards",
+        AsyncMock(return_value=feeding_cards),
+    )
+    monkeypatch.setattr(
+        renderer.module_generator,
+        "generate_walk_cards",
+        AsyncMock(side_effect=AssertionError("walk cards should not run")),
+    )
+
+    module_views = await renderer._render_module_views(dogs[0], {"theme": "modern"})
+
+    assert module_views == [
+        {
+            "title": "Feeding",
+            "path": "feeding",
+            "icon": "mdi:food-drumstick",
+            "cards": feeding_cards,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_renderer_module_settings_and_stats_helpers(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Renderer helpers should expose module views, settings, and stats cleanly."""
+    renderer = DashboardRenderer(hass)
+    dog_config = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        "modules": {
+            "gps": True,
+            "visitor": True,
+            MODULE_NOTIFICATIONS: True,
+        },
+    }
+
+    cards = [{"type": "entities"}]
+
+    async def _generator(
+        dog: dict[str, object], options: dict[str, object]
+    ) -> list[dict[str, object]]:
+        assert dog == dog_config
+        assert options == {"theme": "midnight"}
+        return cards
+
+    module_view = await renderer._render_module_view(
+        dog_config,
+        {"theme": "midnight"},
+        "notifications",
+        "Notifications",
+        "mdi:bell",
+        _generator,
+    )
+    empty_view = await renderer._render_module_view(
+        dog_config,
+        {},
+        "notifications",
+        "Notifications",
+        "mdi:bell",
+        AsyncMock(return_value=[]),
+    )
+
+    settings_view = await renderer._render_settings_view([dog_config], {})
+
+    renderer._active_jobs = {
+        "job-1": RenderJob("job-1", "main_dashboard", {"dogs": []}),
+    }
+    renderer._job_counter = 4
+    monkeypatch.setattr(
+        renderer.templates,
+        "get_cache_stats",
+        MagicMock(return_value={"entries": 2}),
+    )
+
+    stats_before_cleanup = renderer.get_render_stats()
+    await renderer.cleanup()
+
+    assert module_view == {
+        "title": "Notifications",
+        "path": "notifications",
+        "icon": "mdi:bell",
+        "cards": cards,
+    }
+    assert empty_view is None
+    assert settings_view["cards"][1]["entities"] == [
+        "switch.fido_notifications_enabled",
+        "switch.fido_gps_tracking_enabled",
+        "switch.fido_visitor_mode",
+        "select.fido_notification_priority",
+    ]
+    assert stats_before_cleanup == {
+        "active_jobs": 1,
+        "total_jobs_processed": 4,
+        "template_cache": {"entries": 2},
+    }
+    assert renderer._active_jobs == {}
+
+
+@pytest.mark.asyncio
 async def test_write_dashboard_file_preserves_existing_file_on_error(
     hass, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -563,6 +821,24 @@ async def test_write_dashboard_file_preserves_existing_file_on_error(
     assert file_path.read_text(encoding="utf-8") == "original"
     remaining = {path for path in tmp_path.iterdir() if path != file_path}
     assert remaining == set()
+
+
+@pytest.mark.asyncio
+async def test_write_dashboard_file_includes_metadata(hass, tmp_path: Path) -> None:
+    """Successful writes should persist metadata alongside the config payload."""
+    renderer = DashboardRenderer(hass)
+    file_path = tmp_path / "dashboard.json"
+
+    await renderer.write_dashboard_file(
+        {"views": [{"path": "overview", "cards": []}]},
+        file_path,
+        metadata={"generated_by": "tests"},
+    )
+
+    written_payload = json.loads(file_path.read_text(encoding="utf-8"))
+
+    assert written_payload["data"]["config"]["views"][0]["path"] == "overview"
+    assert written_payload["data"]["generated_by"] == "tests"
 
 
 @pytest.mark.asyncio
