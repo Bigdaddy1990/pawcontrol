@@ -29,3 +29,9 @@ def test_get_entry_dogs_returns_empty_for_invalid_payloads() -> None:
     )
 
     assert get_entry_dogs(entry) == []
+
+
+def test_get_entry_dogs_returns_empty_when_payload_is_missing() -> None:
+    entry = _entry(options={}, data={})
+
+    assert get_entry_dogs(entry) == []
