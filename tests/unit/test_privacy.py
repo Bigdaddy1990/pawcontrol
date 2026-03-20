@@ -75,6 +75,22 @@ def test_pii_redactor_recursive_toggle() -> None:
     assert deep["outer"]["email"] == "[EMAIL]"
 
 
+def test_pii_redactor_non_recursive_lists_are_left_untouched() -> None:
+    """Non-recursive redaction should not traverse list members."""
+    redactor = PIIRedactor()
+    payload = {
+        "events": [
+            {"email": "person@example.com"},
+            "call 555-123-4567",
+        ]
+    }
+
+    shallow = redactor.redact_dict(payload, recursive=False)
+
+    assert shallow == payload
+    assert shallow is not payload
+
+
 def test_pii_redactor_handles_non_string_text_and_lists() -> None:
     """PII redactor should pass through non-strings and redact list members."""
     redactor = PIIRedactor()
@@ -106,6 +122,17 @@ def test_gps_anonymizer_rounds_coordinates_and_dict_keys() -> None:
         {"lat": 12.3456, "lon": 78.9012}, lat_key="lat", lon_key="lon"
     )
     assert result == {"lat": 12.35, "lon": 78.9}
+
+
+def test_gps_anonymizer_leaves_partial_coordinate_payloads_unchanged() -> None:
+    """GPS anonymizer should no-op when a coordinate pair is incomplete."""
+    anonymizer = GPSAnonymizer(precision=2)
+    payload = {"latitude": 12.3456, "name": "Buddy"}
+
+    result = anonymizer.anonymize_dict(payload)
+
+    assert result == payload
+    assert result is not payload
 
 
 def test_data_hasher_hash_string_and_selected_fields() -> None:
@@ -195,6 +222,7 @@ def test_mask_and_user_id_helpers() -> None:
     """Utility helpers should mask strings and anonymize IDs."""
     assert mask_string("secret", visible_chars=2) == "se****"
     assert mask_string("abc", visible_chars=4) == "***"
+    assert mask_string("secret", visible_chars=0) == "******"
 
     anon = anonymize_user_id("user_12345")
     assert re.fullmatch(r"user_[0-9a-f]{8}", anon)
