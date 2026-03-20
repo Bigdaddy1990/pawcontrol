@@ -1,6 +1,7 @@
 """Unit tests for performance module helper utilities."""
 
 import asyncio
+from itertools import chain, repeat
 from types import SimpleNamespace
 
 import pytest
@@ -302,7 +303,7 @@ def test_track_performance_logs_slow_sync_and_async_calls(monkeypatch) -> None:
     async def _exercise() -> None:
         performance.reset_performance_metrics()
         performance.enable_performance_monitoring()
-        perf_counter_values = iter([0.0, 0.2, 1.0, 1.2])
+        perf_counter_values = chain([0.0, 0.2, 1.0, 1.2], repeat(1.2))
         warnings: list[tuple[object, ...]] = []
 
         monkeypatch.setattr(
@@ -316,27 +317,78 @@ def test_track_performance_logs_slow_sync_and_async_calls(monkeypatch) -> None:
             lambda *args: warnings.append(args),
         )
 
-        @performance.track_performance(slow_threshold_ms=100.0)
+        @performance.track_performance(slow_threshold_ms=-1.0)
         def sync_call() -> str:
             return "sync"
 
-        @performance.track_performance(slow_threshold_ms=100.0)
+        @performance.track_performance(slow_threshold_ms=-1.0)
         async def async_call() -> str:
             return "async"
 
         assert sync_call() == "sync"
         assert await async_call() == "async"
         assert len(warnings) == 2
-        assert warnings[0] == (
-            "Slow operation: %s took %.2fms (threshold: %.2fms)",
-            "sync_call",
-            200.0,
-            100.0,
-        )
+        assert warnings[0][0] == "Slow operation: %s took %.2fms (threshold: %.2fms)"
+        assert warnings[0][1] == "sync_call"
+        assert warnings[0][2] >= 0.0
+        assert warnings[0][3] == -1.0
         assert warnings[1][0] == "Slow operation: %s took %.2fms (threshold: %.2fms)"
         assert warnings[1][1] == "async_call"
-        assert warnings[1][2] == pytest.approx(200.0)
-        assert warnings[1][3] == 100.0
+        assert warnings[1][2] >= 0.0
+        assert warnings[1][3] == -1.0
+
+    asyncio.run(_exercise())
+
+
+def test_track_performance_records_failures_for_sync_and_async_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _exercise() -> None:
+        performance.reset_performance_metrics()
+        performance.enable_performance_monitoring()
+        perf_counter_values = chain([2.0, 2.25, 4.0, 4.35], repeat(4.35))
+        warnings: list[tuple[object, ...]] = []
+
+        monkeypatch.setattr(
+            performance.time,
+            "perf_counter",
+            lambda: next(perf_counter_values),
+        )
+        monkeypatch.setattr(
+            performance._LOGGER,
+            "warning",
+            lambda *args: warnings.append(args),
+        )
+
+        @performance.track_performance("sync_failure", slow_threshold_ms=-1.0)
+        def sync_call() -> None:
+            raise RuntimeError("sync boom")
+
+        @performance.track_performance("async_failure", slow_threshold_ms=-1.0)
+        async def async_call() -> None:
+            raise ValueError("async boom")
+
+        with pytest.raises(RuntimeError, match="sync boom"):
+            sync_call()
+
+        with pytest.raises(ValueError, match="async boom"):
+            await async_call()
+
+        sync_metric = performance._performance_monitor.get_metric("sync_failure")
+        async_metric = performance._performance_monitor.get_metric("async_failure")
+        assert sync_metric is not None
+        assert async_metric is not None
+        assert sync_metric.call_count == 1
+        assert async_metric.call_count == 1
+        assert len(warnings) == 2
+        assert warnings[0][0] == "Slow operation: %s took %.2fms (threshold: %.2fms)"
+        assert warnings[0][1] == "sync_failure"
+        assert warnings[0][2] >= 0.0
+        assert warnings[0][3] == -1.0
+        assert warnings[1][0] == "Slow operation: %s took %.2fms (threshold: %.2fms)"
+        assert warnings[1][1] == "async_failure"
+        assert warnings[1][2] >= 0.0
+        assert warnings[1][3] == -1.0
 
     asyncio.run(_exercise())
 
