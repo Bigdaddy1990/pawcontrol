@@ -285,3 +285,41 @@ def test_serialize_entity_attributes_fallback_str() -> None:
     result = serialize_entity_attributes(attrs)
 
     assert result["custom"] == "custom_repr"
+
+
+def test_serialize_module_rebinds_parent_utils_exports(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Executing the module should refresh package-level serialize helper bindings."""
+    import importlib.util
+    import sys
+    import types
+    import uuid
+    from pathlib import Path
+
+    parent_module = types.ModuleType("custom_components.pawcontrol.utils")
+    parent_module.serialize_datetime = object()
+    parent_module.serialize_timedelta = object()
+    parent_module.serialize_dataclass = object()
+    parent_module.serialize_entity_attributes = object()
+    monkeypatch.setitem(
+        sys.modules,
+        "custom_components.pawcontrol.utils",
+        parent_module,
+    )
+
+    module_name = f"test_utils_serialize_{uuid.uuid4().hex}"
+    module_path = Path("custom_components/pawcontrol/utils/serialize.py")
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    attributes_to_check = (
+        "serialize_datetime",
+        "serialize_timedelta",
+        "serialize_dataclass",
+        "serialize_entity_attributes",
+    )
+    for attr_name in attributes_to_check:
+        assert getattr(parent_module, attr_name) is getattr(module, attr_name)
