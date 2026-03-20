@@ -542,6 +542,104 @@ async def test_renderer_activity_summary_returns_none_without_entities(
 
 
 @pytest.mark.asyncio
+async def test_renderer_execute_render_job_marks_timeout(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Timeouts should be converted into Home Assistant errors with job cleanup."""
+    renderer = DashboardRenderer(hass)
+    job = RenderJob(
+        "timeout-1",
+        "main_dashboard",
+        {"dogs": [{CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}}]},
+    )
+
+    monkeypatch.setattr(
+        renderer,
+        "_render_main_dashboard_job",
+        AsyncMock(side_effect=TimeoutError()),
+    )
+
+    with pytest.raises(HomeAssistantError, match="Dashboard rendering timeout"):
+        await renderer._execute_render_job(job)
+
+    assert job.status == "timeout"
+    assert job.error == "Rendering timed out"
+    assert renderer._active_jobs == {}
+
+
+@pytest.mark.asyncio
+async def test_renderer_jobs_return_empty_views_when_job_payloads_are_invalid(
+    hass,
+) -> None:
+    """Renderer job helpers should short-circuit when config coercion fails."""
+    renderer = DashboardRenderer(hass)
+
+    main_job = RenderJob("main-invalid", "main_dashboard", {"dogs": "invalid"})
+    dog_job = RenderJob(
+        "dog-invalid", "dog_dashboard", {"dog": {CONF_DOG_NAME: "Buddy"}}
+    )
+
+    assert await renderer._render_main_dashboard_job(main_job) == {"views": []}
+    assert await renderer._render_dog_dashboard_job(dog_job) == {"views": []}
+
+
+@pytest.mark.asyncio
+async def test_renderer_single_dog_view_validates_required_fields_and_normalises_path(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Single-dog rendering should skip incomplete configs and normalise paths."""
+    renderer = DashboardRenderer(hass)
+    cards = [{"type": "entities"}]
+
+    monkeypatch.setattr(
+        renderer.dog_generator,
+        "generate_dog_overview_cards",
+        AsyncMock(return_value=cards),
+    )
+
+    assert (
+        await renderer._render_single_dog_view({CONF_DOG_NAME: "Buddy"}, 0, {}) is None
+    )
+    assert await renderer._render_single_dog_view({CONF_DOG_ID: "buddy"}, 0, {}) is None
+
+    rendered = await renderer._render_single_dog_view(
+        {CONF_DOG_ID: "Sir Barks A Lot", CONF_DOG_NAME: "Sir Barks A Lot"},
+        8,
+        {"theme": "midnight"},
+    )
+
+    assert rendered == {
+        "title": "Sir Barks A Lot",
+        "path": "sir_barks_a_lot",
+        "icon": "mdi:dog",
+        "theme": "midnight",
+        "cards": cards,
+    }
+    assert renderer._get_dog_theme(8) == renderer._get_dog_theme(2)
+
+
+@pytest.mark.asyncio
+async def test_renderer_batch_and_module_helpers_handle_empty_and_failed_paths(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Batch and module helpers should safely ignore empty inputs and failures."""
+    renderer = DashboardRenderer(hass)
+
+    assert await renderer._render_dog_views_batch([], {"theme": "modern"}) == []
+
+    module_view = await renderer._render_module_view(
+        {CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}},
+        {},
+        "notifications",
+        "Notifications",
+        "mdi:bell",
+        AsyncMock(side_effect=RuntimeError("boom")),
+    )
+
+    assert module_view is None
+
+
+@pytest.mark.asyncio
 async def test_renderer_execute_render_job_wraps_unknown_job_types(
     hass,
 ) -> None:
