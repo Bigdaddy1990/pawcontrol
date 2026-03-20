@@ -1,7 +1,5 @@
 """Coverage-focused tests for import/export options mixin helpers."""
 
-from __future__ import annotations
-
 import json
 from types import SimpleNamespace
 from typing import Any, cast

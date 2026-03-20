@@ -1,5 +1,7 @@
 """Additional coverage tests for shared validation helpers."""
 
+from typing import cast
+
 import pytest
 
 from custom_components.pawcontrol.exceptions import (
@@ -18,9 +20,14 @@ from custom_components.pawcontrol.validation_helpers import (
 
 def test_normalise_existing_names_filters_blank_and_non_strings() -> None:
     """Existing names should be trimmed, lowercased, and de-duplicated."""
-    result = normalise_existing_names({"  Luna ", "LUNA", "", "  ", 123})
+    raw_names: set[object] = {"  Luna ", "LUNA", "", "  ", 123}
+    # ``normalise_existing_names`` is typed for persisted string sets, but this
+    # regression test intentionally mixes in a non-string value to confirm the
+    # helper safely filters malformed data before normalising names.
+    result = normalise_existing_names(cast("set[str]", raw_names))
 
     assert result == {"luna"}
+    assert 123 not in result
     assert normalise_existing_names(None) == set()
 
 
@@ -90,6 +97,8 @@ def test_format_coordinate_validation_error_branches(
 
 def test_validate_service_coordinates_wraps_validation_errors() -> None:
     """Service validation should translate coordinate errors to HA service errors."""
+    # The wrapped message should stay aligned with the user-facing formatter
+    # branch for non-numeric latitude values.
     with pytest.raises(ServiceValidationError, match="latitude must be a number"):
         validate_service_coordinates("bad", 13.405)
 
