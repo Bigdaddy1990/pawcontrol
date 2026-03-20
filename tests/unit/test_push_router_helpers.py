@@ -2,6 +2,8 @@
 
 from types import SimpleNamespace
 
+import pytest
+
 from custom_components.pawcontrol import push_router
 from custom_components.pawcontrol.const import (
     CONF_PUSH_NONCE_TTL_SECONDS,
@@ -281,6 +283,22 @@ def test_accept_and_reject_update_telemetry_counters() -> None:
         "error": "gps_source_mismatch",
         "dog_id": "dog-1",
     }
+
+
+def test_snapshot_returns_empty_mapping_for_non_dict_telemetry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Snapshot helper should fail closed when telemetry is not a mapping."""
+    monkeypatch.setattr(
+        push_router,
+        "_entry_store",
+        lambda _hass, _entry_id: {"telemetry": "broken"},
+    )
+
+    assert push_router.get_entry_push_telemetry_snapshot(
+        SimpleNamespace(),
+        "entry-id",
+    ) == {}
 
 
 def test_snapshot_repairs_corrupted_telemetry_storage() -> None:
