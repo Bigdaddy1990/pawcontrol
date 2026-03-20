@@ -3,7 +3,12 @@
 from types import SimpleNamespace
 
 from custom_components.pawcontrol import flow_steps
-from custom_components.pawcontrol.flow_steps import system_settings
+from custom_components.pawcontrol.flow_steps import (
+    gps,
+    health,
+    notifications,
+    system_settings,
+)
 
 
 def test_flow_steps_package_exports_expected_mixins() -> None:
@@ -23,6 +28,25 @@ def test_flow_steps_package_exports_expected_mixins() -> None:
     assert set(flow_steps.__all__) == expected_exports
     for export_name in expected_exports:
         assert hasattr(flow_steps, export_name)
+
+
+def test_flow_steps_exports_reference_source_mixins() -> None:
+    """The package should re-export the exact mixin classes from submodules."""
+    assert flow_steps.DogGPSFlowMixin is gps.DogGPSFlowMixin
+    assert flow_steps.GPSModuleDefaultsMixin is gps.GPSModuleDefaultsMixin
+    assert flow_steps.GPSOptionsMixin is gps.GPSOptionsMixin
+    assert flow_steps.DogHealthFlowMixin is health.DogHealthFlowMixin
+    assert flow_steps.HealthSummaryMixin is health.HealthSummaryMixin
+    assert flow_steps.HealthOptionsMixin is health.HealthOptionsMixin
+    assert flow_steps.NotificationOptionsMixin is notifications.NotificationOptionsMixin
+    assert (
+        flow_steps.NotificationOptionsNormalizerMixin
+        is notifications.NotificationOptionsNormalizerMixin
+    )
+    assert (
+        flow_steps.SystemSettingsOptionsMixin
+        is system_settings.SystemSettingsOptionsMixin
+    )
 
 
 def test_resolve_get_runtime_data_returns_patched_callable(

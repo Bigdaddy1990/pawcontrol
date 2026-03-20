@@ -139,3 +139,48 @@ def test_fallback_selector_exports_preserve_passthrough_semantics() -> None:
     )
     assert selector.BooleanSelector(selector.BooleanSelectorConfig())(True) is True
     assert selector.Selector({"read_only": False})("raw") == "raw"
+
+
+def test_supported_home_assistant_selector_namespace_is_reused() -> None:
+    """Callable Home Assistant selector modules should be passed through intact."""
+
+    class _CallableSelector:
+        def __init__(self, _config: object) -> None:
+            pass
+
+        def __call__(self, value: object) -> object:
+            return {"validated": value}
+
+    selector_module = ModuleType("homeassistant.helpers.selector")
+    selector_module.TextSelector = _CallableSelector
+    selector_module.TextSelectorConfig = dict
+    selector_module.selector = lambda config: {"wrapped": config}
+    selector_module.EXTRA_SENTINEL = "present"
+
+    module = _load_selector_shim_with_helpers(SimpleNamespace(selector=selector_module))
+
+    assert module.ha_selector is selector_module
+    assert module.selector({"dog": "buddy"}) == {"wrapped": {"dog": "buddy"}}
+    assert module.selector.EXTRA_SENTINEL == "present"
+    assert module.selector.TextSelector({})("gps") == {"validated": "gps"}
+
+
+def test_imported_selector_module_without_callable_support_uses_fallback() -> None:
+    """Importing a selector module is not enough when validators are unsupported."""
+
+    class _NonCallableSelector:
+        def __init__(self, _config: object) -> None:
+            pass
+
+    selector_module = ModuleType("homeassistant.helpers.selector")
+    selector_module.TextSelector = _NonCallableSelector
+    selector_module.TextSelectorConfig = dict
+
+    module = _load_selector_shim_with_helpers(SimpleNamespace(selector=selector_module))
+
+    assert module.ha_selector is selector_module
+    assert module.selector.SelectOptionDict(value="gps", label="GPS") == {
+        "value": "gps",
+        "label": "GPS",
+    }
+    assert module.selector({"fallback": True}) == {"fallback": True}

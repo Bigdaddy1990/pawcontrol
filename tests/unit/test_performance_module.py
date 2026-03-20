@@ -403,4 +403,3 @@ def test_debounce_cancels_pending_task_before_latest_call_runs() -> None:
         assert calls == ["first", "third"]
 
     asyncio.run(_exercise())
-
