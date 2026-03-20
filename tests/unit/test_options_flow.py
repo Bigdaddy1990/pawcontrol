@@ -303,6 +303,213 @@ def test_resolve_get_runtime_data_fallbacks() -> None:
         )
 
 
+def test_load_setup_flag_translations_from_mapping_filters_supported_keys() -> None:
+    """Only supported setup-flag translation keys should be retained."""
+    translations = PawControlOptionsFlow._load_setup_flag_translations_from_mapping(
+        {
+            "common": {
+                "setup_flags_panel_flag_ready": "Ready",
+                "manual_event_source_badge_default": "Default",
+                "unrelated_key": "Ignored",
+                "setup_flags_panel_source_default": 3,
+            }
+        }
+    )
+
+    assert translations == {
+        "setup_flags_panel_flag_ready": "Ready",
+        "manual_event_source_badge_default": "Default",
+    }
+
+
+def test_setup_flag_translations_for_language_merges_base_overlay_and_caches(
+    tmp_path: Any,
+) -> None:
+    """Language lookups should merge English defaults with localized overlays."""
+    strings_path = tmp_path / "strings.json"
+    strings_path.write_text(
+        json.dumps(
+            {
+                "common": {
+                    "setup_flags_panel_flag_ready": "Ready",
+                    "manual_event_source_badge_default": "Default",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "de.json").write_text(
+        json.dumps(
+            {
+                "common": {
+                    "setup_flags_panel_flag_ready": "Bereit",
+                    "setup_flags_panel_source_default": "Standard",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    original_en = PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS
+    original_cache = dict(PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE)
+    try:
+        with patch.object(
+            PawControlOptionsFlow,
+            "_STRINGS_PATH",
+            strings_path,
+        ), patch.object(
+            PawControlOptionsFlow,
+            "_TRANSLATIONS_DIR",
+            translations_dir,
+        ):
+            PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS = None
+            PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE.clear()
+
+            translations = PawControlOptionsFlow._setup_flag_translations_for_language(
+                "de"
+            )
+            cached = PawControlOptionsFlow._setup_flag_translations_for_language("de")
+    finally:
+        PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS = original_en
+        PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE.clear()
+        PawControlOptionsFlow._SETUP_FLAG_TRANSLATION_CACHE.update(original_cache)
+
+    assert translations["setup_flags_panel_flag_ready"] == "Bereit"
+    assert translations["manual_event_source_badge_default"] == "Default"
+    assert translations["setup_flags_panel_source_default"] == "Standard"
+    assert cached is translations
+
+
+def test_manual_event_defaults_and_schema_defaults_trim_values(
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Manual-event defaults should preserve fallbacks and normalize whitespace."""
+    flow = PawControlOptionsFlow()
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    defaults = flow._manual_event_defaults(
+        cast(
+            SystemOptions,
+            {
+                "manual_check_event": "  pawcontrol.check  ",
+                "manual_guard_event": "   ",
+                "manual_breaker_event": None,
+            },
+        )
+    )
+    schema_defaults = flow._manual_event_schema_defaults(
+        cast(
+            SystemOptions,
+            {
+                "manual_check_event": "  pawcontrol.check  ",
+                "manual_guard_event": "   ",
+                "manual_breaker_event": None,
+            },
+        )
+    )
+
+    assert defaults["manual_check_event"] == "pawcontrol.check"
+    assert defaults["manual_guard_event"] is None
+    assert defaults["manual_breaker_event"] is None
+    assert schema_defaults["manual_check_event"] == "pawcontrol.check"
+    assert schema_defaults["manual_guard_event"] == ""
+    assert schema_defaults["manual_breaker_event"] == ""
+
+
+def test_manual_events_snapshot_uses_runtime_script_manager(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Manual-event snapshots should come from runtime script manager metadata."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    snapshot = {"manual_events": {"configured_guard_events": ["pawcontrol.guard"]}}
+    runtime = SimpleNamespace(
+        script_manager=SimpleNamespace(
+            get_resilience_escalation_snapshot=lambda: snapshot
+        )
+    )
+
+    with patch.object(options_flow_main, "_resolve_get_runtime_data") as resolver:
+        resolver.return_value = lambda _hass, _entry: runtime
+        assert flow._manual_events_snapshot() == snapshot["manual_events"]
+
+
+def test_manual_events_snapshot_returns_none_without_runtime_mapping(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Manual-event snapshot lookup should fail closed for malformed runtime data."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    runtime = SimpleNamespace(
+        script_manager=SimpleNamespace(
+            get_resilience_escalation_snapshot=lambda: {"manual_events": "invalid"}
+        )
+    )
+
+    with patch.object(options_flow_main, "_resolve_get_runtime_data") as resolver:
+        resolver.return_value = lambda _hass, _entry: runtime
+        assert flow._manual_events_snapshot() is None
+
+
+def test_collect_manual_event_sources_combines_snapshot_metadata(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Source collection should combine options, blueprint, and metadata signals."""
+    raw_options = dict(mock_config_entry.options)
+    raw_options["manual_guard_event"] = "pawcontrol.options_guard"
+    raw_options["system_settings"] = {
+        "manual_guard_event": "pawcontrol.system_guard",
+    }
+    mock_config_entry.options = raw_options
+
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    sources = flow._collect_manual_event_sources(
+        "manual_guard_event",
+        cast(SystemOptions, {"manual_guard_event": " pawcontrol.current_guard "}),
+        manual_snapshot=cast(
+            Any,
+            {
+                "configured_guard_events": [
+                    "pawcontrol.blueprint_guard",
+                    "pawcontrol_manual_guard",
+                ],
+                "system_guard_event": "pawcontrol.system_snapshot",
+                "preferred_manual_guard_event": "pawcontrol.preferred_guard",
+                "listener_sources": {
+                    "pawcontrol.listener_guard": ["config_entry", "disabled"]
+                },
+                "listener_metadata": {
+                    "pawcontrol.metadata_guard": {
+                        "sources": ["blueprint"],
+                        "primary_source": "options",
+                    }
+                },
+            },
+        ),
+    )
+
+    assert sources["pawcontrol.options_guard"] == {"options"}
+    assert sources["pawcontrol.system_guard"] == {"system_settings"}
+    assert sources["pawcontrol.current_guard"] == {"system_settings"}
+    assert sources["pawcontrol.blueprint_guard"] == {"blueprint"}
+    assert sources["pawcontrol.preferred_guard"] == {"system_settings"}
+    assert sources["pawcontrol.listener_guard"] == {"config_entry", "disabled"}
+    assert sources["pawcontrol.metadata_guard"] == {"blueprint", "options"}
+    assert "default" not in sources["pawcontrol_manual_guard"]
+
+
 def test_initialize_from_config_entry_skips_invalid_dogs(
     mock_config_entry: ConfigEntry,
 ) -> None:
