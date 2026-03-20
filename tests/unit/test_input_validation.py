@@ -227,7 +227,7 @@ def test_validator_phone_and_string_success_paths() -> None:
 
     phone = validator.validate_phone("  +1-555-123-4567 ext 89  ")
     assert phone.is_valid
-    assert phone.sanitized_value == "+1-555-123-4567  "
+    assert phone.sanitized_value == "+1-555-123-4567  89"
 
     string_result = validator.validate_string(
         "  Buddy  ",
