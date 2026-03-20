@@ -8,6 +8,8 @@ import pytest
 
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.system_health import (
+    BreakerIndicatorThresholds,
+    GuardIndicatorThresholds,
     _attach_runtime_store_history,
     _build_breaker_overview,
     _build_guard_summary,
@@ -22,9 +24,14 @@ from custom_components.pawcontrol.system_health import (
     _coerce_preferred_events,
     _coerce_str_list,
     _default_service_execution_snapshot,
+    _describe_breaker_threshold_source,
+    _describe_guard_threshold_source,
     _extract_api_call_count,
     _normalise_manual_events_snapshot,
     _resolve_indicator_thresholds,
+    _serialize_breaker_thresholds,
+    _serialize_guard_thresholds,
+    _serialize_threshold,
     async_register,
     system_health_info,
 )
@@ -401,6 +408,130 @@ def test_resolve_indicator_thresholds_uses_script_snapshot_before_options() -> N
     assert breaker_thresholds.source_key == "default"
 
 
+def test_resolve_indicator_thresholds_falls_back_to_options_for_invalid_snapshot(
+) -> None:
+    """Invalid script snapshots should gracefully defer to config-entry options."""
+
+    class _BrokenScriptManager:
+        def __init__(self, payload: object) -> None:
+            self._payload = payload
+
+        def get_resilience_escalation_snapshot(self) -> object:
+            return self._payload
+
+    option_payload = {
+        "system_settings": {
+            "resilience_skip_threshold": 4,
+            "resilience_breaker_threshold": 3,
+        }
+    }
+
+    runtime_with_non_mapping = _make_runtime_data(
+        performance_stats={},
+        coordinator=_Coordinator({}),
+        script_manager=_BrokenScriptManager(["bad-shape"]),
+    )
+    guard_thresholds, breaker_thresholds = _resolve_indicator_thresholds(
+        runtime_with_non_mapping,
+        option_payload,
+    )
+    assert guard_thresholds.warning_count == 3
+    assert guard_thresholds.critical_count == 4
+    assert guard_thresholds.source == "config_entry"
+    assert guard_thresholds.source_key == "system_settings"
+    assert breaker_thresholds.warning_count == 2
+    assert breaker_thresholds.critical_count == 3
+    assert breaker_thresholds.source == "config_entry"
+    assert breaker_thresholds.source_key == "system_settings"
+
+    runtime_with_missing_thresholds = _make_runtime_data(
+        performance_stats={},
+        coordinator=_Coordinator({}),
+        script_manager=_BrokenScriptManager({"thresholds": "invalid"}),
+    )
+    guard_thresholds, breaker_thresholds = _resolve_indicator_thresholds(
+        runtime_with_missing_thresholds,
+        option_payload,
+    )
+    assert guard_thresholds.warning_count == 3
+    assert guard_thresholds.critical_count == 4
+    assert breaker_thresholds.warning_count == 2
+    assert breaker_thresholds.critical_count == 3
+
+
+def test_system_health_threshold_helpers_cover_serialization_and_sources() -> None:
+    """Threshold helpers should serialize sparse payloads and describe sources."""
+    assert _serialize_threshold(count=None, ratio=None) is None
+    assert _serialize_threshold(count=2, ratio=0.25) == {
+        "count": 2,
+        "ratio": 0.25,
+        "percentage": 25.0,
+    }
+
+    guard_thresholds = GuardIndicatorThresholds(
+        warning_count=1,
+        critical_count=2,
+        warning_ratio=0.25,
+        critical_ratio=0.5,
+        source="config_entry",
+        source_key="manual_override",
+    )
+    assert _serialize_guard_thresholds(guard_thresholds) == {
+        "source": "config_entry",
+        "source_key": "manual_override",
+        "warning": {"count": 1, "ratio": 0.25, "percentage": 25.0},
+        "critical": {"count": 2, "ratio": 0.5, "percentage": 50.0},
+    }
+
+    breaker_thresholds = BreakerIndicatorThresholds(
+        warning_count=None,
+        critical_count=2,
+        source="resilience_script",
+        source_key="active",
+    )
+    assert _serialize_breaker_thresholds(breaker_thresholds) == {
+        "source": "resilience_script",
+        "source_key": "active",
+        "critical": {"count": 2},
+    }
+
+    assert (
+        _describe_guard_threshold_source(
+            GuardIndicatorThresholds(source="resilience_script", source_key="default"),
+        )
+        == "resilience script default threshold"
+    )
+    assert (
+        _describe_guard_threshold_source(
+            GuardIndicatorThresholds(
+                source="config_entry",
+                source_key="system_settings",
+            ),
+        )
+        == "options flow system settings threshold"
+    )
+    assert (
+        _describe_guard_threshold_source(GuardIndicatorThresholds(source="default_ratio"))
+        == "system default threshold"
+    )
+    assert (
+        _describe_breaker_threshold_source(
+            BreakerIndicatorThresholds(source="resilience_script", source_key="custom"),
+        )
+        == "configured resilience script threshold"
+    )
+    assert (
+        _describe_breaker_threshold_source(
+            BreakerIndicatorThresholds(source="config_entry", source_key="other"),
+        )
+        == "options flow threshold"
+    )
+    assert (
+        _describe_breaker_threshold_source(BreakerIndicatorThresholds())
+        == "system default threshold"
+    )
+
+
 def test_default_service_execution_snapshot_uses_expected_defaults() -> None:
     """The default snapshot should expose safe baseline guard and breaker state."""
     snapshot = _default_service_execution_snapshot()
@@ -627,3 +758,77 @@ async def test_system_health_info_untracked_quota_and_threshold_descriptions(
     )["indicator"]
     assert guard_indicator["threshold_source"] == "system_settings"
     assert breaker_indicator["threshold_source"] == "system_settings"
+
+
+def test_build_guard_and_breaker_helpers_cover_healthy_and_critical_paths() -> None:
+    """Guard and breaker summaries should expose healthy and critical states."""
+    healthy_guard = _build_guard_summary(
+        {"executed": 5, "skipped": 0, "reasons": {"ignored": 2}},
+        GuardIndicatorThresholds(
+            warning_count=None,
+            critical_count=None,
+            warning_ratio=0.25,
+            critical_ratio=0.5,
+        ),
+    )
+    assert healthy_guard["indicator"]["level"] == "normal"
+    assert healthy_guard["indicator"]["metric_type"] == "guard_health"
+    assert healthy_guard["top_reasons"] == [{"reason": "ignored", "count": 2}]
+
+    critical_guard = _build_guard_summary(
+        {"executed": 1, "skipped": 3, "reasons": {}},
+        GuardIndicatorThresholds(
+            warning_count=2,
+            critical_count=3,
+            warning_ratio=0.25,
+            critical_ratio=0.5,
+            source="config_entry",
+            source_key="system_settings",
+        ),
+    )
+    assert critical_guard["indicator"]["level"] == "critical"
+    assert critical_guard["indicator"]["threshold_source"] == "system_settings"
+
+    healthy_breaker = _build_breaker_overview(
+        {
+            "open_breaker_count": 0,
+            "half_open_breaker_count": 0,
+            "unknown_breaker_count": 1,
+            "rejection_breaker_count": 0,
+            "rejection_rate": 0,
+        },
+        BreakerIndicatorThresholds(
+            warning_count=1,
+            critical_count=3,
+        ),
+    )
+    assert healthy_breaker["status"] == "healthy"
+    assert healthy_breaker["indicator"]["level"] == "normal"
+    assert healthy_breaker["unknown_breaker_count"] == 1
+
+    critical_breaker = _build_breaker_overview(
+        {
+            "open_breaker_count": 2,
+            "half_open_breaker_count": 1,
+            "unknown_breaker_count": 0,
+            "rejection_breaker_count": 1,
+            "rejection_rate": 0.2,
+            "open_breakers": ["api", "sync"],
+            "half_open_breakers": ["fallback"],
+            "unknown_breakers": ["legacy"],
+            "last_rejection_time": 123.4,
+        },
+        BreakerIndicatorThresholds(
+            warning_count=2,
+            critical_count=3,
+            source="resilience_script",
+            source_key="active",
+        ),
+    )
+    assert critical_breaker["status"] == "open"
+    assert critical_breaker["indicator"]["level"] == "critical"
+    assert critical_breaker["indicator"]["threshold_source"] == "active"
+    assert critical_breaker["open_breakers"] == ["api", "sync"]
+    assert critical_breaker["half_open_breakers"] == ["fallback"]
+    assert critical_breaker["unknown_breakers"] == ["legacy"]
+    assert critical_breaker["last_rejection_time"] == 123.4
