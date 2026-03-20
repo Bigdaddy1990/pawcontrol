@@ -213,3 +213,20 @@ def test_validate_and_sanitize_success_and_failure() -> None:
 
     with pytest.raises(ValidationError, match="Validation failed"):
         validate_and_sanitize("x", "validate_integer")
+
+
+def test_validate_url_and_unknown_validator_errors() -> None:
+    """URL validation should preserve invalid values.
+
+    Helper lookup errors should still bubble up to callers.
+    """
+    validator = InputValidator()
+
+    invalid = validator.validate_url("ftp://example.com")
+
+    assert not invalid.is_valid
+    assert invalid.sanitized_value == "ftp://example.com"
+    assert invalid.errors
+
+    with pytest.raises(AttributeError):
+        validate_and_sanitize("value", "missing_validator")

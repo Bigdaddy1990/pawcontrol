@@ -253,3 +253,48 @@ def test_record_helpers_and_condition_monitoring_recommendations() -> None:
     assert recommendation["appointment_type"] == "condition_monitoring"
     assert recommendation["urgency"] == "normal"
     assert 6 <= recommendation["days_until"] <= 7
+
+
+def test_calculate_next_appointment_recommendation_covers_age_branches() -> None:
+    """Appointment recommendations should adjust for puppy, adult, and senior dogs."""
+    puppy_profile = EnhancedHealthProfile(current_weight=5.0)
+    adult_profile = EnhancedHealthProfile(current_weight=20.0)
+    senior_profile = EnhancedHealthProfile(
+        current_weight=16.0,
+        chronic_conditions=["kidney_disease"],
+    )
+
+    puppy = EnhancedHealthCalculator.calculate_next_appointment_recommendation(
+        puppy_profile, dog_age_months=6
+    )
+    adult = EnhancedHealthCalculator.calculate_next_appointment_recommendation(
+        adult_profile, dog_age_months=36
+    )
+    senior = EnhancedHealthCalculator.calculate_next_appointment_recommendation(
+        senior_profile, dog_age_months=120
+    )
+
+    assert puppy["appointment_type"] == "puppy_checkup"
+    assert 0 <= puppy["days_until"] <= 7
+    assert adult["appointment_type"] == "annual_checkup"
+    assert 0 <= adult["days_until"] <= 7
+    assert senior["appointment_type"] == "condition_monitoring"
+    assert 0 <= senior["days_until"] <= 7
+
+
+def test_generate_vaccination_schedule_for_adult_without_risk_factors_is_empty() -> (
+    None
+):
+    """Adult dogs without risk factors should not receive puppy-series entries.
+
+    The puppy schedule should be skipped once the dog is older than one year.
+    """
+    current_date = dt_util.now()
+
+    schedule = EnhancedHealthCalculator.generate_vaccination_schedule(
+        current_date - timedelta(days=500),
+        current_date=current_date,
+        risk_factors=None,
+    )
+
+    assert schedule == []
