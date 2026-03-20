@@ -81,6 +81,13 @@ def test_sanitize_path_rejects_traversal_and_normalizes() -> None:
     assert normalized == str(Path("tests").resolve())
 
 
+def test_sanitize_path_rejects_parent_segment_without_trailing_separator() -> None:
+    sanitizer = InputSanitizer()
+
+    with pytest.raises(ValidationError, match="Path traversal"):
+        sanitizer.sanitize_path("safe/..")
+
+
 @pytest.mark.parametrize(
     "path",
     [
