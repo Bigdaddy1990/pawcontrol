@@ -51,3 +51,19 @@ async def test_async_step_init_returns_expected_menu_options() -> None:
         "step_id": "init",
         "menu_options": host.last_call["menu_options"],
     }
+
+
+@pytest.mark.asyncio
+async def test_async_step_init_ignores_existing_user_input() -> None:
+    """The init menu should stay stable even when Home Assistant passes input."""
+    host = _MenuHost()
+
+    result = await host.async_step_init({"action": "manage_dogs"})
+
+    assert result["type"] == "menu"
+    assert result["step_id"] == "init"
+    assert result["menu_options"][4] == "push_settings"
+    assert host.last_call == {
+        "step_id": "init",
+        "menu_options": result["menu_options"],
+    }

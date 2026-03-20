@@ -26,3 +26,16 @@ def test_serialize_module_reloads_and_keeps_public_api() -> None:
         "serialize_dataclass",
         "serialize_entity_attributes",
     ]
+
+
+def test_serialize_reload_rebinds_parent_package_exports() -> None:
+    """Reloading ``utils.serialize`` should refresh package-level helper aliases."""
+    utils = importlib.import_module("custom_components.pawcontrol.utils")
+    serialize = importlib.import_module("custom_components.pawcontrol.utils.serialize")
+
+    reloaded = importlib.reload(serialize)
+
+    assert utils.serialize_datetime is reloaded.serialize_datetime
+    assert utils.serialize_timedelta is reloaded.serialize_timedelta
+    assert utils.serialize_dataclass is reloaded.serialize_dataclass
+    assert utils.serialize_entity_attributes is reloaded.serialize_entity_attributes
