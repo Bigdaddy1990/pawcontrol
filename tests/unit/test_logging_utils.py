@@ -1,8 +1,6 @@
 """Tests for logging utility helpers."""
 
 import logging
-import sys
-import types
 
 import pytest
 
@@ -71,48 +69,50 @@ def test_structured_logger_fallback_for_value_error(
     assert "broken %(1,)" in caplog.text
 
 
-def test_strip_url_credentials_removes_user_info(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_strip_url_credentials_removes_user_info() -> None:
     """URLs with username/password should be sanitized."""
-    yarl_stub = types.ModuleType("yarl")
-
-    class _URL:
-        def __init__(self, url: str) -> None:
-            self._url = url
-            self.user = "user"
-            self.password = "pass"
-
-        def with_user(self, _value: None) -> str:
-            return "https://example.com/api"
-
-    yarl_stub.URL = _URL
-    monkeypatch.setitem(sys.modules, "yarl", yarl_stub)
-
     assert (
         logging_utils._strip_url_credentials("https://user:pass@example.com/api")
         == "https://example.com/api"
     )
 
 
+def test_strip_url_credentials_keeps_url_without_credentials() -> None:
+    """URLs that already omit credentials should be returned unchanged."""
+    url = "https://example.com/api?dog=Milo"
+
+    assert logging_utils._strip_url_credentials(url) == url
+
+
+def test_strip_url_credentials_handles_ipv6_host_and_port() -> None:
+    """IPv6 hosts should keep brackets while still removing credentials."""
+    assert (
+        logging_utils._strip_url_credentials(
+            "https://user:pass@[2001:db8::1]:8443/api?dog=Milo#status"
+        )
+        == "https://[2001:db8::1]:8443/api?dog=Milo#status"
+    )
+
+
+def test_strip_url_credentials_keeps_url_when_hostname_missing() -> None:
+    """Malformed credential URLs without a hostname should be preserved."""
+    url = "https://user:pass@/api"
+
+    assert logging_utils._strip_url_credentials(url) == url
+
+
 def test_strip_url_credentials_fallback_on_parse_error(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Unexpected parser failures should keep URL and emit debug telemetry."""
-    yarl_stub = types.ModuleType("yarl")
-
-    def _boom(_url: str) -> object:
-        raise ValueError("bad-url")
-
-    yarl_stub.URL = _boom
-    monkeypatch.setitem(sys.modules, "yarl", yarl_stub)
+    url = "https://user:pass@example.com:bad-port/path"
 
     with caplog.at_level(
         logging.DEBUG, logger="custom_components.pawcontrol.logging_utils"
     ):
-        result = logging_utils._strip_url_credentials("https://example.com")
+        result = logging_utils._strip_url_credentials(url)
 
-    assert result == "https://example.com"
+    assert result == url
     assert "Failed to strip credentials from PawControl URL" in caplog.text
 
 
@@ -135,6 +135,33 @@ def test_log_helpers_emit_expected_records(caplog: pytest.LogCaptureFixture) -> 
 
     assert "https://example.com/path" in caplog.text
     assert "RuntimeError" in caplog.text
+
+
+def test_structured_logger_debug_respects_disabled_level(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Disabled levels should short-circuit before emitting records."""
+    logger = logging_utils.StructuredLogger("pawcontrol.test.disabled")
+    monkeypatch.setattr(logger.logger, "isEnabledFor", lambda _level: False)
+
+    with caplog.at_level(logging.DEBUG, logger="pawcontrol.test.disabled"):
+        logger.debug("Skipped debug message", api_token="hidden")
+
+    assert "Skipped debug message" not in caplog.text
+
+
+def test_structured_logger_critical_and_logger_property(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Critical logs should emit normally and expose the wrapped logger."""
+    logger = logging_utils.StructuredLogger("pawcontrol.test.critical")
+
+    with caplog.at_level(logging.CRITICAL, logger="pawcontrol.test.critical"):
+        logger.critical("Critical update", refresh_token="hidden")
+
+    assert logger.logger.name == "pawcontrol.test.critical"
+    assert "Critical update" in caplog.text
+    assert "refresh_token='***REDACTED***'" in caplog.text
 
 
 def test_structured_logger_exception_and_level_delegation(
