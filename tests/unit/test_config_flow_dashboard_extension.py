@@ -125,7 +125,7 @@ async def test_dashboard_step_shows_form_with_localized_placeholders() -> None:
 
 
 @pytest.mark.unit
-def test_translated_dashboard_info_line_uses_english_fallback_for_unknown_language() -> (
+def test_translated_dashboard_info_line_uses_english_fallback_for_unknown_language() -> (  # noqa: E501
     None
 ):
     """Unsupported language codes should fall back to the english template."""
