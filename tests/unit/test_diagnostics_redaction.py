@@ -64,3 +64,31 @@ def test_redact_sensitive_data_redacts_common_sensitive_string_formats() -> None
     redacted = redact_sensitive_data(payload, patterns=compile_redaction_patterns([]))
 
     assert set(redacted.values()) == {"**REDACTED**"}
+
+
+def test_compile_redaction_patterns_respects_word_boundaries() -> None:
+    """Boundary-aware patterns should not redact unrelated substrings."""
+    patterns = compile_redaction_patterns(["token"])
+
+    assert any(pattern.search("token") for pattern in patterns)
+    assert not any(pattern.search("tokenizer") for pattern in patterns)
+
+
+def test_redact_sensitive_data_recurses_through_lists_and_keeps_safe_strings() -> None:
+    """List members should be redacted selectively without altering safe strings."""
+    payload = [
+        "telemetry-ok",
+        {"device_token": "visible only by key match"},
+        ["guardian@example.com", "park-ready"],
+    ]
+
+    redacted = redact_sensitive_data(
+        payload,
+        patterns=compile_redaction_patterns(["device_token"]),
+    )
+
+    assert redacted == [
+        "telemetry-ok",
+        {"device_token": "**REDACTED**"},
+        ["**REDACTED**", "park-ready"],
+    ]
