@@ -284,6 +284,25 @@ def test_setup_flag_language_resolution_defaults_to_english(tmp_path: Any) -> No
     assert languages == frozenset({"en"})
 
 
+def test_setup_flag_language_resolution_collects_translation_files_and_strings(
+    tmp_path: Any,
+) -> None:
+    """Language detection should include JSON stems and English strings fallback."""
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "de.json").write_text("{}", encoding="utf-8")
+    (translations_dir / "fr.json").write_text("{}", encoding="utf-8")
+    strings_path = tmp_path / "strings.json"
+    strings_path.write_text("{}", encoding="utf-8")
+
+    languages = options_flow_main._resolve_setup_flag_supported_languages(
+        translations_dir,
+        strings_path,
+    )
+
+    assert languages == frozenset({"de", "en", "fr"})
+
+
 def test_resolve_get_runtime_data_fallbacks() -> None:
     """Runtime-data resolver should use patched callable and fallback safely."""
     patched = cast(Any, lambda hass, entry: {"ok": True})
@@ -297,6 +316,17 @@ def test_resolve_get_runtime_data_fallbacks() -> None:
         "import_module",
         side_effect=RuntimeError("boom"),
     ):
+        assert (
+            options_flow_main._resolve_get_runtime_data()
+            is options_flow_main._get_runtime_data
+        )
+
+
+def test_resolve_get_runtime_data_ignores_non_callable_patch() -> None:
+    """Runtime-data resolver should ignore monkeypatches without a callable hook."""
+    with patch.object(options_flow_main, "import_module") as import_module_mock:
+        import_module_mock.return_value = SimpleNamespace(get_runtime_data="invalid")
+
         assert (
             options_flow_main._resolve_get_runtime_data()
             is options_flow_main._get_runtime_data
@@ -365,6 +395,48 @@ async def test_load_setup_flag_translations_from_path_handles_missing_and_invali
         )
         == {}
     )
+
+
+async def test_load_setup_flag_translations_from_path_warns_on_malformed_json(
+    hass: HomeAssistant,
+    tmp_path: Any,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Malformed JSON should emit a warning before returning an empty mapping."""
+    invalid_path = tmp_path / "broken.json"
+    invalid_path.write_text("{", encoding="utf-8")
+
+    with caplog.at_level(
+        "WARNING",
+        logger="custom_components.pawcontrol.options_flow_main",
+    ):
+        result = await PawControlOptionsFlow._load_setup_flag_translations_from_path(
+            invalid_path,
+            hass,
+        )
+
+    assert result == {}
+    assert "Failed to parse setup flag translations" in caplog.text
+
+
+def test_load_setup_flag_translations_from_path_sync_warns_on_malformed_json(
+    tmp_path: Any,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Sync translation loading should also warn on malformed JSON payloads."""
+    invalid_path = tmp_path / "broken-sync.json"
+    invalid_path.write_text("{", encoding="utf-8")
+
+    with caplog.at_level(
+        "WARNING",
+        logger="custom_components.pawcontrol.options_flow_main",
+    ):
+        result = PawControlOptionsFlow._load_setup_flag_translations_from_path_sync(
+            invalid_path
+        )
+
+    assert result == {}
+    assert "Failed to parse setup flag translations" in caplog.text
 
 
 def test_setup_flag_translations_for_language_merges_base_overlay_and_caches(
@@ -495,6 +567,33 @@ async def test_async_prepare_setup_flag_translations_skips_non_hass_object(
     flow.initialize_from_config_entry(mock_config_entry)
 
     await flow._async_prepare_setup_flag_translations()
+
+
+@pytest.mark.asyncio
+async def test_async_prepare_setup_flag_translations_uses_detected_language(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Preloading should fetch translations for the resolved Home Assistant language."""
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    with (
+        patch.object(
+            flow,
+            "_determine_language",
+            return_value="de",
+        ),
+        patch.object(
+            PawControlOptionsFlow,
+            "_async_setup_flag_translations_for_language",
+            new=AsyncMock(return_value={}),
+        ) as loader,
+    ):
+        await flow._async_prepare_setup_flag_translations()
+
+    loader.assert_awaited_once_with("de", hass)
 
 
 def test_manual_event_defaults_and_schema_defaults_trim_values(
