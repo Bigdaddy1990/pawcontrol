@@ -321,6 +321,80 @@ class TestAsyncUnregisterEntryMqtt:
 
 
 @pytest.mark.asyncio
+async def test_uses_default_topic_when_topic_option_is_not_a_string() -> None:
+    """Non-string mqtt_topic values should fall back to the default topic."""
+    hass = _make_hass()
+    entry = _make_entry(
+        mqtt_enabled=True,
+        mqtt_topic="pawcontrol/gps",
+        dogs=[{"gps_config": {"gps_source": "mqtt"}}],
+    )
+    entry.options["mqtt_topic"] = 42
+    called_topics: list[str] = []
+
+    async def fake_subscribe(_hass, topic, _callback, **_kw):
+        called_topics.append(topic)
+        return MagicMock()
+
+    mock_mqtt = MagicMock()
+    mock_mqtt.async_subscribe = AsyncMock(side_effect=fake_subscribe)
+
+    with (
+        patch(
+            "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
+            new=AsyncMock(),
+        ),
+        patch("homeassistant.components.mqtt", mock_mqtt, create=True),
+        patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
+    ):
+        await async_register_entry_mqtt(hass, entry)
+
+    from custom_components.pawcontrol.const import DEFAULT_MQTT_TOPIC
+
+    assert called_topics == [DEFAULT_MQTT_TOPIC]
+
+
+@pytest.mark.asyncio
+async def test_register_ignores_messages_without_payload_attribute() -> None:
+    """Callback parsing should ignore MQTT messages that do not expose a payload."""
+    hass = _make_hass()
+    entry = _make_entry(
+        mqtt_enabled=True,
+        mqtt_topic="topic/gps",
+        dogs=[{"gps_config": {"gps_source": "mqtt"}}],
+    )
+    callbacks: list = []
+
+    async def fake_subscribe(_hass, _topic, callback, **_kw):
+        callbacks.append(callback)
+        return MagicMock()
+
+    mock_mqtt = MagicMock()
+    mock_mqtt.async_subscribe = AsyncMock(side_effect=fake_subscribe)
+
+    with (
+        patch(
+            "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
+            new=AsyncMock(),
+        ),
+        patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
+        patch(
+            "custom_components.pawcontrol.mqtt_push.async_process_gps_push",
+            new=AsyncMock(),
+        ) as process_push,
+    ):
+        await async_register_entry_mqtt(hass, entry)
+        assert callbacks
+
+        class _MessageWithoutPayload:
+            pass
+
+        await callbacks[0](_MessageWithoutPayload())
+
+    process_push.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_register_handles_callback_payload_variants() -> None:
     """Exercise callback parsing branches for str/invalid/non-dict payloads."""
     hass = _make_hass()
