@@ -1,18 +1,32 @@
 """Unit tests for cache repair helper utilities."""
 
 from dataclasses import dataclass
+from datetime import timedelta
 import sys
 
+import pytest
+
+from custom_components.pawcontrol.const import (
+    CONF_DOGS,
+    CONF_GPS_SOURCE,
+    CONF_GPS_UPDATE_INTERVAL,
+    CONF_MODULES,
+    CONF_WEBHOOK_ENABLED,
+)
 from custom_components.pawcontrol.coordinator_support import (
     MANAGER_ATTRIBUTES,
+    CoordinatorMetrics,
+    DogConfigRegistry,
     _build_repair_telemetry,
     bind_runtime_managers,
     clear_runtime_managers,
     ensure_cache_repair_aggregate,
 )
+from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.types import (
     CacheRepairAggregate,
     CoordinatorRuntimeManagers,
+    ModuleCacheMetrics,
 )
 
 
@@ -214,3 +228,163 @@ def test_clear_runtime_managers_resets_all_attributes_and_detaches() -> None:
     for attribute in MANAGER_ATTRIBUTES:
         assert getattr(coordinator, attribute) is None
     assert modules.detached is True
+
+
+def test_dog_config_registry_normalizes_configs_and_module_cache() -> None:
+    """Registry should discard invalid dogs and cache enabled module lookups."""
+    registry = DogConfigRegistry([
+        {"dog_id": " buddy ", "dog_name": " Buddy ", "modules": {"gps": 1}},
+        {"dog_id": "buddy", "dog_name": "Duplicate"},
+        {"dog_id": "skip-empty-name", "dog_name": "   "},
+        "broken",
+    ])
+
+    assert registry.ids() == ["buddy"]
+    assert registry.get(" buddy ") == {
+        "dog_id": "buddy",
+        "dog_name": "Buddy",
+        "modules": {"gps": 1},
+    }
+    assert registry.get(None) is None
+    assert registry.get_name("buddy") == "Buddy"
+    assert registry.get_name("missing") is None
+    assert registry.enabled_modules("buddy") == frozenset({"gps"})
+    assert registry.enabled_modules("missing") == frozenset()
+    assert registry.has_module("gps") is True
+    assert registry.has_module("feeding") is False
+    assert registry.module_count() == 1
+    assert registry.empty_payload()["status"] == "unknown"
+
+
+def test_dog_config_registry_from_entry_and_interval_paths() -> None:
+    """Registry helpers should validate entries and derive polling intervals."""
+    registry = DogConfigRegistry.from_entry(
+        type(
+            "Entry",
+            (),
+            {"data": {CONF_DOGS: [{"dog_id": "buddy", "dog_name": "Buddy"}]}},
+        )()
+    )
+    assert registry.ids() == ["buddy"]
+
+    empty_registry = DogConfigRegistry([])
+    assert empty_registry.calculate_update_interval({}) == 300
+
+    gps_registry = DogConfigRegistry([
+        {"dog_id": "buddy", "dog_name": "Buddy", "modules": {"gps": True}}
+    ])
+    assert (
+        gps_registry.calculate_update_interval({
+            CONF_GPS_SOURCE: "webhook",
+            CONF_WEBHOOK_ENABLED: True,
+            CONF_GPS_UPDATE_INTERVAL: "450",
+        })
+        == 450
+    )
+    assert gps_registry.calculate_update_interval({CONF_GPS_UPDATE_INTERVAL: 75}) == 75
+
+    weather_registry = DogConfigRegistry([
+        {"dog_id": "buddy", "dog_name": "Buddy", CONF_MODULES: {"weather": True}}
+    ])
+    weather_registry._modules_cache["buddy"] = frozenset({"weather"})
+    assert weather_registry.calculate_update_interval({}) == 60
+
+    balanced_registry = DogConfigRegistry([
+        {
+            "dog_id": f"dog-{index}",
+            "dog_name": f"Dog {index}",
+            CONF_MODULES: {"feeding": True, "walk": True, "garden": True},
+        }
+        for index in range(4)
+    ])
+    assert balanced_registry.calculate_update_interval({}) == 120
+
+    realtime_registry = DogConfigRegistry([
+        {
+            "dog_id": f"dog-{index}",
+            "dog_name": f"Dog {index}",
+            CONF_MODULES: {
+                "feeding": True,
+                "walk": True,
+                "garden": True,
+                "health": True,
+            },
+        }
+        for index in range(4)
+    ])
+    assert realtime_registry.calculate_update_interval({}) == 30
+
+
+@pytest.mark.parametrize(
+    ("entry_data", "value", "field"),
+    [
+        ({"data": {CONF_DOGS: "broken"}}, None, "dogs_config"),
+        (None, True, "gps_update_interval"),
+        (None, " ", "gps_update_interval"),
+        (None, 0, "gps_update_interval"),
+        (None, None, "update_interval"),
+        (None, 0, "update_interval"),
+    ],
+)
+def test_dog_config_registry_validation_errors(
+    entry_data: dict[str, object] | None,
+    value: object,
+    field: str,
+) -> None:
+    """Registry validators should fail closed for malformed interval inputs."""
+    with pytest.raises(ValidationError) as err:
+        if entry_data is not None:
+            DogConfigRegistry.from_entry(type("Entry", (), entry_data)())
+        elif field == "gps_update_interval":
+            DogConfigRegistry._validate_gps_interval(value)
+        else:
+            DogConfigRegistry._enforce_polling_limits(value)  # type: ignore[arg-type]
+
+    assert err.value.field == field
+
+
+def test_coordinator_metrics_cover_cycle_and_statistics_paths() -> None:
+    """Coordinator metrics should track timing, failures, and repair telemetry."""
+    metrics = CoordinatorMetrics()
+
+    metrics.start_cycle()
+    assert metrics.record_cycle(total=0, errors=0) == (1.0, False)
+    assert metrics.record_cycle(total=2, errors=2) == (0.0, True)
+    assert metrics.record_cycle(total=4, errors=3) == (0.25, False)
+    metrics.reset_consecutive()
+    metrics.record_statistics_timing(0.05)
+    metrics.record_statistics_timing(-1.0)
+    metrics.record_visitor_timing(0.02)
+    metrics.record_visitor_timing(-1.0)
+
+    repair_summary = CacheRepairAggregate(
+        total_caches=2,
+        anomaly_count=1,
+        severity="warning",
+        generated_at="2026-01-01T00:00:00+00:00",
+        issues=[{"cache": "weather"}],
+    )
+    stats = metrics.update_statistics(
+        cache_entries=5,
+        cache_hit_rate=87.654,
+        last_update="now",
+        interval=timedelta(seconds=90),
+        repair_summary=repair_summary,
+    )
+    runtime_stats = metrics.runtime_statistics(
+        cache_metrics=ModuleCacheMetrics(hits=9, misses=1, entries=4),
+        total_dogs=3,
+        last_update="now",
+        interval=timedelta(seconds=30),
+        repair_summary=repair_summary,
+    )
+
+    assert metrics.failed_cycles == 1
+    assert metrics.successful_cycles == 0
+    assert metrics.success_rate_percent == 0.0
+    assert metrics.average_statistics_runtime_ms == 25.0
+    assert metrics.average_visitor_runtime_ms == 10.0
+    assert stats["repairs"]["issues"] == 1
+    assert stats["performance_metrics"]["cache_hit_rate"] == 87.65
+    assert runtime_stats["repairs"]["severity"] == "warning"
+    assert runtime_stats["cache_performance"]["hit_rate"] == 90.0
