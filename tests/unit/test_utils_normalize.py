@@ -18,6 +18,14 @@ class _Unserializable:
     """Object without dedicated normalization support."""
 
 
+class _IterableOnly:
+    """Custom iterable that exercises the generic iterable fallback branch."""
+
+    def __iter__(self):
+        yield 1
+        yield datetime(2026, 6, 7, 8, 9, 10)
+
+
 def test_normalize_value_converts_supported_types() -> None:
     """normalize_value should convert all explicitly handled branch types."""
     snapshot = _DogSnapshot(
@@ -62,3 +70,18 @@ def test_normalize_value_stringifies_mapping_keys_and_falls_back_to_repr() -> No
     assert list(normalized.keys()) == ["1"]
     assert normalized["1"].startswith("<")
     assert "_Unserializable" in normalized["1"]
+
+
+def test_normalize_value_treats_dataclass_types_as_plain_objects() -> None:
+    """Dataclass classes should not be serialized like dataclass instances."""
+    normalized = normalize_value(_DogSnapshot)
+
+    assert normalized.startswith("<class '")
+    assert "_DogSnapshot" in normalized
+
+
+def test_normalize_value_normalizes_custom_iterables_recursively() -> None:
+    """Generic iterable fallback should recurse into yielded values."""
+    normalized = normalize_value(_IterableOnly())
+
+    assert normalized == [1, "2026-06-07T08:09:10"]
