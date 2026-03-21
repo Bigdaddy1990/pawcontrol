@@ -4,6 +4,8 @@ import importlib
 import sys
 from types import ModuleType
 
+import pytest
+
 
 @contextmanager
 def _reload_compat_with_stub(
@@ -254,3 +256,85 @@ def test_fallback_config_entry_state_lookup_uses_enum_name_fallback(
         monkeypatch.setattr(compat.ConfigEntryState, "from_value", _raise_value_error)
         entry = compat.ConfigEntry(domain="pawcontrol", state="loaded")
         assert entry.state is compat.ConfigEntryState.LOADED
+
+
+def test_fallback_config_entry_support_flags_cache_false_without_handlers() -> None:
+    """Fallback ConfigEntry should cache negative support checks per property."""
+    with _reload_compat_with_stub(
+        None,
+        config_entries_stub=ModuleType("homeassistant.config_entries"),
+        core_stub=ModuleType("homeassistant.core"),
+    ) as compat:
+        compat.HANDLERS.clear()
+        entry = compat.ConfigEntry(domain="pawcontrol")
+        entry._supports_unload = True
+
+        assert entry.supported_subentry_types == {}
+        assert entry.supports_unload is True
+        assert entry.supports_unload is True
+        assert entry.supports_remove_device is False
+        assert entry.supports_reconfigure is False
+
+
+def test_fallback_config_entry_state_recoverable_property() -> None:
+    """Fallback ConfigEntryState should expose the stored recoverable flag."""
+    with _reload_compat_with_stub(None) as compat:
+        assert compat.ConfigEntryState.LOADED.recoverable is True
+        assert compat.ConfigEntryState.MIGRATION_ERROR.recoverable is False
+        with pytest.raises(ValueError):
+            compat.ConfigEntryState.from_value("missing")
+
+
+def test_ensure_homeassistant_config_entry_symbols_syncs_late_modules() -> None:
+    """Late-installed Home Assistant stubs should receive compat config exports."""
+    with _reload_compat_with_stub(None) as compat:
+        config_entries_module = ModuleType("homeassistant.config_entries")
+        core_module = ModuleType("homeassistant.core")
+        sys.modules["homeassistant.config_entries"] = config_entries_module
+        sys.modules["homeassistant.core"] = core_module
+
+        compat.ensure_homeassistant_config_entry_symbols()
+
+        assert config_entries_module.ConfigEntry is compat.ConfigEntry
+        assert config_entries_module.ConfigEntryState is compat.ConfigEntryState
+        assert config_entries_module.ConfigEntryChange is compat.ConfigEntryChange
+        assert core_module.ConfigEntry is compat.ConfigEntry
+        assert core_module.ConfigEntryState is compat.ConfigEntryState
+        assert core_module.ConfigEntryChange is compat.ConfigEntryChange
+
+
+def test_fallback_service_registry_exposes_registry_helpers() -> None:
+    """Fallback service registry should track registered handlers offline."""
+    with _reload_compat_with_stub(
+        None,
+        core_stub=ModuleType("homeassistant.core"),
+    ) as compat:
+        registry = compat.ServiceRegistry()
+        calls: list[tuple[str, str, dict[str, object]]] = []
+
+        def _handler(call: object) -> None:
+            calls.append((call.domain, call.service, dict(call.data)))
+
+        async def _async_handler(call: object) -> None:
+            calls.append((call.domain, call.service, dict(call.data)))
+
+        registry.async_register("notify", "send", _handler)
+        registry.async_register("notify", "async_send", _async_handler)
+
+        import asyncio
+
+        asyncio.run(registry.async_call("notify", "send", {"message": "hello"}))
+        asyncio.run(registry.async_call("notify", "async_send", {"message": "async"}))
+
+        assert calls == [
+            ("notify", "send", {"message": "hello"}),
+            ("notify", "async_send", {"message": "async"}),
+        ]
+        assert registry.async_services() == {
+            "notify": {"send": _handler, "async_send": _async_handler},
+        }
+        assert registry.has_service("notify", "send") is True
+        assert registry.has_service("notify", "missing") is False
+
+        with pytest.raises(KeyError, match=r"Service notify\.missing not registered"):
+            asyncio.run(registry.async_call("notify", "missing"))
