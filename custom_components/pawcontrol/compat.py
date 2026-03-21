@@ -58,9 +58,6 @@ def _import_optional(module_name: str) -> ModuleType | None:
     except ImportError:
         return None
 
-    except ModuleNotFoundError:
-        return None
-
 
 _ha_exceptions = _import_optional("homeassistant.exceptions")
 _ha_config_entries = _import_optional("homeassistant.config_entries")
@@ -448,10 +445,7 @@ class ConfigEntryState(Enum):
         try:
             return cls[value.upper()]
         except KeyError:
-            for member in cls:
-                if member.value == value:
-                    return member
-        raise ValueError(value)
+            raise ValueError(value) from None
 
 
 class ConfigEntryChange(Enum):

@@ -230,6 +230,73 @@ def test_bind_exception_alias_prefers_more_specific_existing_alias() -> None:
             compat.sys.modules[module_name] = original_module
 
 
+def test_bind_exception_alias_type_error_falls_back_to_candidate() -> None:
+    """Hybrid alias creation should fall back to the candidate on MRO conflicts."""
+
+    class CandidateMeta(type):
+        """Distinct metaclass for the candidate exception."""
+
+    class ExistingMeta(type):
+        """Distinct metaclass for the current exception."""
+
+    class CandidateAlias(Exception, metaclass=CandidateMeta):
+        """Mapped Home Assistant exception candidate."""
+
+    class ExistingAlias(Exception, metaclass=ExistingMeta):
+        """Existing alias with an incompatible metaclass."""
+
+    original_home_assistant_error = compat.HomeAssistantError
+    module_name = "tests.unit.dynamic_alias_type_error"
+    dynamic_module = ModuleType(module_name)
+    dynamic_module.__dict__["__name__"] = module_name
+    dynamic_module.LocalAlias = ExistingAlias
+
+    original_module = compat.sys.modules.get(module_name)
+    compat.sys.modules[module_name] = dynamic_module
+    compat.HomeAssistantError = CandidateAlias
+    try:
+        unregister = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="LocalAlias",
+            combine_with_current=True,
+        )
+        assert dynamic_module.LocalAlias is CandidateAlias
+        unregister()
+    finally:
+        compat.HomeAssistantError = original_home_assistant_error
+        if original_module is None:
+            compat.sys.modules.pop(module_name, None)
+        else:
+            compat.sys.modules[module_name] = original_module
+
+
+def test_bind_exception_alias_ignores_unknown_exception_names() -> None:
+    """Alias binding should leave targets unchanged when no exception maps exist."""
+    module_name = "tests.unit.dynamic_alias_unknown_name"
+    dynamic_module = ModuleType(module_name)
+    dynamic_module.__dict__["__name__"] = module_name
+    dynamic_module.LocalAlias = RuntimeError
+
+    original_module = compat.sys.modules.get(module_name)
+    compat.sys.modules[module_name] = dynamic_module
+    try:
+        unregister = compat.bind_exception_alias(
+            "MissingCompatError",
+            module=module_name,
+            attr="LocalAlias",
+        )
+        assert dynamic_module.LocalAlias is RuntimeError
+        compat.ensure_homeassistant_exception_symbols()
+        assert dynamic_module.LocalAlias is RuntimeError
+        unregister()
+    finally:
+        if original_module is None:
+            compat.sys.modules.pop(module_name, None)
+        else:
+            compat.sys.modules[module_name] = original_module
+
+
 def test_config_entry_supported_subentry_types_without_handler_method() -> None:
     """Subentry support should fail closed when handlers omit capability hooks."""
 
@@ -439,6 +506,35 @@ def test_ensure_config_entry_state_helpers_handles_name_and_string_values() -> N
     assert helper_state.from_value("failed") is NativeState.FAILED
 
 
+def test_ensure_config_entry_state_helpers_handles_casefold_and_unknown_values() -> (
+    None
+):
+    """Installed helpers should resolve name/value fallbacks and reject unknowns."""
+
+    class NativeState(compat.Enum):
+        LOADED = "Load-Ed"
+        FAILED = 5
+
+    helper_state = compat._ensure_config_entry_state_helpers(NativeState)
+
+    assert helper_state.from_value("load-ed") is NativeState.LOADED
+    assert helper_state.from_value("5") is NativeState.FAILED
+
+    with pytest.raises(ValueError):
+        helper_state.from_value("missing")
+
+
+def test_ensure_config_entry_state_helpers_handles_unicode_casefold_names() -> None:
+    """Installed helpers should fall back to casefolded enum names when needed."""
+
+    class NativeState(compat.Enum):
+        STRAẞE = "street"
+
+    helper_state = compat._ensure_config_entry_state_helpers(NativeState)
+
+    assert helper_state.from_value("straße") is NativeState.STRAẞE
+
+
 @pytest.mark.asyncio
 async def test_fallback_service_registry_invokes_sync_and_async_handlers() -> None:
     """Fallback registry should support sync/async handlers and missing lookups."""
@@ -507,3 +603,23 @@ def test_import_optional_handles_import_error_and_missing_module(
 
     monkeypatch.setattr("builtins.__import__", _raise_module_not_found)
     assert compat._import_optional("still.missing") is None
+
+
+def test_resolve_binding_module_raises_when_stack_has_no_registered_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Caller inference should fail cleanly when no frame resolves to a module."""
+
+    class _Frame:
+        def __init__(self, module_name: str | None, back: _Frame | None = None) -> None:
+            self.f_globals = {} if module_name is None else {"__name__": module_name}
+            self.f_back = back
+
+    monkeypatch.setattr(
+        compat.sys,
+        "_getframe",
+        lambda _depth: _Frame("custom_components.pawcontrol.compat", _Frame(None)),
+    )
+
+    with pytest.raises(RuntimeError, match="could not determine the caller module"):
+        compat._resolve_binding_module(None)
