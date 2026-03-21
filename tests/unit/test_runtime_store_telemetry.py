@@ -597,6 +597,146 @@ def test_runtime_store_assessment_tracks_trends(monkeypatch: MonkeyPatch) -> Non
     assert fourth_assessment["timeline_segments"] == segments
 
 
+def test_normalise_runtime_store_assessment_events_filters_invalid_candidates() -> None:
+    """Invalid assessment event payloads should be discarded during normalisation."""
+    events = telemetry_module._normalise_runtime_store_assessment_events([
+        {
+            "timestamp": "2024-01-01T00:00:00+00:00",
+            "level": "watch",
+            "previous_level": "ok",
+            "status": "diverged",
+            "reason": "diverged payload",
+            "recommended_action": "reload",
+            "entry_status": "upgrade_pending",
+            "store_status": "future_incompatible",
+            "divergence_detected": 1,
+            "divergence_rate": 0.25,
+            "checks": 4.9,
+            "divergence_events": 2.2,
+            "level_streak": 3.8,
+            "escalations": 1.1,
+            "deescalations": 0.9,
+            "level_changed": 1,
+            "current_level_duration_seconds": -5,
+        },
+        {
+            "timestamp": 123,
+            "level": "ok",
+            "status": "current",
+            "reason": "ignored",
+        },
+        {
+            "timestamp": "2024-01-02T00:00:00+00:00",
+            "level": "invalid",
+            "status": "current",
+            "reason": "ignored",
+        },
+        {
+            "timestamp": "2024-01-03T00:00:00+00:00",
+            "level": "ok",
+            "status": "unknown",
+            "reason": "ignored",
+        },
+        {
+            "timestamp": "2024-01-04T00:00:00+00:00",
+            "level": "ok",
+            "status": "current",
+            "reason": 10,
+        },
+    ])
+
+    assert events == [
+        {
+            "timestamp": "2024-01-01T00:00:00+00:00",
+            "level": "watch",
+            "previous_level": "ok",
+            "status": "diverged",
+            "entry_status": "upgrade_pending",
+            "store_status": "future_incompatible",
+            "reason": "diverged payload",
+            "recommended_action": "reload",
+            "divergence_detected": True,
+            "divergence_rate": pytest.approx(0.25),
+            "checks": 4,
+            "divergence_events": 2,
+            "level_streak": 3,
+            "escalations": 1,
+            "deescalations": 0,
+            "level_changed": True,
+            "current_level_duration_seconds": 0.0,
+        }
+    ]
+
+
+def test_normalise_runtime_store_assessment_events_rejects_non_finite_metrics() -> None:
+    """Non-finite divergence and duration values should be cleared during coercion."""
+    events = telemetry_module._normalise_runtime_store_assessment_events([
+        {
+            "timestamp": "2024-01-01T00:00:00+00:00",
+            "level": "action_required",
+            "previous_level": object(),
+            "status": "needs_migration",
+            "reason": "needs repair",
+            "recommended_action": 99,
+            "entry_status": "invalid",
+            "store_status": None,
+            "divergence_rate": float("inf"),
+            "current_level_duration_seconds": float("nan"),
+        }
+    ])
+
+    assert events == [
+        {
+            "timestamp": "2024-01-01T00:00:00+00:00",
+            "level": "action_required",
+            "previous_level": None,
+            "status": "needs_migration",
+            "entry_status": None,
+            "store_status": None,
+            "reason": "needs repair",
+            "recommended_action": None,
+            "divergence_detected": False,
+            "divergence_rate": None,
+            "checks": 0,
+            "divergence_events": 0,
+            "level_streak": 0,
+            "escalations": 0,
+            "deescalations": 0,
+            "level_changed": False,
+        }
+    ]
+
+
+def test_calculate_percentile_value_handles_edge_cases() -> None:
+    """Percentile calculation should support empty, singleton, and interpolation."""
+    assert telemetry_module._calculate_percentile_value([], 0.95) is None
+    assert telemetry_module._calculate_percentile_value([7.0], 0.95) == pytest.approx(
+        7.0
+    )
+    assert telemetry_module._calculate_percentile_value(
+        [10.0, 20.0, 40.0], 0.25
+    ) == pytest.approx(15.0)
+    assert telemetry_module._calculate_percentile_value(
+        [10.0, 20.0, 40.0], 0.5
+    ) == pytest.approx(20.0)
+
+
+def test_calculate_duration_percentiles_returns_expected_bands() -> None:
+    """Duration percentiles should be derived from the configured target labels."""
+    assert telemetry_module._calculate_duration_percentiles([]) == {}
+
+    percentiles = telemetry_module._calculate_duration_percentiles([
+        5.0,
+        15.0,
+        25.0,
+        45.0,
+    ])
+
+    assert percentiles["p75"] == pytest.approx(30.0)
+    assert percentiles["p90"] == pytest.approx(39.0)
+    assert percentiles["p95"] == pytest.approx(42.0)
+
+
 def test_runtime_store_assessment_event_log_capped(monkeypatch: MonkeyPatch) -> None:
     """The assessment event timeline should retain only the configured window."""
     runtime_data = _runtime_data()
