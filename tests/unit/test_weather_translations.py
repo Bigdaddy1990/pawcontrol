@@ -77,7 +77,7 @@ def test_load_static_common_translations_prefers_localized_overrides(
     _write_translation_fixture(
         tmp_path,
         "en",
-        '{"common": {"weather_alert_storm_warning_title": "English Storm", "weather_recommendation_extra_water": "Bring Water"}}',
+        '{"common": {"weather_alert_storm_warning_title": "English Storm", "weather_recommendation_extra_water": "Bring Water"}}',  # noqa: E501
     )
     _write_translation_fixture(
         tmp_path,
