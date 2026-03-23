@@ -336,7 +336,7 @@ def test_handle_coordinator_update_refreshes_values_and_swallow_errors(
         (
             lambda coordinator: PawControlLastVetVisitDate(
                 coordinator, "dog-1", "Buddy"
-            ),  # noqa: E501
+            ),
             {
                 "dog_id": "dog-1",
                 "note": "Vet visit recorded for 2024-05-04",
@@ -346,7 +346,7 @@ def test_handle_coordinator_update_refreshes_values_and_swallow_errors(
         (
             lambda coordinator: PawControlVaccinationDate(
                 coordinator, "dog-1", "Buddy"
-            ),  # noqa: E501
+            ),
             {
                 "dog_id": "dog-1",
                 "note": "Vaccination recorded for 2024-05-04",
@@ -467,7 +467,7 @@ def test_extractors_fall_back_to_date_strings() -> None:
 
     date_module.dt_util.parse_date = lambda value: datetime.fromisoformat(
         str(value)
-    ).date()  # noqa: E501
+    ).date()
 
     assert adoption._extract_date_from_dog_data(adoption_payload) == date(2024, 1, 2)
     assert last_vet._extract_date_from_dog_data(vet_payload) == date(2024, 1, 3)
