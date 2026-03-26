@@ -514,7 +514,7 @@ def test_coerce_service_details_value_handles_nested_payloads() -> None:
 
     assert result["none"] is None
 
-    # Ensure the coerced payload serialises to JSON without raising errors.  # noqa: E501
+    # Ensure the coerced payload serialises to JSON without raising errors.
     json.dumps(result)
 
 

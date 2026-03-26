@@ -337,7 +337,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         errors: dict[str, str] = {}
 
         if user_input is not None and self._current_dog_config:
-            # Finalize any previous dog configuration that wasn't completed  # noqa: E501
+            # Finalize any previous dog configuration that wasn't completed
             if self._current_dog_config not in self._dogs:
                 self._dogs.append(self._current_dog_config)
             self._current_dog_config = None
@@ -359,7 +359,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                     dog_config = await self._create_dog_config(validated_input)
                     # Store temporarily for module configuration
                     self._current_dog_config = dog_config
-                    # Small delay after adding dog to prevent registry flooding  # noqa: E501
+                    # Small delay after adding dog to prevent registry flooding
                     await asyncio.sleep(ENTITY_CREATION_DELAY)
                     _LOGGER.debug(
                         "Added dog base config: %s (%s)",
@@ -1383,7 +1383,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                 debug_logging=bool(user_input.get("debug_logging", False)),
             )
 
-            # UPDATED: Redirect to entity profile selection for performance optimization  # noqa: E501
+            # UPDATED: Redirect to entity profile selection for performance optimization
             _LOGGER.info(
                 "Global modules configured for %d dogs, proceeding to entity profile selection",  # noqa: E501
                 len(self._dogs),

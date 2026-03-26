@@ -28,7 +28,7 @@ async def test_performance_stats_returns_copy(hass: HomeAssistant) -> None:
     }
     assert initial_stats == expected
 
-    # Mutating the returned mapping must not affect the generator internals.  # noqa: E501
+    # Mutating the returned mapping must not affect the generator internals.
     initial_stats["cache_hits"] = 5
     assert generator.performance_stats["cache_hits"] == 0
 

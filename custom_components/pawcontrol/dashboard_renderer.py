@@ -524,7 +524,7 @@ class DashboardRenderer:
             List of dog view configurations
         """
         if not dogs_config:
-            # Nothing to render; avoid zero batch size that would break range.  # noqa: E501
+            # Nothing to render; avoid zero batch size that would break range.
             return []
         dogs_list = list(dogs_config)
         views: list[LovelaceViewConfig] = []
@@ -950,7 +950,7 @@ class DashboardRenderer:
                 },
             )
 
-            # Ensure parent directory exists without blocking the event loop  # noqa: E501
+            # Ensure parent directory exists without blocking the event loop
             await self.hass.async_add_executor_job(
                 partial(file_path.parent.mkdir, parents=True, exist_ok=True),
             )

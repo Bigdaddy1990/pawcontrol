@@ -126,8 +126,8 @@ class APIValidator:
         )
         self._ssl_override: bool | None = None
         if not verify_ssl:
-            # aiohttp accepts ``ssl=False`` to bypass certificate validation.  # noqa: E501
-            # We only store the override when explicitly requested so production  # noqa: E501
+            # aiohttp accepts ``ssl=False`` to bypass certificate validation.
+            # We only store the override when explicitly requested so production
             # systems keep the secure defaults provided by Home Assistant.
             self._ssl_override = False
 
@@ -318,7 +318,7 @@ class APIValidator:
         try:
             session = self._session
             # Construct auth endpoint (common patterns)
-            # Try the most common validation endpoints before falling back to  # noqa: E501
+            # Try the most common validation endpoints before falling back to
             # the base URL with an auth header.
             auth_endpoints: tuple[str, ...] = (
                 f"{endpoint}/auth/validate",
@@ -452,7 +452,7 @@ class APIValidator:
     async def async_close(self) -> None:
         """Close the API validator and cleanup resources."""
         if not self._session.closed:
-            # The validator never owns the session; leave lifecycle management to  # noqa: E501
+            # The validator never owns the session; leave lifecycle management to
             # Home Assistant to avoid closing the shared pool.
             return
 

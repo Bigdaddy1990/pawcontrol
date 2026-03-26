@@ -350,9 +350,9 @@ async def test_get_statistics_records_runtime(
 
     assert "update_counts" in stats
     assert coordinator._metrics.statistics_timings
-    # The diagnostics helpers build nested statistics payloads which can take  # noqa: E501
-    # tens of milliseconds on slower CI runners. Keep the assertion generous so  # noqa: E501
-    # we still catch pathological slowdowns without flaking due to instrumentation.  # noqa: E501
+    # The diagnostics helpers build nested statistics payloads which can take
+    # tens of milliseconds on slower CI runners. Keep the assertion generous so
+    # we still catch pathological slowdowns without flaking due to instrumentation.
     assert coordinator._metrics.average_statistics_runtime_ms < 100.0
     debug_mock.assert_called()
 

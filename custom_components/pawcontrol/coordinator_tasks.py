@@ -1025,7 +1025,7 @@ def _coerce_float(value: Any) -> float | None:
         try:
             start_of_day = dt_util.start_of_local_day(value)
         except TypeError:
-            # ``start_of_local_day`` may be unavailable in some compat paths.  # noqa: E501
+            # ``start_of_local_day`` may be unavailable in some compat paths.
             start_of_day = datetime(
                 value.year,
                 value.month,
@@ -1033,7 +1033,7 @@ def _coerce_float(value: Any) -> float | None:
                 tzinfo=UTC,
             )
         except ValueError:
-            # ``start_of_local_day`` may be unavailable in some compat paths.  # noqa: E501
+            # ``start_of_local_day`` may be unavailable in some compat paths.
             start_of_day = datetime(
                 value.year,
                 value.month,
@@ -1041,7 +1041,7 @@ def _coerce_float(value: Any) -> float | None:
                 tzinfo=UTC,
             )
         except AttributeError:
-            # ``start_of_local_day`` may be unavailable in some compat paths.  # noqa: E501
+            # ``start_of_local_day`` may be unavailable in some compat paths.
             start_of_day = datetime(
                 value.year,
                 value.month,

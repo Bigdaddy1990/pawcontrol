@@ -319,7 +319,7 @@ class _CoordinatorResolver:
             and self._cached_entry_id is not None
             and entry_id != self._cached_entry_id
         ):
-            # An unrelated config entry changed state; keep the cached coordinator.  # noqa: E501
+            # An unrelated config entry changed state; keep the cached coordinator.
             return
         self._cached_coordinator = None
         self._cached_entry_id = None
@@ -334,7 +334,7 @@ class _CoordinatorResolver:
         if coordinator is None:
             return None
         if getattr(coordinator, "hass", None) is not self._hass:
-            # The coordinator was created for a different Home Assistant instance.  # noqa: E501
+            # The coordinator was created for a different Home Assistant instance.
             self.invalidate()
             return None
         config_entry = getattr(coordinator, "config_entry", None)
@@ -1306,7 +1306,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     resolver = _coordinator_resolver(hass)
     resolver.invalidate()
     domain_data = hass.data.setdefault(DOMAIN, {})
-    # Replace any previous listener so duplicate registrations do not accumulate.  # noqa: E501
+    # Replace any previous listener so duplicate registrations do not accumulate.
     remove_listener = domain_data.pop("_service_coordinator_listener", None)
     if callable(remove_listener):
         remove_listener()
@@ -4656,7 +4656,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 impact_filter or "all",
             )
 
-            # Send notification with alert summary if requested for specific dog  # noqa: E501
+            # Send notification with alert summary if requested for specific dog
             notification_manager = _get_runtime_manager(
                 coordinator,
                 "notification_manager",

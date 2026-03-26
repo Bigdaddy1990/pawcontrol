@@ -1744,8 +1744,8 @@ class PawControlScriptManager:
             return {}
         component = self._get_component()
         if component is None:
-            # ``_get_component`` raises when the script integration is missing, but keep  # noqa: E501
-            # the guard so the type checker understands ``component`` is non-null.  # noqa: E501
+            # ``_get_component`` raises when the script integration is missing, but keep
+            # the guard so the type checker understands ``component`` is non-null.
             return {}
         registry = er.async_get(self._hass)
         created: dict[str, list[str]] = {}

@@ -32,7 +32,7 @@ def _load_module() -> ModuleType:
     ]
     sys.modules.setdefault("custom_components.pawcontrol", pawcontrol_pkg)
 
-    # ``module_adapters`` depends on Home Assistant time helpers; provide a shim  # noqa: E501
+    # ``module_adapters`` depends on Home Assistant time helpers; provide a shim
     # that mirrors the API surface the cache relies upon.
     ha_pkg = ModuleType("homeassistant")
     ha_pkg.__path__ = []
@@ -45,7 +45,7 @@ def _load_module() -> ModuleType:
     sys.modules.setdefault("homeassistant.util", ha_util)
     sys.modules.setdefault("homeassistant.util.dt", ha_util_dt)
 
-    # ``aiohttp`` is only used for typing, so a minimal shim is sufficient.  # noqa: E501
+    # ``aiohttp`` is only used for typing, so a minimal shim is sufficient.
     aiohttp_pkg = ModuleType("aiohttp")
 
     class _ClientSession:  # pragma: no cover - trivial shim for imports

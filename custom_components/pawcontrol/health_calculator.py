@@ -569,7 +569,7 @@ class HealthCalculator:
 
         # Veterinary consultation recommendation adjustment
         if diet_validation["recommended_vet_consultation"]:
-            # When vet consultation is recommended, use more conservative portions  # noqa: E501
+            # When vet consultation is recommended, use more conservative portions
             adjustment *= 0.95
             _LOGGER.info(
                 "Veterinary consultation recommended: applying 5%% conservative portion adjustment",  # noqa: E501
@@ -620,7 +620,7 @@ class HealthCalculator:
         # Check portion size relative to body weight
         if dog_weight > 0:
             portion_per_kg = calculated_portion / dog_weight
-            # General safety thresholds (grams per kg body weight per meal)  # noqa: E501
+            # General safety thresholds (grams per kg body weight per meal)
             if life_stage == LifeStage.PUPPY:
                 min_threshold, max_threshold = 15, 80  # Puppies need more food
             elif life_stage in [LifeStage.SENIOR, LifeStage.GERIATRIC]:
@@ -1324,7 +1324,7 @@ class HealthCalculator:
                 or weather_conditions.temperature_c < 0
             )
         ):
-            # If activity is reduced due to weather, slightly reduce portions  # noqa: E501
+            # If activity is reduced due to weather, slightly reduce portions
             adjustment_factor *= 0.95  # 5% reduction for weather-limited activity
 
         return round(base_portion * adjustment_factor, 1)

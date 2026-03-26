@@ -512,8 +512,8 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             hass_config = getattr(self.hass, "config", None)
             if hass_config is not None:
                 hass_language = getattr(hass_config, "language", None)
-            # Translations are loaded lazily in the UI layer; keep this helper sync for  # noqa: E501
-            # tests and placeholder generation paths that call it directly.  # noqa: E501
+            # Translations are loaded lazily in the UI layer; keep this helper sync for
+            # tests and placeholder generation paths that call it directly.
 
         # Calculate current entity count
         current_estimate = self._entity_factory.estimate_entity_count(
@@ -571,7 +571,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             },
         )
 
-    # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...  # noqa: E501
+    # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...
 
     async def async_step_add_new_dog(
         self,

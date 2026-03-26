@@ -1655,7 +1655,7 @@ class PawControlNotificationManager:
                             # Remove processed notifications
                             del self._pending_batches[batch_key]
                         elif notifications:
-                            # Check if oldest notification is older than 5 minutes  # noqa: E501
+                            # Check if oldest notification is older than 5 minutes
                             oldest = min(
                                 notifications,
                                 key=lambda n: n.created_at,
@@ -1994,7 +1994,7 @@ class PawControlNotificationManager:
                 f"Webhook delivery failed: {err}",
             ) from err
 
-    # OPTIMIZE: Enhanced notification handlers with better error handling and features  # noqa: E501
+    # OPTIMIZE: Enhanced notification handlers with better error handling and features
     async def _send_persistent_notification(
         self,
         notification: NotificationEvent,

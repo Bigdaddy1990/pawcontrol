@@ -3281,7 +3281,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                 return 0.0
 
             # Basic calorie calculation for dogs:
-            # Approximately 0.8 calories per kg per minute of moderate activity  # noqa: E501
+            # Approximately 0.8 calories per kg per minute of moderate activity
             # Adjusted by distance (more distance = higher intensity)
 
             base_calories = dog_weight * total_duration_minutes * 0.8

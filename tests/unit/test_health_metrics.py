@@ -132,7 +132,7 @@ def test_breed_recommendations_are_requested_when_breed_valid() -> None:
         report,
     )
 
-    # Breed value should be normalised and forwarded to the weather manager  # noqa: E501
+    # Breed value should be normalised and forwarded to the weather manager
     assert manager.requests == [("golden retriever", 30, ["arthritis"])]
     assert report["recommendations"] == [
         "limit midday walks",

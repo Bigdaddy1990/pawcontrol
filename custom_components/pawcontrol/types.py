@@ -7190,7 +7190,7 @@ class PawControlRuntimeData:
     manual_event_history: deque[ManualResilienceEventRecord] = field(
         default_factory=lambda: deque(maxlen=5),
     )
-    # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener  # noqa: E501
+    # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener
     daily_reset_unsub: Any = field(default=None)
     reload_unsub: Callable[[], Any] | None = None
     schema_created_version: int = DOMAIN_RUNTIME_STORE_VERSION

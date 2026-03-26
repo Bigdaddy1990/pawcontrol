@@ -89,7 +89,7 @@ def module_adapters(monkeypatch: pytest.MonkeyPatch):
 
     device_api_stub = ModuleType("custom_components.pawcontrol.device_api")
 
-    class PawControlDeviceClient:  # pragma: no cover - only used for typing  # noqa: E501
+    class PawControlDeviceClient:  # pragma: no cover - only used for typing
         async def async_get_feeding_payload(self, dog_id: str) -> JSONMutableMapping:
             raise NotImplementedError
 
@@ -143,7 +143,7 @@ def test_expiring_cache_handles_hits_and_expiration(
     cache.set("max", {"meals": 1})
     dt_stub.advance(timedelta(seconds=31))
 
-    # Entry for "buddy" was accessed before expiration, so the metrics track a hit.  # noqa: E501
+    # Entry for "buddy" was accessed before expiration, so the metrics track a hit.
     metrics = cache.metrics()
     assert metrics.hits == 1
     assert metrics.misses == 0

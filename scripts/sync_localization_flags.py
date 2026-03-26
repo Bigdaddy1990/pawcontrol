@@ -115,7 +115,7 @@ def main() -> int:
     repo_root = Path(__file__).resolve().parents[1]
     allowlist = _read_allowlist(args.allowlist) if args.allowlist else set()
 
-    # Validate strings.json and translation json files exist + parse as JSON  # noqa: E501
+    # Validate strings.json and translation json files exist + parse as JSON
     custom_components_dir = repo_root / "custom_components"
     if not custom_components_dir.exists():
         return 0
@@ -134,7 +134,7 @@ def main() -> int:
                 # Optional minimal sanity: remove keys listed in allowlist from consideration  # noqa: E501
                 # (This script is intentionally conservative; hassfest performs schema validation.)  # noqa: E501
                 if allowlist:
-                    # noop usage to avoid unused variable warnings in strict linters  # noqa: E501
+                    # noop usage to avoid unused variable warnings in strict linters
                     _ = data
 
     pawcontrol_dir = custom_components_dir / "pawcontrol"

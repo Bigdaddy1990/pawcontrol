@@ -56,7 +56,7 @@ def _new_webhook_id() -> str:
 def _new_webhook_secret() -> str:
     import secrets
 
-    # This is used for HMAC signing/verification in WebhookSecurityManager.  # noqa: E501
+    # This is used for HMAC signing/verification in WebhookSecurityManager.
     return secrets.token_urlsafe(32)
 
 
@@ -110,7 +110,7 @@ async def async_register_entry_webhook(
     if not isinstance(webhook_id, str) or not webhook_id:
         return
 
-    # Idempotency: unregister first if it exists (safe no-op if not registered).  # noqa: E501
+    # Idempotency: unregister first if it exists (safe no-op if not registered).
     try:  # noqa: SIM105
         async_unregister(hass, webhook_id)
     except Exception:  # pragma: no cover
