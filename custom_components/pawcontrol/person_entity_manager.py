@@ -460,7 +460,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             Mobile device ID if found
         """
         try:
-            # Check if person has source attribute pointing to device tracker  # noqa: E501
+            # Check if person has source attribute pointing to device tracker
             source = person_state.attributes.get("source")
             if source and source.startswith("device_tracker."):
                 # Try to map device tracker to mobile device

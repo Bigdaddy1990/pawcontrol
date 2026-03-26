@@ -515,7 +515,7 @@ class WalkManager:
 
             now = timestamp or dt_util.now()
             old_location: tuple[float, float] | None = None
-            # OPTIMIZE: Get previous location from cache for better performance  # noqa: E501
+            # OPTIMIZE: Get previous location from cache for better performance
             cached_location = self._gps_cache.get_location(dog_id)
             if cached_location is not None:
                 cached_latitude, cached_longitude, _cached_timestamp = cached_location
@@ -1421,7 +1421,7 @@ class WalkManager:
             }
             return snapshot
 
-    # OPTIMIZE: Keep existing methods for compatibility but optimize internal calls  # noqa: E501
+    # OPTIMIZE: Keep existing methods for compatibility but optimize internal calls
     async def async_get_current_walk(self, dog_id: str) -> WalkSessionSnapshot | None:
         """Get current walk data for a dog."""
         async with self._data_lock:

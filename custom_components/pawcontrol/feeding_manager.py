@@ -1206,7 +1206,7 @@ class FeedingManager:
                 compatible with ``FeedingManagerDogSetupPayload``
         """
         async with self._lock:
-            # Reset caches so repeated initialisation (common in tests) does not  # noqa: E501
+            # Reset caches so repeated initialisation (common in tests) does not
             # leak previous dog metadata or reminder tasks.
             for task in self._reminder_tasks.values():
                 task.cancel()
@@ -2030,7 +2030,7 @@ class FeedingManager:
         """
         config = self._configs.get(dog_id)
         if not config or not config.medication_with_meals:
-            # If medication linking is disabled, just record normal feeding  # noqa: E501
+            # If medication linking is disabled, just record normal feeding
             return await self.async_add_feeding(
                 dog_id=dog_id,
                 amount=amount,
@@ -3995,7 +3995,7 @@ class FeedingManager:
             if "diet_transition" not in config.health_conditions:
                 config.health_conditions.append("diet_transition")
 
-            # Store transition data (would normally be in a separate storage)  # noqa: E501
+            # Store transition data (would normally be in a separate storage)
             config.transition_data = transition_data
             # Invalidate caches
             self._invalidate_cache(dog_id)

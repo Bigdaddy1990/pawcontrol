@@ -284,7 +284,7 @@ async def async_setup_entry(
             )
 
     # Add entities in smaller batches to prevent Entity Registry overload
-    # With 46+ number entities (2 dogs), batching prevents Registry flooding  # noqa: E501
+    # With 46+ number entities (2 dogs), batching prevents Registry flooding
     await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)
     _LOGGER.info(
         "Created %d number entities for %d dogs using batched approach",

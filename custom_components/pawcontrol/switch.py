@@ -99,7 +99,7 @@ class ProfileOptimizedSwitchFactory:
         (MODULE_TRAINING, "Training Mode", "mdi:school"),
     ]
 
-    # Feature switches grouped by module - only created if module is enabled  # noqa: E501
+    # Feature switches grouped by module - only created if module is enabled
     FEATURE_SWITCHES: ClassVar[dict[str, list[SwitchDefinition]]] = {
         MODULE_FEEDING: [
             ("auto_feeding_reminders", "Auto Feeding Reminders", "mdi:clock-alert"),

@@ -3006,7 +3006,7 @@ async def async_create_fix_flow(
 async def async_register_repairs(hass: HomeAssistant) -> None:
     """Register initial repair checks for Paw Control integration."""
     _LOGGER.debug("Registering Paw Control repair checks")
-    # Iterate over all loaded entries and run checks for those with runtime data  # noqa: E501
+    # Iterate over all loaded entries and run checks for those with runtime data
     for entry in hass.config_entries.async_entries(DOMAIN):
         try:
             require_runtime_data(hass, entry)

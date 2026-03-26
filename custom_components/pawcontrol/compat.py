@@ -197,9 +197,9 @@ def bind_exception_alias(
     combine_with_current: bool = False,
 ) -> Callable[[], None]:
     """Keep ``module.attr`` in sync with the active Home Assistant class."""
-    # ``module`` may be supplied as a module object, a module name, or omitted to  # noqa: E501
-    # infer the caller.  The binding survives module reloads by resolving fresh  # noqa: E501
-    # module objects from :data:`sys.modules` each time the callback fires.  # noqa: E501
+    # ``module`` may be supplied as a module object, a module name, or omitted to
+    # infer the caller.  The binding survives module reloads by resolving fresh
+    # module objects from :data:`sys.modules` each time the callback fires.
 
     # Default to the caller's module so integration files can bind aliases
     # without importing ``sys`` purely for ``sys.modules[__name__]``.
@@ -764,16 +764,16 @@ def _sync_config_entry_symbols(
     core_module: Any | None,
 ) -> None:
     """Ensure Home Assistant modules expose the compatibility ConfigEntry types."""
-    # The compatibility layer needs to operate in two very different execution  # noqa: E501
+    # The compatibility layer needs to operate in two very different execution
     # environments:
     #
-    # 1. When the integration runs inside Home Assistant we should defer to the  # noqa: E501
-    #    real ``ConfigEntry`` implementation that ships with HA so that we do  # noqa: E501
+    # 1. When the integration runs inside Home Assistant we should defer to the
+    #    real ``ConfigEntry`` implementation that ships with HA so that we do
     #    not accidentally diverge from core behaviour.
-    # 2. When tests import PawControl without Home Assistant installed we fall  # noqa: E501
+    # 2. When tests import PawControl without Home Assistant installed we fall
     #    back to the lightweight shim defined in this module.  In that
-    #    situation multiple imports may race each other, so we patch both the  # noqa: E501
-    #    module globals and the ``homeassistant`` namespaces to ensure every  # noqa: E501
+    #    situation multiple imports may race each other, so we patch both the
+    #    module globals and the ``homeassistant`` namespaces to ensure every
     #    caller sees the same symbols.
     #
     # The branching below therefore checks whether a real Home Assistant

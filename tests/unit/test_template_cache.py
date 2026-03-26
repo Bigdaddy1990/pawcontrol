@@ -68,7 +68,7 @@ async def test_template_cache_ttl_invalidation(monkeypatch: pytest.MonkeyPatch) 
     template: CardConfig = {"type": "entities"}
     await cache.set("expiring", template)
 
-    # Advance beyond the TTL and ensure the cached value is purged on access.  # noqa: E501
+    # Advance beyond the TTL and ensure the cached value is purged on access.
     monkeypatch.setattr(
         "custom_components.pawcontrol.dashboard_templates.dt_util.utcnow",
         lambda: now + timedelta(seconds=TEMPLATE_TTL_SECONDS + 1),

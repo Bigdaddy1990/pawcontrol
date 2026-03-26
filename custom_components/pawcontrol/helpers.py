@@ -711,7 +711,7 @@ class PawControlDataStorage:
         for key, value in data.items():
             if isinstance(value, list):
                 if len(value) > MAX_HISTORY_ITEMS:
-                    # Sort by timestamp (newest first) and keep most recent  # noqa: E501
+                    # Sort by timestamp (newest first) and keep most recent
                     try:
                         sorted_value = sorted(
                             value,
@@ -879,17 +879,17 @@ class PawControlData:
                     if scheduled_coro is not event_coro:
                         event_coro.close()
                 elif self._is_task_like(maybe_task):
-                    # Test environments sometimes return task sentinels. Keep  # noqa: E501
-                    # a reference to them so assertions can verify scheduling  # noqa: E501
+                    # Test environments sometimes return task sentinels. Keep
+                    # a reference to them so assertions can verify scheduling
                     # behaviour, but close the coroutine to avoid resource
                     # warnings as the sentinel will never execute it.
                     event_coro.close()
                     task = cast(asyncio.Task[Any], maybe_task)
                 else:
-                    # Some test harnesses return sentinel objects instead of  # noqa: E501
+                    # Some test harnesses return sentinel objects instead of
                     # real asyncio tasks. Close the coroutine to avoid a
                     # "coroutine was never awaited" warning and track the
-                    # returned handle so callers can assert that scheduling  # noqa: E501
+                    # returned handle so callers can assert that scheduling
                     # occurred.
                     event_coro.close()
                     task = cast(asyncio.Task[Any], maybe_task)

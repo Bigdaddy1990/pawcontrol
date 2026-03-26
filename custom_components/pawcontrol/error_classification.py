@@ -54,7 +54,7 @@ def _normalise_text(value: object | None) -> str:
     """Return a lowercase string suitable for matching against ``value``."""
     if value is None:
         return ""
-    # When ``value`` is an Exception, use its string form; otherwise cast to str  # noqa: E501
+    # When ``value`` is an Exception, use its string form; otherwise cast to str
     text = str(value) if isinstance(value, Exception) else str(value)
     return text.strip().lower()
 

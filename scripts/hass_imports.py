@@ -297,7 +297,7 @@ class HassImportsFormatChecker(BaseChecker):
     ) -> bool:
         """Check for hass-import-constant-alias."""
         if current_component == imported_component:
-            # Check for `from homeassistant.components.self import DOMAIN as XYZ`  # noqa: E501
+            # Check for `from homeassistant.components.self import DOMAIN as XYZ`
             for name, alias in node.names:
                 if name == "DOMAIN" and (alias is not None and alias != "DOMAIN"):
                     self.add_message(

@@ -663,8 +663,8 @@ class GPSGeofenceManager:
                     self._route_history[dog_id].append(route)
                     # Limit history size (keep last 100 routes)
                     self._enforce_route_history_limit(dog_id)
-            # Ensure history never grows beyond the configured limit even when a  # noqa: E501
-            # route is discarded (for example, when no GPS points were recorded).  # noqa: E501
+            # Ensure history never grows beyond the configured limit even when a
+            # route is discarded (for example, when no GPS points were recorded).
             self._enforce_route_history_limit(dog_id)
             # Remove from active routes
             del self._active_routes[dog_id]
@@ -1091,7 +1091,7 @@ class GPSGeofenceManager:
             # Try to find device tracker entity for this dog
             entity_registry = er.async_get(self.hass)
             dr.async_get(self.hass)
-            # Look for device tracker entities that might belong to this dog  # noqa: E501
+            # Look for device tracker entities that might belong to this dog
             for entity in entity_registry.entities.values():
                 if (
                     entity.platform == "device_tracker"
