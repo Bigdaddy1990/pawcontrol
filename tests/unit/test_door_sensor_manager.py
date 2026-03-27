@@ -1,11 +1,16 @@
 """Door sensor manager helper normalisation tests."""
 
+from datetime import timedelta
 from typing import cast
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from homeassistant.const import STATE_OFF, STATE_ON
+from homeassistant.util import dt as dt_util
 
 from custom_components.pawcontrol.const import (
+    CACHE_TIMESTAMP_FUTURE_THRESHOLD,
+    CACHE_TIMESTAMP_STALE_THRESHOLD,
     CONF_DOOR_SENSOR,
     CONF_DOOR_SENSOR_SETTINGS,
 )
@@ -20,7 +25,10 @@ from custom_components.pawcontrol.door_sensor_manager import (
     DoorSensorManager,
     DoorSensorSettingsConfig,
     WalkDetectionState,
+    _DoorSensorManagerCacheMonitor,
+    _classify_timestamp,
     _coerce_bool,
+    _serialize_datetime,
     ensure_door_sensor_settings_config,
 )
 from custom_components.pawcontrol.types import (
@@ -150,6 +158,79 @@ def test_coerce_bool_invalid_strings_use_default() -> None:
     """Strings that are neither numeric nor keywords fall back to the default."""
     assert _coerce_bool("maybe", default=True) is True
     assert _coerce_bool("", default=False) is False
+
+
+def test_ensure_door_sensor_settings_config_rejects_invalid_type() -> None:
+    """Invalid settings payloads should raise a deterministic type error."""
+    with pytest.raises(TypeError):
+        ensure_door_sensor_settings_config(cast(DoorSensorSettingsInput, object()))
+
+
+def test_timestamp_helpers_classify_and_serialize() -> None:
+    """Timestamp helpers should classify stale/future values and serialize UTC."""
+    now = dt_util.utcnow()
+    stale_value = now - CACHE_TIMESTAMP_STALE_THRESHOLD - timedelta(seconds=30)
+    future_value = now + CACHE_TIMESTAMP_FUTURE_THRESHOLD + timedelta(seconds=30)
+
+    stale_reason, stale_age = _classify_timestamp(stale_value)
+    future_reason, future_age = _classify_timestamp(future_value)
+    none_reason, none_age = _classify_timestamp(None)
+
+    assert stale_reason == "stale"
+    assert stale_age is not None and stale_age > 0
+    assert future_reason == "future"
+    assert future_age is not None and future_age < 0
+    assert (none_reason, none_age) == (None, None)
+    assert _serialize_datetime(None) is None
+    serialized = _serialize_datetime(now)
+    assert serialized is not None and serialized.endswith("+00:00")
+
+
+def test_cache_monitor_snapshot_contains_anomalies() -> None:
+    """Cache monitor should expose per-dog and manager timestamp anomalies."""
+    hass = Mock()
+    manager = DoorSensorManager(hass, "entry")
+    manager._cleanup_task = cast(object, AsyncMock())
+    manager._detection_stats = {
+        "total_detections": 3,
+        "successful_walks": 2,
+        "false_positives": 1,
+        "average_confidence": 0.5,
+    }
+    manager._last_activity = (
+        dt_util.utcnow() - CACHE_TIMESTAMP_STALE_THRESHOLD - timedelta(seconds=10)
+    )
+
+    manager._sensor_configs["dog-1"] = DoorSensorConfig(
+        entity_id="binary_sensor.front_door",
+        dog_id="dog-1",
+        dog_name="Buddy",
+        confidence_threshold=0.87654,
+    )
+    state = WalkDetectionState(
+        dog_id="dog-1",
+        current_state="potential",
+        confidence_score=0.73456,
+        door_opened_at=(
+            dt_util.utcnow()
+            + CACHE_TIMESTAMP_FUTURE_THRESHOLD
+            + timedelta(seconds=10)
+        ),
+        state_history=[(dt_util.utcnow(), STATE_ON), (dt_util.utcnow(), STATE_OFF)],
+    )
+    manager._detection_states["dog-1"] = state
+
+    monitor = _DoorSensorManagerCacheMonitor(manager)
+    snapshot = monitor.coordinator_snapshot()
+    stats = monitor.get_stats()
+    diagnostics = monitor.get_diagnostics()
+
+    assert snapshot["stats"]["configured_sensors"] == 1
+    assert snapshot["stats"]["active_detections"] == 1
+    assert snapshot["snapshot"]["per_dog"]["dog-1"]["confidence_threshold"] == pytest.approx(0.877)  # type: ignore[index]
+    assert stats["last_activity_age_seconds"] is not None
+    assert diagnostics["cleanup_task_active"] is True
+    assert diagnostics["timestamp_anomalies"] == {"dog-1": "future", "manager": "stale"}
 
 
 @pytest.mark.asyncio
