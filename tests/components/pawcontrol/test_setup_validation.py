@@ -95,6 +95,20 @@ async def test_async_validate_dogs_config_accepts_none_payload_and_logs_empty_st
     assert "No dogs configured for entry" in caplog.text
 
 
+@pytest.mark.asyncio
+async def test_async_validate_dogs_config_accepts_missing_payload(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Missing dogs key should default to an empty validated list."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+
+    with caplog.at_level(logging.DEBUG):
+        dogs = await _async_validate_dogs_config(entry)
+
+    assert dogs == []
+    assert "No dogs configured for entry" in caplog.text
+
+
 def test_validate_profile_defaults_to_standard_for_none_and_unknown(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -145,3 +159,34 @@ def test_extract_enabled_modules_ignores_missing_modules_key() -> None:
     modules = _extract_enabled_modules(dogs_config)
 
     assert modules == frozenset({"gps"})
+
+
+def test_extract_enabled_modules_warns_once_for_sorted_unknown_modules(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Unknown modules should be deduplicated and logged in sorted order."""
+    dogs_config = [
+        {
+            "dog_id": "dog-1",
+            "dog_name": "Buddy",
+            CONF_MODULES: {
+                "zz_unknown": True,
+                "aa_unknown": True,
+                "zz_unknown_duplicate": False,
+                "gps": True,
+            },
+        },
+        {
+            "dog_id": "dog-2",
+            "dog_name": "Luna",
+            CONF_MODULES: {
+                "aa_unknown": True,
+            },
+        },
+    ]
+
+    with caplog.at_level(logging.WARNING):
+        modules = _extract_enabled_modules(dogs_config)
+
+    assert modules == frozenset({"gps"})
+    assert "Ignoring unknown PawControl modules: aa_unknown, zz_unknown" in caplog.text

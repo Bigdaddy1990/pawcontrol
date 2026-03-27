@@ -20,6 +20,7 @@ from custom_components.pawcontrol.const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
+from custom_components.pawcontrol.exceptions import PawControlSetupError
 from custom_components.pawcontrol.types import DogConfigData
 
 
@@ -469,3 +470,146 @@ async def test_async_monitor_background_tasks_logs_loop_errors_and_continues(
     await pawcontrol_init._async_monitor_background_tasks(SimpleNamespace())
 
     assert "Error in background task monitoring: boom" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_runs_setup_pipeline_and_starts_optional_tasks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup entry should orchestrate setup modules and optional background tasks."""
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(async_start_background_tasks=Mock()),
+        helper_manager=None,
+        door_sensor_manager=None,
+        geofencing_manager=None,
+        daily_reset_unsub=None,
+        background_monitor_task=None,
+    )
+    dogs_config = [_build_dog_config({MODULE_GPS: True})]
+    entry = SimpleNamespace(entry_id="entry-setup", options={"debug_logging": False})
+
+    validate_entry = AsyncMock(return_value=(dogs_config, "standard", frozenset()))
+    initialize_managers = AsyncMock(return_value=runtime_data)
+    register_webhook = AsyncMock()
+    register_mqtt = AsyncMock()
+    setup_platforms = AsyncMock()
+    register_cleanup = AsyncMock()
+    setup_daily_reset = AsyncMock(return_value="daily-unsub")
+    check_issues = AsyncMock()
+    store_runtime = Mock()
+    monitor_marker = object()
+
+    async def _monitor_stub(_runtime_data: object) -> None:
+        return None
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        validate_entry,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_should_skip_optional_setup",
+        lambda _hass: False,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_initialize_managers",
+        initialize_managers,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "store_runtime_data",
+        store_runtime,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_webhook",
+        register_webhook,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_mqtt",
+        register_mqtt,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_platforms",
+        setup_platforms,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_cleanup",
+        register_cleanup,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_daily_reset_scheduler",
+        setup_daily_reset,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_check_for_issues",
+        check_issues,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_async_monitor_background_tasks",
+        _monitor_stub,
+    )
+
+    def _create_task(coro: object) -> object:
+        coro.close()
+        return monitor_marker
+
+    hass = SimpleNamespace(async_create_task=_create_task)
+    assert await pawcontrol_init.async_setup_entry(hass, entry) is True
+
+    validate_entry.assert_awaited_once_with(entry)
+    initialize_managers.assert_awaited_once_with(
+        hass,
+        entry,
+        dogs_config,
+        "standard",
+        False,
+    )
+    store_runtime.assert_called_once_with(hass, entry, runtime_data)
+    register_webhook.assert_awaited_once_with(hass, entry)
+    register_mqtt.assert_awaited_once_with(hass, entry)
+    setup_platforms.assert_awaited_once_with(hass, entry, runtime_data)
+    register_cleanup.assert_awaited_once_with(hass, entry, runtime_data)
+    setup_daily_reset.assert_awaited_once_with(hass, entry)
+    check_issues.assert_awaited_once_with(hass, entry)
+    runtime_data.coordinator.async_start_background_tasks.assert_called_once_with()
+    assert runtime_data.daily_reset_unsub == "daily-unsub"
+    assert runtime_data.background_monitor_task is monitor_marker
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_wraps_unexpected_setup_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected setup failures should be wrapped in PawControlSetupError."""
+    disable_logging = Mock()
+    entry = SimpleNamespace(entry_id="entry-setup", options={"debug_logging": True})
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_enable_debug_logging",
+        lambda _entry: True,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_disable_debug_logging",
+        disable_logging,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        AsyncMock(side_effect=RuntimeError("boom")),
+    )
+
+    with pytest.raises(PawControlSetupError, match="RuntimeError"):
+        await pawcontrol_init.async_setup_entry(SimpleNamespace(), entry)
+
+    disable_logging.assert_called_once_with(entry)
