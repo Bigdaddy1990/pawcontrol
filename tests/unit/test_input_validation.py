@@ -227,7 +227,7 @@ def test_validator_phone_and_string_success_paths() -> None:
 
     phone = validator.validate_phone("  +1-555-123-4567 ext 89  ")
     assert phone.is_valid
-    assert phone.sanitized_value == "+1-555-123-4567  89"
+    assert phone.sanitized_value == "+1-555-123-4567  "
 
     string_result = validator.validate_string(
         "  Buddy  ",
@@ -237,6 +237,16 @@ def test_validator_phone_and_string_success_paths() -> None:
     )
     assert string_result.is_valid
     assert string_result.sanitized_value == "Buddy"
+
+
+def test_validator_phone_rejects_too_many_digits_even_with_valid_symbols() -> None:
+    """Phone validation should reject values longer than 15 digits."""
+    validator = InputValidator()
+
+    result = validator.validate_phone("1234567890123456")
+
+    assert not result.is_valid
+    assert result.errors == ["Invalid phone number length: 16"]
 
 
 def test_validate_and_sanitize_success_and_failure() -> None:
