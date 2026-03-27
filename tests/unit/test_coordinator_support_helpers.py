@@ -358,12 +358,22 @@ def test_dog_config_registry_enabled_modules_populates_cache_on_demand() -> None
     assert registry.calculate_update_interval({}) == 300
 
 
+def test_dog_config_registry_get_name_rejects_blank_string_values() -> None:
+    """Dog names containing only whitespace should be treated as missing."""
+    registry = DogConfigRegistry([
+        {"dog_id": "blank", "dog_name": "   ", CONF_MODULES: {"walk": True}},
+    ])
+
+    assert registry.get_name("blank") is None
+
+
 @pytest.mark.parametrize(
     ("entry_data", "value", "field"),
     [
         ({"data": {CONF_DOGS: "broken"}}, None, "dogs_config"),
         (None, True, "gps_update_interval"),
         (None, " ", "gps_update_interval"),
+        (None, 1.5, "gps_update_interval"),
         (None, 0, "gps_update_interval"),
         (None, None, "update_interval"),
         (None, 0, "update_interval"),
