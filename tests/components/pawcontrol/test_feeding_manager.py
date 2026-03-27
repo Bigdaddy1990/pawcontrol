@@ -51,6 +51,7 @@ def test_normalize_special_diet_handles_multiple_input_shapes(hass) -> None:
     assert manager._normalize_special_diet("  renal  ") == ["renal"]
     assert manager._normalize_special_diet([" diabetic ", 12, ""]) == ["diabetic"]
     assert manager._normalize_special_diet(12) == []
+    assert manager._normalize_special_diet(None) == []
 
 
 def test_calculate_daily_calories_uses_weight_goal_and_activity_fallback(hass) -> None:
