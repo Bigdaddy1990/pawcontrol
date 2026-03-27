@@ -10,7 +10,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.pawcontrol import config_flow_main
 from custom_components.pawcontrol.config_flow_main import PawControlConfigFlow
 from custom_components.pawcontrol.const import CONF_DOGS, DOMAIN
-from custom_components.pawcontrol.exceptions import ConfigurationError, ValidationError
+from custom_components.pawcontrol.exceptions import (
+    ConfigurationError,
+    PawControlSetupError,
+    ValidationError,
+)
 from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
 
 
@@ -252,3 +256,53 @@ def test_string_list_normalisation_and_module_aggregation() -> None:
     assert modules["gps"] is True
     assert modules["health"] is True
     assert modules["feeding"] is False
+
+
+@pytest.mark.asyncio
+async def test_final_setup_shows_form_without_user_input() -> None:
+    """Final setup should render the confirmation form before submission."""
+    flow = PawControlConfigFlow()
+
+    result = await flow.async_step_final_setup()
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "final_setup"
+
+
+@pytest.mark.asyncio
+async def test_final_setup_raises_when_no_dogs_configured() -> None:
+    """Final setup should fail fast when no dog data exists."""
+    flow = PawControlConfigFlow()
+
+    with pytest.raises(PawControlSetupError, match="No dogs configured for setup"):
+        await flow.async_step_final_setup(user_input={})
+
+
+@pytest.mark.asyncio
+async def test_final_setup_creates_entry_when_validation_succeeds(
+    hass,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Final setup should create an entry with the generated title and payloads."""
+    flow = PawControlConfigFlow()
+    flow.hass = hass
+    flow._dogs = [{"dog_id": "buddy", "dog_name": "Buddy", "modules": {}}]
+
+    async def _valid() -> dict[str, object]:
+        return {"valid": True, "errors": [], "estimated_entities": 3}
+
+    monkeypatch.setattr(flow, "_perform_comprehensive_validation", _valid)
+    monkeypatch.setattr(flow, "_validate_profile_compatibility", lambda: True)
+    monkeypatch.setattr(
+        flow,
+        "_build_config_entry_data",
+        lambda: ({"dogs": [{"dog_id": "buddy"}]}, {"dashboard_enabled": True}),
+    )
+    monkeypatch.setattr(flow, "_generate_entry_title", lambda profile: "Paw Control")
+
+    result = await flow.async_step_final_setup(user_input={})
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Paw Control"
+    assert result["data"] == {"dogs": [{"dog_id": "buddy"}]}
+    assert result["options"] == {"dashboard_enabled": True}
