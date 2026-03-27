@@ -10,7 +10,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.pawcontrol import config_flow_main
 from custom_components.pawcontrol.config_flow_main import PawControlConfigFlow
 from custom_components.pawcontrol.const import CONF_DOGS, DOMAIN
-from custom_components.pawcontrol.exceptions import ConfigurationError, ValidationError
+from custom_components.pawcontrol.exceptions import (
+    ConfigurationError,
+    PawControlSetupError,
+    ValidationError,
+)
 from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
 
 
@@ -252,3 +256,100 @@ def test_string_list_normalisation_and_module_aggregation() -> None:
     assert modules["gps"] is True
     assert modules["health"] is True
     assert modules["feeding"] is False
+
+
+@pytest.mark.asyncio
+async def test_async_step_final_setup_success_creates_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Final setup should create a config entry when validation succeeds."""
+    flow = PawControlConfigFlow()
+    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", "modules": {}}]
+
+    async def _valid() -> dict[str, object]:
+        return {"valid": True, "errors": [], "estimated_entities": 1}
+
+    monkeypatch.setattr(flow, "_perform_comprehensive_validation", _valid)
+    monkeypatch.setattr(flow, "_validate_profile_compatibility", lambda: False)
+    monkeypatch.setattr(
+        flow,
+        "_build_config_entry_data",
+        lambda: (
+            {"name": "Paw Control", "dogs": flow._dogs, "entity_profile": "standard"},
+            {"entity_profile": "standard"},
+        ),
+    )
+    monkeypatch.setattr(flow, "_generate_entry_title", lambda _: "Paw Control")
+
+    result = await flow.async_step_final_setup(user_input={})
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Paw Control"
+
+
+@pytest.mark.asyncio
+async def test_async_step_final_setup_rejects_missing_or_invalid_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Final setup should fail for missing dogs and invalid validation result."""
+    flow = PawControlConfigFlow()
+
+    with pytest.raises(PawControlSetupError, match="No dogs configured"):
+        await flow.async_step_final_setup(user_input={})
+
+    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", "modules": {}}]
+
+    async def _invalid() -> dict[str, object]:
+        return {"valid": False, "errors": ["bad dog"], "estimated_entities": 0}
+
+    monkeypatch.setattr(flow, "_perform_comprehensive_validation", _invalid)
+
+    with pytest.raises(PawControlSetupError, match="Setup validation failed: bad dog"):
+        await flow.async_step_final_setup(user_input={})
+
+
+@pytest.mark.asyncio
+async def test_async_step_final_setup_wraps_unexpected_build_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Final setup should wrap unexpected build errors in setup exceptions."""
+    flow = PawControlConfigFlow()
+    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", "modules": {}}]
+
+    async def _valid() -> dict[str, object]:
+        return {"valid": True, "errors": [], "estimated_entities": 1}
+
+    monkeypatch.setattr(flow, "_perform_comprehensive_validation", _valid)
+    monkeypatch.setattr(
+        flow,
+        "_build_config_entry_data",
+        lambda: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+
+    with pytest.raises(PawControlSetupError, match="Setup failed: boom"):
+        await flow.async_step_final_setup(user_input={})
+
+
+def test_build_config_entry_data_derives_api_endpoint_and_token_from_discovery(
+) -> None:
+    """Discovery metadata should populate endpoint and api token defaults."""
+    flow = PawControlConfigFlow()
+    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", "modules": {}}]
+    flow._entity_profile = "standard"
+    flow._global_settings = {
+        "enable_analytics": 1,
+        "data_retention_days": "bad-value",
+        "performance_mode": "balanced",
+    }
+    flow._discovery_info = {
+        "host": "192.168.1.5",
+        "port": 9443,
+        "properties": {"https": "yes", "api_key": "token-123"},
+    }
+
+    config_data, options_data = flow._build_config_entry_data()
+
+    assert config_data["discovery_info"] == flow._discovery_info
+    assert options_data["api_endpoint"] == "https://192.168.1.5:9443"
+    assert options_data["api_token"] == "token-123"
+    assert options_data["data_retention_days"] == 30
