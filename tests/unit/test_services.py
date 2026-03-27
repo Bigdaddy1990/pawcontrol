@@ -443,6 +443,38 @@ def test_coordinator_resolver_returns_cached_and_filters_invalidation() -> None:
     assert resolver._cached_coordinator is None
 
 
+def test_coordinator_resolver_resolves_and_caches_loaded_runtime_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Resolver should cache coordinators resolved from loaded entry runtime data."""
+    entry = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="entry-loaded")
+    coordinator = SimpleNamespace(
+        hass=None,
+        config_entry=SimpleNamespace(
+            entry_id="entry-loaded",
+            state=ConfigEntryState.LOADED,
+        ),
+    )
+    hass = SimpleNamespace(
+        data={},
+        config_entries=SimpleNamespace(async_entries=lambda domain: [entry]),
+    )
+    coordinator.hass = hass
+
+    calls = {"count": 0}
+
+    def _runtime_data(_hass: object, _entry: object) -> SimpleNamespace:
+        calls["count"] += 1
+        return SimpleNamespace(coordinator=coordinator)
+
+    monkeypatch.setattr(services, "get_runtime_data", _runtime_data)
+    resolver = services._CoordinatorResolver(hass)  # type: ignore[arg-type]
+
+    assert resolver.resolve() is coordinator  # type: ignore[comparison-overlap]
+    assert resolver.resolve() is coordinator  # type: ignore[comparison-overlap]
+    assert calls["count"] == 1
+
+
 def test_capture_cache_diagnostics_normalises_unexpected_payload_shapes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -469,6 +501,33 @@ def test_capture_cache_diagnostics_normalises_unexpected_payload_shapes(
     assert diagnostics is not None
     assert list(diagnostics["snapshots"]) == ["broken"]
     assert diagnostics["snapshots"]["broken"].error == "error-payload"
+
+
+def test_capture_cache_diagnostics_returns_none_when_capture_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Diagnostics helper should return ``None`` when capture data is unavailable."""
+    monkeypatch.setattr(services, "capture_cache_diagnostics", lambda runtime: None)
+
+    assert services._capture_cache_diagnostics(SimpleNamespace()) is None
+
+
+def test_capture_cache_diagnostics_keeps_typed_snapshot_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Diagnostics helper should preserve existing typed snapshot instances."""
+    snapshot = CacheDiagnosticsSnapshot(stats={"hits": 2, "misses": 1})
+    monkeypatch.setattr(
+        services,
+        "capture_cache_diagnostics",
+        lambda runtime: {"snapshots": {"typed": snapshot}},
+    )
+    monkeypatch.setattr(services, "ensure_cache_repair_aggregate", lambda summary: None)
+
+    diagnostics = services._capture_cache_diagnostics(SimpleNamespace())
+
+    assert diagnostics is not None
+    assert diagnostics["snapshots"]["typed"] is snapshot
 
 
 def test_normalise_service_details_handles_sequence_and_scalar_payloads() -> None:

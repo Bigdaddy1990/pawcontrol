@@ -47,6 +47,11 @@ def test_suggested_precision_from_unit(unit: str | None, expected: int | None) -
     assert sensor._suggested_precision_from_unit(unit) == expected
 
 
+def test_suggested_precision_handles_dynamic_speed_and_calorie_units() -> None:
+    assert sensor._suggested_precision_from_unit(sensor._SPEED_UNIT) == 1
+    assert sensor._suggested_precision_from_unit(sensor._CALORIE_UNIT) == 0
+
+
 @pytest.mark.parametrize(
     ("update_interval", "expected"),
     [
@@ -139,6 +144,66 @@ def test_copy_base_docstring_to_property() -> None:
     )
 
     assert _DocChild.test_property.__doc__ == "Property docs."
+
+
+class _MethodDocBase:
+    def documented_method(self) -> str:
+        """Method docs."""
+        return "ok"
+
+
+class _MethodDocChild(_MethodDocBase):
+    def documented_method(self) -> str:
+        return "ok"
+
+
+def test_copy_base_docstring_to_method() -> None:
+    assert _MethodDocChild.documented_method.__doc__ is None
+
+    sensor._copy_base_docstring(
+        attribute_name="documented_method",
+        cls=_MethodDocChild,
+        attribute=_MethodDocChild.documented_method,
+    )
+
+    assert _MethodDocChild.documented_method.__doc__ == "Method docs."
+
+
+def test_normalise_attributes_returns_json_serialisable_mapping() -> None:
+    attrs = {
+        "timestamp": datetime(2026, 1, 1, tzinfo=UTC),
+        "today": date(2026, 1, 1),
+        "nested": {"raw": object(), "status": "ok"},
+    }
+
+    result = sensor._normalise_attributes(attrs)
+
+    assert result["timestamp"] == "2026-01-01T00:00:00+00:00"
+    assert result["today"] == "2026-01-01"
+    assert isinstance(result["nested"]["raw"], str)
+    assert result["nested"]["status"] == "ok"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"key": "value"},
+        None,
+        "invalid",
+    ],
+)
+def test_module_payload_coercion_helpers(payload: object) -> None:
+    module_payload = sensor.PawControlSensorBase._coerce_module_payload(payload)
+    feeding_payload = sensor.PawControlSensorBase._coerce_feeding_payload(
+        module_payload
+    )
+    walk_payload = sensor.PawControlSensorBase._coerce_walk_payload(module_payload)
+    health_payload = sensor.PawControlSensorBase._coerce_health_payload(module_payload)
+
+    assert isinstance(module_payload, dict)
+    assert feeding_payload is not None
+    assert walk_payload is not None
+    assert health_payload is not None
 
 
 class _RegisteredSensor(sensor.PawControlSensorBase):

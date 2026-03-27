@@ -15,6 +15,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     MODULE_NOTIFICATIONS,
+    MODULE_WEATHER,
 )
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
 from custom_components.pawcontrol.dashboard_generator import (
@@ -87,6 +88,79 @@ def test_summarise_dashboard_views_marks_notifications() -> None:
     assert notifications_summary.get("notifications") is True
 
 
+def test_summarise_dashboard_views_skips_non_sequence_payload() -> None:
+    """View summaries should return an empty list for invalid ``views`` payloads."""
+    assert (
+        PawControlDashboardGenerator._summarise_dashboard_views({"views": "invalid"})
+        == []
+    )
+
+
+def test_normalize_view_summaries_backfills_module_and_notifications() -> None:
+    """Normalised summaries should infer module paths and notification flags."""
+    summaries = PawControlDashboardGenerator._normalize_view_summaries(
+        [
+            {
+                "path": MODULE_WEATHER,
+                "title": "Weather",
+                "icon": "mdi:weather-partly-cloudy",
+                "card_count": "4",
+            },
+            {
+                "path": MODULE_NOTIFICATIONS,
+                "title": "Notifications",
+                "icon": "mdi:bell",
+                "card_count": -2,
+            },
+        ]
+    )
+
+    assert summaries == [
+        {
+            "path": MODULE_WEATHER,
+            "title": "Weather",
+            "icon": "mdi:weather-partly-cloudy",
+            "card_count": 4,
+            "module": MODULE_WEATHER,
+        },
+        {
+            "path": MODULE_NOTIFICATIONS,
+            "title": "Notifications",
+            "icon": "mdi:bell",
+            "card_count": 0,
+            "module": MODULE_NOTIFICATIONS,
+            "notifications": True,
+        },
+    ]
+
+
+def test_normalize_view_summaries_rejects_invalid_items() -> None:
+    """Invalid normalisation payloads should produce ``None``."""
+    assert PawControlDashboardGenerator._normalize_view_summaries("invalid") is None
+    assert (
+        PawControlDashboardGenerator._normalize_view_summaries([{"path": "ok"}, 1])
+        is None
+    )
+
+
+def test_has_notifications_view_detects_module_path() -> None:
+    """Notification view detection should use normalised summary paths."""
+    assert PawControlDashboardGenerator._has_notifications_view(
+        [
+            {"path": "overview", "title": "", "icon": "", "card_count": 0},
+            {
+                "path": MODULE_NOTIFICATIONS,
+                "title": "Notifications",
+                "icon": "mdi:bell",
+                "card_count": 1,
+            },
+        ]
+    )
+    assert not PawControlDashboardGenerator._has_notifications_view(
+        [{"path": "overview", "title": "", "icon": "", "card_count": 0}]
+    )
+
+
 def test_normalise_dashboard_registry_filters_invalid_entries() -> None:
     """Stored dashboard registry payloads should be normalised to plain dicts."""
     stored_dashboard = MappingProxyType({
@@ -134,6 +208,33 @@ def test_normalise_dashboard_registry_filters_invalid_entries() -> None:
         "file_operations": 7,
         "errors": 0,
     }
+
+
+@pytest.mark.asyncio
+async def test_load_dashboard_config_handles_valid_and_invalid_files(
+    tmp_path: Path,
+) -> None:
+    """Dashboard config loader should parse valid files and ignore invalid content."""
+    generator = object.__new__(PawControlDashboardGenerator)
+
+    valid_file = tmp_path / "valid.json"
+    valid_file.write_text(
+        json.dumps({"data": {"config": {"views": [{"path": "overview"}]}}}),
+        encoding="utf-8",
+    )
+
+    invalid_json_file = tmp_path / "invalid.json"
+    invalid_json_file.write_text("{", encoding="utf-8")
+
+    no_config_file = tmp_path / "no-config.json"
+    no_config_file.write_text(json.dumps({"data": {}}), encoding="utf-8")
+
+    assert await generator._load_dashboard_config(valid_file) == {
+        "views": [{"path": "overview"}]
+    }
+    assert await generator._load_dashboard_config(invalid_json_file) is None
+    assert await generator._load_dashboard_config(no_config_file) is None
+    assert await generator._load_dashboard_config(tmp_path / "missing.json") is None
 
 
 @pytest.mark.asyncio
