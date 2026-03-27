@@ -348,3 +348,40 @@ def test_serialize_module_rebinds_parent_utils_exports(
     )
     for attr_name in attributes_to_check:
         assert getattr(parent_module, attr_name) is getattr(module, attr_name)
+
+
+def test_serialize_module_import_without_parent_utils_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Importing serialize should succeed even when parent utils module is absent."""
+    import importlib.util
+    from pathlib import Path
+    import sys
+    import uuid
+
+    monkeypatch.delitem(
+        sys.modules,
+        "custom_components.pawcontrol.utils",
+        raising=False,
+    )
+
+    module_name = f"test_utils_serialize_no_parent_{uuid.uuid4().hex}"
+    module_path = Path("custom_components/pawcontrol/utils/serialize.py")
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    assert module.serialize_timedelta(timedelta(seconds=5)) == 5
+
+
+def test_serialize_entity_attributes_dataclass_type_uses_string_fallback() -> None:
+    """Dataclass type objects should not be treated as dataclass instances."""
+
+    @dataclass
+    class Dog:
+        name: str
+
+    result = serialize_entity_attributes({"model": Dog})
+
+    assert result["model"] == str(Dog)
