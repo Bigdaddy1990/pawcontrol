@@ -126,6 +126,32 @@ async def test_async_setup_platforms_skips_optional_helpers_and_scripts(
     scripts.assert_not_awaited()
 
 
+@pytest.mark.asyncio
+async def test_async_setup_platforms_handles_missing_options_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Platform setup should treat missing options as optional setup enabled."""
+    from custom_components.pawcontrol.setup import platform_setup
+
+    forward = AsyncMock()
+    helpers = AsyncMock()
+    scripts = AsyncMock()
+
+    monkeypatch.setattr(platform_setup, "_async_forward_platforms", forward)
+    monkeypatch.setattr(platform_setup, "_async_setup_helpers", helpers)
+    monkeypatch.setattr(platform_setup, "_async_setup_scripts", scripts)
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace()
+    runtime_data = SimpleNamespace(config_entry_options=None)
+
+    await platform_setup.async_setup_platforms(hass, entry, runtime_data)
+
+    forward.assert_awaited_once_with(hass, entry)
+    helpers.assert_awaited_once_with(hass, entry, runtime_data)
+    scripts.assert_awaited_once_with(hass, entry, runtime_data)
+
+
 def test_resolve_enabled_modules_normalises_mapping_and_collection_inputs() -> None:
     """Enabled modules should be normalized for both dict and list option shapes."""
     from custom_components.pawcontrol.setup import platform_setup
@@ -143,6 +169,14 @@ def test_resolve_enabled_modules_normalises_mapping_and_collection_inputs() -> N
     assert mapped == {"gps": True, "feeding": False}
     assert listed == frozenset({"gps", "99"})
     assert invalid == frozenset()
+
+
+def test_resolve_enabled_modules_returns_empty_for_non_mapping_options() -> None:
+    """Non-mapping options payloads should produce no enabled modules."""
+    from custom_components.pawcontrol.setup import platform_setup
+
+    assert platform_setup._resolve_enabled_modules(None) == frozenset()
+    assert platform_setup._resolve_enabled_modules(["gps"]) == frozenset()
 
 
 @pytest.mark.asyncio
