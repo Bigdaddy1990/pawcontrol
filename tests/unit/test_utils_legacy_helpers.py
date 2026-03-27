@@ -3,13 +3,25 @@
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 
+import pytest
+
 from custom_components.pawcontrol.utils._legacy import (
     build_error_context,
+    calculate_age_from_months,
+    calculate_bmi_equivalent,
     chunk_list,
+    clamp,
+    convert_units,
     deep_merge_dicts,
+    extract_numbers,
+    flatten_dict,
     format_distance,
     format_duration,
+    generate_entity_id,
+    generate_unique_id,
+    is_dict_subset,
     is_number,
+    merge_configurations,
     normalise_entity_attributes,
     normalise_json_mapping,
     normalise_json_value,
@@ -19,6 +31,10 @@ from custom_components.pawcontrol.utils._legacy import (
     safe_set_nested,
     sanitize_dog_id,
     sanitize_microchip_id,
+    unflatten_dict,
+    validate_configuration_schema,
+    validate_email,
+    validate_portion_size,
     validate_time_string,
 )
 
@@ -174,3 +190,92 @@ def test_chunk_and_microchip_helpers() -> None:
     assert chunk_list([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]
     assert sanitize_microchip_id("ab-12 34!") == "AB1234"
     assert sanitize_microchip_id("***") is None
+
+
+def test_validate_email_age_and_entity_id_helpers() -> None:
+    """Email, age conversion, and entity-id creation should be deterministic."""
+    assert validate_email("dog.guardian@example.com")
+    assert not validate_email("invalid")
+    assert calculate_age_from_months(14) == {
+        "years": 1,
+        "months": 2,
+        "total_months": 14,
+    }
+    assert (
+        generate_entity_id("sensor", "Luna #7", "Daily Feed!")
+        == "sensor.luna_7_daily_feed_"
+    )
+
+
+def test_calculate_age_from_months_rejects_bool_and_negative_values() -> None:
+    """Age helper should reject invalid argument types and ranges."""
+    with pytest.raises(TypeError):
+        calculate_age_from_months(True)
+    with pytest.raises(ValueError):
+        calculate_age_from_months(-1)
+
+
+def test_bmi_and_portion_validation_cover_boundaries() -> None:
+    """BMI and portion checks should expose warning/error branches."""
+    assert calculate_bmi_equivalent(4.0, "small") == 15.0
+    assert calculate_bmi_equivalent(15.0, "small") == 30.0
+    assert calculate_bmi_equivalent(10.0, "small") == pytest.approx(22.045, abs=0.001)
+    assert calculate_bmi_equivalent(10.0, "unknown") is None
+
+    invalid_portion = validate_portion_size(float("nan"), 100)
+    assert not invalid_portion["valid"]
+    assert "finite number" in invalid_portion["warnings"][0]
+
+    oversized = validate_portion_size(80, 100, meals_per_day=4)
+    assert not oversized["valid"]
+    assert oversized["percentage_of_daily"] == 80.0
+    assert "Portion exceeds 70% of daily requirement" in oversized["warnings"]
+
+    small_with_invalid_meal_count = validate_portion_size(2, 100, meals_per_day=0)
+    assert small_with_invalid_meal_count["valid"]
+    assert (
+        "Meals per day is not positive" in small_with_invalid_meal_count["warnings"][0]
+    )
+    assert "very small" in small_with_invalid_meal_count["warnings"][-1]
+
+
+def test_collection_and_configuration_helpers_cover_edge_cases() -> None:
+    """Flattening, set comparisons, and schema/config helpers should be stable."""
+    flattened = flatten_dict({"dog": {"name": "Nova", "stats": {"walks": 2}}})
+    assert flattened == {"dog.name": "Nova", "dog.stats.walks": 2}
+    assert unflatten_dict(flattened) == {"dog": {"name": "Nova", "stats": {"walks": 2}}}
+
+    assert is_dict_subset({"a": 1}, {"a": 1, "b": 2})
+    assert not is_dict_subset({"a": 2}, {"a": 1, "b": 2})
+    assert not is_dict_subset({"a": 1}, None)  # type: ignore[arg-type]
+
+    merged = merge_configurations(
+        {"dog": {"name": "Luna"}, "token": "base"},
+        {"dog": {"weight": 12}, "token": "ignored"},
+        protected_keys={"token"},
+    )
+    assert merged == {"dog": {"name": "Luna", "weight": 12}, "token": "base"}
+
+    schema = validate_configuration_schema(
+        {"required": 1, "extra": 2},
+        required_keys={"required", "missing"},
+        optional_keys={"optional"},
+    )
+    assert not schema["valid"]
+    assert schema["missing_keys"] == ["missing"]
+    assert schema["unknown_keys"] == ["extra"]
+
+
+def test_numeric_and_conversion_helpers() -> None:
+    """Numeric utility helpers should cover success and failure branches."""
+    assert clamp(5, 0, 3) == 3
+    assert clamp(-1, 0, 3) == 0
+    assert extract_numbers("w1 -2.5 and 3") == [1.0, -2.5, 3.0]
+    assert generate_unique_id(" Dog ", "Feed#1", "") == "dog_feed_1"
+    assert generate_unique_id("", "###") == "unknown"
+    assert convert_units(1, "kg", "lb") == pytest.approx(2.20462)
+    assert convert_units(1, "KM", " km ") == 1
+    with pytest.raises(ValueError):
+        convert_units(1, "kg", "c")
+    with pytest.raises(ValueError):
+        chunk_list([1, 2], 0)
