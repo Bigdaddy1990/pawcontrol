@@ -94,6 +94,52 @@ def test_strip_url_credentials_handles_ipv6_host_and_port() -> None:
     )
 
 
+def test_strip_url_credentials_handles_unbracketed_ipv6_host(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unbracketed IPv6 hostnames should be wrapped before rebuilding URL."""
+
+    class _Parsed:
+        scheme = "https"
+        username = "user"
+        password = "pass"
+        hostname = "2001:db8::1"
+        port = None
+        path = "/path"
+        query = ""
+        fragment = ""
+
+    monkeypatch.setattr(logging_utils, "urlsplit", lambda _url: _Parsed())
+
+    assert (
+        logging_utils._strip_url_credentials("https://ignored")
+        == "https://[2001:db8::1]/path"
+    )
+
+
+def test_strip_url_credentials_rebuilds_port_with_mocked_split(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Credential stripping should retain explicit ports in rebuilt netloc."""
+
+    class _Parsed:
+        scheme = "https"
+        username = "user"
+        password = "pass"
+        hostname = "example.com"
+        port = 9443
+        path = "/api"
+        query = "dog=Milo"
+        fragment = "status"
+
+    monkeypatch.setattr(logging_utils, "urlsplit", lambda _url: _Parsed())
+
+    assert (
+        logging_utils._strip_url_credentials("https://ignored")
+        == "https://example.com:9443/api?dog=Milo#status"
+    )
+
+
 def test_strip_url_credentials_keeps_url_when_hostname_missing() -> None:
     """Malformed credential URLs without a hostname should be preserved."""
     url = "https://user:pass@/api"
