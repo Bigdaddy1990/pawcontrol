@@ -46,19 +46,19 @@ def test_normalize_value_handles_scalar_datetime_and_temporal_types() -> None:
     assert normalize_value(timedelta(minutes=3, seconds=10)) == 190.0
 
 
-def test_normalize_value_recursively_converts_dataclass_mappings_and_iterables() -> None:
+def test_normalize_value_recursively_converts_dataclass_mappings_and_iterables() -> (
+    None
+):
     """normalize_value should recursively serialize dataclasses and containers."""
     ts = datetime(2026, 3, 1, 12, 30, tzinfo=UTC)
     dog = _Dog(name="Buddy", age=4, adopted_at=ts)
 
-    normalized = normalize_value(
-        {
-            "dog": dog,
-            7: {"nested": {"tag-a", "tag-b"}},
-            "numbers": (1, 2, 3),
-            "byte_data": b"abc",
-        }
-    )
+    normalized = normalize_value({
+        "dog": dog,
+        7: {"nested": {"tag-a", "tag-b"}},
+        "numbers": (1, 2, 3),
+        "byte_data": b"abc",
+    })
 
     assert normalized["dog"] == {
         "name": "Buddy",
@@ -77,7 +77,7 @@ def test_normalize_value_falls_back_to_repr() -> None:
 
 
 def test_serialize_datetime_and_timedelta_helpers() -> None:
-    """serialize helper functions should return stable JSON values."""
+    """Serialize helper functions should return stable JSON values."""
     ts = datetime(2026, 2, 15, 10, 30, tzinfo=UTC)
 
     assert serialize_datetime(ts) == "2026-02-15T10:30:00+00:00"

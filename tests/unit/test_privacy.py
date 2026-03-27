@@ -190,14 +190,12 @@ async def test_privacy_manager_prepare_diagnostics_keeps_non_sensitive_fields() 
     """Diagnostics sanitization should preserve unrelated payload values."""
     manager = PrivacyManager(hass=object())
 
-    diagnostics = await manager.async_prepare_diagnostics(
-        {
-            "device_id": "dog-1",
-            "mac_address": "aa:bb:cc:dd:ee:ff",
-            "status": "online",
-            "retries": 2,
-        }
-    )
+    diagnostics = await manager.async_prepare_diagnostics({
+        "device_id": "dog-1",
+        "mac_address": "aa:bb:cc:dd:ee:ff",
+        "status": "online",
+        "retries": 2,
+    })
 
     assert diagnostics["status"] == "online"
     assert diagnostics["retries"] == 2

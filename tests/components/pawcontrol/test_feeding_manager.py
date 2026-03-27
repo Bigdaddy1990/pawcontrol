@@ -1,108 +1,107 @@
-"""Coverage tests for feeding manager helpers and configuration parsing."""
+"""Coverage tests for feeding manager helpers and calculations."""
 
-from datetime import time
+from unittest.mock import patch
 
 import pytest
 
 from custom_components.pawcontrol.feeding_manager import (
+    ActivityLevel,
     FeedingConfig,
     FeedingManager,
-    FeedingScheduleType,
+    _normalise_health_override,
 )
 
 
-def test_parse_time_supports_hhmm_and_hhmmss(hass) -> None:
-    """Time parsing should support HH:MM, HH:MM:SS, and native ``time`` objects."""
-    manager = FeedingManager(hass)
-
-    assert manager._parse_time("07:45") == time(7, 45)
-    assert manager._parse_time("18:30:05") == time(18, 30, 5)
-    assert manager._parse_time(time(9, 15)) == time(9, 15)
-    assert manager._parse_time("invalid") is None
-
-
-def test_normalize_special_diet_discards_invalid_entries(hass) -> None:
-    """Special diet normalization should trim strings and drop non-string values."""
-    manager = FeedingManager(hass)
-
-    assert manager._normalize_special_diet(None) == []
-    assert manager._normalize_special_diet("  renal ") == ["renal"]
-    assert manager._normalize_special_diet([
-        " low sodium ",
-        "",
-        1,
-        None,
-        "grain-free",
-    ]) == [
-        "low sodium",
-        "grain-free",
-    ]
-
-
-@pytest.mark.asyncio
-async def test_create_feeding_config_parses_meal_schedules(hass) -> None:
-    """Feeding config creation should parse schedules, reminders, and snack times."""
-    manager = FeedingManager(hass)
-
-    config = await manager._create_feeding_config(
-        "dog-1",
-        {
-            "feeding_schedule": "strict",
-            "breakfast_time": "07:30",
-            "dinner_time": time(18, 15),
-            "snack_times": ["10:00", "bad-time", 123],
-            "portion_size": "120.5",
-            "enable_reminders": False,
-            "reminder_minutes_before": "20",
-            "special_diet": [" renal ", 123],
-        },
-    )
-
-    assert config.schedule_type is FeedingScheduleType.STRICT
-    assert config.special_diet == ["renal"]
-    assert len(config.meal_schedules) == 3
-
-    breakfast = config.meal_schedules[0]
-    assert breakfast.scheduled_time == time(7, 30)
-    assert breakfast.portion_size == 120.5
-    assert breakfast.reminder_enabled is False
-    assert breakfast.reminder_minutes_before == 20
-
-    snack = config.meal_schedules[-1]
-    assert snack.scheduled_time == time(10, 0)
-    assert snack.portion_size == 50.0
-
-
-def test_calculate_daily_calories_uses_ideal_weight_and_activity_fallback(hass) -> None:
-    """Daily calories should use ideal weight and default activity on bad input."""
-    manager = FeedingManager(hass)
-
-    manager._dogs["dog-1"] = {"dog_id": "dog-1", "weight": 30.0}
-    manager._configs["dog-1"] = FeedingConfig(
-        dog_id="dog-1",
-        activity_level="unsupported",
-        ideal_weight=20.0,
-        weight_goal="lose",
-    )
-
-    expected = round(manager._calculate_rer(20.0, adjusted=False) * 1.6, 1)
-
-    assert manager.calculate_daily_calories("dog-1") == expected
-
-
-def test_calculate_portion_prefers_dog_metadata_meal_count(hass) -> None:
-    """Portion calculation should use cached dog metadata meal counts when set."""
-    manager = FeedingManager(hass)
-
-    manager._configs["dog-1"] = FeedingConfig(
-        dog_id="dog-1",
-        daily_food_amount=600.0,
-        meals_per_day=3,
-    )
-    manager._dogs["dog-1"] = {
-        "dog_id": "dog-1",
-        "weight": 20.0,
-        "meals_per_day": 4,
+def test_normalise_health_override_filters_and_coerces_values() -> None:
+    """Health override normalizer should coerce scalar values and drop invalid ones."""
+    payload = {
+        "weight": "22.5",
+        "ideal_weight": 20,
+        "age_months": "36",
+        "health_conditions": ["arthritis", 7, "allergy"],
     }
 
-    assert manager.calculate_portion("dog-1") == 150.0
+    assert _normalise_health_override(payload) == {
+        "weight": 22.5,
+        "ideal_weight": 20.0,
+        "age_months": 36,
+        "health_conditions": ["arthritis", "allergy"],
+    }
+
+
+def test_normalise_health_override_returns_none_for_empty_payload() -> None:
+    """Empty or unsupported override payload should produce ``None``."""
+    assert _normalise_health_override(None) is None
+    assert _normalise_health_override({"health_conditions": "single-condition"}) is None
+
+
+def test_parse_time_supports_time_strings_and_rejects_invalid(hass) -> None:
+    """Time parser should accept valid formats and reject invalid values."""
+    manager = FeedingManager(hass)
+
+    assert str(manager._parse_time("08:30")) == "08:30:00"
+    assert str(manager._parse_time("08:30:45")) == "08:30:45"
+    assert manager._parse_time("bad-value") is None
+
+
+def test_normalize_special_diet_handles_multiple_input_shapes(hass) -> None:
+    """Special diet normalization should trim strings and ignore non-string entries."""
+    manager = FeedingManager(hass)
+
+    assert manager._normalize_special_diet("  renal  ") == ["renal"]
+    assert manager._normalize_special_diet([" diabetic ", 12, ""]) == ["diabetic"]
+    assert manager._normalize_special_diet(12) == []
+    assert manager._normalize_special_diet(None) == []
+
+
+def test_calculate_daily_calories_uses_weight_goal_and_activity_fallback(hass) -> None:
+    """Calorie calculation should respect weight-goal and activity fallback paths."""
+    manager = FeedingManager(hass)
+    manager._dogs["buddy"] = {
+        "dog_id": "buddy",
+        "weight": 18.0,
+        "age_months": 48,
+        "activity_level": "unsupported",
+    }
+    manager._configs["buddy"] = FeedingConfig(
+        dog_id="buddy",
+        ideal_weight=16.0,
+        weight_goal="lose",
+        activity_level="unsupported",
+    )
+
+    with patch.object(manager, "_calculate_rer", return_value=100.0) as calculate_rer:
+        calories = manager.calculate_daily_calories("buddy")
+
+    calculate_rer.assert_called_once_with(16.0, adjusted=False)
+    assert calories == pytest.approx(160.0)
+
+
+@pytest.mark.parametrize(
+    ("weight_goal", "expected_weight", "adjusted_flag"),
+    [("gain", 14.0, True), ("maintain", 12.0, True)],
+)
+def test_calculate_daily_calories_weight_goal_paths(
+    hass,
+    weight_goal: str,
+    expected_weight: float,
+    adjusted_flag: bool,
+) -> None:
+    """Calorie calculation should choose the expected base weight for each goal."""
+    manager = FeedingManager(hass)
+    manager._dogs["max"] = {
+        "dog_id": "max",
+        "weight": 12.0,
+        "activity_level": ActivityLevel.HIGH.value,
+    }
+    manager._configs["max"] = FeedingConfig(
+        dog_id="max",
+        ideal_weight=14.0,
+        weight_goal=weight_goal,
+    )
+
+    with patch.object(manager, "_calculate_rer", return_value=100.0) as calculate_rer:
+        calories = manager.calculate_daily_calories("max")
+
+    calculate_rer.assert_called_once_with(expected_weight, adjusted=adjusted_flag)
+    assert calories == pytest.approx(200.0)

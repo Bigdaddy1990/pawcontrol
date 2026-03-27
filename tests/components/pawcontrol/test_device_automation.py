@@ -393,7 +393,7 @@ async def test_condition_status_is_uses_entity_state_without_snapshot(
         ("needs_walk", {"needs_walk": True}, True),
         ("on_walk", {"on_walk": True}, True),
         ("in_safe_zone", {"in_safe_zone": False}, False),
-    ], 
+    ],
 )
 @pytest.mark.asyncio
 async def test_condition_uses_runtime_snapshot_for_boolean_conditions(

@@ -58,8 +58,7 @@ def test_summarise_health_summary_for_issues_and_warnings() -> None:
     }
 
     assert summarise_health_summary(summary) == (
-        "Issues detected | Issues: itchiness, vomiting | "
-        "Warnings: weight trending up"
+        "Issues detected | Issues: itchiness, vomiting | Warnings: weight trending up"
     )
 
 
