@@ -860,3 +860,137 @@ class TestRouteExport:
         exported_ids = [walk["walk_id"] for walk in payload["walks"]]
         assert exported_ids == ["walk-1", "walk-2"]
         assert payload["walks_count"] == 2
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestWalkManagerCoverageBoost:
+    """Target uncovered WalkManager helper branches."""
+
+    async def test_validate_route_data_and_bounds_helpers(
+        self, mock_walk_manager
+    ) -> None:
+        """Validate route cleaning and geographic bounds fallback paths."""
+        assert mock_walk_manager._validate_route_data([]) is None
+
+        invalid_only = [
+            {
+                "latitude": 100.0,
+                "longitude": 13.4,
+                "timestamp": datetime.now(UTC).isoformat(),
+            },
+            {
+                "latitude": 52.5,
+                "longitude": 200.0,
+                "timestamp": datetime.now(UTC).isoformat(),
+            },
+        ]
+        assert mock_walk_manager._validate_route_data(invalid_only) is None
+
+        mixed_path = [
+            {
+                "latitude": 52.52,
+                "longitude": 13.405,
+                "timestamp": datetime.now(UTC).isoformat(),
+            },
+            {
+                "latitude": 52.53,
+                "longitude": 13.406,
+                "timestamp": datetime.now(UTC).isoformat(),
+            },
+            {
+                "latitude": None,
+                "longitude": 13.407,
+                "timestamp": datetime.now(UTC).isoformat(),
+            },
+        ]
+        cleaned = mock_walk_manager._validate_route_data(mixed_path)
+        assert cleaned is not None
+        assert len(cleaned) == 2
+
+        assert mock_walk_manager._calculate_route_bounds([]) == {
+            "min_lat": 0,
+            "max_lat": 0,
+            "min_lon": 0,
+            "max_lon": 0,
+        }
+
+        assert mock_walk_manager._calculate_route_bounds([{"path": [{}]}]) == {
+            "min_lat": 0,
+            "max_lat": 0,
+            "min_lon": 0,
+            "max_lon": 0,
+        }
+
+    async def test_format_gpx_timestamp_fallback_paths(self, mock_walk_manager) -> None:
+        """Ensure GPX timestamp formatter handles naive and invalid values."""
+        fixed_now = datetime(2025, 1, 2, 3, 4, 5, tzinfo=UTC)
+
+        class _InvalidTimestamp(str):
+            def __str__(self) -> str:
+                raise TypeError("broken timestamp")
+
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                "custom_components.pawcontrol.walk_manager.dt_util.now",
+                lambda: fixed_now,
+            )
+
+            naive = mock_walk_manager._format_gpx_timestamp("2025-01-01T10:00:00")
+            assert naive == "2025-01-01T10:00:00Z"
+
+            invalid = mock_walk_manager._format_gpx_timestamp("not-a-timestamp")
+            assert invalid == "2025-01-02T03:04:05Z"
+
+            type_error = mock_walk_manager._format_gpx_timestamp(_InvalidTimestamp("x"))
+            assert type_error == "2025-01-02T03:04:05Z"
+
+    async def test_generate_csv_and_configure_automatic_gps_branches(
+        self,
+        mock_walk_manager,
+    ) -> None:
+        """Cover CSV formatting guards and GPS configuration edge cases."""
+        walk = _build_export_snapshot(
+            walk_id="coverage-csv",
+            start=datetime.now(UTC) - timedelta(minutes=20),
+            distance=100.0,
+            duration=1200.0,
+        )
+        walk["notes"] = "line one,\nline two"
+        walk["path"][0]["timestamp"] = "bad-ts"
+        csv_data = mock_walk_manager._generate_enhanced_csv_data([walk])
+        assert "line one; line two" in csv_data
+        assert "coverage-csv" in csv_data
+
+        assert (
+            await mock_walk_manager.async_configure_automatic_gps(
+                "missing-dog",
+                {"gps_accuracy_threshold": 6.0},
+            )
+            is False
+        )
+
+        configured = await mock_walk_manager.async_configure_automatic_gps(
+            "test_dog",
+            {
+                "gps_accuracy_threshold": 5,
+                "update_interval_seconds": 45,
+                "safe_zone_radius": 100,
+            },
+        )
+        assert configured is True
+        gps_data = mock_walk_manager._gps_data["test_dog"]
+        assert gps_data["accuracy_threshold"] == 5.0
+        assert gps_data["update_interval"] == 45
+
+        class _BrokenMapping(dict):
+            def items(self):  # type: ignore[override]
+                raise RuntimeError("broken mapping")
+
+        assert (
+            await mock_walk_manager.async_configure_automatic_gps(
+                "test_dog",
+                _BrokenMapping(),
+            )
+            is False
+        )
