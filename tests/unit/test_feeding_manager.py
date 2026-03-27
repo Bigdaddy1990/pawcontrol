@@ -9,6 +9,7 @@ Python: 3.13+
 
 import asyncio
 from collections.abc import Callable, Coroutine
+import contextlib
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import cast
@@ -1064,6 +1065,58 @@ class TestAdvancedFeedingOperations:
         self, mock_feeding_manager: FeedingManager, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Temporary adjustments should schedule and complete a reversion task."""
+        created_tasks: list[asyncio.Task[object]] = []
+        original_create_task = asyncio.create_task
+
+        def capture_task(
+            coro: Coroutine[object, object, object],
+        ) -> asyncio.Task[object]:
+            task = original_create_task(coro)
+            created_tasks.append(task)
+            return task
+
+        monkeypatch.setattr(asyncio, "create_task", capture_task)
+
+        original_sleep = asyncio.sleep
+
+        async def fast_sleep(delay: float) -> None:
+            await original_sleep(0)
+
+        monkeypatch.setattr(asyncio, "sleep", fast_sleep)
+
+        config = mock_feeding_manager._configs["test_dog"]
+        original_amount = config.daily_food_amount
+
+        # Seed an existing reversion task to cover cancellation/replacement branch.
+        async def pending_existing_reversion() -> None:
+            await original_sleep(60)
+
+        old_task = original_create_task(pending_existing_reversion())
+        mock_feeding_manager._portion_reversion_tasks["test_dog"] = old_task
+
+        result = await mock_feeding_manager.async_adjust_daily_portions(
+            dog_id="test_dog",
+            adjustment_percent=10,
+            reason="short-term increase",
+            temporary=True,
+            duration_days=1,
+        )
+
+        assert result["status"] == "adjusted"
+        assert result["temporary"] is True
+        assert result["reversion_scheduled"] is True
+        with contextlib.suppress(asyncio.CancelledError):
+            await old_task
+        assert old_task.cancelled() is True
+        assert created_tasks, "Expected new reversion task to be scheduled."
+        assert "test_dog" in mock_feeding_manager._portion_reversion_tasks
+        assert config.daily_food_amount > original_amount
+
+        new_task = created_tasks.pop()
+        await new_task
+
+        assert config.daily_food_amount == original_amount
+        assert "test_dog" not in mock_feeding_manager._portion_reversion_tasks
 
 
 class TestStandaloneFeedingHelpers:
