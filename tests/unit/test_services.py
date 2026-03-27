@@ -530,6 +530,35 @@ def test_capture_cache_diagnostics_keeps_typed_snapshot_payload(
     assert diagnostics["snapshots"]["typed"] is snapshot
 
 
+def test_capture_cache_diagnostics_keeps_snapshot_like_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Diagnostics helper should preserve snapshot-like payload objects."""
+
+    class _SnapshotLike:
+        def __init__(self) -> None:
+            self.stats = {"hits": 1}
+            self.diagnostics = None
+            self.snapshot = None
+            self.error = None
+
+        def to_mapping(self) -> dict[str, object]:
+            return {"stats": self.stats}
+
+    snapshot_like = _SnapshotLike()
+    monkeypatch.setattr(
+        services,
+        "capture_cache_diagnostics",
+        lambda runtime: {"snapshots": {"typed": snapshot_like}},
+    )
+    monkeypatch.setattr(services, "ensure_cache_repair_aggregate", lambda summary: None)
+
+    diagnostics = services._capture_cache_diagnostics(SimpleNamespace())
+
+    assert diagnostics is not None
+    assert diagnostics["snapshots"]["typed"] is snapshot_like
+
+
 def test_normalise_service_details_handles_sequence_and_scalar_payloads() -> None:
     """Service detail normaliser should preserve list/scalar payloads."""
     assert services._normalise_service_details(None) is None
