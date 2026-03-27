@@ -1,7 +1,5 @@
 """Additional coverage for utility helpers in ``custom_components.pawcontrol.types``."""
 
-from __future__ import annotations
-
 import math
 
 import pytest
