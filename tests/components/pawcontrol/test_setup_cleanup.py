@@ -184,3 +184,40 @@ async def test_async_run_manager_method_covers_error_paths(
         "failure",
         timeout=0.1,
     )
+
+
+@pytest.mark.asyncio
+async def test_async_run_manager_method_returns_for_missing_manager_or_method() -> None:
+    """Manager runner should no-op when manager or method is unavailable."""
+    await cleanup._async_run_manager_method(
+        None,
+        "async_cleanup",
+        "none-manager",
+        timeout=0.1,
+    )
+
+    await cleanup._async_run_manager_method(
+        SimpleNamespace(),
+        "async_cleanup",
+        "missing-method",
+        timeout=0.1,
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_run_manager_method_handles_non_awaitable_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Synchronous manager methods should complete without awaiting wait_for."""
+    wait_for = AsyncMock()
+    monkeypatch.setattr(cleanup.asyncio, "wait_for", wait_for)
+
+    manager = SimpleNamespace(async_cleanup=Mock(return_value=None))
+    await cleanup._async_run_manager_method(
+        manager,
+        "async_cleanup",
+        "sync-cleanup",
+        timeout=0.1,
+    )
+
+    wait_for.assert_not_awaited()
