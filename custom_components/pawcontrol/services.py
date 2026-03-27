@@ -401,6 +401,14 @@ def _capture_cache_diagnostics(runtime_data: Any) -> CacheDiagnosticsCapture | N
                 continue
             if isinstance(payload, CacheDiagnosticsSnapshot):
                 normalised_snapshots[name] = payload
+            elif (
+                hasattr(payload, "to_mapping")
+                and hasattr(payload, "stats")
+                and hasattr(payload, "diagnostics")
+                and hasattr(payload, "snapshot")
+                and hasattr(payload, "error")
+            ):
+                normalised_snapshots[name] = cast(CacheDiagnosticsSnapshot, payload)
             elif isinstance(payload, Mapping):
                 normalised_snapshots[name] = CacheDiagnosticsSnapshot.from_mapping(
                     payload,

@@ -8424,8 +8424,12 @@ def is_dog_config_valid(config: Any) -> bool:
             existing_ids=None,
             existing_names=None,
         )
-    except FlowValidationError:
-        return False
+    except Exception as err:
+        if isinstance(err, FlowValidationError):
+            return False
+        if err.__class__.__name__ == "FlowValidationError":
+            return False
+        raise
     return True
 
 

@@ -70,6 +70,25 @@ def test_is_dog_config_valid_delegates_to_flow_validator(
     assert is_dog_config_valid({"dog_id": "buddy", "dog_name": "Buddy"})
 
 
+def test_is_dog_config_valid_handles_duplicated_flow_validation_error_class(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validation should fail closed for duplicated FlowValidationError classes."""
+    from custom_components.pawcontrol import flow_validation
+
+    DuplicatedError = type("FlowValidationError", (Exception,), {})
+
+    def _raise_duplicated(*_: object, **__: object) -> None:
+        raise DuplicatedError("invalid")
+
+    monkeypatch.setattr(
+        flow_validation,
+        "validate_dog_config_payload",
+        _raise_duplicated,
+    )
+    assert not is_dog_config_valid({"dog_id": "buddy", "dog_name": "Buddy"})
+
+
 @pytest.mark.parametrize(
     ("payload", "expected"),
     [
