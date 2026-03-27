@@ -268,3 +268,93 @@ def test_misc_helpers() -> None:
     assert len(session_a) == 32
     assert _history_sort_key({"timestamp": "2025-01-01"}, "timestamp") == "2025-01-01"
     assert _history_sort_key({"timestamp": 123}, "timestamp") == ""
+
+
+@pytest.mark.asyncio
+async def test_adaptive_cache_diagnostics_and_snapshot_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = datetime(2025, 1, 1, tzinfo=UTC)
+    monkeypatch.setattr(data_manager, "_utcnow", lambda: now)
+    cache = AdaptiveCache[str](default_ttl=5)
+    await cache.set("alive", "ok", base_ttl=0)
+
+    value, hit = await cache.get("alive")
+    miss_value, miss_hit = await cache.get("missing")
+
+    assert value == "ok"
+    assert hit is True
+    assert miss_value is None
+    assert miss_hit is False
+    assert cache.get_stats() == {
+        "size": 1,
+        "hits": 1,
+        "misses": 1,
+        "hit_rate": 50.0,
+        "memory_mb": 0.0,
+    }
+    diagnostics = cache.get_diagnostics()
+    assert diagnostics["last_cleanup"] is None
+    assert diagnostics["active_override_entries"] == 0
+    assert diagnostics["tracked_entries"] == 1
+    snapshot = cache.coordinator_snapshot()
+    assert snapshot["stats"]["size"] == 1
+    assert snapshot["diagnostics"]["tracked_entries"] == 1
+
+
+def test_entity_budget_monitor_handles_tracker_failures() -> None:
+    class _FailingTracker:
+        def snapshots(self) -> list[_BudgetSnapshot]:
+            raise RuntimeError("snapshot error")
+
+        def saturation(self) -> float:
+            raise RuntimeError("saturation error")
+
+    monitor = _EntityBudgetMonitor(_FailingTracker())
+
+    assert monitor.get_stats() == {"tracked_dogs": 0, "saturation_percent": 0.0}
+    assert monitor.get_diagnostics()["summary"] == {"error": "snapshot error"}
+
+
+def test_coordinator_module_cache_monitor_collects_aggregate_errors() -> None:
+    class _BrokenModules:
+        feeding = object()
+
+        def cache_metrics(self) -> SimpleNamespace:
+            raise RuntimeError("aggregate boom")
+
+    monitor = _CoordinatorModuleCacheMonitor(_BrokenModules())
+
+    assert monitor.get_stats() == {
+        "entries": 0,
+        "hits": 0,
+        "misses": 0,
+        "hit_rate": 0.0,
+    }
+    diagnostics = monitor.get_diagnostics()
+    assert diagnostics["per_module"] == {}
+    assert diagnostics["errors"] == ["aggregate boom"]
+
+
+def test_storage_namespace_cache_monitor_snapshot_with_unparseable_timestamp(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = datetime(2025, 1, 10, tzinfo=UTC)
+    monkeypatch.setattr(data_manager, "_utcnow", lambda: now)
+    manager = SimpleNamespace(
+        _namespace_state={
+            "test": {
+                "dog-unparseable": {"timestamp": "not-a-date"},
+            },
+        },
+        _namespace_path=lambda namespace: Path(f"/tmp/{namespace}.json"),
+    )
+    monitor = _StorageNamespaceCacheMonitor(manager, "test", "Test")
+
+    payload = monitor.coordinator_snapshot()
+
+    assert payload["snapshot"]["per_dog"]["dog-unparseable"]["entries"] == 1
+    assert (
+        payload["diagnostics"]["timestamp_anomalies"]["dog-unparseable"]
+        == "unparseable"
+    )
