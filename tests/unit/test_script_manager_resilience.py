@@ -8,7 +8,14 @@ from homeassistant.util import dt as dt_util
 import pytest
 
 from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.script_manager import PawControlScriptManager
+from custom_components.pawcontrol.script_manager import (
+    PawControlScriptManager,
+    _is_resilience_blueprint,
+    _parse_event_selection,
+    _parse_manual_resilience_options,
+    _serialise_event_data,
+    resolve_resilience_script_thresholds,
+)
 
 
 @pytest.mark.unit
@@ -198,3 +205,100 @@ def test_resilience_snapshot_serialises_manual_payload() -> None:
     assert thresholds["skip_threshold"]["active"] == 5
     assert thresholds["breaker_threshold"]["active"] == 4
     assert snapshot["followup_script"]["configured"] is True
+
+
+@pytest.mark.unit
+def test_parse_manual_resilience_options_filters_invalid_values() -> None:
+    """Parser should normalise accepted values and drop malformed options."""
+    payload = {
+        "manual_check_event": "  manual.check  ",
+        "manual_guard_event": "",
+        "manual_breaker_event": "manual.breaker",
+        "resilience_skip_threshold": "4",
+        "resilience_breaker_threshold": 3.0,
+        "manual_event_history_size": 1000,
+        "system_settings": {
+            "manual_check_event": "system.check",
+            "manual_guard_event": None,
+            "manual_breaker_event": "  system.breaker  ",
+            "resilience_skip_threshold": True,
+            "resilience_breaker_threshold": "6",
+        },
+    }
+
+    parsed = _parse_manual_resilience_options(payload)
+    assert parsed == {
+        "manual_check_event": "manual.check",
+        "manual_breaker_event": "manual.breaker",
+        "resilience_skip_threshold": 4,
+        "resilience_breaker_threshold": 3,
+        "system_settings": {
+            "manual_check_event": "system.check",
+            "manual_breaker_event": "system.breaker",
+            "resilience_skip_threshold": 1,
+            "resilience_breaker_threshold": 6,
+        },
+    }
+
+
+@pytest.mark.unit
+def test_parse_event_selection_preserves_explicit_none() -> None:
+    """Selection parser should retain provided keys even when invalid."""
+    parsed = _parse_event_selection({
+        "manual_check_event": "  ",
+        "manual_guard_event": "manual.guard",
+    })
+
+    assert parsed == {
+        "manual_check_event": None,
+        "manual_guard_event": "manual.guard",
+    }
+
+
+@pytest.mark.unit
+def test_resolve_resilience_script_thresholds_reads_entity_fields() -> None:
+    """Threshold resolver should handle mapping and object defaults."""
+
+    class _States:
+        def get(self, entity_id: str) -> SimpleNamespace | None:
+            if entity_id != "script.pawcontrol_buddy_resilience_escalation":
+                return None
+            return SimpleNamespace(
+                attributes={
+                    "fields": {
+                        "skip_threshold": {"default": "7"},
+                        "breaker_threshold": SimpleNamespace(default=8.0),
+                    }
+                }
+            )
+
+    entry = SimpleNamespace(title="Buddy", entry_id="entry")
+    hass = SimpleNamespace(states=_States())
+
+    skip, breaker = resolve_resilience_script_thresholds(hass, entry)
+
+    assert (skip, breaker) == (7, 8)
+
+
+@pytest.mark.unit
+def test_blueprint_detection_and_event_data_serialisation() -> None:
+    """Helpers should detect blueprint paths and serialise nested payloads."""
+    assert _is_resilience_blueprint({
+        "path": "PawControl\\resilience_escalation_followup.yaml"
+    })
+    assert not _is_resilience_blueprint({"path": "pawcontrol/other.yaml"})
+
+    class _Opaque:
+        pass
+
+    payload = _serialise_event_data({
+        "count": 3,
+        "nested": {"flag": True, "opaque": _Opaque()},
+        "sequence": [1, {"x": "y"}, _Opaque()],
+    })
+
+    assert payload["count"] == 3
+    assert payload["nested"]["flag"] is True  # type: ignore[index]
+    assert "opaque" in payload["nested"]  # type: ignore[index]
+    assert payload["sequence"][0] == 1  # type: ignore[index]
+    assert isinstance(payload["sequence"][1], str)  # type: ignore[index]
