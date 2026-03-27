@@ -276,6 +276,29 @@ def test_dog_config_registry_normalizes_configs_and_module_cache() -> None:
     assert registry.empty_payload()["status"] == "unknown"
 
 
+def test_dog_config_registry_get_name_returns_none_for_blank_or_non_string() -> None:
+    """Dog names must be non-empty strings to be returned by the registry."""
+    registry = DogConfigRegistry([
+        {"dog_id": "numeric-name", "dog_name": 123},
+    ])
+    registry._by_id["missing-name"] = {"dog_id": "missing-name"}
+    registry._ids.append("missing-name")
+
+    assert registry.get_name("numeric-name") is None
+    assert registry.get_name("missing-name") is None
+
+
+def test_coordinator_metrics_resets_consecutive_errors_after_healthy_cycle() -> None:
+    """A healthy cycle should reset consecutive error counters."""
+    metrics = CoordinatorMetrics(consecutive_errors=3)
+
+    success_rate, failed = metrics.record_cycle(total=4, errors=1)
+
+    assert failed is False
+    assert success_rate == pytest.approx(0.75)
+    assert metrics.consecutive_errors == 0
+
+
 def test_dog_config_registry_from_entry_and_interval_paths() -> None:
     """Registry helpers should validate entries and derive polling intervals."""
     registry = DogConfigRegistry.from_entry(
