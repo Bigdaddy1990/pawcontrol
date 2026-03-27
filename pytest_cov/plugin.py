@@ -144,11 +144,15 @@ def _build_include_patterns(raw_sources: tuple[str, ...]) -> tuple[str, ...] | N
     for source in _expand_source_aliases(raw_sources):
         source_path = Path(source)
         if source_path.suffix == ".py":
-            patterns.append(source_path.as_posix())
-            patterns.append(f"*{source_path.as_posix()}")
+            normalized_file = source_path.as_posix()
+            patterns.append(normalized_file)
+            patterns.append(f"*{normalized_file}")
+            patterns.append(f"*/{normalized_file}")
             continue
         if "." in source and "/" not in source and "\\" not in source:
-            patterns.append(f"*{source.replace('.', '/')}/*")
+            normalized_dotted = source.replace(".", "/")
+            patterns.append(f"*{normalized_dotted}/*")
+            patterns.append(f"*/{normalized_dotted}/*")
             continue
         normalized = "/".join(
             part for part in source_path.parts if part not in {"", "."}
@@ -156,6 +160,7 @@ def _build_include_patterns(raw_sources: tuple[str, ...]) -> tuple[str, ...] | N
         if not normalized:
             continue
         patterns.append(f"*{normalized}/*")
+        patterns.append(f"*/{normalized}/*")
     return tuple(dict.fromkeys(patterns)) or None
 
 

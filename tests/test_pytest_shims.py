@@ -151,6 +151,7 @@ def test_pytest_cov_include_patterns_cover_path_and_dotted_sources() -> None:
 
     assert include is not None
     assert "*custom_components/pawcontrol/*" in include
+    assert "*/custom_components/pawcontrol/*" in include
 
 
 def test_pytest_cov_include_patterns_keep_python_file_targets() -> None:
@@ -162,6 +163,7 @@ def test_pytest_cov_include_patterns_keep_python_file_targets() -> None:
 
     assert include is not None
     assert "custom_components/pawcontrol/validation.py" in include
+    assert "*/custom_components/pawcontrol/validation.py" in include
 
 
 def test_pytest_cov_split_report_target_preserves_terminal_modifier() -> None:
