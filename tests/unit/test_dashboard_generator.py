@@ -963,7 +963,7 @@ async def test_renderer_overview_view_uses_navigation_url_and_skips_failures(
 async def test_renderer_overview_view_uses_default_navigation_without_activity_summary(
     hass, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Overview rendering should fall back to the default URL when invalid options are provided."""
+    """Overview rendering should fall back to the default URL when invalid options are provided."""  # noqa: E501
     renderer = DashboardRenderer(hass)
     dog_config = [{CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}}]
 

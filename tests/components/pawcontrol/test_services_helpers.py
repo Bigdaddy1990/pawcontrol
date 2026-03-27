@@ -157,7 +157,7 @@ def test_service_validation_error_requires_non_empty_message() -> None:
         (
             ValidationError(
                 "gps_update_interval", constraint="gps_update_interval_required"
-            ),  # noqa: E501
+            ),
             None,
             "gps_update_interval is required",
         ),

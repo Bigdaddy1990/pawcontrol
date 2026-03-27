@@ -123,7 +123,7 @@ def test_parse_helpers_cover_scalar_channels_and_notifications() -> None:
 
 def test_normalise_notifications_state_handles_non_mapping_and_filters_bad_rows() -> (
     None
-):  # noqa: E501
+):
     """Notification state normalisation should guard malformed metrics and rows."""
     metrics, per_dog = DashboardTemplates._normalise_notifications_state(
         State("sensor.pawcontrol_notifications", "active", {"performance_metrics": 7})
