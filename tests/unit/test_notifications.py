@@ -12,6 +12,7 @@ import builtins
 import contextlib
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+import time
 from typing import cast
 from unittest.mock import AsyncMock, Mock, call
 
@@ -21,6 +22,7 @@ from custom_components.pawcontrol import notifications as notifications_module
 from custom_components.pawcontrol.coordinator_support import CacheMonitorRegistrar
 from custom_components.pawcontrol.notifications import (
     RETRY_DELAY_SECONDS,
+    NotificationCache,
     NotificationChannel,
     NotificationConfig,
     NotificationEvent,
@@ -296,6 +298,69 @@ def test_dt_now_falls_back_to_datetime_now_on_import_error(monkeypatch) -> None:
     now = notifications_module._dt_now()
 
     assert isinstance(now, datetime)
+
+
+@pytest.mark.unit
+def test_notification_cache_tracks_lru_ttl_limits_and_diagnostics() -> None:
+    """Notification cache should enforce limits and expose coordinator diagnostics."""
+    cache = NotificationCache[NotificationConfig](max_size=2)
+
+    first = NotificationConfig()
+    second = NotificationConfig()
+    third = NotificationConfig()
+
+    cache.set_config("dog_1", first)
+    cache.set_config("dog_2", second)
+    cache.set_config("dog_1", first)
+    cache.set_config("dog_3", third)
+
+    assert cache.get_config("dog_2") is None
+    assert cache.get_config("dog_1") is first
+    assert cache.get_config("dog_3") is third
+
+    cache.set_person_targeting_cache("target_cache", ["notify.alice"])
+    assert cache.get_person_targeting_cache("target_cache", ttl_seconds=180) == [
+        "notify.alice"
+    ]
+    cache._person_targeting_cache["target_cache"] = (
+        ["notify.alice"],
+        time.monotonic() - 600,
+        datetime.now(UTC),
+    )
+    assert cache.get_person_targeting_cache("target_cache", ttl_seconds=180) is None
+
+    assert cache._quiet_cache_monotonic("invalid_timestamp") == 0.0
+
+    assert cache.check_rate_limit("dog_1", "mobile", 1) is True
+    assert cache.check_rate_limit("dog_1", "mobile", 1) is False
+
+    cache._person_targeting_cache["stale_persons"] = (
+        ["notify.family"],
+        time.monotonic() - 700,
+        datetime.now(UTC),
+    )
+    cache._rate_limit_cache["dog_1"]["email"] = (
+        time.monotonic() - (25 * 3600),
+        datetime.now(UTC),
+    )
+
+    cleaned = cache.cleanup_expired()
+    assert cleaned >= 2
+
+    stats = cache.get_stats()
+    assert stats["config_entries"] == 2
+    assert stats["person_targeting_entries"] == 0
+    assert stats["rate_limit_entries"] == 1
+    assert stats["cache_utilization"] == 100.0
+
+    diagnostics = cache.get_diagnostics()
+    assert diagnostics["cleanup_runs"] >= 1
+    assert diagnostics["last_cleanup"] is not None
+    assert "dog_1" in diagnostics["lru_order"]
+
+    snapshot = cache.coordinator_snapshot()
+    assert snapshot["stats"] == stats
+    assert snapshot["diagnostics"] == diagnostics
 
 
 @pytest.mark.unit
