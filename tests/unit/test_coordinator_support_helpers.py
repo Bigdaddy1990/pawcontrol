@@ -113,6 +113,11 @@ def test_ensure_cache_repair_aggregate_rejects_non_matching_object() -> None:
     assert ensure_cache_repair_aggregate(object()) is None
 
 
+def test_ensure_cache_repair_aggregate_handles_none() -> None:
+    """None summaries should be passed through as missing values."""
+    assert ensure_cache_repair_aggregate(None) is None
+
+
 class _BindAwareCoordinator:
     """Coordinator stub that records manager bindings on attributes."""
 
@@ -367,6 +372,16 @@ def test_dog_config_registry_get_name_rejects_blank_string_values() -> None:
     assert registry.get_name("blank") is None
 
 
+def test_dog_config_registry_get_name_rejects_non_string_values() -> None:
+    """Dog names stored as non-strings should be treated as missing."""
+    registry = DogConfigRegistry([
+        {"dog_id": "numeric", "dog_name": "Numeric", CONF_MODULES: {"walk": True}},
+    ])
+    registry._by_id["numeric"]["dog_name"] = 123  # type: ignore[index]
+
+    assert registry.get_name("numeric") is None
+
+
 @pytest.mark.parametrize(
     ("entry_data", "value", "field"),
     [
@@ -413,6 +428,7 @@ def test_coordinator_metrics_cover_cycle_and_statistics_paths() -> None:
     assert metrics.record_cycle(total=0, errors=0) == (1.0, False)
     assert metrics.record_cycle(total=2, errors=2) == (0.0, True)
     assert metrics.record_cycle(total=4, errors=3) == (0.25, False)
+    assert metrics.record_cycle(total=4, errors=2) == (0.5, False)
     metrics.reset_consecutive()
     metrics.record_statistics_timing(0.05)
     metrics.record_statistics_timing(-1.0)
