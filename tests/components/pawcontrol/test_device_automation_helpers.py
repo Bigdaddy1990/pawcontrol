@@ -17,7 +17,10 @@ from custom_components.pawcontrol.device_automation_helpers import (
     resolve_entity_id,
     resolve_status_snapshot,
 )
-from custom_components.pawcontrol.types import DomainRuntimeStoreEntry
+from custom_components.pawcontrol.types import (
+    DomainRuntimeStoreEntry,
+    PawControlRuntimeData,
+)
 
 
 @dataclass(slots=True)
@@ -59,8 +62,10 @@ def test_extract_dog_id_returns_none_when_identifier_missing(
 def test_coerce_runtime_data_handles_supported_shapes() -> None:
     """Runtime data coercion should support direct, wrapped, and mapping payloads."""
     runtime_data = _RuntimeDataStub(coordinator=_CoordinatorStub(payload={}))
+    typed_runtime_data = PawControlRuntimeData.__new__(PawControlRuntimeData)
     wrapped_data = DomainRuntimeStoreEntry(runtime_data=runtime_data)
 
+    assert _coerce_runtime_data(typed_runtime_data) is typed_runtime_data
     assert _coerce_runtime_data(runtime_data) is runtime_data
     assert _coerce_runtime_data(wrapped_data) is runtime_data
     assert _coerce_runtime_data({"runtime_data": runtime_data}) is runtime_data
@@ -129,6 +134,25 @@ def test_resolve_device_context_without_matching_runtime_data(
 ) -> None:
     """Context resolution should return ``None`` runtime data when store misses."""
     hass.data[DOMAIN] = {"other-entry": object()}
+
+    device_registry = dr.async_get(hass)
+    device_entry = device_registry.async_get_or_create(
+        config_entry_id="entry-missing",
+        identifiers={(DOMAIN, "buddy")},
+    )
+
+    context = resolve_device_context(hass, device_entry.id)
+
+    assert context.device_id == device_entry.id
+    assert context.dog_id == "buddy"
+    assert context.runtime_data is None
+
+
+def test_resolve_device_context_ignores_non_mapping_domain_store(
+    hass: HomeAssistant,
+) -> None:
+    """Context resolution should ignore non-mapping domain stores safely."""
+    hass.data[DOMAIN] = object()
 
     device_registry = dr.async_get(hass)
     device_entry = device_registry.async_get_or_create(
