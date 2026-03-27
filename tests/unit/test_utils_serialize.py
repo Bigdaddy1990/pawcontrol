@@ -5,6 +5,7 @@ Tests JSON serialization utilities for entity attributes.
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from types import MappingProxyType
 
 import pytest
 
@@ -57,6 +58,13 @@ def test_serialize_timedelta_complex() -> None:
     result = serialize_timedelta(td)
 
     assert result == 95400  # 86400 + 7200 + 1800
+
+
+def test_serialize_timedelta_truncates_fractional_seconds() -> None:
+    """Timedelta serialization should return an integer second count."""
+    td = timedelta(seconds=1.9)
+
+    assert serialize_timedelta(td) == 1
 
 
 def test_serialize_dataclass_simple() -> None:
@@ -269,6 +277,23 @@ def test_serialize_entity_attributes_with_tuple() -> None:
     assert result["coordinates"] == [52.5200, 13.4050]
     assert isinstance(result["nested"][0], str)
     assert result["nested"][1] == 1800
+
+
+def test_serialize_entity_attributes_accepts_mapping_input() -> None:
+    """serialize_entity_attributes should support generic Mapping inputs."""
+    attrs = MappingProxyType(
+        {
+            "when": datetime(2026, 2, 15, 10, 0, tzinfo=UTC),
+            "duration": timedelta(seconds=30),
+        },
+    )
+
+    result = serialize_entity_attributes(attrs)
+
+    assert result == {
+        "when": "2026-02-15T10:00:00+00:00",
+        "duration": 30,
+    }
 
 
 def test_serialize_entity_attributes_fallback_str() -> None:
