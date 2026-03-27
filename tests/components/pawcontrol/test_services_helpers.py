@@ -160,6 +160,26 @@ def test_capture_cache_diagnostics_normalises_payloads(
     assert result["repair_summary"]["repaired"] == 1
 
 
+def test_capture_cache_diagnostics_handles_none_and_snapshot_instances(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cache diagnostics helper should support None captures and typed snapshots."""
+    monkeypatch.setattr(services, "capture_cache_diagnostics", lambda _runtime: None)
+    assert services._capture_cache_diagnostics(SimpleNamespace()) is None
+
+    snapshot = services.CacheDiagnosticsSnapshot(error="already-typed")
+    monkeypatch.setattr(
+        services,
+        "capture_cache_diagnostics",
+        lambda _runtime: {"snapshots": {"typed": snapshot}},
+    )
+    monkeypatch.setattr(services, "ensure_cache_repair_aggregate", lambda _v: None)
+
+    result = services._capture_cache_diagnostics(SimpleNamespace())
+    assert result is not None
+    assert result["snapshots"]["typed"] is snapshot
+
+
 def test_record_service_result_collects_guard_and_metadata() -> None:
     runtime_data = SimpleNamespace(performance_stats={})
 
@@ -183,6 +203,25 @@ def test_record_service_result_collects_guard_and_metadata() -> None:
     result = runtime_data.performance_stats["last_service_result"]
     assert result["guard"]["skipped"] == 1
     assert result["diagnostics"]["metadata"]["source"] == "test"
+
+
+def test_record_service_result_sets_resilience_summary_when_diagnostics_present(
+) -> None:
+    """Service result should append resilience data onto existing diagnostics."""
+    runtime_data = SimpleNamespace(
+        performance_stats={"resilience_summary": {"rejected_call_count": 1}}
+    )
+
+    services._record_service_result(
+        runtime_data,
+        service="send_notification",
+        status="error",
+        diagnostics={"cache": {"snapshots": {}}},
+    )
+
+    diagnostics = runtime_data.performance_stats["last_service_result"]["diagnostics"]
+    assert "resilience_summary" in diagnostics
+    assert diagnostics["resilience_summary"]["rejected_call_count"] == 1
 
 
 @pytest.mark.asyncio
@@ -212,3 +251,40 @@ def test_extract_service_context_from_context_instance() -> None:
     context, metadata = services._extract_service_context(call)
     assert context is ctx
     assert metadata == {"context_id": "ctx", "parent_id": "p", "user_id": "u"}
+
+
+def test_extract_service_context_without_identifiers_returns_none_metadata() -> None:
+    """Objects without usable IDs should not fabricate context metadata."""
+    call = SimpleNamespace(context=SimpleNamespace(extra="value"))
+
+    context, metadata = services._extract_service_context(call)
+    assert context is None
+    assert metadata is None
+
+
+def test_record_delivery_failure_reason_normalises_blank_classification() -> None:
+    """Blank classifications should fall back to an explicit unknown bucket."""
+    runtime_data = SimpleNamespace(
+        performance_stats={"rejection_metrics": {"failure_reasons": "invalid"}}
+    )
+    blank_context = SimpleNamespace(classification="  ")
+    with patch(
+        "custom_components.pawcontrol.services.build_error_context",
+        return_value=blank_context,
+    ):
+        services._record_delivery_failure_reason(runtime_data, reason="anything")
+
+    metrics = runtime_data.performance_stats["rejection_metrics"]
+    assert metrics["last_failure_reason"] == "unknown"
+    assert metrics["failure_reasons"]["unknown"] == 1
+
+
+def test_normalise_context_identifier_handles_whitespace_stringified_value() -> None:
+    """Non-string values that stringify to whitespace should be ignored."""
+    class _WhitespaceStr:
+        def __str__(self) -> str:
+            return "   "
+
+    value = _WhitespaceStr()
+
+    assert services._normalise_context_identifier(value) is None
