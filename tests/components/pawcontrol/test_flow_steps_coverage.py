@@ -1,7 +1,5 @@
 """Coverage-focused tests for flow_steps mixins and exports."""
 
-from __future__ import annotations
-
 from typing import Any
 
 import pytest
