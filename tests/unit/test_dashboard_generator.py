@@ -960,6 +960,44 @@ async def test_renderer_overview_view_uses_navigation_url_and_skips_failures(
 
 
 @pytest.mark.asyncio
+async def test_renderer_overview_view_uses_default_navigation_without_activity_summary(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Overview rendering should fall back to the default URL when invalid options are provided."""
+    renderer = DashboardRenderer(hass)
+    dog_config = [{CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}}]
+
+    monkeypatch.setattr(
+        renderer.overview_generator,
+        "generate_welcome_card",
+        AsyncMock(return_value={"type": "markdown", "content": "welcome"}),
+    )
+    dogs_grid = AsyncMock(return_value={"type": "grid", "cards": []})
+    monkeypatch.setattr(
+        renderer.overview_generator,
+        "generate_dogs_grid",
+        dogs_grid,
+    )
+    monkeypatch.setattr(
+        renderer.overview_generator,
+        "generate_quick_actions",
+        AsyncMock(return_value={"type": "entities", "entities": []}),
+    )
+    activity_summary = AsyncMock(return_value={"type": "history-graph"})
+    monkeypatch.setattr(renderer, "_render_activity_summary", activity_summary)
+
+    result = await renderer._render_overview_view(
+        dog_config,
+        {"dashboard_url": 123, "show_activity_summary": False},
+    )
+
+    assert result["path"] == "overview"
+    assert len(result["cards"]) == 3
+    dogs_grid.assert_awaited_once_with(dog_config, "/paw-control")
+    activity_summary.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_renderer_dog_view_batch_and_module_rendering_skip_invalid_results(
     hass, monkeypatch: pytest.MonkeyPatch
 ) -> None:
