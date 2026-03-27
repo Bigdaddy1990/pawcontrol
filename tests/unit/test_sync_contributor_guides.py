@@ -1,7 +1,5 @@
 """Tests for scripts.sync_contributor_guides."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from scripts import sync_contributor_guides
