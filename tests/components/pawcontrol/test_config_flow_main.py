@@ -259,97 +259,93 @@ def test_string_list_normalisation_and_module_aggregation() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_step_final_setup_success_creates_entry(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Final setup should create a config entry when validation succeeds."""
+async def test_final_setup_shows_confirmation_form_when_no_input() -> None:
+    """Final setup should present a confirmation form for empty input."""
     flow = PawControlConfigFlow()
-    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", "modules": {}}]
 
-    async def _valid() -> dict[str, object]:
-        return {"valid": True, "errors": [], "estimated_entities": 1}
+    result = await flow.async_step_final_setup()
 
-    monkeypatch.setattr(flow, "_perform_comprehensive_validation", _valid)
-    monkeypatch.setattr(flow, "_validate_profile_compatibility", lambda: False)
-    monkeypatch.setattr(
-        flow,
-        "_build_config_entry_data",
-        lambda: (
-            {"name": "Paw Control", "dogs": flow._dogs, "entity_profile": "standard"},
-            {"entity_profile": "standard"},
-        ),
-    )
-    monkeypatch.setattr(flow, "_generate_entry_title", lambda _: "Paw Control")
-
-    result = await flow.async_step_final_setup(user_input={})
-
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Paw Control"
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "final_setup"
 
 
 @pytest.mark.asyncio
-async def test_async_step_final_setup_rejects_missing_or_invalid_state(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Final setup should fail for missing dogs and invalid validation result."""
+async def test_final_setup_requires_at_least_one_configured_dog() -> None:
+    """Final setup should fail fast when no dogs were configured."""
     flow = PawControlConfigFlow()
 
     with pytest.raises(PawControlSetupError, match="No dogs configured"):
-        await flow.async_step_final_setup(user_input={})
-
-    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", "modules": {}}]
-
-    async def _invalid() -> dict[str, object]:
-        return {"valid": False, "errors": ["bad dog"], "estimated_entities": 0}
-
-    monkeypatch.setattr(flow, "_perform_comprehensive_validation", _invalid)
-
-    with pytest.raises(PawControlSetupError, match="Setup validation failed: bad dog"):
-        await flow.async_step_final_setup(user_input={})
+        await flow.async_step_final_setup({})
 
 
 @pytest.mark.asyncio
-async def test_async_step_final_setup_wraps_unexpected_build_errors(
+async def test_final_setup_raises_when_validation_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Final setup should wrap unexpected build errors in setup exceptions."""
+    """Final setup should surface comprehensive validation failures."""
     flow = PawControlConfigFlow()
-    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", "modules": {}}]
+    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}]
 
-    async def _valid() -> dict[str, object]:
-        return {"valid": True, "errors": [], "estimated_entities": 1}
+    async def _validation_failure() -> Mapping[str, object]:
+        return {
+            "valid": False,
+            "errors": ["Invalid dog configuration: buddy"],
+            "estimated_entities": 0,
+        }
 
-    monkeypatch.setattr(flow, "_perform_comprehensive_validation", _valid)
+    monkeypatch.setattr(flow, "_perform_comprehensive_validation", _validation_failure)
+
+    with pytest.raises(PawControlSetupError, match="Invalid dog configuration"):
+        await flow.async_step_final_setup({})
+
+
+@pytest.mark.asyncio
+async def test_final_setup_creates_entry_when_validation_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Final setup should create a config entry from the synthesized payloads."""
+    flow = PawControlConfigFlow()
+    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}]
+    flow._integration_name = "Paw Control"
+    flow._entity_profile = "standard"
+
+    async def _validation_success() -> Mapping[str, object]:
+        return {"valid": True, "errors": [], "estimated_entities": 3}
+
+    monkeypatch.setattr(flow, "_perform_comprehensive_validation", _validation_success)
+    monkeypatch.setattr(flow, "_validate_profile_compatibility", lambda: True)
     monkeypatch.setattr(
         flow,
         "_build_config_entry_data",
-        lambda: (_ for _ in ()).throw(RuntimeError("boom")),
+        lambda: ({"name": "Paw Control", "dogs": flow._dogs}, {"entity_profile": "standard"}),
     )
 
-    with pytest.raises(PawControlSetupError, match="Setup failed: boom"):
-        await flow.async_step_final_setup(user_input={})
+    result = await flow.async_step_final_setup({})
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Paw Control (Standard (≤12 entities))"
+    assert result["data"]["dogs"][0][DOG_ID_FIELD] == "buddy"
+    assert result["options"]["entity_profile"] == "standard"
 
 
-def test_build_config_entry_data_derives_api_endpoint_and_token_from_discovery(
+@pytest.mark.asyncio
+async def test_final_setup_wraps_unexpected_errors(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Discovery metadata should populate endpoint and api token defaults."""
+    """Final setup should re-raise build errors as ``PawControlSetupError``."""
     flow = PawControlConfigFlow()
-    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", "modules": {}}]
-    flow._entity_profile = "standard"
-    flow._global_settings = {
-        "enable_analytics": 1,
-        "data_retention_days": "bad-value",
-        "performance_mode": "balanced",
-    }
-    flow._discovery_info = {
-        "host": "192.168.1.5",
-        "port": 9443,
-        "properties": {"https": "yes", "api_key": "token-123"},
-    }
+    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}]
 
-    config_data, options_data = flow._build_config_entry_data()
+    async def _validation_success() -> Mapping[str, object]:
+        return {"valid": True, "errors": [], "estimated_entities": 3}
 
-    assert config_data["discovery_info"] == flow._discovery_info
-    assert options_data["api_endpoint"] == "https://192.168.1.5:9443"
-    assert options_data["api_token"] == "token-123"
-    assert options_data["data_retention_days"] == 30
+    monkeypatch.setattr(flow, "_perform_comprehensive_validation", _validation_success)
+    monkeypatch.setattr(flow, "_validate_profile_compatibility", lambda: True)
+
+    def _raise_failure() -> tuple[dict[str, object], dict[str, object]]:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(flow, "_build_config_entry_data", _raise_failure)
+
+    with pytest.raises(PawControlSetupError, match="Setup failed: boom"):
+        await flow.async_step_final_setup({})
