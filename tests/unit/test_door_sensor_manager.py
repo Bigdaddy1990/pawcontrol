@@ -227,7 +227,7 @@ def test_cache_monitor_snapshot_contains_anomalies() -> None:
     assert snapshot["stats"]["active_detections"] == 1
     assert snapshot["snapshot"]["per_dog"]["dog-1"][
         "confidence_threshold"
-    ] == pytest.approx(0.877)  # type: ignore[index]  # noqa: E501
+    ] == pytest.approx(0.877)  # type: ignore[index]
     assert stats["last_activity_age_seconds"] is not None
     assert diagnostics["cleanup_task_active"] is True
     assert diagnostics["timestamp_anomalies"] == {"dog-1": "future", "manager": "stale"}

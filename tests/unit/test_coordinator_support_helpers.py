@@ -397,9 +397,9 @@ def test_dog_config_registry_get_name_rejects_blank_string_values() -> None:
 
 def test_dog_config_registry_get_name_handles_missing_name_field() -> None:
     """Registry should return None when legacy entries omit dog_name."""
-    registry = DogConfigRegistry(
-        [{"dog_id": "buddy", "dog_name": "Buddy", CONF_MODULES: {"walk": True}}]
-    )
+    registry = DogConfigRegistry([
+        {"dog_id": "buddy", "dog_name": "Buddy", CONF_MODULES: {"walk": True}}
+    ])
     registry._by_id["buddy"] = {"dog_id": "buddy"}  # type: ignore[assignment]
 
     assert registry.get_name("buddy") is None
