@@ -200,6 +200,14 @@ async def test_async_get_conditions_returns_metadata(
 
 
 @pytest.mark.asyncio
+async def test_async_get_conditions_unknown_device_returns_empty(
+    hass: HomeAssistant,
+) -> None:
+    """Return no condition descriptors when the device cannot be resolved."""
+    assert await async_get_conditions(hass, "missing-device") == []
+
+
+@pytest.mark.asyncio
 async def test_condition_uses_entity_state_fallback(
     hass: HomeAssistant,
 ) -> None:
@@ -320,6 +328,247 @@ async def test_condition_status_is_missing_status_returns_false(
             CONF_DEVICE_ID: device_entry.id,
             CONF_DOMAIN: DOMAIN,
             CONF_TYPE: "status_is",
+        },
+    )
+
+    assert not condition(hass, {})
+
+
+@pytest.mark.asyncio
+async def test_condition_status_is_without_snapshot_or_state_returns_false(
+    hass: HomeAssistant,
+) -> None:
+    """Return false when status_is has no snapshot data and no entity state."""
+    device_entry = _register_device(hass)
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "status_is",
+            CONF_ENTITY_ID: "sensor.pawcontrol_buddy_status",
+            "status": "playing",
+        },
+    )
+
+    assert not condition(hass, {})
+
+
+@pytest.mark.asyncio
+async def test_condition_status_is_uses_entity_state_without_snapshot(
+    hass: HomeAssistant,
+) -> None:
+    """Fall back to entity state when runtime snapshot data is unavailable."""
+    device_entry = _register_device(hass)
+    entity_id = "sensor.pawcontrol_buddy_status"
+    _register_entity(
+        hass,
+        device_entry,
+        entity_id=entity_id,
+        platform="sensor",
+        suffix="status",
+    )
+    hass.states.async_set(entity_id, "playing")
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "status_is",
+            CONF_ENTITY_ID: entity_id,
+            "status": "playing",
+        },
+    )
+
+    assert condition(hass, {})
+
+
+@pytest.mark.parametrize(
+    ("condition_type", "snapshot", "expected"),
+    [
+        ("needs_walk", {"needs_walk": True}, True),
+        ("on_walk", {"on_walk": True}, True),
+        ("in_safe_zone", {"in_safe_zone": False}, False),
+    ], 
+)
+@pytest.mark.asyncio
+async def test_condition_uses_runtime_snapshot_for_boolean_conditions(
+    hass: HomeAssistant,
+    condition_type: str,
+    snapshot: dict[str, bool],
+    expected: bool,
+) -> None:
+    """Read boolean condition values directly from the runtime status snapshot."""
+    device_entry = _register_device(hass)
+
+    coordinator = Mock()
+    coordinator.get_dog_data.return_value = {
+        "status_snapshot": snapshot,
+    }
+    runtime_data = PawControlRuntimeData(
+        coordinator=coordinator,
+        data_manager=Mock(),
+        notification_manager=Mock(),
+        feeding_manager=AsyncMock(),
+        walk_manager=AsyncMock(),
+        entity_factory=Mock(),
+        entity_profile="standard",
+        dogs=[{"dog_id": DOG_ID, "dog_name": "Buddy"}],
+    )
+    entry = ConfigEntry(entry_id=ENTRY_ID, domain=DOMAIN, data={"dogs": []})
+    store_runtime_data(hass, entry, runtime_data)
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: condition_type,
+        },
+    )
+
+    assert condition(hass, {}) is expected
+
+
+@pytest.mark.asyncio
+async def test_condition_is_hungry_uses_runtime_snapshot(
+    hass: HomeAssistant,
+) -> None:
+    """Read the is_hungry value from the runtime status snapshot when available."""
+    device_entry = _register_device(hass)
+
+    coordinator = Mock()
+    coordinator.get_dog_data.return_value = {
+        "status_snapshot": {"is_hungry": True},
+    }
+    runtime_data = PawControlRuntimeData(
+        coordinator=coordinator,
+        data_manager=Mock(),
+        notification_manager=Mock(),
+        feeding_manager=AsyncMock(),
+        walk_manager=AsyncMock(),
+        entity_factory=Mock(),
+        entity_profile="standard",
+        dogs=[{"dog_id": DOG_ID, "dog_name": "Buddy"}],
+    )
+    entry = ConfigEntry(entry_id=ENTRY_ID, domain=DOMAIN, data={"dogs": []})
+    store_runtime_data(hass, entry, runtime_data)
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "is_hungry",
+        },
+    )
+
+    assert condition(hass, {})
+
+
+@pytest.mark.asyncio
+async def test_condition_attention_needed_falls_back_to_entity_state(
+    hass: HomeAssistant,
+) -> None:
+    """Evaluate attention_needed from entity state when no snapshot is present."""
+    device_entry = _register_device(hass)
+    entity_id = "binary_sensor.pawcontrol_buddy_attention_needed"
+    _register_entity(
+        hass,
+        device_entry,
+        entity_id=entity_id,
+        platform="binary_sensor",
+        suffix="attention_needed",
+    )
+    hass.states.async_set(entity_id, "off")
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "attention_needed",
+            CONF_ENTITY_ID: entity_id,
+        },
+    )
+
+    assert not condition(hass, {})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("condition_type", "entity_id", "state"),
+    [
+        (
+            "on_walk",
+            "binary_sensor.pawcontrol_buddy_walk_in_progress",
+            STATE_ON,
+        ),
+        (
+            "in_safe_zone",
+            "binary_sensor.pawcontrol_buddy_in_safe_zone",
+            STATE_ON,
+        ),
+    ],
+)
+async def test_condition_snapshot_missing_uses_entity_state_for_remaining_types(
+    hass: HomeAssistant,
+    condition_type: str,
+    entity_id: str,
+    state: str,
+) -> None:
+    """Use entity state fallback paths for on_walk and in_safe_zone conditions."""
+    device_entry = _register_device(hass)
+    suffix = "walk_in_progress" if condition_type == "on_walk" else "in_safe_zone"
+    _register_entity(
+        hass,
+        device_entry,
+        entity_id=entity_id,
+        platform="binary_sensor",
+        suffix=suffix,
+    )
+    hass.states.async_set(entity_id, state)
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: condition_type,
+            CONF_ENTITY_ID: entity_id,
+        },
+    )
+
+    assert condition(hass, {})
+
+
+@pytest.mark.asyncio
+async def test_condition_unknown_type_returns_false(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unknown condition types should safely evaluate to false."""
+    device_entry = _register_device(hass)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.device_condition.CONDITION_SCHEMA",
+        lambda config: config,
+    )
+
+    condition = await async_condition_from_config(
+        hass,
+        {
+            CONF_CONDITION: "device",
+            CONF_DEVICE_ID: device_entry.id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "unknown_type",
         },
     )
 
