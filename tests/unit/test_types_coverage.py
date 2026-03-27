@@ -48,14 +48,18 @@ def test_is_dog_config_valid_returns_false_for_non_mapping() -> None:
     assert not is_dog_config_valid(["invalid"])
 
 
-def test_is_dog_config_valid_delegates_to_flow_validator(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_is_dog_config_valid_delegates_to_flow_validator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:  # noqa: E501
     """Flow validator failures should convert to ``False`` and success to ``True``."""
     from custom_components.pawcontrol import flow_validation
 
     def _raise_validation(*_: object, **__: object) -> None:
         raise FlowValidationError(field_errors={"dog_name": "invalid"})
 
-    monkeypatch.setattr(flow_validation, "validate_dog_config_payload", _raise_validation)
+    monkeypatch.setattr(
+        flow_validation, "validate_dog_config_payload", _raise_validation
+    )  # noqa: E501
     assert not is_dog_config_valid({"dog_id": "buddy", "dog_name": "Buddy"})
 
     monkeypatch.setattr(
@@ -69,7 +73,10 @@ def test_is_dog_config_valid_delegates_to_flow_validator(monkeypatch: pytest.Mon
 @pytest.mark.parametrize(
     ("payload", "expected"),
     [
-        ({"latitude": 52.5, "longitude": 13.4, "accuracy": 3.2, "battery_level": 80}, True),
+        (
+            {"latitude": 52.5, "longitude": 13.4, "accuracy": 3.2, "battery_level": 80},
+            True,
+        ),  # noqa: E501
         ({"latitude": -91, "longitude": 13.4}, False),
         ({"latitude": 52.5, "longitude": 181}, False),
         ({"latitude": 52.5, "longitude": 13.4, "accuracy": -0.1}, False),
@@ -84,7 +91,10 @@ def test_is_gps_location_valid(payload: object, expected: bool) -> None:
 @pytest.mark.parametrize(
     ("payload", "expected"),
     [
-        ({"meal_type": "breakfast", "portion_size": 200, "food_type": "dry_food"}, True),
+        (
+            {"meal_type": "breakfast", "portion_size": 200, "food_type": "dry_food"},
+            True,
+        ),  # noqa: E501
         ({"meal_type": "invalid", "portion_size": 200}, False),
         ({"meal_type": "breakfast", "portion_size": -1}, False),
         ({"meal_type": "breakfast", "portion_size": 100, "calories": -3}, False),
@@ -98,7 +108,15 @@ def test_is_feeding_data_valid(payload: object, expected: bool) -> None:
 @pytest.mark.parametrize(
     ("payload", "expected"),
     [
-        ({"mood": "happy", "activity_level": "normal", "health_status": "good", "weight": 20.0}, True),
+        (
+            {
+                "mood": "happy",
+                "activity_level": "normal",
+                "health_status": "good",
+                "weight": 20.0,
+            },
+            True,
+        ),  # noqa: E501
         ({"mood": "confused"}, False),
         ({"activity_level": "extreme"}, False),
         ({"health_status": "critical"}, False),
@@ -114,7 +132,15 @@ def test_is_health_data_valid(payload: object, expected: bool) -> None:
 @pytest.mark.parametrize(
     ("payload", "expected"),
     [
-        ({"title": "Walk Time", "message": "Buddy needs a walk", "priority": "high", "channel": "mobile"}, True),
+        (
+            {
+                "title": "Walk Time",
+                "message": "Buddy needs a walk",
+                "priority": "high",
+                "channel": "mobile",
+            },
+            True,
+        ),  # noqa: E501
         ({"title": "", "message": "missing title"}, False),
         ({"title": "Title", "message": "   "}, False),
         ({"title": "Title", "message": "Body", "priority": "critical"}, False),

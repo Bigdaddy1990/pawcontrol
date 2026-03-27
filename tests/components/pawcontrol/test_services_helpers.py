@@ -81,7 +81,7 @@ def test_format_gps_validation_error_variants() -> None:
                 constraint="gps_update_interval_out_of_range",
                 min_value=30,
                 max_value=3600,
-            ),  # noqa: E501
+            ),
             unit="s",
         )
         == "gps_update_interval must be between 30 and 3600s"
@@ -155,7 +155,9 @@ def test_service_validation_error_requires_non_empty_message() -> None:
     ("error", "unit", "message"),
     [
         (
-            ValidationError("gps_update_interval", constraint="gps_update_interval_required"),
+            ValidationError(
+                "gps_update_interval", constraint="gps_update_interval_required"
+            ),  # noqa: E501
             None,
             "gps_update_interval is required",
         ),
@@ -186,7 +188,7 @@ def test_service_validation_error_requires_non_empty_message() -> None:
         ),
     ],
 )
-def test_format_gps_validation_error_variants(
+def test_format_gps_validation_error_variants(  # noqa: F811
     error: ValidationError,
     unit: str | None,
     message: str,
@@ -215,7 +217,7 @@ def test_format_gps_validation_error_variants(
         ),
     ],
 )
-def test_format_text_validation_error_variants(
+def test_format_text_validation_error_variants(  # noqa: F811
     error: ValidationError,
     message: str,
 ) -> None:
@@ -408,8 +410,9 @@ def test_record_service_result_collects_guard_and_metadata() -> None:
     assert result["diagnostics"]["metadata"]["source"] == "test"
 
 
-def test_record_service_result_sets_resilience_summary_when_diagnostics_present(
-) -> None:
+def test_record_service_result_sets_resilience_summary_when_diagnostics_present() -> (
+    None
+):
     """Service result should append resilience data onto existing diagnostics."""
     runtime_data = SimpleNamespace(
         performance_stats={"resilience_summary": {"rejected_call_count": 1}}
@@ -488,6 +491,8 @@ def test_build_error_details_includes_notification_id() -> None:
     assert details is not None
     assert details["notification_id"] == "n-1"
     assert "error_classification" in details
+
+
 def test_extract_service_context_without_identifiers_returns_none_metadata() -> None:
     """Objects without usable IDs should not fabricate context metadata."""
     call = SimpleNamespace(context=SimpleNamespace(extra="value"))
@@ -516,6 +521,7 @@ def test_record_delivery_failure_reason_normalises_blank_classification() -> Non
 
 def test_normalise_context_identifier_handles_whitespace_stringified_value() -> None:
     """Non-string values that stringify to whitespace should be ignored."""
+
     class _WhitespaceStr:
         def __str__(self) -> str:
             return "   "

@@ -4,9 +4,9 @@ from datetime import timedelta
 from typing import cast
 from unittest.mock import AsyncMock, Mock
 
-import pytest
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.pawcontrol.const import (
     CACHE_TIMESTAMP_FUTURE_THRESHOLD,
@@ -25,9 +25,9 @@ from custom_components.pawcontrol.door_sensor_manager import (
     DoorSensorManager,
     DoorSensorSettingsConfig,
     WalkDetectionState,
-    _DoorSensorManagerCacheMonitor,
     _classify_timestamp,
     _coerce_bool,
+    _DoorSensorManagerCacheMonitor,
     _serialize_datetime,
     ensure_door_sensor_settings_config,
 )
@@ -212,9 +212,7 @@ def test_cache_monitor_snapshot_contains_anomalies() -> None:
         current_state="potential",
         confidence_score=0.73456,
         door_opened_at=(
-            dt_util.utcnow()
-            + CACHE_TIMESTAMP_FUTURE_THRESHOLD
-            + timedelta(seconds=10)
+            dt_util.utcnow() + CACHE_TIMESTAMP_FUTURE_THRESHOLD + timedelta(seconds=10)
         ),
         state_history=[(dt_util.utcnow(), STATE_ON), (dt_util.utcnow(), STATE_OFF)],
     )
@@ -227,7 +225,9 @@ def test_cache_monitor_snapshot_contains_anomalies() -> None:
 
     assert snapshot["stats"]["configured_sensors"] == 1
     assert snapshot["stats"]["active_detections"] == 1
-    assert snapshot["snapshot"]["per_dog"]["dog-1"]["confidence_threshold"] == pytest.approx(0.877)  # type: ignore[index]
+    assert snapshot["snapshot"]["per_dog"]["dog-1"][
+        "confidence_threshold"
+    ] == pytest.approx(0.877)  # type: ignore[index]  # noqa: E501
     assert stats["last_activity_age_seconds"] is not None
     assert diagnostics["cleanup_task_active"] is True
     assert diagnostics["timestamp_anomalies"] == {"dog-1": "future", "manager": "stale"}

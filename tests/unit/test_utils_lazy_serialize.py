@@ -10,7 +10,7 @@ from custom_components.pawcontrol.utils import serialize as serialize_module
 def test_utils_serialize_helpers_resolve_latest_module_bindings(
     monkeypatch,
 ) -> None:
-    """Package-level serialize helpers should resolve from ``utils.serialize`` lazily."""
+    """Package-level serialize helpers should resolve from ``utils.serialize`` lazily."""  # noqa: E501
     importlib.reload(utils)
 
     def replacement(value: datetime) -> str:
@@ -23,7 +23,7 @@ def test_utils_serialize_helpers_resolve_latest_module_bindings(
 
 
 def test_utils_getattr_unknown_helper_raises_attribute_error() -> None:
-    """Unknown package helper names should raise ``AttributeError`` via ``__getattr__``."""
+    """Unknown package helper names should raise ``AttributeError`` via ``__getattr__``."""  # noqa: E501
     importlib.reload(utils)
 
     try:

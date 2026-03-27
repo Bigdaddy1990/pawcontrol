@@ -2,7 +2,7 @@
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 
@@ -26,7 +26,7 @@ class _StringOnly:
 
 def test_data_encoder_handles_supported_types() -> None:
     """The data encoder should normalize datetimes, objects, and fallbacks."""
-    dt_value = datetime(2026, 3, 27, 12, 30, tzinfo=timezone.utc)
+    dt_value = datetime(2026, 3, 27, 12, 30, tzinfo=UTC)
 
     class _HasDict:
         def __init__(self) -> None:
