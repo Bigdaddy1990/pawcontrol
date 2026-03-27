@@ -149,6 +149,15 @@ def test_data_hasher_hash_string_and_selected_fields() -> None:
     assert hashed["count"] == 3
 
 
+def test_data_hasher_supports_alternate_algorithm() -> None:
+    """Hasher should support explicitly requested hashlib algorithms."""
+    hasher = DataHasher(algorithm="sha512")
+
+    hashed = hasher.hash_string("buddy", salt="paw-")
+
+    assert hashed == hashlib.sha512(b"paw-buddy").hexdigest()
+
+
 @pytest.mark.asyncio
 async def test_privacy_manager_sanitizes_and_prepares_diagnostics() -> None:
     """Privacy manager should combine redaction, GPS anonymization, and hashing."""
@@ -174,6 +183,26 @@ async def test_privacy_manager_sanitizes_and_prepares_diagnostics() -> None:
     assert sanitized["device_id"] != "dog-1"
     assert diagnostics["mac_address"] != "aa:bb:cc:dd:ee:ff"
     assert diagnostics["device_id"] != "dog-1"
+
+
+@pytest.mark.asyncio
+async def test_privacy_manager_prepare_diagnostics_keeps_non_sensitive_fields() -> None:
+    """Diagnostics sanitization should preserve unrelated payload values."""
+    manager = PrivacyManager(hass=object())
+
+    diagnostics = await manager.async_prepare_diagnostics(
+        {
+            "device_id": "dog-1",
+            "mac_address": "aa:bb:cc:dd:ee:ff",
+            "status": "online",
+            "retries": 2,
+        }
+    )
+
+    assert diagnostics["status"] == "online"
+    assert diagnostics["retries"] == 2
+    assert diagnostics["device_id"] != "dog-1"
+    assert diagnostics["mac_address"] != "aa:bb:cc:dd:ee:ff"
 
 
 @pytest.mark.asyncio
