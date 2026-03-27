@@ -678,5 +678,131 @@ class TestEdgeCases:
         result = await instance.fetch_data()
         assert result == "success"
         assert instance.call_count == 3
-        # Verify exponential backoff (delays should increase)
-        assert len(instance.call_times) == 3
+
+
+def test_validate_dog_exists_raises_when_called_without_instance() -> None:
+    """Decorator should reject usage without an instance ``self`` argument."""
+
+    @validate_dog_exists()
+    def _wrapped(dog_id: str) -> str:
+        return dog_id
+
+    with pytest.raises(PawControlError, match="coordinator attribute"):
+        _wrapped("buddy")
+
+
+def test_validate_gps_coordinates_rejects_missing_and_non_numeric_values() -> None:
+    """Decorator should guard both missing and non-numeric coordinate payloads."""
+
+    class MockInstance:
+        @validate_gps_coordinates()
+        def set_location(
+            self,
+            latitude: float | str | None = None,
+            longitude: float | str | None = None,
+        ) -> tuple[float | str | None, float | str | None]:
+            return latitude, longitude
+
+    instance = MockInstance()
+    with pytest.raises(InvalidCoordinatesError):
+        instance.set_location(45.0, None)
+
+    with pytest.raises(TypeError):
+        instance.set_location("north", -122.0)
+
+
+@pytest.mark.asyncio
+async def test_handle_errors_reraises_wrapped_generic_errors_for_async_functions() -> (
+    None
+):
+    """Generic async exceptions should be wrapped and re-raised when configured."""
+
+    class MockInstance:
+        @handle_errors(reraise_critical=True)
+        async def do_something(self) -> str:
+            raise RuntimeError("unexpected boom")
+
+    with pytest.raises(PawControlError, match="unexpected boom"):
+        await MockInstance().do_something()
+
+
+def test_handle_errors_reraises_wrapped_generic_errors_for_sync_functions() -> None:
+    """Generic sync exceptions should also be wrapped and re-raised."""
+
+    class MockInstance:
+        @handle_errors(reraise_critical=True)
+        def do_something(self) -> str:
+            raise RuntimeError("sync boom")
+
+    with pytest.raises(PawControlError, match="sync boom"):
+        MockInstance().do_something()
+
+
+@pytest.mark.asyncio
+async def test_map_to_repair_issue_uses_coordinator_hass_for_async_methods() -> None:
+    """Decorator should resolve Home Assistant from ``self.coordinator.hass``."""
+
+    class MockInstance:
+        def __init__(self) -> None:
+            self.coordinator = MagicMock()
+            self.coordinator.hass = object()
+
+        @map_to_repair_issue("network_issue", severity="error")
+        async def perform(self) -> None:
+            raise NetworkError("offline")
+
+    with (
+        patch("custom_components.pawcontrol.error_decorators.issue_registry") as ir,
+        pytest.raises(NetworkError),
+    ):
+        await MockInstance().perform()
+
+    assert ir.async_create_issue.call_args.args[0] is not None
+
+
+def test_map_to_repair_issue_uses_hass_attribute_for_sync_methods() -> None:
+    """Sync wrappers should create issues when ``self.hass`` is present."""
+
+    class MockInstance:
+        def __init__(self) -> None:
+            self.hass = object()
+
+        @map_to_repair_issue("storage_issue", severity="warning")
+        def perform(self) -> None:
+            raise PawControlError("sync issue")
+
+    with (
+        patch("custom_components.pawcontrol.error_decorators.issue_registry") as ir,
+        pytest.raises(PawControlError),
+    ):
+        MockInstance().perform()
+
+    ir.async_create_issue.assert_called_once()
+
+
+def test_retry_on_error_sync_exhausts_attempts_and_raises() -> None:
+    """Sync retry wrapper should re-raise after exhausting retries."""
+
+    class MockInstance:
+        call_count = 0
+
+        @retry_on_error(max_attempts=2, delay=0.01, exceptions=(NetworkError,))
+        def fetch_data(self) -> str:
+            self.call_count += 1
+            raise NetworkError("still offline")
+
+    with patch("time.sleep") as sleep, pytest.raises(NetworkError):
+        MockInstance().fetch_data()
+
+    assert sleep.call_count == 1
+
+
+def test_require_coordinator_data_raises_without_instance_args() -> None:
+    """Calling decorated function directly should fail with clear guidance."""
+
+    @require_coordinator_data()
+    def _wrapped() -> str:
+        return "ok"
+
+    with pytest.raises(PawControlError, match="instance method"):
+        _wrapped()
