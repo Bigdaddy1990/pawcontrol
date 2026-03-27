@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from custom_components.pawcontrol.const import CONF_DOGS, CONF_MODULES
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from custom_components.pawcontrol.exceptions import ConfigurationError
 from custom_components.pawcontrol.setup.validation import (
     _extract_enabled_modules,
@@ -163,3 +164,21 @@ def test_extract_enabled_modules_ignores_invalid_and_unknown(
         in warning_messages
     )
     assert "Ignoring unknown PawControl modules: new_module" in warning_messages
+
+
+def test_validate_profile_keeps_known_profile() -> None:
+    """Known profiles should be returned unchanged."""
+    known_profile = next(iter(ENTITY_PROFILES))
+    entry = SimpleNamespace(options={"entity_profile": known_profile})
+
+    assert _validate_profile(entry) == known_profile
+
+
+def test_extract_enabled_modules_merges_multiple_dogs() -> None:
+    """Enabled modules from all dogs should be merged into one set."""
+    modules = _extract_enabled_modules([
+        {"dog_id": "buddy", CONF_MODULES: {"gps": True, "feeding": False}},
+        {"dog_id": "luna", CONF_MODULES: {"feeding": True, "walk": True}},
+    ])
+
+    assert modules == frozenset({"gps", "feeding", "walk"})
