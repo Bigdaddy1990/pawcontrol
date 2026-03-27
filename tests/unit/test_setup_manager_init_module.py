@@ -674,6 +674,72 @@ def test_create_runtime_data_syncs_script_history_and_telemetry(
     telemetry_update.assert_called_once_with(runtime_data)
 
 
+def test_create_runtime_data_without_script_manager_still_updates_telemetry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runtime data creation should handle optional script manager absence."""
+    telemetry_update = MagicMock()
+    monkeypatch.setattr(
+        manager_init,
+        "update_runtime_reconfigure_summary",
+        telemetry_update,
+    )
+
+    runtime_data = manager_init._create_runtime_data(
+        SimpleNamespace(data={"k": "v"}, options={"o": "p"}),
+        SimpleNamespace(api_client=object()),
+        {
+            "data_manager": object(),
+            "notification_manager": object(),
+            "feeding_manager": object(),
+            "walk_manager": object(),
+            "entity_factory": object(),
+        },
+        {
+            "helper_manager": object(),
+            "script_manager": None,
+            "geofencing_manager": None,
+            "gps_geofence_manager": None,
+            "door_sensor_manager": None,
+            "garden_manager": None,
+            "weather_health_manager": None,
+        },
+        [{"dog_id": "buddy", "dog_name": "Buddy"}],
+        "standard",
+    )
+
+    assert runtime_data.script_manager is None
+    telemetry_update.assert_called_once_with(runtime_data)
+
+
+def test_attach_managers_to_coordinator_handles_missing_optional_managers() -> None:
+    """Attach helper should tolerate missing optional managers."""
+    coordinator = SimpleNamespace(
+        resilience_manager=object(),
+        attach_runtime_managers=MagicMock(),
+    )
+    notification_manager = SimpleNamespace(resilience_manager=None)
+
+    manager_init._attach_managers_to_coordinator(
+        coordinator,
+        {
+            "data_manager": object(),
+            "feeding_manager": object(),
+            "walk_manager": object(),
+            "notification_manager": notification_manager,
+        },
+        {
+            "gps_geofence_manager": None,
+            "geofencing_manager": None,
+            "weather_health_manager": None,
+            "garden_manager": None,
+        },
+    )
+
+    coordinator.attach_runtime_managers.assert_called_once()
+    assert notification_manager.resilience_manager is coordinator.resilience_manager
+
+
 @pytest.mark.asyncio
 async def test_async_initialize_managers_orchestrates_all_steps(
     monkeypatch: pytest.MonkeyPatch,
