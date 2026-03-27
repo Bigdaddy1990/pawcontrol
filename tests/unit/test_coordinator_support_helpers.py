@@ -79,6 +79,21 @@ def test_build_repair_telemetry_counts_only_non_empty_entries() -> None:
     }
 
 
+def test_build_repair_telemetry_uses_defaults_for_sparse_summary() -> None:
+    """Sparse summaries should keep defaults and omit empty optional counters."""
+    summary = CacheRepairAggregate(
+        total_caches=1, anomaly_count=0, severity="", generated_at=""
+    )
+
+    assert _build_repair_telemetry(summary) == {
+        "severity": "info",
+        "anomaly_count": 0,
+        "total_caches": 1,
+        "generated_at": "",
+        "issues": 0,
+    }
+
+
 def test_ensure_cache_repair_aggregate_supports_runtime_rebound_class(
     monkeypatch,
 ) -> None:
@@ -315,6 +330,34 @@ def test_dog_config_registry_from_entry_and_interval_paths() -> None:
     assert realtime_registry.calculate_update_interval({}) == 30
 
 
+def test_dog_config_registry_handles_string_entry_payload_variants() -> None:
+    """Empty string and None payloads should normalize to an empty registry."""
+    none_registry = DogConfigRegistry.from_entry(
+        type("Entry", (), {"data": {CONF_DOGS: None}})()
+    )
+    empty_string_registry = DogConfigRegistry.from_entry(
+        type("Entry", (), {"data": {CONF_DOGS: ""}})()
+    )
+
+    assert none_registry.ids() == []
+    assert empty_string_registry.ids() == []
+
+
+def test_dog_config_registry_enabled_modules_populates_cache_on_demand() -> None:
+    """Enabled module lookups should populate the lazy cache for uncached IDs."""
+    registry = DogConfigRegistry([
+        {"dog_id": "buddy", "dog_name": "Buddy", CONF_MODULES: {"walk": True}},
+        {"dog_id": "luna", "dog_name": 42, CONF_MODULES: {"feeding": True}},
+    ])
+
+    registry._modules_cache.pop("buddy")
+
+    assert registry.get_name("luna") is None
+    assert registry.enabled_modules("buddy") == frozenset({"walk"})
+    assert registry._modules_cache["buddy"] == frozenset({"walk"})
+    assert registry.calculate_update_interval({}) == 300
+
+
 @pytest.mark.parametrize(
     ("entry_data", "value", "field"),
     [
@@ -341,6 +384,15 @@ def test_dog_config_registry_validation_errors(
             DogConfigRegistry._enforce_polling_limits(value)  # type: ignore[arg-type]
 
     assert err.value.field == field
+
+
+def test_coordinator_metrics_zero_defaults_without_timings_or_updates() -> None:
+    """Fresh metrics should report optimistic defaults before any updates."""
+    metrics = CoordinatorMetrics()
+
+    assert metrics.success_rate_percent == 100.0
+    assert metrics.average_statistics_runtime_ms == 0.0
+    assert metrics.average_visitor_runtime_ms == 0.0
 
 
 def test_coordinator_metrics_cover_cycle_and_statistics_paths() -> None:
