@@ -9,8 +9,8 @@ from custom_components.pawcontrol.button import (
     PROFILE_BUTTON_LIMITS,
     ProfileAwareButtonFactory,
     _prepare_service_proxy,
-    _ServiceRegistryProxy,
     _resolve_profile_button_limit,
+    _ServiceRegistryProxy,
 )
 from tests.helpers.homeassistant_test_stubs import ServiceCall, ServiceRegistry
 
@@ -103,7 +103,9 @@ def test_prepare_service_proxy_returns_none_for_missing_or_invalid_services(
 
 def test_resolve_profile_button_limit_uses_known_profile_and_fallback() -> None:
     """Known profiles should map to configured limits; unknowns use fallback."""
-    assert _resolve_profile_button_limit("advanced") == PROFILE_BUTTON_LIMITS["advanced"]
+    assert (
+        _resolve_profile_button_limit("advanced") == PROFILE_BUTTON_LIMITS["advanced"]
+    )
     assert _resolve_profile_button_limit("custom_profile") == 6
 
 

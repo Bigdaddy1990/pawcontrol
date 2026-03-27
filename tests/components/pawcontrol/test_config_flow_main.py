@@ -317,7 +317,10 @@ async def test_final_setup_creates_entry_when_validation_succeeds(
     monkeypatch.setattr(
         flow,
         "_build_config_entry_data",
-        lambda: ({"name": "Paw Control", "dogs": flow._dogs}, {"entity_profile": "standard"}),
+        lambda: (
+            {"name": "Paw Control", "dogs": flow._dogs},
+            {"entity_profile": "standard"},
+        ),
     )
 
     result = await flow.async_step_final_setup({})

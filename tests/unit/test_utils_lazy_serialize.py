@@ -1,7 +1,5 @@
 """Coverage tests for lazy serialize helper resolution in ``utils``."""
 
-from __future__ import annotations
-
 from datetime import datetime
 import importlib
 
