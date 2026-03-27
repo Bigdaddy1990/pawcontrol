@@ -71,13 +71,12 @@ async def test_async_reload_entry_wrapper_invokes_parent_reload(
 @pytest.mark.asyncio
 async def test_async_cancel_background_monitor_handles_cancelled_task() -> None:
     """Cancelled monitor tasks should be cleared without bubbling errors."""
-    monitor_task = AsyncMock(side_effect=asyncio.CancelledError)
-    monitor_task.cancel = Mock()
+    monitor_task = asyncio.create_task(asyncio.sleep(30))
     runtime_data = SimpleNamespace(background_monitor_task=monitor_task)
 
     await cleanup._async_cancel_background_monitor(runtime_data)
 
-    monitor_task.cancel.assert_called_once()
+    assert monitor_task.cancelled()
     assert runtime_data.background_monitor_task is None
 
 
