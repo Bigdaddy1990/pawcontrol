@@ -716,6 +716,88 @@ class TestHealthDataUpdates:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+class TestDietValidationCoverage:
+    """Cover diet-validation and health recalculation workflows."""
+
+    async def test_async_get_diet_validation_status_round_trip(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Diet validation updates should be surfaced via status endpoint."""
+        validation = {
+            "valid": False,
+            "conflicts": [
+                {
+                    "type": "special_diet_conflict",
+                    "diets": ["renal", "high_protein"],
+                    "message": "Renal and high-protein plans conflict.",
+                }
+            ],
+            "warnings": [],
+            "recommended_vet_consultation": True,
+            "total_diets": 2,
+        }
+
+        updated = await mock_feeding_manager.async_update_diet_validation(
+            "test_dog", validation
+        )
+        status = await mock_feeding_manager.async_get_diet_validation_status("test_dog")
+
+        assert updated is True
+        assert status is not None
+        assert status["validation_data"]["valid"] is False
+        assert status["summary"]["conflict_count"] == 1
+        assert status["summary"]["vet_consultation_recommended"] is True
+        assert "last_updated" in status
+
+    async def test_async_validate_portion_with_diet_error_paths(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Invalid dog IDs and meal types should return typed error payloads."""
+        missing_config = await mock_feeding_manager.async_validate_portion_with_diet(
+            "missing",
+            "breakfast",
+        )
+        invalid_meal = await mock_feeding_manager.async_validate_portion_with_diet(
+            "test_dog",
+            "invalid_meal",
+        )
+
+        assert missing_config["error"] == "No configuration found"
+        assert missing_config["portion"] == 0.0
+        assert invalid_meal["error"]
+        assert invalid_meal["portion"] == 0.0
+        assert invalid_meal["meal_type"] == "invalid_meal"
+
+    async def test_async_recalculate_health_portions_disabled_when_not_enabled(
+        self,
+        mock_dog_config: FeedingManagerDogSetupPayload,
+        mock_hass: object,
+    ) -> None:
+        """Recalculation should short-circuit when health-aware mode is disabled."""
+        manager = FeedingManager(mock_hass)
+        config = typed_deepcopy(mock_dog_config)
+        feeding_config = _mutable_feeding_config(config)
+        feeding_config["health_aware_portions"] = False
+
+        await manager.async_initialize([config])
+
+        result = await manager.async_recalculate_health_portions("test_dog")
+
+        assert result["status"] == "disabled"
+        assert result["updated_schedules"] == 0
+        assert "disabled" in result["message"]
+        await manager.async_shutdown()
+
+    async def test_async_recalculate_health_portions_unknown_dog_raises(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
+        """Unknown dogs should raise ValueError for recalculation requests."""
+        with pytest.raises(ValueError, match="No feeding configuration found"):
+            await mock_feeding_manager.async_recalculate_health_portions("missing")
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 class TestDataRetrieval:
     """Test data retrieval methods."""
 
