@@ -9,6 +9,32 @@ import pytest
 from custom_components.pawcontrol.setup import cleanup
 
 
+class _CancelledMonitorTask:
+    """Awaitable monitor task test double that cancels deterministically."""
+
+    def __init__(self) -> None:
+        self.cancel = Mock()
+
+    def __await__(self):
+        async def _raise_cancelled() -> None:
+            raise asyncio.CancelledError
+
+        return _raise_cancelled().__await__()
+
+
+class _FailingMonitorTask:
+    """Awaitable monitor task test double raising runtime failures."""
+
+    def __init__(self) -> None:
+        self.cancel = Mock()
+
+    def __await__(self):
+        async def _raise_runtime_error() -> None:
+            raise RuntimeError("monitor boom")
+
+        return _raise_runtime_error().__await__()
+
+
 @pytest.mark.asyncio
 async def test_async_cleanup_runtime_data_runs_all_steps(
     monkeypatch: pytest.MonkeyPatch,
@@ -69,14 +95,34 @@ async def test_async_reload_entry_wrapper_invokes_parent_reload(
 
 
 @pytest.mark.asyncio
-async def test_async_cancel_background_monitor_handles_cancelled_task() -> None:
+async def test_async_cancel_background_monitor_handles_cancelled_task(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Cancelled monitor tasks should be cleared without bubbling errors."""
-    monitor_task = asyncio.create_task(asyncio.sleep(30))
+    monitor_task = _CancelledMonitorTask()
     runtime_data = SimpleNamespace(background_monitor_task=monitor_task)
 
-    await cleanup._async_cancel_background_monitor(runtime_data)
+    with caplog.at_level("DEBUG"):
+        await cleanup._async_cancel_background_monitor(runtime_data)
 
-    assert monitor_task.cancelled()
+    monitor_task.cancel.assert_called_once()
+    assert "Background monitor task cancelled" in caplog.text
+    assert runtime_data.background_monitor_task is None
+
+
+@pytest.mark.asyncio
+async def test_async_cancel_background_monitor_handles_runtime_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Runtime monitor failures should be logged and cleaned up."""
+    monitor_task = _FailingMonitorTask()
+    runtime_data = SimpleNamespace(background_monitor_task=monitor_task)
+
+    with caplog.at_level("WARNING"):
+        await cleanup._async_cancel_background_monitor(runtime_data)
+
+    monitor_task.cancel.assert_called_once()
+    assert "Error while awaiting background monitor task" in caplog.text
     assert runtime_data.background_monitor_task is None
 
 
