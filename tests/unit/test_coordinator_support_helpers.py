@@ -451,6 +451,7 @@ def test_coordinator_metrics_cover_cycle_and_statistics_paths() -> None:
     assert metrics.record_cycle(total=0, errors=0) == (1.0, False)
     assert metrics.record_cycle(total=2, errors=2) == (0.0, True)
     assert metrics.record_cycle(total=4, errors=3) == (0.25, False)
+    assert metrics.record_cycle(total=4, errors=2) == (0.5, False)
     metrics.reset_consecutive()
     metrics.record_statistics_timing(0.05)
     metrics.record_statistics_timing(-1.0)
