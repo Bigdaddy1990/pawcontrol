@@ -54,6 +54,79 @@ def test_format_expires_in_hours_error_fallback_and_range() -> None:
     )
 
 
+def test_service_validation_error_strips_and_rejects_empty() -> None:
+    error = services._service_validation_error("  invalid value  ")
+    assert isinstance(error, ServiceValidationError)
+    assert str(error) == "invalid value"
+
+    with pytest.raises(
+        AssertionError, match="_service_validation_error requires a non-empty message"
+    ):
+        services._service_validation_error("   ")
+
+
+def test_format_gps_validation_error_variants() -> None:
+    assert (
+        services._format_gps_validation_error(
+            ValidationError(
+                "gps_update_interval", constraint="gps_update_interval_required"
+            )
+        )
+        == "gps_update_interval is required"
+    )
+    assert (
+        services._format_gps_validation_error(
+            ValidationError(
+                "gps_update_interval",
+                constraint="gps_update_interval_out_of_range",
+                min_value=30,
+                max_value=3600,
+            ),  # noqa: E501
+            unit="s",
+        )
+        == "gps_update_interval must be between 30 and 3600s"
+    )
+    assert (
+        services._format_gps_validation_error(
+            ValidationError("gps_accuracy", constraint="gps_accuracy_not_numeric")
+        )
+        == "gps_accuracy must be a number"
+    )
+    assert (
+        services._format_gps_validation_error(
+            ValidationError("unknown_field", constraint="other")
+        )
+        == "unknown_field is invalid"
+    )
+
+
+def test_format_text_validation_error_variants() -> None:
+    assert (
+        services._format_text_validation_error(
+            ValidationError("note", constraint="field_required")
+        )
+        == "note is required"
+    )
+    assert (
+        services._format_text_validation_error(
+            ValidationError("note", constraint="Must be text")
+        )
+        == "note must be a string"
+    )
+    assert (
+        services._format_text_validation_error(
+            ValidationError("note", constraint="Cannot be empty or whitespace")
+        )
+        == "note must be a non-empty string"
+    )
+    assert (
+        services._format_text_validation_error(
+            ValidationError("note", constraint="other")
+        )
+        == "note is invalid"
+    )
+
+
 @pytest.mark.parametrize("value", [True, "yes", "enable", "1", 1])
 def test_coerce_service_bool_true_values(value: object) -> None:
     assert services._coerce_service_bool(value, field="enabled") is True
@@ -133,6 +206,34 @@ def test_coordinator_resolver_error_messages() -> None:
         resolver.resolve()
 
 
+def test_coordinator_resolver_initializing_and_runtime_not_ready_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    loading_entry = SimpleNamespace(state=ConfigEntryState.SETUP_IN_PROGRESS)
+    hass = SimpleNamespace(config_entries=_FakeConfigEntries([loading_entry]))
+    resolver = services._CoordinatorResolver(hass)
+    with pytest.raises(ServiceValidationError, match="still initializing"):
+        resolver.resolve()
+
+    loaded_entry = SimpleNamespace(state=ConfigEntryState.LOADED)
+    hass_loaded = SimpleNamespace(config_entries=_FakeConfigEntries([loaded_entry]))
+    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: None)
+    with pytest.raises(ServiceValidationError, match="runtime data is not ready"):
+        services._CoordinatorResolver(hass_loaded).resolve()
+
+
+def test_coordinator_resolver_accessor_reuses_cached_instance() -> None:
+    hass = SimpleNamespace(data={})
+    first = services._coordinator_resolver(hass)
+    second = services._coordinator_resolver(hass)
+    assert first is second
+    assert hass.data[DOMAIN]["_service_coordinator_resolver"] is first
+
+    hass.data[DOMAIN]["_service_coordinator_resolver"] = object()
+    replaced = services._coordinator_resolver(hass)
+    assert isinstance(replaced, services._CoordinatorResolver)
+
+
 def test_capture_cache_diagnostics_normalises_payloads(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -158,6 +259,48 @@ def test_capture_cache_diagnostics_normalises_payloads(
     assert result is not None
     assert set(result["snapshots"]) == {"existing", "bad"}
     assert result["repair_summary"]["repaired"] == 1
+
+
+def test_capture_cache_diagnostics_handles_empty_capture(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(services, "capture_cache_diagnostics", lambda _runtime: None)
+    assert services._capture_cache_diagnostics(SimpleNamespace()) is None
+
+
+def test_get_runtime_data_for_coordinator_handles_lookup_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    coordinator = SimpleNamespace(
+        hass=SimpleNamespace(), config_entry=SimpleNamespace()
+    )
+    monkeypatch.setattr(
+        services,
+        "get_runtime_data",
+        lambda _hass, _entry: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+    assert services._get_runtime_data_for_coordinator(coordinator) is None
+
+
+def test_normalise_service_details_and_error_details_helpers() -> None:
+    payload = {"a": 1, "b": {1, 2}, "c": {"nested": object()}}
+    normalised = services._normalise_service_details(payload)
+    assert normalised is not None
+    assert normalised["a"] == 1
+    assert isinstance(normalised["b"], list)
+    assert "object at" in str(normalised["c"]["nested"])
+
+    assert services._normalise_service_details(("x", 1)) == {"items": ["x", 1]}
+    assert services._normalise_service_details("value") == {"value": "value"}
+
+    details = services._build_error_details(
+        reason="network",
+        error="timeout",
+        notification_id="notify-1",
+    )
+    assert details is not None
+    assert details["error_classification"] == "timeout"
+    assert details["notification_id"] == "notify-1"
 
 
 def test_record_service_result_collects_guard_and_metadata() -> None:
