@@ -113,6 +113,11 @@ def test_ensure_cache_repair_aggregate_rejects_non_matching_object() -> None:
     assert ensure_cache_repair_aggregate(object()) is None
 
 
+def test_ensure_cache_repair_aggregate_accepts_none_input() -> None:
+    """A missing repair summary should pass through as None."""
+    assert ensure_cache_repair_aggregate(None) is None
+
+
 class _BindAwareCoordinator:
     """Coordinator stub that records manager bindings on attributes."""
 
@@ -271,6 +276,29 @@ def test_dog_config_registry_normalizes_configs_and_module_cache() -> None:
     assert registry.empty_payload()["status"] == "unknown"
 
 
+def test_dog_config_registry_get_name_returns_none_for_blank_or_non_string() -> None:
+    """Dog names must be non-empty strings to be returned by the registry."""
+    registry = DogConfigRegistry([
+        {"dog_id": "numeric-name", "dog_name": 123},
+    ])
+    registry._by_id["missing-name"] = {"dog_id": "missing-name"}
+    registry._ids.append("missing-name")
+
+    assert registry.get_name("numeric-name") is None
+    assert registry.get_name("missing-name") is None
+
+
+def test_coordinator_metrics_resets_consecutive_errors_after_healthy_cycle() -> None:
+    """A healthy cycle should reset consecutive error counters."""
+    metrics = CoordinatorMetrics(consecutive_errors=3)
+
+    success_rate, failed = metrics.record_cycle(total=4, errors=1)
+
+    assert failed is False
+    assert success_rate == pytest.approx(0.75)
+    assert metrics.consecutive_errors == 0
+
+
 def test_dog_config_registry_from_entry_and_interval_paths() -> None:
     """Registry helpers should validate entries and derive polling intervals."""
     registry = DogConfigRegistry.from_entry(
@@ -367,6 +395,16 @@ def test_dog_config_registry_get_name_rejects_blank_string_values() -> None:
     assert registry.get_name("blank") is None
 
 
+def test_dog_config_registry_get_name_handles_missing_name_field() -> None:
+    """Registry should return None when legacy entries omit dog_name."""
+    registry = DogConfigRegistry(
+        [{"dog_id": "buddy", "dog_name": "Buddy", CONF_MODULES: {"walk": True}}]
+    )
+    registry._by_id["buddy"] = {"dog_id": "buddy"}  # type: ignore[assignment]
+
+    assert registry.get_name("buddy") is None
+
+
 @pytest.mark.parametrize(
     ("entry_data", "value", "field"),
     [
@@ -413,6 +451,7 @@ def test_coordinator_metrics_cover_cycle_and_statistics_paths() -> None:
     assert metrics.record_cycle(total=0, errors=0) == (1.0, False)
     assert metrics.record_cycle(total=2, errors=2) == (0.0, True)
     assert metrics.record_cycle(total=4, errors=3) == (0.25, False)
+    assert metrics.record_cycle(total=4, errors=2) == (0.5, False)
     metrics.reset_consecutive()
     metrics.record_statistics_timing(0.05)
     metrics.record_statistics_timing(-1.0)
@@ -450,3 +489,11 @@ def test_coordinator_metrics_cover_cycle_and_statistics_paths() -> None:
     assert stats["performance_metrics"]["cache_hit_rate"] == 87.65
     assert runtime_stats["repairs"]["severity"] == "warning"
     assert runtime_stats["cache_performance"]["hit_rate"] == 90.0
+
+
+def test_coordinator_metrics_record_cycle_resets_consecutive_errors() -> None:
+    """Healthy cycles should clear consecutive error counters."""
+    metrics = CoordinatorMetrics(consecutive_errors=3)
+
+    assert metrics.record_cycle(total=4, errors=1) == (0.75, False)
+    assert metrics.consecutive_errors == 0
