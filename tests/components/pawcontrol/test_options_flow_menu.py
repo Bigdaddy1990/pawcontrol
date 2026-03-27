@@ -1,7 +1,5 @@
 """Tests for the options flow menu mixin."""
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 from typing import Any
 
