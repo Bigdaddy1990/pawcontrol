@@ -69,6 +69,86 @@ def test_coerce_service_bool_invalid() -> None:
         services._coerce_service_bool("maybe", field="enabled")
 
 
+def test_service_validation_error_requires_non_empty_message() -> None:
+    with pytest.raises(AssertionError, match="non-empty message"):
+        services._service_validation_error("   ")
+
+    error = services._service_validation_error("  invalid payload ")
+    assert isinstance(error, ServiceValidationError)
+    assert str(error) == "invalid payload"
+
+
+@pytest.mark.parametrize(
+    ("error", "unit", "message"),
+    [
+        (
+            ValidationError("gps_update_interval", constraint="gps_update_interval_required"),
+            None,
+            "gps_update_interval is required",
+        ),
+        (
+            ValidationError("gps_accuracy", constraint="gps_accuracy_not_numeric"),
+            None,
+            "gps_accuracy must be a number",
+        ),
+        (
+            ValidationError(
+                "geofence_radius",
+                constraint="geofence_radius_out_of_range",
+                min_value=1,
+                max_value=500,
+            ),
+            "m",
+            "geofence_radius must be between 1 and 500m",
+        ),
+        (
+            ValidationError("gps_update_interval", constraint="fallback"),
+            None,
+            "gps_update_interval must be a whole number",
+        ),
+        (
+            ValidationError("other_field", constraint="fallback"),
+            None,
+            "other_field is invalid",
+        ),
+    ],
+)
+def test_format_gps_validation_error_variants(
+    error: ValidationError,
+    unit: str | None,
+    message: str,
+) -> None:
+    assert services._format_gps_validation_error(error, unit=unit) == message
+
+
+@pytest.mark.parametrize(
+    ("error", "message"),
+    [
+        (
+            ValidationError("title", constraint="title_required"),
+            "title is required",
+        ),
+        (
+            ValidationError("title", constraint="Must be text"),
+            "title must be a string",
+        ),
+        (
+            ValidationError("title", constraint="Cannot be empty or whitespace"),
+            "title must be a non-empty string",
+        ),
+        (
+            ValidationError("title", constraint="other"),
+            "title is invalid",
+        ),
+    ],
+)
+def test_format_text_validation_error_variants(
+    error: ValidationError,
+    message: str,
+) -> None:
+    assert services._format_text_validation_error(error) == message
+
+
 def test_normalise_context_identifier_handles_bad_string_conversion() -> None:
     assert services._normalise_context_identifier(None) is None
     assert services._normalise_context_identifier("  id ") == "id"
@@ -212,3 +292,37 @@ def test_extract_service_context_from_context_instance() -> None:
     context, metadata = services._extract_service_context(call)
     assert context is ctx
     assert metadata == {"context_id": "ctx", "parent_id": "p", "user_id": "u"}
+
+
+def test_coordinator_resolver_helper_stores_instance(
+    mock_hass: SimpleNamespace,
+) -> None:
+    mock_hass.data = {}
+    resolver = services._coordinator_resolver(mock_hass)
+    assert resolver is services._coordinator_resolver(mock_hass)
+
+
+def test_capture_cache_diagnostics_returns_none_when_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(services, "capture_cache_diagnostics", lambda _runtime: None)
+    assert services._capture_cache_diagnostics(SimpleNamespace()) is None
+
+
+def test_normalise_service_details_payloads() -> None:
+    set_payload = services._coerce_service_details_value({1, 2})
+    assert isinstance(set_payload, list)
+    assert sorted(set_payload) == [1, 2]
+    assert services._normalise_service_details(["a", 1]) == {"items": ["a", 1]}
+    assert services._normalise_service_details("x") == {"value": "x"}
+
+
+def test_build_error_details_includes_notification_id() -> None:
+    details = services._build_error_details(
+        reason="network timeout",
+        error="gateway timeout",
+        notification_id="n-1",
+    )
+    assert details is not None
+    assert details["notification_id"] == "n-1"
+    assert "error_classification" in details
