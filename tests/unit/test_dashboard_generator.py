@@ -98,22 +98,20 @@ def test_summarise_dashboard_views_skips_non_sequence_payload() -> None:
 
 def test_normalize_view_summaries_backfills_module_and_notifications() -> None:
     """Normalised summaries should infer module paths and notification flags."""
-    summaries = PawControlDashboardGenerator._normalize_view_summaries(
-        [
-            {
-                "path": MODULE_WEATHER,
-                "title": "Weather",
-                "icon": "mdi:weather-partly-cloudy",
-                "card_count": "4",
-            },
-            {
-                "path": MODULE_NOTIFICATIONS,
-                "title": "Notifications",
-                "icon": "mdi:bell",
-                "card_count": -2,
-            },
-        ]
-    )
+    summaries = PawControlDashboardGenerator._normalize_view_summaries([
+        {
+            "path": MODULE_WEATHER,
+            "title": "Weather",
+            "icon": "mdi:weather-partly-cloudy",
+            "card_count": "4",
+        },
+        {
+            "path": MODULE_NOTIFICATIONS,
+            "title": "Notifications",
+            "icon": "mdi:bell",
+            "card_count": -2,
+        },
+    ])
 
     assert summaries == [
         {
@@ -145,20 +143,18 @@ def test_normalize_view_summaries_rejects_invalid_items() -> None:
 
 def test_has_notifications_view_detects_module_path() -> None:
     """Notification view detection should use normalised summary paths."""
-    assert PawControlDashboardGenerator._has_notifications_view(
-        [
-            {"path": "overview", "title": "", "icon": "", "card_count": 0},
-            {
-                "path": MODULE_NOTIFICATIONS,
-                "title": "Notifications",
-                "icon": "mdi:bell",
-                "card_count": 1,
-            },
-        ]
-    )
-    assert not PawControlDashboardGenerator._has_notifications_view(
-        [{"path": "overview", "title": "", "icon": "", "card_count": 0}]
-    )
+    assert PawControlDashboardGenerator._has_notifications_view([
+        {"path": "overview", "title": "", "icon": "", "card_count": 0},
+        {
+            "path": MODULE_NOTIFICATIONS,
+            "title": "Notifications",
+            "icon": "mdi:bell",
+            "card_count": 1,
+        },
+    ])
+    assert not PawControlDashboardGenerator._has_notifications_view([
+        {"path": "overview", "title": "", "icon": "", "card_count": 0}
+    ])
 
 
 def test_normalise_dashboard_registry_filters_invalid_entries() -> None:

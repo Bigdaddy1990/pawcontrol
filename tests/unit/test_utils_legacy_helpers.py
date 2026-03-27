@@ -6,8 +6,10 @@ from datetime import UTC, date, datetime, time, timedelta
 from custom_components.pawcontrol.utils._legacy import (
     build_error_context,
     chunk_list,
+    deep_merge_dicts,
     format_distance,
     format_duration,
+    is_number,
     normalise_entity_attributes,
     normalise_json_mapping,
     normalise_json_value,
@@ -15,11 +17,9 @@ from custom_components.pawcontrol.utils._legacy import (
     safe_divide,
     safe_get_nested,
     safe_set_nested,
+    sanitize_dog_id,
     sanitize_microchip_id,
     validate_time_string,
-    deep_merge_dicts,
-    is_number,
-    sanitize_dog_id,
 )
 
 
