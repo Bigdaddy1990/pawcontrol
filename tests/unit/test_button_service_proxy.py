@@ -6,8 +6,11 @@ from homeassistant.core import HomeAssistant
 import pytest
 
 from custom_components.pawcontrol.button import (
+    PROFILE_BUTTON_LIMITS,
+    ProfileAwareButtonFactory,
     _prepare_service_proxy,
     _ServiceRegistryProxy,
+    _resolve_profile_button_limit,
 )
 from tests.helpers.homeassistant_test_stubs import ServiceCall, ServiceRegistry
 
@@ -96,3 +99,53 @@ def test_prepare_service_proxy_returns_none_for_missing_or_invalid_services(
 ) -> None:
     """Unsupported service surfaces should be ignored safely."""
     assert _prepare_service_proxy(hass) is None
+
+
+def test_resolve_profile_button_limit_uses_known_profile_and_fallback() -> None:
+    """Known profiles should map to configured limits; unknowns use fallback."""
+    assert _resolve_profile_button_limit("advanced") == PROFILE_BUTTON_LIMITS["advanced"]
+    assert _resolve_profile_button_limit("custom_profile") == 6
+
+
+@pytest.mark.parametrize(
+    ("profile", "expected_min_feeding_types"),
+    [
+        ("basic", {"feed_now", "mark_fed"}),
+        ("standard", {"feed_now", "mark_fed", "feed_breakfast", "feed_dinner"}),
+        (
+            "advanced",
+            {
+                "feed_now",
+                "mark_fed",
+                "feed_breakfast",
+                "feed_dinner",
+                "feed_lunch",
+                "log_custom_feeding",
+            },
+        ),
+    ],
+)
+def test_profile_factory_feeding_rules_follow_profile(
+    profile: str,
+    expected_min_feeding_types: set[str],
+) -> None:
+    """Feeding button rules should expand according to profile capability."""
+    factory = ProfileAwareButtonFactory(SimpleNamespace(), profile=profile)
+
+    feeding_rules = factory._get_feeding_button_rules()
+    feeding_types = {rule["type"] for rule in feeding_rules}
+
+    assert expected_min_feeding_types.issubset(feeding_types)
+
+
+def test_profile_factory_caches_rules_for_supported_modules() -> None:
+    """The factory should precompute button rules for each supported module."""
+    factory = ProfileAwareButtonFactory(SimpleNamespace(), profile="gps_focus")
+
+    assert set(factory._button_rules_cache.keys()) == {
+        "feeding",
+        "walk",
+        "gps",
+        "health",
+        "garden",
+    }
