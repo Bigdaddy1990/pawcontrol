@@ -579,3 +579,88 @@ async def test_health_module_adapter_walk_fallback_without_feeding_context() -> 
 
     assert payload["status"] == "healthy"
     assert payload["activity_level"] == "low"
+
+
+@pytest.mark.asyncio
+async def test_feeding_module_adapter_uses_manager_then_cache() -> None:
+    async with ClientSession() as session:
+        adapter = FeedingModuleAdapter(
+            session=session,
+            ttl=timedelta(minutes=5),
+            use_external_api=False,
+            api_client=None,
+        )
+        manager = _FakeFeedingManager()
+        adapter.attach(manager)
+
+        payload = await adapter.async_get_data("dog-1")
+        cached = await adapter.async_get_data("dog-1")
+
+        assert payload["status"] == "ready"
+        assert manager.calls == 1
+        assert cached is payload
+
+
+@pytest.mark.asyncio
+async def test_feeding_module_adapter_wraps_unexpected_api_errors() -> None:
+    async with ClientSession() as session:
+        adapter = FeedingModuleAdapter(
+            session=session,
+            ttl=timedelta(minutes=5),
+            use_external_api=True,
+            api_client=_FailingDeviceClient(),
+        )
+
+        with pytest.raises(NetworkError, match="Device API error: boom"):
+            await adapter.async_get_data("dog-1")
+
+
+@pytest.mark.asyncio
+async def test_walk_module_adapter_defaults_for_missing_or_empty_manager_data() -> None:
+    adapter = WalkModuleAdapter(ttl=timedelta(minutes=5))
+
+    disabled = await adapter.async_get_data("dog-1")
+    assert disabled["status"] == "unavailable"
+
+    adapter.attach(_FakeWalkManager(payload={}))
+    empty = await adapter.async_get_data("dog-1")
+    assert empty["status"] == "empty"
+
+
+@pytest.mark.asyncio
+async def test_gps_module_adapter_reports_unavailable_and_tracking_payload() -> None:
+    adapter = module_adapters.GPSModuleAdapter()
+
+    with pytest.raises(module_adapters.GPSUnavailableError, match="dog-1"):
+        await adapter.async_get_data("dog-1")
+
+    now = datetime(2026, 1, 2, tzinfo=UTC)
+
+    class _GPSManager:
+        async def async_get_current_location(self, dog_id: str) -> SimpleNamespace:
+            assert dog_id == "dog-1"
+            return SimpleNamespace(
+                latitude=40.123,
+                longitude=-74.987,
+                accuracy=4.5,
+                timestamp=now,
+                source=SimpleNamespace(value="gps"),
+            )
+
+        async def async_get_active_route(self, dog_id: str) -> SimpleNamespace:
+            assert dog_id == "dog-1"
+            return SimpleNamespace(
+                is_active=True,
+                start_time=now,
+                duration_minutes=12,
+                distance_km=1.7,
+                gps_points=[(1, 1), (2, 2)],
+            )
+
+    adapter.attach(_GPSManager())
+
+    payload = await adapter.async_get_data("dog-1")
+
+    assert payload["status"] == "tracking"
+    assert payload["source"] == "gps"
+    assert payload["active_route"]["points_count"] == 2
