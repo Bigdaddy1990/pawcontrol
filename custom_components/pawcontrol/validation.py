@@ -496,6 +496,19 @@ def validate_notify_service(
 
 def validate_gps_coordinates(latitude: Any, longitude: Any) -> tuple[float, float]:
     """Compatibility helper that raises ``InvalidCoordinatesError``."""
+    # Fast-path valid numeric coordinates because this helper is used in
+    # high-frequency update loops and benchmark coverage.
+    if (
+        isinstance(latitude, Real)
+        and not isinstance(latitude, bool)
+        and isinstance(longitude, Real)
+        and not isinstance(longitude, bool)
+    ):
+        lat = float(latitude)
+        lon = float(longitude)
+        if MIN_LATITUDE <= lat <= MAX_LATITUDE and MIN_LONGITUDE <= lon <= MAX_LONGITUDE:
+            return lat, lon
+
     try:
         return InputValidator.validate_gps_coordinates(latitude, longitude)
     except ValidationError as err:

@@ -152,7 +152,7 @@ class CoordinatorDataDiff:
 
 
 def _compare_values(old_value: Any, new_value: Any) -> bool:
-    """Compare two values for equality, handling nested structures.
+    """Compare two values for equality.
 
     Args:
         old_value: Old value
@@ -173,21 +173,8 @@ def _compare_values(old_value: Any, new_value: Any) -> bool:
     if type(old_value) is not type(new_value):
         return False
 
-    # Handle mappings recursively
-    if isinstance(old_value, Mapping) and isinstance(new_value, Mapping):
-        if old_value.keys() != new_value.keys():
-            return False
-        return all(_compare_values(old_value[k], new_value[k]) for k in old_value)
-
-    # Handle sequences recursively (but not strings)
-    if isinstance(old_value, (list, tuple)) and isinstance(new_value, (list, tuple)):
-        if len(old_value) != len(new_value):
-            return False
-        return all(
-            _compare_values(o, n) for o, n in zip(old_value, new_value, strict=False)
-        )
-
-    # Default equality
+    # Python's native equality is implemented in C for built-in containers and
+    # is substantially faster than recursive Python-level comparisons here.
     return old_value == new_value
 
 
@@ -340,6 +327,9 @@ def compute_coordinator_diff(
     for dog_id in all_dogs:
         old_dog = old_data.get(dog_id)
         new_dog = new_data.get(dog_id)
+        # Fast-path unchanged dog payloads to avoid per-module recursive diffing.
+        if old_dog == new_dog:
+            continue
         dog_diffs[dog_id] = compute_dog_diff(dog_id, old_dog, new_dog)
 
     return CoordinatorDataDiff(
