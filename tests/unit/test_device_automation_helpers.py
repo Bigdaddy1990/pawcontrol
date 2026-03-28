@@ -2,7 +2,9 @@
 
 from types import SimpleNamespace
 
+import custom_components.pawcontrol.device_automation_helpers as device_automation_helpers
 from custom_components.pawcontrol.const import DOMAIN
+import custom_components.pawcontrol.device_automation_helpers as automation_helpers
 from custom_components.pawcontrol.device_automation_helpers import (
     _coerce_runtime_data,
     _extract_dog_id,
@@ -130,11 +132,13 @@ def test_resolve_device_context_and_entity_id(monkeypatch) -> None:
         ]
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.device_automation_helpers.dr.async_get",
+        automation_helpers.dr,
+        "async_get",
         lambda _hass: device_registry,
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.device_automation_helpers.er.async_get",
+        automation_helpers.er,
+        "async_get",
         lambda _hass: entity_registry,
     )
 
@@ -162,7 +166,8 @@ def test_resolve_device_context_handles_missing_store_or_device(monkeypatch) -> 
     """Lookup should return empty context when registries/stores are incomplete."""
     device_registry = SimpleNamespace(async_get=lambda _device_id: None)
     monkeypatch.setattr(
-        "custom_components.pawcontrol.device_automation_helpers.dr.async_get",
+        automation_helpers.dr,
+        "async_get",
         lambda _hass: device_registry,
     )
 
@@ -185,7 +190,8 @@ def test_resolve_device_context_returns_none_when_entry_ids_missing(
     )
     device_registry = SimpleNamespace(async_get=lambda _device_id: device_entry)
     monkeypatch.setattr(
-        "custom_components.pawcontrol.device_automation_helpers.dr.async_get",
+        automation_helpers.dr,
+        "async_get",
         lambda _hass: device_registry,
     )
 
