@@ -1,14 +1,10 @@
 """Session reuse safeguards for the device API client."""
 
 import asyncio
-import importlib.util
-from pathlib import Path
-import sys
 from types import ModuleType
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from pytest import MonkeyPatch
 
 
 @pytest.fixture(scope="module")
@@ -83,22 +79,11 @@ def device_api_module() -> ModuleType:
         sys.modules, "custom_components.pawcontrol.resilience", stub_resilience
     )
     monkeypatch.setitem(sys.modules, "custom_components.pawcontrol.utils", stub_utils)
+    """Import the real device API module for unit-level behavior checks."""
+    import importlib
 
-    module_path = (
-        Path(__file__).resolve().parents[2]
-        / "custom_components"
-        / "pawcontrol"
-        / "device_api.py"
-    )
-    spec = importlib.util.spec_from_file_location(
-        "custom_components.pawcontrol.device_api_test", module_path
-    )
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    monkeypatch.undo()
-    return module
+    return importlib.import_module("custom_components.pawcontrol.device_api")
+
 
 
 @pytest.mark.unit
@@ -310,7 +295,7 @@ def test_device_client_rate_limit_uses_default_retry_after_when_invalid(
     with pytest.raises(device_api_module.RateLimitError) as excinfo:
         asyncio.run(client.async_get_json("/status"))
 
-    assert excinfo.value.kwargs["retry_after"] == 60
+    assert excinfo.value.retry_after == 60
 
 
 @pytest.mark.unit
