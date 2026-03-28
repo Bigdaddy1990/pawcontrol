@@ -22,6 +22,9 @@ from custom_components.pawcontrol.flow_steps.notifications_helpers import (
     _validate_time_input,
     build_notification_settings_payload,
 )
+from custom_components.pawcontrol.flow_steps.notifications_schemas import (
+    build_notifications_schema,
+)
 from custom_components.pawcontrol.flows.walk_schemas import (
     build_auto_end_walks_field,
     build_walk_timing_schema_fields,
@@ -167,3 +170,53 @@ def test_notification_payload_uses_current_defaults_when_input_missing() -> None
     assert payload[NOTIFICATION_QUIET_END_FIELD] == "06:45:00"
     assert payload[NOTIFICATION_PRIORITY_FIELD] is False
     assert payload[NOTIFICATION_MOBILE_FIELD] is True
+
+
+def test_notifications_schema_uses_current_defaults_without_user_input() -> None:
+    """Notification schema should fallback to current notification defaults."""
+    current = {
+        NOTIFICATION_QUIET_HOURS_FIELD: False,
+        NOTIFICATION_QUIET_START_FIELD: "21:00:00",
+        NOTIFICATION_QUIET_END_FIELD: "06:00:00",
+        NOTIFICATION_REMINDER_REPEAT_FIELD: 25,
+        NOTIFICATION_PRIORITY_FIELD: False,
+        NOTIFICATION_MOBILE_FIELD: True,
+    }
+
+    schema = build_notifications_schema(current, None)
+
+    assert _default(schema, NOTIFICATION_QUIET_HOURS_FIELD) is False
+    assert _default(schema, NOTIFICATION_QUIET_START_FIELD) == "21:00:00"
+    assert _default(schema, NOTIFICATION_QUIET_END_FIELD) == "06:00:00"
+    assert _default(schema, NOTIFICATION_REMINDER_REPEAT_FIELD) == 25
+    assert _default(schema, NOTIFICATION_PRIORITY_FIELD) is False
+    assert _default(schema, NOTIFICATION_MOBILE_FIELD) is True
+
+
+def test_notifications_schema_prefers_user_input_over_current_defaults() -> None:
+    """Notification schema should prefer staged user input values."""
+    current = {
+        NOTIFICATION_QUIET_HOURS_FIELD: False,
+        NOTIFICATION_QUIET_START_FIELD: "21:00:00",
+        NOTIFICATION_QUIET_END_FIELD: "06:00:00",
+        NOTIFICATION_REMINDER_REPEAT_FIELD: 25,
+        NOTIFICATION_PRIORITY_FIELD: False,
+        NOTIFICATION_MOBILE_FIELD: True,
+    }
+    user_input = {
+        NOTIFICATION_QUIET_HOURS_FIELD: True,
+        NOTIFICATION_QUIET_START_FIELD: "22:15:00",
+        NOTIFICATION_QUIET_END_FIELD: "07:15:00",
+        NOTIFICATION_REMINDER_REPEAT_FIELD: 45,
+        NOTIFICATION_PRIORITY_FIELD: True,
+        NOTIFICATION_MOBILE_FIELD: False,
+    }
+
+    schema = build_notifications_schema(current, user_input)
+
+    assert _default(schema, NOTIFICATION_QUIET_HOURS_FIELD) is True
+    assert _default(schema, NOTIFICATION_QUIET_START_FIELD) == "22:15:00"
+    assert _default(schema, NOTIFICATION_QUIET_END_FIELD) == "07:15:00"
+    assert _default(schema, NOTIFICATION_REMINDER_REPEAT_FIELD) == 45
+    assert _default(schema, NOTIFICATION_PRIORITY_FIELD) is True
+    assert _default(schema, NOTIFICATION_MOBILE_FIELD) is False
