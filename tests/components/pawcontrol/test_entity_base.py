@@ -9,7 +9,8 @@ import pytest
 pytest.importorskip("homeassistant")
 
 from custom_components.pawcontrol.entity import PawControlDogEntityBase
-from custom_components.pawcontrol.types import CoordinatorDogData
+from custom_components.pawcontrol.service_guard import ServiceGuardResult
+from custom_components.pawcontrol.types import CoordinatorDogData, CoordinatorRuntimeManagers
 
 
 class _DummyCoordinator:
@@ -18,6 +19,7 @@ class _DummyCoordinator:
     def __init__(self) -> None:
         self.available = True
         self.data: dict[str, CoordinatorDogData] = {}
+        self.config_entry = object()
         self.last_update_success = True
         self.last_update_success_time = datetime(2024, 1, 1, tzinfo=UTC)
         self.last_exception: Exception | None = None
@@ -62,6 +64,162 @@ def _make_entity() -> _EntityUnderTest:
     entity = _EntityUnderTest(cast(Any, coordinator), "dog-1", "Buddy")
     entity._set_cache_ttl(999.0)
     return entity
+
+
+def test_entity_name_device_class_and_icon_properties() -> None:
+    """Base entity property helpers should mirror configured attributes."""
+    entity = _make_entity()
+
+    entity._attr_name = "Tracker"
+    entity._attr_translation_key = "dog_tracker"
+    entity._attr_device_class = "enum"
+    entity._attr_icon = "mdi:dog"
+    assert entity.name == "Tracker"
+    assert entity.device_class == "enum"
+    assert entity.icon == "mdi:dog"
+
+    delattr(entity, "_attr_name")
+    assert entity.name is None
+
+
+def test_entity_extra_state_attributes_include_last_exception_details() -> None:
+    """Entity attributes should include coordinator exception context."""
+    entity = _make_entity()
+    entity.coordinator.last_exception = RuntimeError("update failed")
+
+    attrs = entity._build_base_state_attributes()
+
+    assert attrs["last_update_error"] == "update failed"
+    assert attrs["last_update_error_type"] == "RuntimeError"
+
+
+def test_update_device_metadata_delegates_to_link_mixin() -> None:
+    """update_device_metadata should pass through all provided kwargs."""
+    entity = _make_entity()
+    recorded: dict[str, object] = {}
+
+    def _capture(**details: object) -> None:
+        recorded.update(details)
+
+    entity._set_device_link_info = _capture  # type: ignore[method-assign]
+
+    entity.update_device_metadata(room="garden", floor=1)
+
+    assert recorded == {"room": "garden", "floor": 1}
+
+
+def test_runtime_manager_accessors_use_runtime_data_first(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runtime manager accessors should hydrate from runtime_data before fallback."""
+    entity = _make_entity()
+    entity.hass = cast(Any, object())
+
+    class _RuntimeData:
+        runtime_managers = CoordinatorRuntimeManagers()
+        data_manager = "dm"
+        notification_manager = "nm"
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.entity.get_runtime_data",
+        lambda _hass, _entry: _RuntimeData(),
+    )
+
+    managers = entity._get_runtime_managers()
+
+    assert managers.data_manager == "dm"
+    assert managers.notification_manager == "nm"
+    assert entity._get_data_manager() == "dm"
+    assert entity._get_notification_manager() == "nm"
+
+
+@pytest.mark.asyncio
+async def test_async_call_hass_service_delegates_to_guard_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """_async_call_hass_service should pass normalized context into helper."""
+    entity = _make_entity()
+    entity._attr_hass = object()
+    entity.entity_id = "sensor.dog_1"
+
+    captured: dict[str, object] = {}
+
+    async def _fake_async_call(
+        hass: object,
+        domain: str,
+        service: str,
+        service_data: object,
+        *,
+        blocking: bool,
+        description: str,
+        logger: object,
+    ) -> ServiceGuardResult:
+        captured.update({
+            "hass": hass,
+            "domain": domain,
+            "service": service,
+            "service_data": service_data,
+            "blocking": blocking,
+            "description": description,
+            "logger": logger,
+        })
+        return ServiceGuardResult(domain=domain, service=service, executed=True)
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.entity.async_call_hass_service_if_available",
+        _fake_async_call,
+    )
+
+    result = await entity._async_call_hass_service(
+        "notify",
+        "mobile_app",
+        {"message": "hi"},
+        blocking=True,
+    )
+
+    assert result.executed is True
+    assert captured["domain"] == "notify"
+    assert captured["service"] == "mobile_app"
+    assert captured["service_data"] == {"message": "hi"}
+    assert captured["blocking"] is True
+    assert captured["description"] == "dog dog-1 (sensor.dog_1)"
+
+
+def test_get_module_data_handles_unexpected_exception_and_invalid_payload() -> None:
+    """Unexpected lookup failures and non-mappings should return empty payloads."""
+    entity = _make_entity()
+
+    def _explode(_dog_id: str, _module: str) -> Mapping[str, object]:
+        raise RuntimeError("broken")
+
+    entity.coordinator.get_module_data = _explode  # type: ignore[attr-defined]
+    assert entity._get_module_data("health") == {}
+
+    entity.coordinator.get_module_data = (  # type: ignore[attr-defined]
+        lambda _dog_id, _module: "invalid"
+    )
+    assert entity._get_module_data("health") == {}
+
+
+def test_get_status_snapshot_uses_embedded_and_computed_payloads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Status snapshot should prefer embedded values and fallback to builder."""
+    entity = _make_entity()
+    entity.coordinator.data["dog-1"] = cast(
+        CoordinatorDogData,
+        {"status_snapshot": {"state": "ready"}},
+    )
+    assert entity._get_status_snapshot() == {"state": "ready"}
+
+    entity.coordinator.data["dog-1"] = cast(CoordinatorDogData, {"status": "idle"})
+    entity._dog_data_cache.clear()
+    entity._cache_timestamp.clear()
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.entity.build_dog_status_snapshot",
+        lambda dog_id, data: {"id": dog_id, "status": data.get("status")},
+    )
+    assert entity._get_status_snapshot() == {"id": "dog-1", "status": "idle"}
 
 
 def test_build_base_state_attributes_merges_dog_info() -> None:
