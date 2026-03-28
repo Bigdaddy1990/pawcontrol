@@ -1,6 +1,7 @@
 """Unit tests for service guard telemetry models."""
 
 from collections.abc import Iterator, MutableMapping
+from pathlib import Path
 
 import pytest
 
@@ -12,6 +13,31 @@ from custom_components.pawcontrol.service_guard import (
     normalise_guard_result_payload,
 )
 from custom_components.pawcontrol.types import JSONMutableMapping
+
+
+def test_service_guard_module_exec_preserves_public_helpers() -> None:
+    """Executing the module source should expose the documented helper symbols."""
+    module_globals: dict[str, object] = {
+        "__name__": "tests.service_guard_exec",
+        "__package__": "custom_components.pawcontrol",
+    }
+    module_code = Path("custom_components/pawcontrol/service_guard.py").read_text(
+        encoding="utf-8"
+    )
+
+    exec(
+        compile(
+            module_code,
+            "custom_components/pawcontrol/service_guard.py",
+            "exec",
+        ),
+        module_globals,
+    )
+
+    assert module_globals["ServiceGuardResult"] is not None
+    assert module_globals["ServiceGuardSnapshot"] is not None
+    assert callable(module_globals["normalise_guard_result_payload"])
+    assert callable(module_globals["normalise_guard_history"])
 
 
 def test_service_guard_result_to_mapping() -> None:
