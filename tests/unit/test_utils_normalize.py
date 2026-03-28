@@ -85,3 +85,25 @@ def test_normalize_value_normalizes_custom_iterables_recursively() -> None:
     normalized = normalize_value(_IterableOnly())
 
     assert normalized == [1, "2026-06-07T08:09:10"]
+
+
+def test_normalize_value_recurses_through_nested_collections() -> None:
+    """Nested mappings and sets should be normalized depth-first."""
+    payload = {
+        "nested": {
+            99: {
+                "events": {
+                    datetime(2026, 6, 7, 8, 9, 10),
+                    datetime(2026, 6, 7, 9, 10, 11),
+                },
+            },
+        },
+    }
+
+    normalized = normalize_value(payload)
+
+    assert list(normalized["nested"].keys()) == ["99"]
+    assert sorted(normalized["nested"]["99"]["events"]) == [
+        "2026-06-07T08:09:10",
+        "2026-06-07T09:10:11",
+    ]
