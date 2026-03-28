@@ -128,6 +128,11 @@ def test_current_feeding_options_prefers_dog_specific_and_falls_back() -> None:
         "feeding_reminders": False,
     }
 
+    invalid_legacy_flow = _FeedingFlow(
+        options={"feeding_settings": ["not", "a", "mapping"]}
+    )
+    assert invalid_legacy_flow._current_feeding_options("dog-1") == {}
+
 
 async def test_select_dog_for_feeding_settings_handles_navigation() -> None:
     """Dog selection should route to init for unknown dogs and to settings otherwise."""
