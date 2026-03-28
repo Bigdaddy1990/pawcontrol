@@ -1,5 +1,7 @@
 """Direct runtime coverage for ``utils.serialize`` module import paths."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import importlib.util
@@ -29,17 +31,30 @@ def _load_serialize_module(module_name: str) -> ModuleType:
 def test_module_import_updates_parent_re_exports(monkeypatch) -> None:
     """Import-time re-export wiring should attach helper functions to parent module."""
     parent_name = "custom_components.pawcontrol.utils"
+    serialize_name = "custom_components.pawcontrol.utils.serialize"
+    original_parent = sys.modules.get(parent_name)
+    original_serialize = sys.modules.get(serialize_name)
     parent_module = ModuleType(parent_name)
-    monkeypatch.setitem(sys.modules, parent_name, parent_module)
+    sys.modules[parent_name] = parent_module
+    try:
+        module = _load_serialize_module(serialize_name)
 
-    module = _load_serialize_module("custom_components.pawcontrol.utils.serialize")
-
-    assert parent_module.serialize_datetime is module.serialize_datetime
-    assert parent_module.serialize_timedelta is module.serialize_timedelta
-    assert parent_module.serialize_dataclass is module.serialize_dataclass
-    assert (
-        parent_module.serialize_entity_attributes is module.serialize_entity_attributes
-    )
+        assert parent_module.serialize_datetime is module.serialize_datetime
+        assert parent_module.serialize_timedelta is module.serialize_timedelta
+        assert parent_module.serialize_dataclass is module.serialize_dataclass
+        assert (
+            parent_module.serialize_entity_attributes
+            is module.serialize_entity_attributes
+        )
+    finally:
+        if original_serialize is None:
+            sys.modules.pop(serialize_name, None)
+        else:
+            sys.modules[serialize_name] = original_serialize
+        if original_parent is None:
+            sys.modules.pop(parent_name, None)
+        else:
+            sys.modules[parent_name] = original_parent
 
 
 @dataclass(slots=True)
