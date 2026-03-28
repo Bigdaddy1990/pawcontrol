@@ -5,11 +5,15 @@ from datetime import UTC, datetime
 import pytest
 
 from custom_components.pawcontrol.exceptions import (
+    ErrorCategory,
     ErrorSeverity,
     GPSError,
     PawControlError,
+    ServiceUnavailableError,
+    get_exception_class,
     create_error_context,
     handle_exception_gracefully,
+    raise_from_error_code,
 )
 from custom_components.pawcontrol.types import GPSLocation
 
@@ -82,3 +86,46 @@ def test_handle_exception_gracefully_reraises_critical() -> None:
 
     with pytest.raises(PawControlError):
         wrapped()
+
+
+def test_handle_exception_gracefully_swallows_unexpected_when_configured() -> None:
+    """Unexpected exceptions should return default when reraise is disabled."""
+
+    wrapped = handle_exception_gracefully(
+        lambda: (_ for _ in ()).throw(RuntimeError("boom")),
+        default_return="fallback",
+        log_errors=False,
+        reraise_critical=False,
+    )
+
+    assert wrapped() == "fallback"
+
+
+def test_get_exception_class_known_and_unknown_codes() -> None:
+    """Exception lookup should resolve known codes and reject unknown ones."""
+    assert get_exception_class("service_unavailable") is ServiceUnavailableError
+
+    with pytest.raises(KeyError, match="Unknown error code"):
+        get_exception_class("does_not_exist")
+
+
+def test_raise_from_error_code_honors_context_and_category() -> None:
+    """raise_from_error_code should pass custom context/category to exceptions."""
+    with pytest.raises(PawControlError) as exc_info:
+        raise_from_error_code(
+            "custom_error",
+            "Custom message",
+            category=ErrorCategory.DATA,
+            context={"dog_id": "spot"},
+        )
+
+    error = exc_info.value
+    assert error.error_code == "custom_error"
+    assert error.category is ErrorCategory.DATA
+    assert error.context["dog_id"] == "spot"
+
+
+def test_raise_from_error_code_known_code_with_strict_signature() -> None:
+    """Known codes currently bubble constructor signature mismatches."""
+    with pytest.raises(TypeError, match="unexpected keyword argument 'error_code'"):
+        raise_from_error_code("service_unavailable", "api down")
