@@ -185,3 +185,47 @@ def test_strip_url_credentials_logs_debug_when_url_parsing_fails(
         "Failed to strip credentials from PawControl URL: %s",
         "ValueError",
     )
+
+
+def test_strip_url_credentials_brackets_ipv6_host_and_preserves_port(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Credential stripping should normalize IPv6 hosts before rebuilding URLs."""
+
+    class _Parsed:
+        username = "walker"
+        password = "secret"
+        hostname = "2001:db8::10"
+        port = 9443
+        scheme = "https"
+        path = "/api"
+        query = "dog=luna"
+        fragment = "status"
+
+    monkeypatch.setattr(logging_utils, "urlsplit", lambda _url: _Parsed())
+
+    assert (
+        logging_utils._strip_url_credentials("https://ignored")
+        == "https://[2001:db8::10]:9443/api?dog=luna#status"
+    )
+
+
+def test_strip_url_credentials_returns_original_when_hostname_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Credential stripping should gracefully keep URLs with missing hostnames."""
+
+    class _Parsed:
+        username = "walker"
+        password = "secret"
+        hostname = None
+        port = None
+        scheme = "https"
+        path = "/api"
+        query = ""
+        fragment = ""
+
+    monkeypatch.setattr(logging_utils, "urlsplit", lambda _url: _Parsed())
+
+    original = "https://ignored"
+    assert logging_utils._strip_url_credentials(original) == original
