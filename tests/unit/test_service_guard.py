@@ -1,8 +1,8 @@
 """Unit tests for service guard telemetry models."""
 
 from collections.abc import Iterator, MutableMapping
-from pathlib import Path
 import importlib.util
+from pathlib import Path
 import sys
 from types import ModuleType
 
@@ -61,6 +61,8 @@ def test_service_guard_module_load_keeps_public_api_available(tmp_path) -> None:
     assert module.ServiceGuardSnapshot.__name__ == "ServiceGuardSnapshot"
     assert module.normalise_guard_history([]) == []
     assert module._coerce_int("3") == 3
+
+
 def test_service_guard_module_exec_preserves_public_helpers() -> None:
     """Executing the module source should expose the documented helper symbols."""
     module_globals: dict[str, object] = {
