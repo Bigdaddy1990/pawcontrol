@@ -5,7 +5,10 @@ Tests JSON serialization utilities for entity attributes.
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
+import runpy
 from types import MappingProxyType
+from types import ModuleType
 
 import pytest
 
@@ -15,6 +18,35 @@ from custom_components.pawcontrol.utils.serialize import (
     serialize_entity_attributes,
     serialize_timedelta,
 )
+
+
+def test_serialize_module_reload_syncs_package_reexports() -> None:
+    """Executing serialize module should refresh package-level re-exports."""
+    package_name = "custom_components.pawcontrol.utils"
+    package_module = ModuleType(package_name)
+    package_module.__path__ = []
+
+    monkeypatched_modules = __import__("sys").modules
+    original_package = monkeypatched_modules.get(package_name)
+    monkeypatched_modules[package_name] = package_module
+
+    try:
+        module_globals = runpy.run_path(
+            str(Path("custom_components/pawcontrol/utils/serialize.py"))
+        )
+    finally:
+        if original_package is None:
+            monkeypatched_modules.pop(package_name, None)
+        else:
+            monkeypatched_modules[package_name] = original_package
+
+    assert package_module.serialize_datetime is module_globals["serialize_datetime"]
+    assert package_module.serialize_timedelta is module_globals["serialize_timedelta"]
+    assert package_module.serialize_dataclass is module_globals["serialize_dataclass"]
+    assert (
+        package_module.serialize_entity_attributes
+        is module_globals["serialize_entity_attributes"]
+    )
 
 
 def test_serialize_datetime() -> None:
