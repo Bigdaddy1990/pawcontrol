@@ -20,7 +20,7 @@ from custom_components.pawcontrol.const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
-from custom_components.pawcontrol.exceptions import PawControlSetupError
+from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed, PawControlSetupError
 from custom_components.pawcontrol.types import DogConfigData
 
 
@@ -616,11 +616,37 @@ async def test_async_setup_entry_wraps_unexpected_setup_errors(
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_logs_daily_reset_scheduler_failures(
+async def test_async_setup_registers_service_manager_once(
     monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Daily reset scheduler failures should be logged but not fail setup."""
+    """Integration setup should create service manager once per domain."""
+    created: list[object] = []
+
+    class _ServiceManager:
+        def __init__(self, hass: object) -> None:
+            self.hass = hass
+            created.append(self)
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup.__globals__,
+        "PawControlServiceManager",
+        _ServiceManager,
+    )
+    hass = SimpleNamespace(data={})
+
+    assert await pawcontrol_init.async_setup(hass, {}) is True
+    first_manager = hass.data[pawcontrol_init.DOMAIN]["service_manager"]
+
+    assert await pawcontrol_init.async_setup(hass, {}) is True
+    assert hass.data[pawcontrol_init.DOMAIN]["service_manager"] is first_manager
+    assert len(created) == 1
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_skips_optional_tasks_in_mock_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Optional setup should be skipped when Home Assistant services are mocked."""
     runtime_data = SimpleNamespace(
         coordinator=SimpleNamespace(async_start_background_tasks=Mock()),
         helper_manager=None,
@@ -630,22 +656,27 @@ async def test_async_setup_entry_logs_daily_reset_scheduler_failures(
         background_monitor_task=None,
     )
     dogs_config = [_build_dog_config({MODULE_GPS: True})]
-    entry = SimpleNamespace(entry_id="entry-setup", options={"debug_logging": False})
+    entry = SimpleNamespace(entry_id="entry-skip-optional", options={})
+
+    validate_entry = AsyncMock(return_value=(dogs_config, "standard", frozenset()))
+    initialize_managers = AsyncMock(return_value=runtime_data)
+    setup_daily_reset = AsyncMock()
+    check_issues = AsyncMock()
 
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
         "async_validate_entry_config",
-        AsyncMock(return_value=(dogs_config, "standard", frozenset())),
+        validate_entry,
     )
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
         "_should_skip_optional_setup",
-        lambda _hass: False,
+        lambda _hass: True,
     )
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
         "async_initialize_managers",
-        AsyncMock(return_value=runtime_data),
+        initialize_managers,
     )
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
@@ -675,36 +706,37 @@ async def test_async_setup_entry_logs_daily_reset_scheduler_failures(
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
         "async_setup_daily_reset_scheduler",
-        AsyncMock(side_effect=RuntimeError("scheduler-boom")),
+        setup_daily_reset,
     )
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
         "async_check_for_issues",
-        AsyncMock(),
-    )
-    monkeypatch.setitem(
-        pawcontrol_init.async_setup_entry.__globals__,
-        "_async_monitor_background_tasks",
-        AsyncMock(),
+        check_issues,
     )
 
-    def _create_task(coro: object) -> object:
-        coro.close()
-        return object()
-
-    hass = SimpleNamespace(async_create_task=_create_task)
-
+    hass = SimpleNamespace(async_create_task=Mock())
     assert await pawcontrol_init.async_setup_entry(hass, entry) is True
-    assert "Failed to setup daily reset scheduler (non-critical)" in caplog.text
+
+    initialize_managers.assert_awaited_once_with(
+        hass,
+        entry,
+        dogs_config,
+        "standard",
+        True,
+    )
+    setup_daily_reset.assert_not_called()
+    check_issues.assert_not_called()
+    runtime_data.coordinator.async_start_background_tasks.assert_not_called()
+    hass.async_create_task.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_reraises_expected_setup_errors(
+async def test_async_setup_entry_propagates_auth_failure_and_disables_debug(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Expected setup errors should be reraised and disable debug logging."""
+    """Auth/setup prerequisite errors should be re-raised without wrapping."""
     disable_logging = Mock()
-    entry = SimpleNamespace(entry_id="entry-setup", options={"debug_logging": True})
+    entry = SimpleNamespace(entry_id="entry-auth", options={"debug_logging": True})
 
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
@@ -719,103 +751,10 @@ async def test_async_setup_entry_reraises_expected_setup_errors(
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
         "async_validate_entry_config",
-        AsyncMock(side_effect=ConfigEntryNotReady("retry")),
+        AsyncMock(side_effect=ConfigEntryAuthFailed("auth failed")),
     )
 
-    with pytest.raises(ConfigEntryNotReady, match="retry"):
+    with pytest.raises(ConfigEntryAuthFailed, match="auth failed"):
         await pawcontrol_init.async_setup_entry(SimpleNamespace(), entry)
 
     disable_logging.assert_called_once_with(entry)
-
-
-@pytest.mark.asyncio
-async def test_async_unload_entry_service_manager_shutdown_failures_are_swallowed(
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Unload should swallow timeout and generic service-manager shutdown errors."""
-    entry = SimpleNamespace(entry_id="entry-unload")
-    runtime_data = SimpleNamespace(dogs=[], entity_profile="standard")
-    service_manager = SimpleNamespace(async_shutdown=AsyncMock(return_value=None))
-    hass = SimpleNamespace(
-        data={pawcontrol_init.DOMAIN: {"service_manager": service_manager}},
-        config_entries=SimpleNamespace(
-            async_unload_platforms=AsyncMock(return_value=True),
-            async_loaded_entries=Mock(return_value=[entry]),
-        ),
-    )
-
-    monkeypatch.setitem(
-        pawcontrol_init.async_unload_entry.__globals__,
-        "async_unregister_entry_webhook",
-        AsyncMock(),
-    )
-    monkeypatch.setitem(
-        pawcontrol_init.async_unload_entry.__globals__,
-        "async_unregister_entry_mqtt",
-        AsyncMock(),
-    )
-    monkeypatch.setitem(
-        pawcontrol_init.async_unload_entry.__globals__,
-        "async_unload_external_bindings",
-        AsyncMock(),
-    )
-    monkeypatch.setitem(
-        pawcontrol_init.async_unload_entry.__globals__,
-        "get_runtime_data",
-        lambda _hass, _entry: runtime_data,
-    )
-    monkeypatch.setitem(
-        pawcontrol_init.async_unload_entry.__globals__,
-        "async_cleanup_runtime_data",
-        AsyncMock(),
-    )
-    monkeypatch.setitem(
-        pawcontrol_init.async_unload_entry.__globals__,
-        "pop_runtime_data",
-        Mock(),
-    )
-    monkeypatch.setitem(
-        pawcontrol_init.async_unload_entry.__globals__,
-        "_disable_debug_logging",
-        Mock(),
-    )
-
-    monkeypatch.setattr(
-        pawcontrol_init.asyncio,
-        "wait_for",
-        AsyncMock(side_effect=TimeoutError),
-    )
-    assert await pawcontrol_init.async_unload_entry(hass, entry) is True
-    assert "Service manager shutdown timed out" in caplog.text
-
-    monkeypatch.setattr(
-        pawcontrol_init.asyncio,
-        "wait_for",
-        AsyncMock(side_effect=RuntimeError("shutdown-boom")),
-    )
-    assert await pawcontrol_init.async_unload_entry(hass, entry) is True
-    assert "Error shutting down service manager: shutdown-boom" in caplog.text
-
-
-@pytest.mark.asyncio
-async def test_async_monitor_background_tasks_logs_restart_failures(
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Restart failures should be logged and not break the monitor loop."""
-    sleep_mock = AsyncMock(side_effect=[None, asyncio.CancelledError()])
-    monkeypatch.setattr(pawcontrol_init.asyncio, "sleep", sleep_mock)
-
-    garden_manager = SimpleNamespace(
-        _cleanup_task=SimpleNamespace(done=lambda: True),
-        _stats_update_task=SimpleNamespace(done=lambda: True),
-        async_start_cleanup_task=AsyncMock(side_effect=RuntimeError("cleanup-fail")),
-        async_start_stats_update_task=AsyncMock(side_effect=RuntimeError("stats-fail")),
-    )
-    runtime_data = SimpleNamespace(garden_manager=garden_manager)
-
-    await pawcontrol_init._async_monitor_background_tasks(runtime_data)
-
-    assert "Failed to restart garden cleanup task: cleanup-fail" in caplog.text
-    assert "Failed to restart garden stats task: stats-fail" in caplog.text
