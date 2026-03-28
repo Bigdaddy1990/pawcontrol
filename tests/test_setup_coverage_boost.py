@@ -1,5 +1,6 @@
 """Additional setup-layer coverage regression tests."""
 
+import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -227,3 +228,117 @@ async def test_optional_setup_managers_skip_notifications_when_no_items_created(
     helper_create.assert_awaited_once()
     script_create.assert_awaited_once()
     notify.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_coordinator_skips_optional_calls_when_disabled() -> None:
+    """Coordinator setup should be bypassed when optional setup is skipped."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(),
+    )
+
+    await manager_init._async_initialize_coordinator(coordinator, True)
+
+    coordinator.async_prepare_entry.assert_not_awaited()
+    coordinator.async_config_entry_first_refresh.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_coordinator_wraps_network_errors() -> None:
+    """Network failures during pre-setup should raise ConfigEntryNotReady."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    coordinator = SimpleNamespace(async_prepare_entry=AsyncMock(side_effect=OSError("nope")))
+
+    with pytest.raises(manager_init.ConfigEntryNotReady, match="Network connectivity"):
+        await manager_init._async_initialize_coordinator(coordinator, False)
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_coordinator_wraps_refresh_network_errors() -> None:
+    """Network failures during first refresh should raise ConfigEntryNotReady."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(side_effect=ConnectionError("down")),
+    )
+
+    with pytest.raises(manager_init.ConfigEntryNotReady, match="coordinator setup"):
+        await manager_init._async_initialize_coordinator(coordinator, False)
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_manager_with_timeout_logs_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timeouts should be re-raised after emitting an error log."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    async def _never() -> None:
+        await asyncio.sleep(0)
+
+    fake_logger = MagicMock()
+    monkeypatch.setattr(manager_init, "_LOGGER", fake_logger)
+
+    with pytest.raises(TimeoutError):
+        await manager_init._async_initialize_manager_with_timeout(
+            "demo",
+            _never(),
+            timeout=0,
+        )
+
+    fake_logger.error.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_geofencing_manager_uses_per_dog_overrides() -> None:
+    """Per-dog geofence settings should override global defaults."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    geofencing_manager = SimpleNamespace(async_initialize=AsyncMock())
+    entry = SimpleNamespace(
+        options={
+            "geofence_settings": {
+                "geofencing_enabled": False,
+                "use_home_location": False,
+                "geofence_radius_m": 25,
+            },
+            "dog_options": {
+                "dog-a": {
+                    "geofence_settings": {
+                        "geofencing_enabled": True,
+                        "use_home_location": True,
+                        "geofence_radius_m": 120,
+                    }
+                },
+                "dog-b": {
+                    "geofence_settings": {
+                        "geofencing_enabled": False,
+                        "use_home_location": False,
+                        "geofence_radius_m": 90,
+                    }
+                },
+            },
+        }
+    )
+
+    tasks: list[asyncio.Task[None]] = []
+    await manager_init._async_initialize_geofencing_manager(
+        geofencing_manager,
+        ["dog-a", "dog-b"],
+        entry,
+        tasks,
+    )
+
+    assert len(tasks) == 1
+    await asyncio.gather(*tasks)
+    geofencing_manager.async_initialize.assert_awaited_once_with(
+        dogs=["dog-a", "dog-b"],
+        enabled=True,
+        use_home_location=True,
+        home_zone_radius=120,
+    )
