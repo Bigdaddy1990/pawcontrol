@@ -158,6 +158,14 @@ def test_data_hasher_supports_alternate_algorithm() -> None:
     assert hashed == hashlib.sha512(b"paw-buddy").hexdigest()
 
 
+def test_data_hasher_raises_for_unknown_algorithm() -> None:
+    """Hasher should surface invalid hashlib algorithms as attribute errors."""
+    hasher = DataHasher(algorithm="definitely_not_real")
+
+    with pytest.raises(AttributeError):
+        hasher.hash_string("buddy")
+
+
 @pytest.mark.asyncio
 async def test_privacy_manager_sanitizes_and_prepares_diagnostics() -> None:
     """Privacy manager should combine redaction, GPS anonymization, and hashing."""
@@ -245,6 +253,19 @@ async def test_sanitize_return_value_decorator_handles_toggles() -> None:
     assert scalar == "plain-text"
 
 
+@pytest.mark.asyncio
+async def test_sanitize_return_value_skips_partial_gps_payload() -> None:
+    """Decorator should only anonymize coordinates when both keys are present."""
+
+    @sanitize_return_value(redact_pii=False, anonymize_gps=True)
+    async def get_partial_payload() -> dict[str, Any]:
+        return {"latitude": 1.23456, "label": "park"}
+
+    payload = await get_partial_payload()
+
+    assert payload == {"latitude": 1.23456, "label": "park"}
+
+
 def test_mask_and_user_id_helpers() -> None:
     """Utility helpers should mask strings and anonymize IDs."""
     assert mask_string("secret", visible_chars=2) == "se****"
@@ -253,6 +274,20 @@ def test_mask_and_user_id_helpers() -> None:
 
     anon = anonymize_user_id("user_12345")
     assert re.fullmatch(r"user_[0-9a-f]{8}", anon)
+
+
+@pytest.mark.asyncio
+async def test_privacy_manager_hash_fields_require_string_values() -> None:
+    """Hashing should leave non-string target fields unchanged."""
+    manager = PrivacyManager(hass=object())
+
+    sanitized = await manager.async_sanitize_data(
+        {"device_id": 12345, "email": "person@example.com"},
+        hash_fields=["device_id"],
+    )
+
+    assert sanitized["device_id"] == 12345
+    assert sanitized["email"] == "[EMAIL]"
 
 
 @pytest.mark.asyncio
