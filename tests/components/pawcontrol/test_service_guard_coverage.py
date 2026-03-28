@@ -1,7 +1,5 @@
 """Additional branch coverage for service guard telemetry helpers."""
 
-from __future__ import annotations
-
 from collections.abc import MutableMapping
 
 import pytest
