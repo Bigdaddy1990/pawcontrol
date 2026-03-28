@@ -1277,6 +1277,10 @@ pytest
 ```bash
 # Run full test suite
 pytest --cov=custom_components.pawcontrol --cov-report=html
+
+# Verify setup package coverage stays complete
+pytest -q -o addopts="" tests/test_setup_*.py tests/unit/test_setup_*.py tests/components/pawcontrol/test_setup_*.py \
+  --cov=custom_components/pawcontrol/setup --cov-report=term-missing --cov-fail-under=100
 ```
 
 **Contribution Process**:
