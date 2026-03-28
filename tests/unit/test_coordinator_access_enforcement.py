@@ -201,6 +201,17 @@ def test_log_direct_access_warning_includes_recommendation() -> None:
     assert "coordinator.get_dog_data()" in logger.warning.call_args[0][0]
 
 
+def test_log_direct_access_warning_without_recommendation() -> None:
+    """Direct access warning should omit recommendation when not provided."""
+    with patch(
+        "custom_components.pawcontrol.coordinator_access_enforcement._LOGGER"
+    ) as logger:
+        log_direct_access_warning("sensor.buddy", "cache")
+
+    logger.warning.assert_called_once()
+    assert "instead" not in logger.warning.call_args[0][0]
+
+
 def test_coordinator_data_proxy_access_tracking() -> None:
     """Proxy should track all access methods."""
     proxy = CoordinatorDataProxy({"buddy": {"name": "Buddy"}}, "sensor.paw")
@@ -209,6 +220,23 @@ def test_coordinator_data_proxy_access_tracking() -> None:
     assert proxy["buddy"] == {"name": "Buddy"}
     assert proxy.get("missing", "fallback") == "fallback"
     assert proxy.access_count == 2
+
+
+def test_coordinator_data_proxy_without_logging() -> None:
+    """Proxy should support access counting even when debug logging is disabled."""
+    proxy = CoordinatorDataProxy(
+        {"buddy": {"name": "Buddy"}},
+        "sensor.paw",
+        log_access=False,
+    )
+
+    with patch(
+        "custom_components.pawcontrol.coordinator_access_enforcement._LOGGER"
+    ) as logger:
+        assert proxy.get("buddy") == {"name": "Buddy"}
+
+    assert proxy.access_count == 1
+    logger.debug.assert_not_called()
 
 
 def test_validate_coordinator_usage_warns_for_saturation() -> None:
@@ -232,6 +260,21 @@ def test_validate_coordinator_usage_warns_for_saturation() -> None:
     assert result["issue_count"] == 2
     assert "Coordinator data is None" in result["issues"]
     logger.warning.assert_called_once()
+
+
+def test_validate_coordinator_usage_without_warnings_in_normal_state() -> None:
+    """Validation should stay quiet when optional managers are absent in quiet mode."""
+    runtime_managers = SimpleNamespace(data_manager=object(), feeding_manager=None)
+    coordinator = SimpleNamespace(data={"buddy": {}}, runtime_managers=runtime_managers)
+
+    with patch(
+        "custom_components.pawcontrol.coordinator_access_enforcement._LOGGER"
+    ) as logger:
+        result = validate_coordinator_usage(coordinator, log_warnings=False)
+
+    assert result == {"has_issues": False, "issue_count": 0, "issues": []}
+    logger.warning.assert_not_called()
+    logger.debug.assert_not_called()
 
 
 def test_create_coordinator_access_guard_strict_mode_logs_info() -> None:
