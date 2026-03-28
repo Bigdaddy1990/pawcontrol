@@ -162,7 +162,7 @@ class TestWalkErrorScenarios:
         walk_data = {"walk_in_progress": True}
 
         if walk_data["walk_in_progress"]:
-            error = error_cls("dog_1")
+            error = WalkAlreadyInProgressError("dog_1")
             assert "dog_1" in str(error)
 
     def test_walk_not_in_progress_error(self) -> None:
@@ -174,7 +174,7 @@ class TestWalkErrorScenarios:
         walk_data = {"walk_in_progress": False}
 
         if not walk_data["walk_in_progress"]:
-            error = error_cls("dog_1")
+            error = WalkNotInProgressError("dog_1")
             assert "dog_1" in str(error)
 
 
