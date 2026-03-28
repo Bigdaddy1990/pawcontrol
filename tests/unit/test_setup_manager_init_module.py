@@ -613,6 +613,41 @@ async def test_async_initialize_geofencing_manager_falls_back_to_safe_defaults(
 
 
 @pytest.mark.asyncio
+async def test_async_initialize_geofencing_manager_uses_builtin_default_home_location(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing geofence settings should default to home-location mode."""
+    geofencing_manager = SimpleNamespace(async_initialize=AsyncMock())
+
+    async def _capture_initialization(
+        _manager_name: str, coro: object, **_: object
+    ) -> None:
+        await coro
+
+    monkeypatch.setattr(
+        manager_init,
+        "_async_initialize_manager_with_timeout",
+        _capture_initialization,
+    )
+
+    initialization_tasks: list[asyncio.Task[None]] = []
+    await manager_init._async_initialize_geofencing_manager(
+        geofencing_manager,
+        ["buddy"],
+        SimpleNamespace(options={}),
+        initialization_tasks,
+    )
+    await asyncio.gather(*initialization_tasks)
+
+    geofencing_manager.async_initialize.assert_awaited_once_with(
+        dogs=["buddy"],
+        enabled=False,
+        use_home_location=True,
+        home_zone_radius=50,
+    )
+
+
+@pytest.mark.asyncio
 async def test_async_initialize_manager_with_timeout_success() -> None:
     """Successful initialization should complete without raising."""
     await manager_init._async_initialize_manager_with_timeout(
