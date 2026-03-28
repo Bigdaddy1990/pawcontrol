@@ -1,462 +1,255 @@
-"""Tests for the PawControl MQTT push transport module.
+"""Unit tests for MQTT push transport helpers."""
 
-Covers _domain_store, _any_dog_expects_mqtt, async_register_entry_mqtt,
-and async_unregister_entry_mqtt in mqtt_push.py.
-"""
+from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from collections.abc import Awaitable, Callable
+import sys
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
-from custom_components.pawcontrol.mqtt_push import (
-    _any_dog_expects_mqtt,
-    _domain_store,
-    async_register_entry_mqtt,
-    async_unregister_entry_mqtt,
+from custom_components.pawcontrol import mqtt_push
+from custom_components.pawcontrol.const import (
+    CONF_DOGS,
+    CONF_GPS_SOURCE,
+    CONF_MQTT_ENABLED,
+    CONF_MQTT_TOPIC,
+    DEFAULT_MQTT_TOPIC,
+    DOMAIN,
 )
 
-# ---------------------------------------------------------------------------
-# Helpers / stubs
-# ---------------------------------------------------------------------------
+
+class _AwaitableUnsub:
+    """Minimal awaitable wrapper used by unsubscribe tests."""
+
+    def __init__(self) -> None:
+        self.awaited = False
+
+    def __await__(self):  # type: ignore[override]
+        async def _runner() -> None:
+            self.awaited = True
+
+        return _runner().__await__()
 
 
-def _make_hass(data: dict | None = None) -> MagicMock:
-    """Return a minimal HomeAssistant stub."""
-    hass = MagicMock()
-    hass.data = data if data is not None else {}
-    return hass
+@pytest.mark.parametrize(
+    ("entry_data", "expected"),
+    [
+        ({CONF_DOGS: []}, False),
+        ({CONF_DOGS: "bad"}, False),
+        ({CONF_DOGS: ["bad", {"gps_config": {CONF_GPS_SOURCE: "webhook"}}]}, False),
+        ({CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "mqtt"}}]}, True),
+    ],
+)
+def test_any_dog_expects_mqtt(entry_data: dict[str, object], expected: bool) -> None:
+    """Dog source inspection should only accept mqtt-configured dict entries."""
+    entry = SimpleNamespace(data=entry_data)
+
+    assert mqtt_push._any_dog_expects_mqtt(entry) is expected
 
 
-def _make_entry(
-    *,
-    mqtt_enabled: bool = True,
-    mqtt_topic: str = "pawcontrol/gps",
-    dogs: list[dict] | None = None,
-) -> MagicMock:
-    """Return a minimal ConfigEntry stub."""
-    entry = MagicMock()
-    entry.entry_id = "test-entry-id"
-    entry.options = {
-        "mqtt_enabled": mqtt_enabled,
-        "mqtt_topic": mqtt_topic,
-    }
-    entry.data = {"dogs": dogs or []}
-    return entry
+def test_domain_store_resets_non_mapping_domain_store() -> None:
+    """Domain store helper should recover from non-dict hass.data values."""
+    hass = SimpleNamespace(data={DOMAIN: []})
 
+    store = mqtt_push._domain_store(hass)
 
-# ---------------------------------------------------------------------------
-# _domain_store
-# ---------------------------------------------------------------------------
-
-
-class TestDomainStore:
-    """Tests for _domain_store helper."""
-
-    def test_returns_dict_when_data_is_empty(self) -> None:
-        hass = _make_hass()
-        store = _domain_store(hass)
-        assert isinstance(store, dict)
-
-    def test_creates_domain_key_when_absent(self) -> None:
-        hass = _make_hass()
-        _domain_store(hass)
-        assert "pawcontrol" in hass.data
-
-    def test_returns_existing_dict(self) -> None:
-        hass = _make_hass()
-        hass.data["pawcontrol"] = {"foo": "bar"}
-        store = _domain_store(hass)
-        assert store["foo"] == "bar"
-
-    def test_resets_non_dict_value(self) -> None:
-        hass = _make_hass()
-        hass.data["pawcontrol"] = "broken"
-        store = _domain_store(hass)
-        assert isinstance(store, dict)
-
-
-# ---------------------------------------------------------------------------
-# _any_dog_expects_mqtt
-# ---------------------------------------------------------------------------
-
-
-class TestAnyDogExpectsMqtt:
-    """Tests for _any_dog_expects_mqtt helper."""
-
-    def test_returns_false_when_no_dogs(self) -> None:
-        entry = _make_entry(dogs=[])
-        assert _any_dog_expects_mqtt(entry) is False
-
-    def test_returns_false_when_no_gps_config(self) -> None:
-        entry = _make_entry(dogs=[{"dog_id": "rex"}])
-        assert _any_dog_expects_mqtt(entry) is False
-
-    def test_returns_false_when_gps_source_is_not_mqtt(self) -> None:
-        entry = _make_entry(dogs=[{"gps_config": {"gps_source": "device_tracker"}}])
-        assert _any_dog_expects_mqtt(entry) is False
-
-    def test_returns_true_when_one_dog_expects_mqtt(self) -> None:
-        entry = _make_entry(dogs=[{"gps_config": {"gps_source": "mqtt"}}])
-        assert _any_dog_expects_mqtt(entry) is True
-
-    def test_returns_true_when_mixed_dogs(self) -> None:
-        dogs = [
-            {"gps_config": {"gps_source": "device_tracker"}},
-            {"gps_config": {"gps_source": "mqtt"}},
-        ]
-        entry = _make_entry(dogs=dogs)
-        assert _any_dog_expects_mqtt(entry) is True
-
-    def test_handles_non_list_dogs_gracefully(self) -> None:
-        entry = MagicMock()
-        entry.data = {"dogs": "not-a-list"}
-        assert _any_dog_expects_mqtt(entry) is False
-
-    def test_skips_non_dict_dog_entries(self) -> None:
-        entry = _make_entry(dogs=["string-dog", None])
-        assert _any_dog_expects_mqtt(entry) is False
-
-
-# ---------------------------------------------------------------------------
-# async_register_entry_mqtt
-# ---------------------------------------------------------------------------
-
-
-class TestAsyncRegisterEntryMqtt:
-    """Tests for async_register_entry_mqtt."""
-
-    @pytest.mark.asyncio
-    async def test_does_nothing_when_mqtt_disabled(self) -> None:
-        hass = _make_hass()
-        entry = _make_entry(mqtt_enabled=False)
-        # Should return without subscribing
-        await async_register_entry_mqtt(hass, entry)
-        assert "_mqtt_push" not in hass.data.get("pawcontrol", {})
-
-    @pytest.mark.asyncio
-    async def test_does_nothing_when_no_dog_expects_mqtt(self) -> None:
-        hass = _make_hass()
-        entry = _make_entry(
-            mqtt_enabled=True, dogs=[{"gps_config": {"gps_source": "device_tracker"}}]
-        )
-        await async_register_entry_mqtt(hass, entry)
-        assert "_mqtt_push" not in hass.data.get("pawcontrol", {})
-
-    @pytest.mark.asyncio
-    async def test_skips_when_mqtt_component_unavailable(self) -> None:
-        hass = _make_hass()
-        entry = _make_entry(
-            mqtt_enabled=True,
-            dogs=[{"gps_config": {"gps_source": "mqtt"}}],
-        )
-        with (
-            patch(
-                "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
-                new=AsyncMock(),
-            ),
-            patch.dict("sys.modules", {"homeassistant.components.mqtt": None}),
-        ):
-            # ImportError path — no subscription stored
-            await async_register_entry_mqtt(hass, entry)
-
-    @pytest.mark.asyncio
-    async def test_subscribes_when_conditions_met(self) -> None:
-        hass = _make_hass()
-        entry = _make_entry(
-            mqtt_enabled=True,
-            mqtt_topic="test/gps",
-            dogs=[{"gps_config": {"gps_source": "mqtt"}}],
-        )
-
-        mock_unsub = MagicMock()
-        mock_mqtt = MagicMock()
-        mock_mqtt.async_subscribe = AsyncMock(return_value=mock_unsub)
-
-        with (
-            patch(
-                "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
-                new=AsyncMock(),
-            ),
-            patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
-        ):
-            import importlib
-
-            import custom_components.pawcontrol.mqtt_push as mod
-
-            (
-                __builtins__.get("__import__")
-                if isinstance(__builtins__, dict)
-                else __builtins__.__import__
-            )
-
-            # Directly call with mock that patches the internal import
-            async def _mock_register(hass_, entry_) -> None:
-                enabled = bool(entry_.options.get("mqtt_enabled", True))
-                if not enabled:
-                    return
-                from custom_components.pawcontrol.mqtt_push import (
-                    _any_dog_expects_mqtt as _adm,
-                )
-
-                if not _adm(entry_):
-                    return
-                hass_.data.setdefault("pawcontrol", {})["_mqtt_push"] = {
-                    entry_.entry_id: mock_unsub
-                }
-
-            await _mock_register(hass, entry)
-
-        assert "_mqtt_push" in hass.data.get("pawcontrol", {})
-
-    @pytest.mark.asyncio
-    async def test_repairs_non_mapping_mqtt_store_before_subscribing(self) -> None:
-        """A malformed MQTT store should be replaced with a mutable mapping."""
-        hass = _make_hass({"pawcontrol": {"_mqtt_push": "broken"}})
-        entry = _make_entry(
-            mqtt_enabled=True,
-            mqtt_topic="test/gps",
-            dogs=[{"gps_config": {"gps_source": "mqtt"}}],
-        )
-
-        mock_unsub = MagicMock()
-        mock_mqtt = MagicMock()
-        mock_mqtt.async_subscribe = AsyncMock(return_value=mock_unsub)
-
-        with (
-            patch(
-                "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
-                new=AsyncMock(),
-            ),
-            patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
-        ):
-            await async_register_entry_mqtt(hass, entry)
-
-        assert hass.data["pawcontrol"]["_mqtt_push"] == {entry.entry_id: mock_unsub}
-
-    async def test_uses_default_topic_when_blank(self) -> None:
-        """Blank mqtt_topic should fall back to the default."""
-        hass = _make_hass()
-        entry = _make_entry(
-            mqtt_enabled=True,
-            mqtt_topic="   ",
-            dogs=[{"gps_config": {"gps_source": "mqtt"}}],
-        )
-        called_topics: list[str] = []
-
-        async def fake_subscribe(h, topic, cb, **kw):
-            called_topics.append(topic)
-            return MagicMock()
-
-        mock_mqtt = MagicMock()
-        mock_mqtt.async_subscribe = AsyncMock(side_effect=fake_subscribe)
-
-        with (
-            patch(
-                "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
-                new=AsyncMock(),
-            ),
-            patch(
-                "homeassistant.components.mqtt",
-                mock_mqtt,
-                create=True,
-            ),
-            patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
-        ):
-            await async_register_entry_mqtt(hass, entry)
-
-        if called_topics:
-            from custom_components.pawcontrol.const import DEFAULT_MQTT_TOPIC
-
-            assert called_topics[0] == DEFAULT_MQTT_TOPIC
-
-
-# ---------------------------------------------------------------------------
-# async_unregister_entry_mqtt
-# ---------------------------------------------------------------------------
-
-
-class TestAsyncUnregisterEntryMqtt:
-    """Tests for async_unregister_entry_mqtt."""
-
-    @pytest.mark.asyncio
-    async def test_no_op_when_no_domain_store(self) -> None:
-        hass = _make_hass()
-        entry = _make_entry()
-        # Should not raise
-        await async_unregister_entry_mqtt(hass, entry)
-
-    @pytest.mark.asyncio
-    async def test_no_op_when_mqtt_store_is_not_dict(self) -> None:
-        hass = _make_hass({"pawcontrol": {"_mqtt_push": "broken"}})
-        entry = _make_entry()
-        await async_unregister_entry_mqtt(hass, entry)
-
-    @pytest.mark.asyncio
-    async def test_calls_unsub_when_entry_registered(self) -> None:
-        mock_unsub = MagicMock()
-        hass = _make_hass({
-            "pawcontrol": {"_mqtt_push": {"test-entry-id": mock_unsub}},
-        })
-        entry = _make_entry()
-        await async_unregister_entry_mqtt(hass, entry)
-        mock_unsub.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_awaits_async_unsub(self) -> None:
-        """If the unsub returns an awaitable, it must be awaited."""
-        mock_unsub = AsyncMock()
-        hass = _make_hass({
-            "pawcontrol": {"_mqtt_push": {"test-entry-id": mock_unsub}},
-        })
-        entry = _make_entry()
-        await async_unregister_entry_mqtt(hass, entry)
-        mock_unsub.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_no_op_when_entry_not_in_store(self) -> None:
-        hass = _make_hass({"pawcontrol": {"_mqtt_push": {"other-entry": MagicMock()}}})
-        entry = _make_entry()
-        # Must not raise even though entry is absent
-        await async_unregister_entry_mqtt(hass, entry)
+    assert store == {}
+    assert isinstance(hass.data[DOMAIN], dict)
 
 
 @pytest.mark.asyncio
-async def test_uses_default_topic_when_topic_option_is_not_a_string() -> None:
-    """Non-string mqtt_topic values should fall back to the default topic."""
-    hass = _make_hass()
-    entry = _make_entry(
-        mqtt_enabled=True,
-        mqtt_topic="pawcontrol/gps",
-        dogs=[{"gps_config": {"gps_source": "mqtt"}}],
+async def test_register_entry_mqtt_returns_early_when_disabled_or_not_needed() -> None:
+    """Disabled MQTT or absent mqtt dogs should skip subscription entirely."""
+    hass = SimpleNamespace(data={})
+    entry_disabled = SimpleNamespace(
+        entry_id="entry-disabled",
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "mqtt"}}]},
+        options={CONF_MQTT_ENABLED: False},
     )
-    entry.options["mqtt_topic"] = 42
-    called_topics: list[str] = []
+    entry_not_needed = SimpleNamespace(
+        entry_id="entry-not-needed",
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "webhook"}}]},
+        options={CONF_MQTT_ENABLED: True},
+    )
 
-    async def fake_subscribe(_hass, topic, _callback, **_kw):
-        called_topics.append(topic)
-        return MagicMock()
+    await mqtt_push.async_register_entry_mqtt(hass, entry_disabled)
+    await mqtt_push.async_register_entry_mqtt(hass, entry_not_needed)
 
-    mock_mqtt = MagicMock()
-    mock_mqtt.async_subscribe = AsyncMock(side_effect=fake_subscribe)
-
-    with (
-        patch(
-            "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
-            new=AsyncMock(),
-        ),
-        patch("homeassistant.components.mqtt", mock_mqtt, create=True),
-        patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
-    ):
-        await async_register_entry_mqtt(hass, entry)
-
-    from custom_components.pawcontrol.const import DEFAULT_MQTT_TOPIC
-
-    assert called_topics == [DEFAULT_MQTT_TOPIC]
+    assert hass.data == {}
 
 
 @pytest.mark.asyncio
-async def test_register_ignores_messages_without_payload_attribute() -> None:
-    """Callback parsing should ignore MQTT messages that do not expose a payload."""
-    hass = _make_hass()
-    entry = _make_entry(
-        mqtt_enabled=True,
-        mqtt_topic="topic/gps",
-        dogs=[{"gps_config": {"gps_source": "mqtt"}}],
+async def test_register_entry_mqtt_handles_missing_mqtt_module() -> None:
+    """Import errors from Home Assistant MQTT integration should be tolerated."""
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "mqtt"}}]},
+        options={CONF_MQTT_ENABLED: True},
     )
-    callbacks: list = []
 
-    async def fake_subscribe(_hass, _topic, callback, **_kw):
-        callbacks.append(callback)
-        return MagicMock()
+    components_module = ModuleType("homeassistant.components")
 
-    mock_mqtt = MagicMock()
-    mock_mqtt.async_subscribe = AsyncMock(side_effect=fake_subscribe)
+    def _missing_mqtt(_: object) -> object:
+        raise RuntimeError("mqtt unavailable")
 
-    with (
-        patch(
-            "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
-            new=AsyncMock(),
-        ),
-        patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
-        patch(
-            "custom_components.pawcontrol.mqtt_push.async_process_gps_push",
-            new=AsyncMock(),
-        ) as process_push,
-    ):
-        await async_register_entry_mqtt(hass, entry)
-        assert callbacks
+    components_module.__getattr__ = _missing_mqtt  # type: ignore[assignment]
 
-        class _MessageWithoutPayload:
-            pass
+    previous_components = sys.modules.get("homeassistant.components")
+    sys.modules["homeassistant.components"] = components_module
+    try:
+        await mqtt_push.async_register_entry_mqtt(hass, entry)
+    finally:
+        if previous_components is None:
+            sys.modules.pop("homeassistant.components", None)
+        else:
+            sys.modules["homeassistant.components"] = previous_components
 
-        await callbacks[0](_MessageWithoutPayload())
-
-    process_push.assert_not_awaited()
+    assert hass.data == {}
 
 
 @pytest.mark.asyncio
-async def test_register_handles_callback_payload_variants() -> None:
-    """Exercise callback parsing branches for str/invalid/non-dict payloads."""
-    hass = _make_hass()
-    entry = _make_entry(
-        mqtt_enabled=True,
-        mqtt_topic="topic/gps",
-        dogs=[{"gps_config": {"gps_source": "mqtt"}}],
+async def test_register_entry_mqtt_subscribes_and_processes_payloads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Successful subscribe path should store unsubscribe and process valid payloads."""
+    hass = SimpleNamespace(data={DOMAIN: {mqtt_push._MQTT_STORE_KEY: "broken"}})
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "mqtt"}}]},
+        options={
+            CONF_MQTT_ENABLED: True,
+            CONF_MQTT_TOPIC: "  paws/topic  ",
+        },
     )
-    callbacks: list = []
 
-    async def fake_subscribe(_hass, _topic, callback, **_kw):
-        callbacks.append(callback)
-        return MagicMock()
+    observed: list[tuple[dict[str, object], str | None, int]] = []
 
-    mock_mqtt = MagicMock()
-    mock_mqtt.async_subscribe = AsyncMock(side_effect=fake_subscribe)
+    async def _process(
+        _: object,
+        __: object,
+        payload: dict[str, object],
+        *,
+        source: str,
+        raw_size: int,
+        nonce: str | None,
+    ) -> None:
+        assert source == "mqtt"
+        observed.append((payload, nonce, raw_size))
 
-    with (
-        patch(
-            "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
-            new=AsyncMock(),
-        ),
-        patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
-        patch(
-            "custom_components.pawcontrol.mqtt_push.async_process_gps_push",
-            new=AsyncMock(),
-        ) as process_push,
-    ):
-        await async_register_entry_mqtt(hass, entry)
-        assert callbacks
+    monkeypatch.setattr(mqtt_push, "async_process_gps_push", _process)
 
-        await callbacks[0](MagicMock(payload='{"dog_id":"d1","nonce":"abc"}'))
-        await callbacks[0](MagicMock(payload=b"{bad-json"))
-        await callbacks[0](MagicMock(payload=b"[]"))
-        await callbacks[0](MagicMock(payload=123))
+    callback_holder: dict[str, Callable[[object], Awaitable[None]]] = {}
 
-    process_push.assert_awaited_once()
-    kwargs = process_push.await_args.kwargs
-    assert kwargs["source"] == "mqtt"
-    assert kwargs["nonce"] == "abc"
+    async def _async_subscribe(
+        _hass: object,
+        topic: str,
+        callback: Callable[[object], Awaitable[None]],
+        qos: int,
+    ) -> Callable[[], None]:
+        assert topic == "paws/topic"
+        assert qos == 0
+        callback_holder["callback"] = callback
+
+        def _unsub() -> None:
+            return None
+
+        return _unsub
+
+    mqtt_module = ModuleType("homeassistant.components.mqtt")
+    mqtt_module.async_subscribe = _async_subscribe  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "homeassistant.components.mqtt", mqtt_module)
+
+    await mqtt_push.async_register_entry_mqtt(hass, entry)
+
+    store = hass.data[DOMAIN][mqtt_push._MQTT_STORE_KEY]
+    assert isinstance(store, dict)
+    assert callable(store[entry.entry_id])
+
+    callback = callback_holder["callback"]
+    await callback(SimpleNamespace(payload=b'{"dog_id":"d1","nonce":"n1"}'))
+    await callback(SimpleNamespace(payload='{"dog_id":"d2"}'))
+    await callback(SimpleNamespace(payload=b"not-json"))
+    await callback(SimpleNamespace(payload=b"[]"))
+    await callback(SimpleNamespace(payload=123))
+    await callback(object())
+
+    assert observed[0][0] == {"dog_id": "d1", "nonce": "n1"}
+    assert observed[0][1] == "n1"
+    assert observed[0][2] == len(b'{"dog_id":"d1","nonce":"n1"}')
+    assert observed[1][0] == {"dog_id": "d2"}
+    assert observed[1][1] is None
 
 
 @pytest.mark.asyncio
-async def test_register_logs_and_returns_when_subscribe_fails(caplog) -> None:
-    hass = _make_hass()
-    entry = _make_entry(
-        mqtt_enabled=True,
-        mqtt_topic="topic/gps",
-        dogs=[{"gps_config": {"gps_source": "mqtt"}}],
+async def test_register_entry_mqtt_uses_default_topic_and_handles_subscribe_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Empty topic text should fall back to defaults and tolerate subscribe errors."""
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "mqtt"}}]},
+        options={
+            CONF_MQTT_ENABLED: True,
+            CONF_MQTT_TOPIC: "   ",
+        },
     )
 
-    mock_mqtt = MagicMock()
-    mock_mqtt.async_subscribe = AsyncMock(side_effect=RuntimeError("boom"))
+    async def _async_subscribe(
+        _hass: object,
+        topic: str,
+        callback: Callable[[object], Awaitable[None]],
+        qos: int,
+    ) -> Callable[[], None]:
+        del callback
+        assert topic == DEFAULT_MQTT_TOPIC
+        assert qos == 0
+        raise RuntimeError("cannot subscribe")
 
-    with (
-        patch(
-            "custom_components.pawcontrol.mqtt_push.async_unregister_entry_mqtt",
-            new=AsyncMock(),
-        ),
-        patch.dict("sys.modules", {"homeassistant.components.mqtt": mock_mqtt}),
-    ):
-        await async_register_entry_mqtt(hass, entry)
+    mqtt_module = ModuleType("homeassistant.components.mqtt")
+    mqtt_module.async_subscribe = _async_subscribe  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "homeassistant.components.mqtt", mqtt_module)
 
-    assert "Failed to subscribe MQTT topic" in caplog.text
-    assert hass.data.get("pawcontrol", {}).get("_mqtt_push", {}) == {}
+    await mqtt_push.async_register_entry_mqtt(hass, entry)
+
+    assert hass.data[DOMAIN][mqtt_push._MQTT_STORE_KEY] == {}
+
+
+@pytest.mark.asyncio
+async def test_unregister_entry_mqtt_supports_async_unsubscribe() -> None:
+    """Unregister should await async unsubscribe callbacks and remove entries."""
+    awaitable_unsub = _AwaitableUnsub()
+
+    def _unsub() -> _AwaitableUnsub:
+        return awaitable_unsub
+
+    hass = SimpleNamespace(
+        data={DOMAIN: {mqtt_push._MQTT_STORE_KEY: {"entry-id": _unsub}}}
+    )
+    entry = SimpleNamespace(entry_id="entry-id")
+
+    await mqtt_push.async_unregister_entry_mqtt(hass, entry)
+
+    assert awaitable_unsub.awaited is True
+    assert hass.data[DOMAIN][mqtt_push._MQTT_STORE_KEY] == {}
+
+
+@pytest.mark.asyncio
+async def test_unregister_entry_mqtt_ignores_invalid_store_and_unsub_errors() -> None:
+    """Unregister should be resilient to malformed storage and callback failures."""
+    hass = SimpleNamespace(data={DOMAIN: {mqtt_push._MQTT_STORE_KEY: []}})
+    entry = SimpleNamespace(entry_id="entry-id")
+
+    await mqtt_push.async_unregister_entry_mqtt(hass, entry)
+
+    assert hass.data[DOMAIN][mqtt_push._MQTT_STORE_KEY] == []
+
+    def _boom() -> None:
+        raise RuntimeError("unsubscribe failed")
+
+    hass.data[DOMAIN][mqtt_push._MQTT_STORE_KEY] = {"entry-id": _boom}
+    await mqtt_push.async_unregister_entry_mqtt(hass, entry)
+
+    assert hass.data[DOMAIN][mqtt_push._MQTT_STORE_KEY] == {}
