@@ -1,16 +1,24 @@
 """Tests for `custom_components.pawcontrol.utils` package exports."""
 
 import importlib
+import sys
 
 import pytest
 
-from custom_components.pawcontrol import utils
 from custom_components.pawcontrol.utils import serialize
 
 
 def _reloaded_utils_module() -> object:
     """Reload the utils package so module-level export wiring is exercised."""
-    return importlib.reload(utils)
+    module_name = "custom_components.pawcontrol.utils"
+    module = importlib.import_module(module_name)
+
+    # `tests/unit/test_utils_package_exports.py` intentionally removes and
+    # reinstalls the package module while exercising import wiring. Importing
+    # through `sys.modules` keeps reload bound to the currently-registered
+    # module object instead of a stale module reference captured at import time.
+    current = sys.modules[module_name]
+    return importlib.reload(current)
 
 
 @pytest.mark.parametrize(
