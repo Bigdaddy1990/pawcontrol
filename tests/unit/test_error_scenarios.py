@@ -23,7 +23,9 @@ from custom_components.pawcontrol.exceptions import (
     RateLimitError,
     StorageError,
     ValidationError,
+    WalkAlreadyInProgressError,
     WalkError,
+    WalkNotInProgressError,
 )
 from tests.helpers.factories import (
     create_mock_coordinator,
@@ -156,11 +158,6 @@ class TestWalkErrorScenarios:
 
         Scenario: Attempt to start second walk while one is active.
         """
-        exceptions_module = importlib.import_module(
-            "custom_components.pawcontrol.exceptions"
-        )
-        error_cls = getattr(exceptions_module, "WalkAlreadyInProgressError", WalkError)
-
         # Simulate walk in progress
         walk_data = {"walk_in_progress": True}
 
@@ -173,11 +170,6 @@ class TestWalkErrorScenarios:
 
         Scenario: Attempt to end walk when none is active.
         """
-        exceptions_module = importlib.import_module(
-            "custom_components.pawcontrol.exceptions"
-        )
-        error_cls = getattr(exceptions_module, "WalkNotInProgressError", WalkError)
-
         # Simulate no walk in progress
         walk_data = {"walk_in_progress": False}
 

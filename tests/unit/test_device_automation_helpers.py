@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import custom_components.pawcontrol.device_automation_helpers as device_automation_helpers
 from custom_components.pawcontrol.const import DOMAIN
+import custom_components.pawcontrol.device_automation_helpers as da_helpers
 from custom_components.pawcontrol.device_automation_helpers import (
     _coerce_runtime_data,
     _extract_dog_id,
@@ -130,16 +131,8 @@ def test_resolve_device_context_and_entity_id(monkeypatch) -> None:
             ),
         ]
     )
-    monkeypatch.setattr(
-        device_automation_helpers.dr,
-        "async_get",
-        lambda _hass: device_registry,
-    )
-    monkeypatch.setattr(
-        device_automation_helpers.er,
-        "async_get",
-        lambda _hass: entity_registry,
-    )
+    monkeypatch.setattr(da_helpers.dr, "async_get", lambda _hass: device_registry)
+    monkeypatch.setattr(da_helpers.er, "async_get", lambda _hass: entity_registry)
 
     hass = SimpleNamespace(
         data={
@@ -164,11 +157,7 @@ def test_resolve_device_context_and_entity_id(monkeypatch) -> None:
 def test_resolve_device_context_handles_missing_store_or_device(monkeypatch) -> None:
     """Lookup should return empty context when registries/stores are incomplete."""
     device_registry = SimpleNamespace(async_get=lambda _device_id: None)
-    monkeypatch.setattr(
-        device_automation_helpers.dr,
-        "async_get",
-        lambda _hass: device_registry,
-    )
+    monkeypatch.setattr(da_helpers.dr, "async_get", lambda _hass: device_registry)
 
     hass = SimpleNamespace(data={DOMAIN: "not-a-mapping"})
 
@@ -188,11 +177,7 @@ def test_resolve_device_context_returns_none_when_entry_ids_missing(
         config_entries=["entry_missing"],
     )
     device_registry = SimpleNamespace(async_get=lambda _device_id: device_entry)
-    monkeypatch.setattr(
-        device_automation_helpers.dr,
-        "async_get",
-        lambda _hass: device_registry,
-    )
+    monkeypatch.setattr(da_helpers.dr, "async_get", lambda _hass: device_registry)
 
     hass = SimpleNamespace(data={DOMAIN: {"other_entry": object()}})
 
