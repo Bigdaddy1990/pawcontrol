@@ -613,3 +613,188 @@ async def test_async_setup_entry_wraps_unexpected_setup_errors(
         await pawcontrol_init.async_setup_entry(SimpleNamespace(), entry)
 
     disable_logging.assert_called_once_with(entry)
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_continues_when_scheduler_setup_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup should continue when optional scheduler wiring fails."""
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(async_start_background_tasks=Mock()),
+        helper_manager=None,
+        door_sensor_manager=None,
+        geofencing_manager=None,
+        daily_reset_unsub=None,
+        background_monitor_task=None,
+    )
+    dogs_config = [_build_dog_config({MODULE_GPS: True})]
+    entry = SimpleNamespace(
+        entry_id="entry-scheduler",
+        options={"debug_logging": False},
+    )
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        AsyncMock(return_value=(dogs_config, "standard", frozenset())),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_should_skip_optional_setup",
+        lambda _hass: False,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_initialize_managers",
+        AsyncMock(return_value=runtime_data),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "store_runtime_data",
+        Mock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_platforms",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_cleanup",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_daily_reset_scheduler",
+        AsyncMock(side_effect=RuntimeError("scheduler unavailable")),
+    )
+    check_issues = AsyncMock()
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_check_for_issues",
+        check_issues,
+    )
+
+    async def _monitor_stub(_runtime_data: object) -> None:
+        return None
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_async_monitor_background_tasks",
+        _monitor_stub,
+    )
+
+    def _create_task(coro: object) -> object:
+        coro.close()
+        return object()
+
+    hass = SimpleNamespace(async_create_task=_create_task)
+    assert await pawcontrol_init.async_setup_entry(hass, entry) is True
+    check_issues.assert_awaited_once_with(hass, entry)
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_disables_debug_logging_for_known_setup_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Known setup errors should be reraised after debug logging cleanup."""
+    entry = SimpleNamespace(entry_id="entry-known", options={"debug_logging": True})
+    disable_logging = Mock()
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_enable_debug_logging",
+        lambda _entry: True,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_disable_debug_logging",
+        disable_logging,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        AsyncMock(side_effect=ConfigEntryNotReady("retry later")),
+    )
+
+    with pytest.raises(ConfigEntryNotReady, match="retry later"):
+        await pawcontrol_init.async_setup_entry(SimpleNamespace(), entry)
+
+    disable_logging.assert_called_once_with(entry)
+
+
+@pytest.mark.asyncio
+async def test_async_unload_entry_returns_false_when_platform_unload_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unload should abort when Home Assistant fails to unload platforms."""
+    entry = SimpleNamespace(entry_id="entry-unload")
+    config_entries = SimpleNamespace(
+        async_unload_platforms=AsyncMock(return_value=False)
+    )
+    hass = SimpleNamespace(config_entries=config_entries)
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unload_external_bindings",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "get_runtime_data",
+        lambda _hass, _entry: None,
+    )
+
+    assert await pawcontrol_init.async_unload_entry(hass, entry) is False
+
+
+@pytest.mark.asyncio
+async def test_async_reload_entry_reraises_auth_and_generic_errors(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reload should re-raise auth failures and unexpected setup exceptions."""
+    entry = ConfigEntry(domain="pawcontrol", title="Reload")
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_unload_entry",
+        AsyncMock(return_value=True),
+    )
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        AsyncMock(side_effect=pawcontrol_init.ConfigEntryAuthFailed("auth failed")),
+    )
+    with pytest.raises(pawcontrol_init.ConfigEntryAuthFailed, match="auth failed"):
+        await pawcontrol_init.async_reload_entry(hass, entry)
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        AsyncMock(side_effect=RuntimeError("unexpected")),
+    )
+    with pytest.raises(RuntimeError, match="unexpected"):
+        await pawcontrol_init.async_reload_entry(hass, entry)
