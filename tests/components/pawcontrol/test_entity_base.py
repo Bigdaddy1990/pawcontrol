@@ -10,7 +10,10 @@ pytest.importorskip("homeassistant")
 
 from custom_components.pawcontrol.entity import PawControlDogEntityBase
 from custom_components.pawcontrol.service_guard import ServiceGuardResult
-from custom_components.pawcontrol.types import CoordinatorDogData, CoordinatorRuntimeManagers
+from custom_components.pawcontrol.types import (
+    CoordinatorDogData,
+    CoordinatorRuntimeManagers,
+)
 
 
 class _DummyCoordinator:
@@ -78,7 +81,7 @@ def test_entity_name_device_class_and_icon_properties() -> None:
     assert entity.device_class == "enum"
     assert entity.icon == "mdi:dog"
 
-    delattr(entity, "_attr_name")
+    del entity._attr_name
     assert entity.name is None
 
 
