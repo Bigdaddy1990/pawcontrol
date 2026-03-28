@@ -144,12 +144,16 @@ def test_normalize_dog_id_rejects_non_string() -> None:
 def test_coerce_helpers_reject_invalid_types() -> None:
     assert coerce_int("age", "7") == 7
     assert coerce_float("weight", "2.5") == pytest.approx(2.5)
+    assert coerce_int("age", "7.0") == 7
 
     with pytest.raises(InputCoercionError):
         coerce_int("age", 2.5)
 
     with pytest.raises(InputCoercionError):
         coerce_float("weight", "")
+
+    with pytest.raises(InputCoercionError):
+        coerce_float("weight", object())
 
 
 @pytest.mark.parametrize(
@@ -251,6 +255,25 @@ def test_validate_notification_targets_normalises_values() -> None:
         _NotificationChannel.EMAIL,
     ]
     assert result.invalid == ["pager"]
+
+
+def test_validate_notification_targets_accepts_single_values() -> None:
+    single_string = validate_notification_targets(
+        "mobile",
+        enum_type=_NotificationChannel,
+    )
+    single_enum = validate_notification_targets(
+        _NotificationChannel.EMAIL,
+        enum_type=_NotificationChannel,
+    )
+    missing_targets = validate_notification_targets(None, enum_type=_NotificationChannel)
+
+    assert single_string.targets == [_NotificationChannel.MOBILE]
+    assert single_string.invalid == []
+    assert single_enum.targets == [_NotificationChannel.EMAIL]
+    assert single_enum.invalid == []
+    assert missing_targets.targets == []
+    assert missing_targets.invalid == []
 
 
 def test_validate_time_window_rejects_invalid_time() -> None:
