@@ -237,6 +237,19 @@ def test_normalise_notification_options_populates_root_and_per_dog_payloads() ->
     assert milo_entry[CONF_NOTIFICATIONS]["quiet_start"] == "18:00:00"
 
 
+def test_normalise_notification_options_returns_none_when_key_missing() -> None:
+    """Normalisation should no-op when notifications are absent."""
+    host = _NotificationHost()
+    mutable: dict[str, JSONValue] = {
+        DOG_OPTIONS_FIELD: cast(JSONValue, {"buddy": {DOG_ID_FIELD: "buddy"}})
+    }
+
+    normalised = host._normalise_notification_options(mutable)
+
+    assert normalised is None
+    assert CONF_NOTIFICATIONS not in mutable
+
+
 @pytest.mark.asyncio
 async def test_select_dog_for_notifications_handles_empty_and_invalid_selection() -> (
     None
@@ -254,6 +267,19 @@ async def test_select_dog_for_notifications_handles_empty_and_invalid_selection(
     result = await host.async_step_select_dog_for_notifications({"dog_id": "unknown"})
 
     assert result == {"type": "menu", "step_id": "init"}
+
+
+@pytest.mark.asyncio
+async def test_select_dog_for_notifications_routes_to_notifications_when_selected() -> (
+    None
+):
+    """Selecting a valid dog should continue to notifications step."""
+    host = _NotificationHost()
+
+    result = await host.async_step_select_dog_for_notifications({"dog_id": "buddy"})
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "notifications"
 
 
 @pytest.mark.asyncio
@@ -309,6 +335,18 @@ async def test_async_step_notifications_reports_validation_and_runtime_errors() 
         "mobile_notifications": True,
     })
     assert runtime_result["errors"] == {"base": "update_failed"}
+
+
+@pytest.mark.asyncio
+async def test_notifications_redirects_when_current_dog_missing() -> None:
+    """Hosts without a current dog should return to dog selection."""
+    host = _NotificationHost()
+    host._current_dog = None
+
+    result = await host.async_step_notifications()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "select_dog_for_notifications"
 
 
 @pytest.mark.asyncio

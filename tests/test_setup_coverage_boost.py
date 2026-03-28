@@ -346,3 +346,62 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides() -> N
         use_home_location=True,
         home_zone_radius=120,
     )
+
+
+@pytest.mark.asyncio
+async def test_async_validate_entry_config_reports_enabled_modules() -> None:
+    """Entry validation should return normalized modules and profile metadata."""
+    from custom_components.pawcontrol.setup import validation
+
+    entry = SimpleNamespace(
+        entry_id="entry-1",
+        data={
+            "dogs": [
+                {
+                    "dog_id": "buddy",
+                    "dog_name": "Buddy",
+                    "modules": {
+                        "gps": True,
+                        "feeding": False,
+                    },
+                }
+            ]
+        },
+        options={"entity_profile": "standard"},
+    )
+
+    dogs, profile, modules = await validation.async_validate_entry_config(entry)
+
+    assert dogs[0]["dog_id"] == "buddy"
+    assert profile == "standard"
+    assert modules == frozenset({"gps"})
+
+
+@pytest.mark.asyncio
+async def test_async_cleanup_runtime_data_runs_expected_sequence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runtime cleanup should invoke manager teardown and listener removal."""
+    from custom_components.pawcontrol.setup import cleanup
+
+    cancel_monitor = AsyncMock()
+    cleanup_managers = AsyncMock()
+    remove_listeners = MagicMock()
+    shutdown_core = AsyncMock()
+    clear_refs = MagicMock()
+
+    monkeypatch.setattr(cleanup, "_async_cancel_background_monitor", cancel_monitor)
+    monkeypatch.setattr(cleanup, "_async_cleanup_managers", cleanup_managers)
+    monkeypatch.setattr(cleanup, "_remove_listeners", remove_listeners)
+    monkeypatch.setattr(cleanup, "_async_shutdown_core_managers", shutdown_core)
+    monkeypatch.setattr(cleanup, "_clear_coordinator_references", clear_refs)
+
+    runtime_data = SimpleNamespace()
+
+    await cleanup.async_cleanup_runtime_data(runtime_data)
+
+    cancel_monitor.assert_awaited_once_with(runtime_data)
+    cleanup_managers.assert_awaited_once_with(runtime_data)
+    remove_listeners.assert_called_once_with(runtime_data)
+    shutdown_core.assert_awaited_once_with(runtime_data)
+    clear_refs.assert_called_once_with(runtime_data)
