@@ -36,6 +36,7 @@ def device_api_module() -> ModuleType:
     ]
     stub_exceptions = ModuleType("custom_components.pawcontrol.exceptions")
     stub_resilience = ModuleType("custom_components.pawcontrol.resilience")
+    stub_utils = ModuleType("custom_components.pawcontrol.utils")
 
     class NetworkError(Exception):
         """Stubbed network error."""
@@ -70,15 +71,18 @@ def device_api_module() -> ModuleType:
 
     stub_resilience.RetryConfig = RetryConfig
     stub_resilience.ResilienceManager = ResilienceManager
+    stub_utils._coerce_json_mutable = lambda payload: payload
 
     monkeypatch.setitem(sys.modules, "custom_components", namespace_pkg)
     monkeypatch.setitem(sys.modules, "custom_components.pawcontrol", integration_pkg)
+    namespace_pkg.pawcontrol = integration_pkg
     monkeypatch.setitem(
         sys.modules, "custom_components.pawcontrol.exceptions", stub_exceptions
     )
     monkeypatch.setitem(
         sys.modules, "custom_components.pawcontrol.resilience", stub_resilience
     )
+    monkeypatch.setitem(sys.modules, "custom_components.pawcontrol.utils", stub_utils)
 
     module_path = (
         Path(__file__).resolve().parents[2]
