@@ -269,3 +269,70 @@ def test_get_module_data_returns_empty_mapping_for_expected_errors(
     entity.coordinator.get_module_data = _raiser  # type: ignore[attr-defined]
 
     assert entity._get_module_data("health") == {}
+
+
+def test_identity_properties_and_name_fallbacks() -> None:
+    """Entity identity helpers should expose ids and fallback naming."""
+    entity = _make_entity()
+
+    assert entity.dog_id == "dog-1"
+    assert entity.dog_name == "Buddy"
+    assert entity.unique_id is None
+
+    entity._attr_translation_key = "status"
+    entity._attr_has_entity_name = False
+    assert entity.name == "Buddy"
+
+
+def test_runtime_manager_fallback_paths_cover_missing_runtime_data() -> None:
+    """Runtime manager lookup should fallback through coordinator containers."""
+    entity = _make_entity()
+
+    # No hass => no runtime data lookup.
+    assert entity._get_runtime_data() is None
+
+    # Existing coordinator runtime container is reused.
+    existing = CoordinatorRuntimeManagers(data_manager="coordinator-dm")
+    entity.coordinator.runtime_managers = existing  # type: ignore[attr-defined]
+    assert entity._get_runtime_managers() is existing
+
+    # Coordinator attributes should be hydrated into a new container.
+    entity.coordinator.runtime_managers = object()  # type: ignore[attr-defined]
+    entity.coordinator.data_manager = "hydrated-dm"  # type: ignore[attr-defined]
+    hydrated = entity._get_runtime_managers()
+    assert hydrated.data_manager == "hydrated-dm"
+
+    # When no runtime managers are present, an empty container is returned.
+    entity.coordinator.runtime_managers = None  # type: ignore[attr-defined]
+    entity.coordinator.data_manager = None  # type: ignore[attr-defined]
+    empty = entity._get_runtime_managers()
+    assert isinstance(empty, CoordinatorRuntimeManagers)
+
+
+def test_dog_data_cache_and_status_snapshot_handle_unavailable_or_invalid_data() -> (
+    None
+):
+    """Dog-data helpers should handle unavailable coordinators and bad payloads."""
+    entity = _make_entity()
+    entity.coordinator.available = False
+
+    assert entity._get_dog_data() is None
+    assert entity._get_status_snapshot() is None
+
+    entity.coordinator.available = True
+    entity.coordinator.data["dog-1"] = cast(CoordinatorDogData, {"dog_info": "bad"})
+    entity._dog_data_cache.clear()
+    entity._cache_timestamp.clear()
+
+    attrs: dict[str, object] = {}
+    entity._append_dog_info_attributes(attrs)
+    assert attrs == {}
+
+
+def test_get_module_data_rejects_invalid_module_identifiers() -> None:
+    """Module lookup should short-circuit for invalid or empty module names."""
+    entity = _make_entity()
+
+    assert entity._get_module_data("") == {}
+    assert entity._get_module_data("   ") == {}
+    assert entity._get_module_data(cast(Any, 123)) == {}

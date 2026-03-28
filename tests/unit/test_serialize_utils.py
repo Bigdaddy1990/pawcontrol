@@ -3,10 +3,10 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import importlib
+import sys
 
 import pytest
 
-import custom_components.pawcontrol.utils as utils_module
 from custom_components.pawcontrol.utils.serialize import (
     serialize_dataclass,
     serialize_entity_attributes,
@@ -115,9 +115,13 @@ def test_serialize_entity_attributes_serializes_nested_structures() -> None:
 
 def test_serialize_module_reload_keeps_utils_re_exports_in_sync() -> None:
     """Reloading serialize module should refresh utility package re-exports."""
-    reloaded = importlib.reload(
-        importlib.import_module("custom_components.pawcontrol.utils.serialize")
+    sys.modules.pop("custom_components.pawcontrol.utils.serialize", None)
+    sys.modules.pop("custom_components.pawcontrol.utils", None)
+    utils_module = importlib.import_module("custom_components.pawcontrol.utils")
+    serialize_module = importlib.import_module(
+        "custom_components.pawcontrol.utils.serialize"
     )
+    reloaded = importlib.reload(serialize_module)
 
     assert utils_module.serialize_datetime is reloaded.serialize_datetime
     assert utils_module.serialize_timedelta is reloaded.serialize_timedelta
