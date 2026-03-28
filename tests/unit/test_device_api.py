@@ -1,100 +1,19 @@
 """Session reuse safeguards for the device API client."""
 
 import asyncio
-import importlib.util
-from pathlib import Path
-import sys
 from types import ModuleType
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from pytest import MonkeyPatch
 
 
 @pytest.fixture(scope="module")
 def device_api_module() -> ModuleType:
-    """Load the device API helper without importing the integration package."""
-    monkeypatch = MonkeyPatch()
-    ha_module = ModuleType("homeassistant")
-    ha_exceptions = ModuleType("homeassistant.exceptions")
+    """Import the real device API module for unit-level behavior checks."""
+    import importlib
 
-    class ConfigEntryAuthFailedError(Exception):
-        """Stubbed Home Assistant auth error."""
+    return importlib.import_module("custom_components.pawcontrol.device_api")
 
-    ha_exceptions.ConfigEntryAuthFailed = ConfigEntryAuthFailedError
-    ha_module.exceptions = ha_exceptions
-    monkeypatch.setitem(sys.modules, "homeassistant", ha_module)
-    monkeypatch.setitem(sys.modules, "homeassistant.exceptions", ha_exceptions)
-
-    namespace_pkg = ModuleType("custom_components")
-    namespace_pkg.__path__ = [
-        str(Path(__file__).resolve().parents[2] / "custom_components")
-    ]
-    integration_pkg = ModuleType("custom_components.pawcontrol")
-    integration_pkg.__path__ = [
-        str(Path(__file__).resolve().parents[2] / "custom_components" / "pawcontrol")
-    ]
-    stub_exceptions = ModuleType("custom_components.pawcontrol.exceptions")
-    stub_resilience = ModuleType("custom_components.pawcontrol.resilience")
-
-    class NetworkError(Exception):
-        """Stubbed network error."""
-
-    class RateLimitError(Exception):
-        """Stubbed rate limit error."""
-
-        def __init__(self, *args: object, **kwargs: object) -> None:
-            super().__init__(*args)
-            self.kwargs = kwargs
-
-    stub_exceptions.ConfigEntryAuthFailed = ConfigEntryAuthFailedError
-    stub_exceptions.NetworkError = NetworkError
-    stub_exceptions.RateLimitError = RateLimitError
-
-    class RetryConfig:  # pragma: no cover - simple stub
-        """Minimal RetryConfig replacement for tests."""
-
-        def __init__(self, **kwargs: object) -> None:
-            self.options = kwargs
-
-    class ResilienceManager:  # pragma: no cover - simple stub
-        """Stubbed resilience manager used in tests."""
-
-        def __init__(self, hass: object) -> None:
-            self.hass = hass
-
-        async def execute_with_resilience(self, func, *args, **kwargs):
-            if args or kwargs:
-                return await func(*args, **kwargs)
-            return await func()
-
-    stub_resilience.RetryConfig = RetryConfig
-    stub_resilience.ResilienceManager = ResilienceManager
-
-    monkeypatch.setitem(sys.modules, "custom_components", namespace_pkg)
-    monkeypatch.setitem(sys.modules, "custom_components.pawcontrol", integration_pkg)
-    monkeypatch.setitem(
-        sys.modules, "custom_components.pawcontrol.exceptions", stub_exceptions
-    )
-    monkeypatch.setitem(
-        sys.modules, "custom_components.pawcontrol.resilience", stub_resilience
-    )
-
-    module_path = (
-        Path(__file__).resolve().parents[2]
-        / "custom_components"
-        / "pawcontrol"
-        / "device_api.py"
-    )
-    spec = importlib.util.spec_from_file_location(
-        "custom_components.pawcontrol.device_api_test", module_path
-    )
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    monkeypatch.undo()
-    return module
 
 
 @pytest.mark.unit
@@ -306,7 +225,7 @@ def test_device_client_rate_limit_uses_default_retry_after_when_invalid(
     with pytest.raises(device_api_module.RateLimitError) as excinfo:
         asyncio.run(client.async_get_json("/status"))
 
-    assert excinfo.value.kwargs["retry_after"] == 60
+    assert excinfo.value.retry_after == 60
 
 
 @pytest.mark.unit

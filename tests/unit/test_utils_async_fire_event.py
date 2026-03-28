@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from custom_components.pawcontrol.utils import _legacy as legacy_utils
 from custom_components.pawcontrol.utils import async_fire_event
 
 
@@ -139,9 +140,7 @@ async def test_async_fire_event_caches_signature(
         signature_calls += 1
         return original_signature(target)
 
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.utils.inspect.signature", _counting_signature
-    )
+    monkeypatch.setattr(legacy_utils.inspect, "signature", _counting_signature)
 
     for _ in range(3):
         await async_fire_event(hass, "pawcontrol_test", None)

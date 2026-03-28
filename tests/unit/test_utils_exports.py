@@ -1,16 +1,25 @@
 """Tests for runtime exports of the ``utils`` package modules."""
 
 import importlib
+import sys
 
-from custom_components.pawcontrol import utils as utils_module
-from custom_components.pawcontrol.utils import (
-    _legacy as legacy_utils,
-    serialize as serialize_module,
-)
+from custom_components.pawcontrol.utils import _legacy as legacy_utils
+
+
+def _reload_utils_modules() -> tuple[object, object]:
+    """Reload utils package and serialize module from a clean module cache."""
+    sys.modules.pop("custom_components.pawcontrol.utils.serialize", None)
+    sys.modules.pop("custom_components.pawcontrol.utils", None)
+    utils_module = importlib.import_module("custom_components.pawcontrol.utils")
+    serialize_module = importlib.import_module(
+        "custom_components.pawcontrol.utils.serialize"
+    )
+    return utils_module, serialize_module
 
 
 def test_utils_package_reloads_and_exposes_expected_symbols() -> None:
     """Reloading ``utils`` should preserve legacy and serialize re-exports."""
+    utils_module, serialize_module = _reload_utils_modules()
     reloaded_utils = importlib.reload(utils_module)
 
     expected_symbols = {
@@ -31,6 +40,7 @@ def test_utils_package_reloads_and_exposes_expected_symbols() -> None:
 
 def test_serialize_module_reloads_with_public_all() -> None:
     """Reloading ``serialize`` should keep all documented public helpers."""
+    _, serialize_module = _reload_utils_modules()
     reloaded_serialize = importlib.reload(serialize_module)
 
     assert reloaded_serialize.__all__ == [
