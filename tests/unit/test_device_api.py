@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def device_api_module() -> ModuleType:
     """Load the device API helper module under test."""
     return importlib.import_module("custom_components.pawcontrol.device_api")

@@ -24,12 +24,11 @@ def _load_serialize_module(module_name: str) -> ModuleType:
         raise RuntimeError("Unable to load serialize module spec")
 
     module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 
 
-def test_module_import_updates_parent_re_exports() -> None:
+def test_module_import_updates_parent_re_exports(monkeypatch) -> None:
     """Import-time re-export wiring should attach helper functions to parent module."""
     parent_name = "custom_components.pawcontrol.utils"
     serialize_name = "custom_components.pawcontrol.utils.serialize"
