@@ -190,6 +190,33 @@ async def test_discovery_confirm_form_and_reject_branch() -> None:
 
 
 @pytest.mark.asyncio
+async def test_discovery_confirm_skips_abort_without_unique_id() -> None:
+    """Confirm branch should continue directly when no unique ID is assigned yet."""
+    flow = _DiscoveryFlowHarness()
+    flow._discovery_info = {"source": "zeroconf", "host": "192.0.2.5"}
+    flow._unique_id = None
+
+    result = await flow.async_step_discovery_confirm({"confirm": True})
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert flow.add_dog_calls == 1
+    assert flow.abort_calls == []
+
+
+@pytest.mark.asyncio
+async def test_discovery_confirm_uses_none_updates_when_info_empty() -> None:
+    """Existing entry guard should receive ``None`` updates when payload is empty."""
+    flow = _DiscoveryFlowHarness()
+    flow._discovery_info = {}
+    flow._unique_id = "pawcontrol"
+
+    result = await flow.async_step_discovery_confirm({"confirm": True})
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert flow.abort_calls == [{"updates": None, "reload_on_update": True}]
+
+
+@pytest.mark.asyncio
 async def test_zeroconf_supported_device_includes_optional_metadata() -> None:
     """Zeroconf payload keeps optional fields before confirmation."""
     flow = _DiscoveryFlowHarness()
@@ -230,6 +257,29 @@ async def test_usb_discovery_continues_to_confirmation_form() -> None:
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "discovery_confirm"
     assert flow.prepared_payloads[0][1] == "usb"
+
+
+@pytest.mark.asyncio
+async def test_usb_payload_stringifies_missing_vid_pid() -> None:
+    """USB payload keeps string defaults when VID/PID are not provided."""
+    flow = _DiscoveryFlowHarness()
+
+    result = await flow.async_step_usb(
+        SimpleNamespace(
+            description="Tracker",
+            serial_number="",
+            manufacturer="PawControl",
+            vid=None,
+            pid=None,
+            device=None,
+        )
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert flow.prepared_payloads[0][1] == "usb"
+    assert flow.prepared_payloads[0][0]["vid"] == ""
+    assert flow.prepared_payloads[0][0]["pid"] == ""
+    assert "device" not in flow.prepared_payloads[0][0]
 
 
 @pytest.mark.asyncio

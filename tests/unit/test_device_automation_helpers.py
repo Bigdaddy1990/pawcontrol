@@ -2,6 +2,7 @@
 
 from types import SimpleNamespace
 
+import custom_components.pawcontrol.device_automation_helpers as device_automation_helpers
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol import device_automation_helpers as helper_module
 from custom_components.pawcontrol.device_automation_helpers import (

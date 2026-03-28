@@ -1,14 +1,11 @@
 """Session reuse safeguards for the device API client."""
 
 import asyncio
-import importlib.util
-from pathlib import Path
-import sys
+import importlib
 from types import ModuleType
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from pytest import MonkeyPatch
 
 
 @pytest.fixture
@@ -313,7 +310,7 @@ def test_device_client_rate_limit_uses_default_retry_after_when_invalid(
     with pytest.raises(device_api_module.RateLimitError) as excinfo:
         asyncio.run(client.async_get_json("/status"))
 
-    assert excinfo.value.kwargs["retry_after"] == 60
+    assert excinfo.value.retry_after == 60
 
 
 @pytest.mark.unit
