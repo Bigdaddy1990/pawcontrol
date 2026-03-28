@@ -10,8 +10,10 @@ import pytest
 
 @pytest.fixture
 def device_api_module() -> ModuleType:
-    """Load the device API helper module under test."""
-    return importlib.import_module("custom_components.pawcontrol.device_api")
+    """Load and reload the real integration device API helper module."""
+    return importlib.reload(
+        importlib.import_module("custom_components.pawcontrol.device_api")
+    )
 
 
 @pytest.mark.unit
@@ -222,7 +224,7 @@ def test_device_client_rate_limit_uses_default_retry_after_when_invalid(
     with pytest.raises(device_api_module.RateLimitError) as excinfo:
         asyncio.run(client.async_get_json("/status"))
 
-    assert getattr(excinfo.value, "retry_after", None) == 60
+    assert excinfo.value.retry_after == 60
 
 
 @pytest.mark.unit
