@@ -370,6 +370,7 @@ def test_service_guard_snapshot_accumulate_coerces_existing_reason_counts() -> N
     ("value", "expected"),
     [
         (True, 1),
+        (False, 0),
         (7, 7),
         (3.9, 3),
         ("9", 9),
@@ -394,3 +395,9 @@ def test_service_guard_snapshot_from_sequence_tracks_unknown_reason() -> None:
     assert snapshot.executed == 0
     assert snapshot.skipped == 2
     assert snapshot.reasons == {"unknown": 1, "cooldown": 1}
+
+
+@pytest.mark.parametrize("payload", ["not-a-sequence", b"binary", bytearray(b"bytes")])
+def test_normalise_guard_history_rejects_string_like_sequences(payload: object) -> None:
+    """String-like payloads should not be treated as guard history sequences."""
+    assert normalise_guard_history(payload) == []
