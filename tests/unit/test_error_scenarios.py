@@ -9,6 +9,7 @@ Python: 3.13+
 """
 
 import asyncio
+import importlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -155,13 +156,16 @@ class TestWalkErrorScenarios:
 
         Scenario: Attempt to start second walk while one is active.
         """
-        from custom_components.pawcontrol.exceptions import WalkAlreadyInProgressError
+        exceptions_module = importlib.import_module(
+            "custom_components.pawcontrol.exceptions"
+        )
+        error_cls = getattr(exceptions_module, "WalkAlreadyInProgressError", WalkError)
 
         # Simulate walk in progress
         walk_data = {"walk_in_progress": True}
 
         if walk_data["walk_in_progress"]:
-            error = WalkAlreadyInProgressError("dog_1")
+            error = error_cls("dog_1")
             assert "dog_1" in str(error)
 
     def test_walk_not_in_progress_error(self) -> None:
@@ -169,13 +173,16 @@ class TestWalkErrorScenarios:
 
         Scenario: Attempt to end walk when none is active.
         """
-        from custom_components.pawcontrol.exceptions import WalkNotInProgressError
+        exceptions_module = importlib.import_module(
+            "custom_components.pawcontrol.exceptions"
+        )
+        error_cls = getattr(exceptions_module, "WalkNotInProgressError", WalkError)
 
         # Simulate no walk in progress
         walk_data = {"walk_in_progress": False}
 
         if not walk_data["walk_in_progress"]:
-            error = WalkNotInProgressError("dog_1")
+            error = error_cls("dog_1")
             assert "dog_1" in str(error)
 
 

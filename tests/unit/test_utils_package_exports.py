@@ -1,9 +1,23 @@
 """Tests for package-level exports in ``custom_components.pawcontrol.utils``."""
 
+import importlib
+import sys
+
 import pytest
 
 import custom_components.pawcontrol.utils as utils
-from custom_components.pawcontrol.utils import _legacy, serialize as serialize_module
+from custom_components.pawcontrol.utils import _legacy
+
+
+def _reload_utils_modules() -> tuple[object, object]:
+    """Reload utils package and serialize module from a clean module cache."""
+    sys.modules.pop("custom_components.pawcontrol.utils.serialize", None)
+    sys.modules.pop("custom_components.pawcontrol.utils", None)
+    utils_module = importlib.import_module("custom_components.pawcontrol.utils")
+    serialize_module = importlib.import_module(
+        "custom_components.pawcontrol.utils.serialize"
+    )
+    return utils_module, serialize_module
 
 
 def test_utils_all_is_sorted_and_has_no_private_names() -> None:
@@ -14,20 +28,21 @@ def test_utils_all_is_sorted_and_has_no_private_names() -> None:
 
 def test_utils_re_exports_serialize_helpers() -> None:
     """Serialize helpers should be re-exported from the package root."""
+    utils_module, serialize_module = _reload_utils_modules()
     assert (
-        utils.serialize_datetime.__name__
+        utils_module.serialize_datetime.__name__
         == serialize_module.serialize_datetime.__name__
     )
     assert (
-        utils.serialize_timedelta.__name__
+        utils_module.serialize_timedelta.__name__
         == serialize_module.serialize_timedelta.__name__
     )
     assert (
-        utils.serialize_dataclass.__name__
+        utils_module.serialize_dataclass.__name__
         == serialize_module.serialize_dataclass.__name__
     )
     assert (
-        utils.serialize_entity_attributes.__name__
+        utils_module.serialize_entity_attributes.__name__
         == serialize_module.serialize_entity_attributes.__name__
     )
 
@@ -49,13 +64,14 @@ def test_utils_exports_include_legacy_public_members() -> None:
 
 def test_utils_getattr_resolves_serialize_helpers_lazily() -> None:
     """Serialize helpers should resolve via package ``__getattr__``."""
+    utils_module, serialize_module = _reload_utils_modules()
     for helper_name in (
         "serialize_datetime",
         "serialize_timedelta",
         "serialize_dataclass",
         "serialize_entity_attributes",
     ):
-        assert getattr(utils, helper_name) is getattr(serialize_module, helper_name)
+        assert getattr(utils_module, helper_name) is getattr(serialize_module, helper_name)
 
 
 def test_utils_getattr_raises_for_unknown_symbol() -> None:
@@ -71,8 +87,7 @@ def test_utils_reload_ignores_legacy_serialize_name_collisions(
     collision = object()
     monkeypatch.setattr(_legacy, "serialize_datetime", collision, raising=False)
 
-    import importlib
-
-    reloaded = importlib.reload(utils)
+    utils_module, serialize_module = _reload_utils_modules()
+    reloaded = importlib.reload(utils_module)
 
     assert reloaded.serialize_datetime is serialize_module.serialize_datetime

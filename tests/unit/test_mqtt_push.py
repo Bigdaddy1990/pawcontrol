@@ -1,7 +1,5 @@
 """Unit tests for MQTT push transport helpers."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable
 import sys
 from types import ModuleType, SimpleNamespace

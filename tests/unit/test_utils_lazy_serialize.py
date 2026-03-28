@@ -2,16 +2,26 @@
 
 from datetime import datetime
 import importlib
+import sys
 
-from custom_components.pawcontrol import utils
-from custom_components.pawcontrol.utils import serialize as serialize_module
+
+def _reload_utils_modules() -> tuple[object, object]:
+    """Reload utils package and serialize module from a clean module cache."""
+    sys.modules.pop("custom_components.pawcontrol.utils.serialize", None)
+    sys.modules.pop("custom_components.pawcontrol.utils", None)
+    utils = importlib.import_module("custom_components.pawcontrol.utils")
+    serialize_module = importlib.import_module(
+        "custom_components.pawcontrol.utils.serialize"
+    )
+    importlib.reload(utils)
+    return utils, serialize_module
 
 
 def test_utils_serialize_helpers_resolve_latest_module_bindings(
     monkeypatch,
 ) -> None:
     """Package-level serialize helpers should resolve from ``utils.serialize`` lazily."""  # noqa: E501
-    importlib.reload(utils)
+    utils, serialize_module = _reload_utils_modules()
 
     def replacement(value: datetime) -> str:
         return "updated-binding"
@@ -24,7 +34,7 @@ def test_utils_serialize_helpers_resolve_latest_module_bindings(
 
 def test_utils_getattr_unknown_helper_raises_attribute_error() -> None:
     """Unknown package helper names should raise ``AttributeError`` via ``__getattr__``."""  # noqa: E501
-    importlib.reload(utils)
+    utils, _ = _reload_utils_modules()
 
     try:
         _ = utils.this_helper_does_not_exist
