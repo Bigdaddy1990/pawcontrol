@@ -1,18 +1,22 @@
 """Direct runtime coverage for ``utils.serialize`` module import paths."""
 
-from __future__ import annotations
-
-import importlib.util
-import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+import importlib.util
 from pathlib import Path
+import sys
 from types import ModuleType
 
 
 def _load_serialize_module(module_name: str) -> ModuleType:
     """Load the serialize module directly from disk under ``module_name``."""
-    module_path = Path(__file__).resolve().parents[1] / "custom_components" / "pawcontrol" / "utils" / "serialize.py"
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "custom_components"
+        / "pawcontrol"
+        / "utils"
+        / "serialize.py"
+    )
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     if spec is None or spec.loader is None:
         raise RuntimeError("Unable to load serialize module spec")
@@ -31,12 +35,11 @@ def test_module_import_updates_parent_re_exports() -> None:
 
     module = _load_serialize_module("custom_components.pawcontrol.utils.serialize")
 
-    assert getattr(parent_module, "serialize_datetime") is module.serialize_datetime
-    assert getattr(parent_module, "serialize_timedelta") is module.serialize_timedelta
-    assert getattr(parent_module, "serialize_dataclass") is module.serialize_dataclass
+    assert parent_module.serialize_datetime is module.serialize_datetime
+    assert parent_module.serialize_timedelta is module.serialize_timedelta
+    assert parent_module.serialize_dataclass is module.serialize_dataclass
     assert (
-        getattr(parent_module, "serialize_entity_attributes")
-        is module.serialize_entity_attributes
+        parent_module.serialize_entity_attributes is module.serialize_entity_attributes
     )
 
 
@@ -54,7 +57,7 @@ class _Stringy:
 def test_private_serializer_covers_all_supported_types() -> None:
     """The private recursive serializer should handle every conversion branch."""
     module = _load_serialize_module("tests.runtime.serialize_for_branches")
-    serializer = getattr(module, "_serialize_value")
+    serializer = module._serialize_value
 
     payload = _Payload(
         when=datetime(2026, 3, 1, 8, 45, tzinfo=UTC),
@@ -62,7 +65,10 @@ def test_private_serializer_covers_all_supported_types() -> None:
     )
 
     assert serializer(None) is None
-    assert serializer(datetime(2026, 3, 1, 8, 45, tzinfo=UTC)) == "2026-03-01T08:45:00+00:00"
+    assert (
+        serializer(datetime(2026, 3, 1, 8, 45, tzinfo=UTC))
+        == "2026-03-01T08:45:00+00:00"
+    )
     assert serializer(timedelta(seconds=5)) == 5
     assert serializer(payload) == {
         "when": "2026-03-01T08:45:00+00:00",
@@ -87,10 +93,12 @@ def test_public_helpers_from_runtime_module() -> None:
     )
     assert module.serialize_timedelta(timedelta(minutes=2, seconds=4)) == 124
 
-    assert module.serialize_dataclass(_Payload(
-        when=datetime(2026, 1, 2, 3, 4, tzinfo=UTC),
-        duration=timedelta(seconds=1),
-    )) == {
+    assert module.serialize_dataclass(
+        _Payload(
+            when=datetime(2026, 1, 2, 3, 4, tzinfo=UTC),
+            duration=timedelta(seconds=1),
+        )
+    ) == {
         "when": datetime(2026, 1, 2, 3, 4, tzinfo=UTC),
         "duration": timedelta(seconds=1),
     }
