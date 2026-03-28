@@ -8,11 +8,97 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def device_api_module() -> ModuleType:
-    """Load the production device API module."""
-    module = importlib.import_module("custom_components.pawcontrol.device_api")
-    return importlib.reload(module)
+    """Load the device API helper without importing the integration package."""
+    monkeypatch = MonkeyPatch()
+    test_namespace = "pawcontrol_testpkg"
+    test_package = f"{test_namespace}.pawcontrol"
+    ha_module = ModuleType("homeassistant")
+    ha_exceptions = ModuleType("homeassistant.exceptions")
+
+    class ConfigEntryAuthFailedError(Exception):
+        """Stubbed Home Assistant auth error."""
+
+    ha_exceptions.ConfigEntryAuthFailed = ConfigEntryAuthFailedError
+    ha_module.exceptions = ha_exceptions
+    monkeypatch.setitem(sys.modules, "homeassistant", ha_module)
+    monkeypatch.setitem(sys.modules, "homeassistant.exceptions", ha_exceptions)
+
+    namespace_pkg = ModuleType(test_namespace)
+    namespace_pkg.__path__ = [
+        str(Path(__file__).resolve().parents[2] / "custom_components")
+    ]
+    integration_pkg = ModuleType(test_package)
+    integration_pkg.__path__ = [
+        str(Path(__file__).resolve().parents[2] / "custom_components" / "pawcontrol")
+    ]
+    stub_exceptions = ModuleType(f"{test_package}.exceptions")
+    stub_resilience = ModuleType(f"{test_package}.resilience")
+    stub_types = ModuleType(f"{test_package}.types")
+    stub_utils = ModuleType(f"{test_package}.utils")
+
+    class NetworkError(Exception):
+        """Stubbed network error."""
+
+    class RateLimitError(Exception):
+        """Stubbed rate limit error."""
+
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            super().__init__(*args)
+            self.kwargs = kwargs
+
+    stub_exceptions.ConfigEntryAuthFailed = ConfigEntryAuthFailedError
+    stub_exceptions.NetworkError = NetworkError
+    stub_exceptions.RateLimitError = RateLimitError
+
+    class RetryConfig:  # pragma: no cover - simple stub
+        """Minimal RetryConfig replacement for tests."""
+
+        def __init__(self, **kwargs: object) -> None:
+            self.options = kwargs
+
+    class ResilienceManager:  # pragma: no cover - simple stub
+        """Stubbed resilience manager used in tests."""
+
+        def __init__(self, hass: object) -> None:
+            self.hass = hass
+
+        async def execute_with_resilience(self, func, *args, **kwargs):
+            if args or kwargs:
+                return await func(*args, **kwargs)
+            return await func()
+
+    stub_resilience.RetryConfig = RetryConfig
+    stub_resilience.ResilienceManager = ResilienceManager
+    stub_types.JSONMutableMapping = dict[str, object]
+    stub_utils._coerce_json_mutable = lambda payload: payload
+
+    monkeypatch.setitem(sys.modules, test_namespace, namespace_pkg)
+    monkeypatch.setitem(sys.modules, test_package, integration_pkg)
+    monkeypatch.setitem(sys.modules, f"{test_package}.exceptions", stub_exceptions)
+    monkeypatch.setitem(sys.modules, f"{test_package}.resilience", stub_resilience)
+    monkeypatch.setitem(sys.modules, f"{test_package}.types", stub_types)
+    monkeypatch.setitem(sys.modules, f"{test_package}.utils", stub_utils)
+
+    module_path = (
+        Path(__file__).resolve().parents[2]
+        / "custom_components"
+        / "pawcontrol"
+        / "device_api.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        f"{test_package}.device_api_test", module_path
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        monkeypatch.undo()
+        sys.modules.pop(spec.name, None)
 
 
 @pytest.mark.unit
