@@ -231,7 +231,9 @@ async def test_optional_setup_managers_skip_notifications_when_no_items_created(
 
 
 @pytest.mark.asyncio
-async def test_async_initialize_coordinator_skips_optional_calls_when_disabled() -> None:
+async def test_async_initialize_coordinator_skips_optional_calls_when_disabled() -> (
+    None
+):
     """Coordinator setup should be bypassed when optional setup is skipped."""
     from custom_components.pawcontrol.setup import manager_init
 
@@ -251,7 +253,9 @@ async def test_async_initialize_coordinator_wraps_network_errors() -> None:
     """Network failures during pre-setup should raise ConfigEntryNotReady."""
     from custom_components.pawcontrol.setup import manager_init
 
-    coordinator = SimpleNamespace(async_prepare_entry=AsyncMock(side_effect=OSError("nope")))
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(side_effect=OSError("nope"))
+    )
 
     with pytest.raises(manager_init.ConfigEntryNotReady, match="Network connectivity"):
         await manager_init._async_initialize_coordinator(coordinator, False)

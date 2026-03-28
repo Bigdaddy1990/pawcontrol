@@ -7,8 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import runpy
-from types import MappingProxyType
-from types import ModuleType
+from types import MappingProxyType, ModuleType
 
 import pytest
 
