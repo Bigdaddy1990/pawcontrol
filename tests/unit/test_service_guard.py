@@ -1,6 +1,10 @@
 """Unit tests for service guard telemetry models."""
 
 from collections.abc import Iterator, MutableMapping
+from pathlib import Path
+import importlib.util
+import sys
+from types import ModuleType
 
 import pytest
 
@@ -12,6 +16,74 @@ from custom_components.pawcontrol.service_guard import (
     normalise_guard_result_payload,
 )
 from custom_components.pawcontrol.types import JSONMutableMapping
+
+
+def test_service_guard_module_load_keeps_public_api_available(tmp_path) -> None:
+    """Loading the module under an alternate package preserves its public API."""
+    source = (
+        Path(__file__).resolve().parents[2]
+        / "custom_components/pawcontrol/service_guard.py"
+    )
+
+    package_root = tmp_path / "shadowpkg"
+    package_root.mkdir()
+    (package_root / "__init__.py").write_text("")
+    (package_root / "service_guard.py").write_text(source.read_text())
+    (package_root / "types.py").write_text(
+        "JSONLikeMapping = dict[str, object]\n"
+        "JSONMutableMapping = dict[str, object]\n"
+        "JSONValue = object\n"
+    )
+
+    spec = importlib.util.spec_from_file_location(
+        "shadowpkg.service_guard_mod",
+        package_root / "service_guard.py",
+    )
+    assert spec is not None
+    assert spec.loader is not None
+
+    module = importlib.util.module_from_spec(spec)
+    package_module = ModuleType("shadowpkg")
+    package_module.__path__ = [str(package_root)]
+    types_module = ModuleType("shadowpkg.types")
+    types_module.JSONLikeMapping = dict[str, object]
+    types_module.JSONMutableMapping = dict[str, object]
+    types_module.JSONValue = object
+    sys.modules["shadowpkg"] = package_module
+    sys.modules["shadowpkg.types"] = types_module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop("shadowpkg.types", None)
+        sys.modules.pop("shadowpkg", None)
+
+    assert module.ServiceGuardResult.__name__ == "ServiceGuardResult"
+    assert module.ServiceGuardSnapshot.__name__ == "ServiceGuardSnapshot"
+    assert module.normalise_guard_history([]) == []
+    assert module._coerce_int("3") == 3
+def test_service_guard_module_exec_preserves_public_helpers() -> None:
+    """Executing the module source should expose the documented helper symbols."""
+    module_globals: dict[str, object] = {
+        "__name__": "tests.service_guard_exec",
+        "__package__": "custom_components.pawcontrol",
+    }
+    module_code = Path("custom_components/pawcontrol/service_guard.py").read_text(
+        encoding="utf-8"
+    )
+
+    exec(
+        compile(
+            module_code,
+            "custom_components/pawcontrol/service_guard.py",
+            "exec",
+        ),
+        module_globals,
+    )
+
+    assert module_globals["ServiceGuardResult"] is not None
+    assert module_globals["ServiceGuardSnapshot"] is not None
+    assert callable(module_globals["normalise_guard_result_payload"])
+    assert callable(module_globals["normalise_guard_history"])
 
 
 def test_service_guard_result_to_mapping() -> None:
