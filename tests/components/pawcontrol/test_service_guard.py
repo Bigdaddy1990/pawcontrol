@@ -137,3 +137,68 @@ def test_normalise_helpers_filter_invalid_values() -> None:
     ]
 
     assert normalise_guard_history("not-a-sequence") == []
+
+
+def test_service_guard_snapshot_accumulate_handles_invalid_reason_payloads() -> None:
+    """Accumulate should initialise missing reason payloads and normalize output."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("notify", "mobile_app", False, reason="quiet_hours"),
+        ServiceGuardResult("switch", "toggle", False),
+    ])
+
+    metrics: dict[str, object] = {
+        "executed": 0,
+        "skipped": 0,
+        "reasons": "bad-payload",
+        "last_results": (),
+    }
+
+    accumulated = snapshot.accumulate(metrics)
+
+    assert accumulated == {
+        "executed": 0,
+        "skipped": 2,
+        "reasons": {"quiet_hours": 1, "unknown": 1},
+        "last_results": [
+            {
+                "domain": "notify",
+                "service": "mobile_app",
+                "executed": False,
+                "reason": "quiet_hours",
+            },
+            {
+                "domain": "switch",
+                "service": "toggle",
+                "executed": False,
+            },
+        ],
+    }
+
+
+def test_normalise_guard_result_payload_keeps_truthy_string_fields() -> None:
+    """Payload normalization should preserve non-empty string attributes."""
+    payload = {
+        "executed": 1,
+        "domain": "notify",
+        "service": "mobile_app",
+        "reason": "rate_limited",
+        "description": "retry later",
+    }
+
+    assert normalise_guard_result_payload(payload) == {
+        "executed": True,
+        "domain": "notify",
+        "service": "mobile_app",
+        "reason": "rate_limited",
+        "description": "retry later",
+    }
+
+
+def test_normalise_guard_history_and_bool_cover_edge_paths() -> None:
+    """History normalization should reject bytes and mirror result truthiness."""
+    executed = ServiceGuardResult("notify", "mobile_app", True)
+    skipped = ServiceGuardResult("light", "turn_off", False)
+
+    assert bool(executed) is True
+    assert bool(skipped) is False
+    assert normalise_guard_history(b"invalid-bytes") == []
