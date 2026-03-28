@@ -37,6 +37,32 @@ async def test_async_setup_platforms_skips_optional_managers() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_setup_platforms_runs_optional_managers() -> None:
+    """Optional helper/script setup should run when not disabled."""
+    entry = Mock()
+    hass = SimpleNamespace(config_entries=SimpleNamespace())
+    hass.config_entries.async_forward_entry_setups = AsyncMock(return_value=None)
+    runtime_data = SimpleNamespace(config_entry_options={})
+
+    setup_helpers = AsyncMock()
+    setup_scripts = AsyncMock()
+
+    original_helpers = platform_setup._async_setup_helpers
+    original_scripts = platform_setup._async_setup_scripts
+    platform_setup._async_setup_helpers = setup_helpers
+    platform_setup._async_setup_scripts = setup_scripts
+    try:
+        await platform_setup.async_setup_platforms(hass, entry, runtime_data)
+    finally:
+        platform_setup._async_setup_helpers = original_helpers
+        platform_setup._async_setup_scripts = original_scripts
+
+    hass.config_entries.async_forward_entry_setups.assert_awaited_once()
+    setup_helpers.assert_awaited_once_with(hass, entry, runtime_data)
+    setup_scripts.assert_awaited_once_with(hass, entry, runtime_data)
+
+
+@pytest.mark.asyncio
 async def test_async_forward_platforms_retries_then_succeeds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -89,6 +115,26 @@ async def test_async_forward_platforms_timeout_after_retries_raises_not_ready(
 
 
 @pytest.mark.asyncio
+async def test_async_forward_platforms_exhausted_runtime_errors_raise_not_ready(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected failures should raise ConfigEntryNotReady on final retry."""
+    entry = Mock()
+    hass = SimpleNamespace(config_entries=SimpleNamespace())
+    hass.config_entries.async_forward_entry_setups = AsyncMock(
+        side_effect=RuntimeError("persistent"),
+    )
+    sleep_mock = AsyncMock()
+    monkeypatch.setattr(platform_setup.asyncio, "sleep", sleep_mock)
+
+    with pytest.raises(ConfigEntryNotReady, match="Platform setup failed"):
+        await platform_setup._async_forward_platforms(hass, entry)
+
+    assert hass.config_entries.async_forward_entry_setups.await_count == 3
+    assert sleep_mock.await_count == 2
+
+
+@pytest.mark.asyncio
 async def test_async_setup_helpers_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     """Helper setup timeout should be logged and treated as non-critical."""
     helper_manager = SimpleNamespace(async_create_helpers_for_dogs=AsyncMock())
@@ -100,6 +146,77 @@ async def test_async_setup_helpers_timeout(monkeypatch: pytest.MonkeyPatch) -> N
     )
     monkeypatch.setattr(
         platform_setup.asyncio, "wait_for", AsyncMock(side_effect=TimeoutError)
+    )
+
+    await platform_setup._async_setup_helpers(SimpleNamespace(), Mock(), runtime_data)
+
+
+@pytest.mark.asyncio
+async def test_async_setup_helpers_success_sends_notification(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Helper setup should notify when helpers were created."""
+    helper_manager = SimpleNamespace(async_create_helpers_for_dogs=AsyncMock())
+    notification_manager = SimpleNamespace(async_send_notification=AsyncMock())
+    runtime_data = SimpleNamespace(
+        helper_manager=helper_manager,
+        dogs=[{"dog_id": "dog-1"}, {"dog_id": "dog-2"}],
+        config_entry_options={"enabled_modules": ["gps", "walk"]},
+        notification_manager=notification_manager,
+    )
+    monkeypatch.setattr(
+        platform_setup.asyncio,
+        "wait_for",
+        AsyncMock(return_value={"dog-1": ["helper-a"], "dog-2": ["helper-b"]}),
+    )
+
+    await platform_setup._async_setup_helpers(SimpleNamespace(), Mock(), runtime_data)
+
+    notification_manager.async_send_notification.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_async_setup_helpers_notification_failures_are_non_critical(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Notification errors should not escape helper setup."""
+    helper_manager = SimpleNamespace(async_create_helpers_for_dogs=AsyncMock())
+    notification_manager = SimpleNamespace(
+        async_send_notification=AsyncMock(side_effect=RuntimeError("notify-failed"))
+    )
+    runtime_data = SimpleNamespace(
+        helper_manager=helper_manager,
+        dogs=[{"dog_id": "dog-1"}],
+        config_entry_options={"enabled_modules": ["gps"]},
+        notification_manager=notification_manager,
+    )
+    monkeypatch.setattr(
+        platform_setup.asyncio,
+        "wait_for",
+        AsyncMock(return_value={"dog-1": ["helper-a"]}),
+    )
+
+    await platform_setup._async_setup_helpers(SimpleNamespace(), Mock(), runtime_data)
+
+    notification_manager.async_send_notification.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_async_setup_helpers_unexpected_error_is_non_critical(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected helper setup failures should be swallowed with warning path."""
+    helper_manager = SimpleNamespace(async_create_helpers_for_dogs=AsyncMock())
+    runtime_data = SimpleNamespace(
+        helper_manager=helper_manager,
+        dogs=[{"dog_id": "dog-1"}],
+        config_entry_options={"enabled_modules": {"gps": True}},
+        notification_manager=None,
+    )
+    monkeypatch.setattr(
+        platform_setup.asyncio,
+        "wait_for",
+        AsyncMock(side_effect=RuntimeError("helper-failed")),
     )
 
     await platform_setup._async_setup_helpers(SimpleNamespace(), Mock(), runtime_data)
@@ -187,3 +304,37 @@ async def test_async_setup_scripts_swallow_notification_errors(
     await platform_setup._async_setup_scripts(SimpleNamespace(), Mock(), runtime_data)
 
     notification_manager.async_send_notification.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_async_setup_scripts_skips_when_manager_missing() -> None:
+    """Missing script manager should short-circuit setup."""
+    runtime_data = SimpleNamespace(
+        script_manager=None,
+        dogs=[{"dog_id": "dog-1"}],
+        config_entry_options={"enabled_modules": ["gps"]},
+        notification_manager=None,
+    )
+
+    await platform_setup._async_setup_scripts(SimpleNamespace(), Mock(), runtime_data)
+
+
+@pytest.mark.asyncio
+async def test_async_setup_scripts_timeout_is_non_critical(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timeouts during script generation should be swallowed."""
+    script_manager = SimpleNamespace(async_generate_scripts_for_dogs=AsyncMock())
+    runtime_data = SimpleNamespace(
+        script_manager=script_manager,
+        dogs=[{"dog_id": "dog-1"}],
+        config_entry_options={"enabled_modules": ["gps"]},
+        notification_manager=None,
+    )
+    monkeypatch.setattr(
+        platform_setup.asyncio,
+        "wait_for",
+        AsyncMock(side_effect=TimeoutError),
+    )
+
+    await platform_setup._async_setup_scripts(SimpleNamespace(), Mock(), runtime_data)
