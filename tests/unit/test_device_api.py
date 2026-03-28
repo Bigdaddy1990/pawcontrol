@@ -11,10 +11,12 @@ import pytest
 from pytest import MonkeyPatch
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def device_api_module() -> ModuleType:
     """Load the device API helper without importing the integration package."""
     monkeypatch = MonkeyPatch()
+    test_namespace = "pawcontrol_testpkg"
+    test_package = f"{test_namespace}.pawcontrol"
     ha_module = ModuleType("homeassistant")
     ha_exceptions = ModuleType("homeassistant.exceptions")
 
@@ -26,16 +28,18 @@ def device_api_module() -> ModuleType:
     monkeypatch.setitem(sys.modules, "homeassistant", ha_module)
     monkeypatch.setitem(sys.modules, "homeassistant.exceptions", ha_exceptions)
 
-    namespace_pkg = ModuleType("custom_components")
+    namespace_pkg = ModuleType(test_namespace)
     namespace_pkg.__path__ = [
         str(Path(__file__).resolve().parents[2] / "custom_components")
     ]
-    integration_pkg = ModuleType("custom_components.pawcontrol")
+    integration_pkg = ModuleType(test_package)
     integration_pkg.__path__ = [
         str(Path(__file__).resolve().parents[2] / "custom_components" / "pawcontrol")
     ]
-    stub_exceptions = ModuleType("custom_components.pawcontrol.exceptions")
-    stub_resilience = ModuleType("custom_components.pawcontrol.resilience")
+    stub_exceptions = ModuleType(f"{test_package}.exceptions")
+    stub_resilience = ModuleType(f"{test_package}.resilience")
+    stub_types = ModuleType(f"{test_package}.types")
+    stub_utils = ModuleType(f"{test_package}.utils")
 
     class NetworkError(Exception):
         """Stubbed network error."""
@@ -70,15 +74,15 @@ def device_api_module() -> ModuleType:
 
     stub_resilience.RetryConfig = RetryConfig
     stub_resilience.ResilienceManager = ResilienceManager
+    stub_types.JSONMutableMapping = dict[str, object]
+    stub_utils._coerce_json_mutable = lambda payload: payload
 
-    monkeypatch.setitem(sys.modules, "custom_components", namespace_pkg)
-    monkeypatch.setitem(sys.modules, "custom_components.pawcontrol", integration_pkg)
-    monkeypatch.setitem(
-        sys.modules, "custom_components.pawcontrol.exceptions", stub_exceptions
-    )
-    monkeypatch.setitem(
-        sys.modules, "custom_components.pawcontrol.resilience", stub_resilience
-    )
+    monkeypatch.setitem(sys.modules, test_namespace, namespace_pkg)
+    monkeypatch.setitem(sys.modules, test_package, integration_pkg)
+    monkeypatch.setitem(sys.modules, f"{test_package}.exceptions", stub_exceptions)
+    monkeypatch.setitem(sys.modules, f"{test_package}.resilience", stub_resilience)
+    monkeypatch.setitem(sys.modules, f"{test_package}.types", stub_types)
+    monkeypatch.setitem(sys.modules, f"{test_package}.utils", stub_utils)
 
     module_path = (
         Path(__file__).resolve().parents[2]
@@ -87,14 +91,17 @@ def device_api_module() -> ModuleType:
         / "device_api.py"
     )
     spec = importlib.util.spec_from_file_location(
-        "custom_components.pawcontrol.device_api_test", module_path
+        f"{test_package}.device_api_test", module_path
     )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    monkeypatch.undo()
-    return module
+    try:
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        monkeypatch.undo()
+        sys.modules.pop(spec.name, None)
 
 
 @pytest.mark.unit
