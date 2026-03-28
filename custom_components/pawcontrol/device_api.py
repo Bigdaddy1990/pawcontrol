@@ -1,6 +1,8 @@
 """HTTP client helpers for communicating with Paw Control hardware."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import cast
 
 from aiohttp import ClientError, ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client_exceptions import ContentTypeError
@@ -10,9 +12,21 @@ from .exceptions import ConfigEntryAuthFailed, NetworkError, RateLimitError
 from .http_client import ensure_shared_client_session
 from .resilience import ResilienceManager, RetryConfig
 from .types import JSONMutableMapping
-from .utils import _coerce_json_mutable  # type: ignore[attr-defined]
 
 _DEFAULT_TIMEOUT = ClientTimeout(total=15.0)
+
+
+def _coerce_json_mutable(
+    mapping: Mapping[str, object] | JSONMutableMapping | None,
+) -> JSONMutableMapping:
+    """Create a JSON-compatible mutable mapping copy from mapping input."""
+    if mapping is None:
+        return {}
+
+    if isinstance(mapping, dict):
+        return cast(JSONMutableMapping, dict(mapping))
+
+    return {key: value for key, value in mapping.items()}
 
 
 @dataclass(slots=True)
