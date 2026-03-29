@@ -8,8 +8,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from custom_components.pawcontrol.utils import _legacy as legacy_utils
-from custom_components.pawcontrol.utils import async_fire_event
+from custom_components.pawcontrol.utils import _legacy as legacy_utils, async_fire_event
 
 
 @pytest.mark.asyncio
