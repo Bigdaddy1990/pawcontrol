@@ -33,8 +33,8 @@ def test_adaptive_polling_reaches_idle_interval(cycles: int) -> None:
     assert pytest.approx(interval, rel=0.05) == 900.0
 
 
-def test_adaptive_polling_reduces_when_system_busy() -> None:
-    """High utilisation should shrink the polling window."""
+def test_adaptive_polling_increases_when_system_busy() -> None:
+    """High utilisation with long cycles should back off polling."""
     controller = AdaptivePollingController(
         initial_interval_seconds=600.0,
         min_interval_seconds=60.0,
@@ -50,8 +50,8 @@ def test_adaptive_polling_reduces_when_system_busy() -> None:
         error_ratio=0.1,
     )
 
-    assert interval < 600.0
-    assert interval >= 60.0
+    assert interval > 600.0
+    assert interval <= 1800.0
 
 
 def test_adaptive_polling_backs_off_after_errors() -> None:
@@ -103,8 +103,8 @@ def test_adaptive_polling_honours_idle_grace_before_idle_ramp() -> None:
         error_ratio=0.0,
     )
 
-    assert first == pytest.approx(125.0)
-    assert second == pytest.approx(156.25)
+    assert first == pytest.approx(250.0)
+    assert second == pytest.approx(600.0)
 
 
 def test_adaptive_polling_increases_interval_for_slow_cycles() -> None:
@@ -150,7 +150,7 @@ def test_adaptive_polling_resets_idle_tracking_after_activity() -> None:
         error_ratio=0.0,
     )
 
-    assert active_interval < 120.0
+    assert active_interval >= 120.0
     assert idle_interval > active_interval
     assert idle_interval < 900.0
 

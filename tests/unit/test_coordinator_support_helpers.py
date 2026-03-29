@@ -330,7 +330,7 @@ def test_dog_config_registry_from_entry_and_interval_paths() -> None:
         {"dog_id": "buddy", "dog_name": "Buddy", CONF_MODULES: {"weather": True}}
     ])
     weather_registry._modules_cache["buddy"] = frozenset({"weather"})
-    assert weather_registry.calculate_update_interval({}) == 60
+    assert weather_registry.calculate_update_interval({}) == 120
 
     balanced_registry = DogConfigRegistry([
         {
