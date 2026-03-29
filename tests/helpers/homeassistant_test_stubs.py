@@ -1885,12 +1885,20 @@ class DataUpdateCoordinator:
         self.hass = hass
         self.logger = logger
         self.name = name or "stub"
+        self.data: object | None = None
 
     async def async_config_entry_first_refresh(self) -> None:
         return None
 
     async def async_request_refresh(self) -> None:
         return None
+
+    def async_update_listeners(self) -> None:
+        return None
+
+    def async_set_updated_data(self, data: object) -> None:
+        self.data = data
+        self.async_update_listeners()
 
     @classmethod
     def __class_getitem__(cls, item):  # pragma: no cover - helper stub
