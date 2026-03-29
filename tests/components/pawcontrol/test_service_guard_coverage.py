@@ -102,3 +102,9 @@ def test_normalise_guard_helpers_filter_invalid_values() -> None:
         {"executed": False, "service": "switch"},
         {"domain": "notify", "service": "mobile_app", "executed": True},
     ]
+
+
+@pytest.mark.parametrize("payload", [None, "not-a-sequence", b"bytes", bytearray(b"x")])
+def test_normalise_guard_history_rejects_non_sequence_payloads(payload: object) -> None:
+    """Guard history should return an empty payload for unsupported inputs."""
+    assert normalise_guard_history(payload) == []
