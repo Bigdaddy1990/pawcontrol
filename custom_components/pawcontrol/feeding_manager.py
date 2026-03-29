@@ -9,7 +9,7 @@ from enum import Enum
 from functools import partial
 import logging
 from time import perf_counter
-from typing import Any, Literal, NotRequired, Required, TypedDict, TypeVar, cast
+from typing import Any, Final, Literal, NotRequired, Required, TypedDict, TypeVar, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
