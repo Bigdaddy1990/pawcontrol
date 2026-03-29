@@ -1493,7 +1493,12 @@ async def test_feeding_settings_coercion(
     assert result["type"] == FlowResultType.CREATE_ENTRY
 
     options = cast(PawControlOptionsData, result["data"])
-    feeding = cast(FeedingOptions, options["feeding_settings"])
+    dog_options = cast(dict[str, object], options.get(DOG_OPTIONS_FIELD, {}))
+    if dog_options:
+        first_dog_options = cast(dict[str, object], next(iter(dog_options.values())))
+        feeding = cast(FeedingOptions, first_dog_options["feeding_settings"])
+    else:
+        feeding = cast(FeedingOptions, options["feeding_settings"])
 
     assert feeding["default_meals_per_day"] == 6
     assert feeding["feeding_reminders"] is False
