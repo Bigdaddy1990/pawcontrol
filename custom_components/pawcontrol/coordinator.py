@@ -297,8 +297,9 @@ class PawControlCoordinator(
         # async_prepare_entry is idempotent; setup logic runs only once per entry.
         await self.async_prepare_entry()
         dog_ids = self.registry.ids()
-        if not dog_ids:
-            raise CoordinatorUpdateFailed("No valid dogs configured")
+        # Note: registry.ids() is guaranteed non-empty here because the
+        # len(self.registry) == 0 guard above already handles the empty case.
+        # A second `if not dog_ids` raise was dead code that masked the real path.
         try:
             data, _cycle = await self._execute_cycle(dog_ids)
         except ConfigEntryAuthFailed:
@@ -501,13 +502,11 @@ class PawControlCoordinator(
         self._data[dog_id] = cast(paw_types.CoordinatorDogData, dog_payload)
 
         updated_payload = dict(self._data)
-        # async_set_updated_data is a synchronous @callback in all HA versions.
-        # The isawaitable guard was misleading (B8) — removed.
-        setter = getattr(self, "async_set_updated_data", None)
-        if callable(setter):
-            setter(updated_payload)
-        else:  # pragma: no cover - exercised via lightweight test stubs
-            self.data = updated_payload
+        # async_set_updated_data is a @callback on DataUpdateCoordinator since
+        # HA 2021 and is guaranteed present in all supported HA 2026.x releases.
+        # The previous getattr guard's else-branch wrote directly to self.data,
+        # which bypasses listener notification and silently stops entity updates.
+        self.async_set_updated_data(updated_payload)
 
     async def _synchronize_module_states(
         self, data: paw_types.CoordinatorDataPayload

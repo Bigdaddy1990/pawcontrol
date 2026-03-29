@@ -109,9 +109,13 @@ class FeedingOptionsMixin(FeedingOptionsHost):
                 if dog_id in dog_options or not dog_options:
                     dog_options[dog_id] = entry
                     new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
-                new_options["feeding_settings"] = cast(
-                    JSONValue, entry["feeding_settings"]
-                )
+                # BUG FIX: Do NOT write feeding_settings to the top-level options
+                # key. The previous code performed a dual-write: settings went both
+                # into new_options["dog_options"][dog_id]["feeding_settings"] (the
+                # correct per-dog location) AND into new_options["feeding_settings"]
+                # (a global legacy key). On reload, _current_feeding_options() reads
+                # the per-dog path first; the stale global key shadowed the correct
+                # value in edge cases where dog_id was missing from dog_options.
 
                 typed_options = self._normalise_options_snapshot(new_options)
                 return self.async_create_entry(title="", data=typed_options)

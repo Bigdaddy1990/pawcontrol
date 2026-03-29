@@ -420,7 +420,12 @@ class DogConfigRegistry:
             return self._enforce_polling_limits(gps_interval)
         interval: int
         if self.has_module(MODULE_WEATHER):
-            interval = UPDATE_INTERVALS.get("frequent", 60)
+            # BUG FIX: Weather data in HA is subscription-based (state-change
+            # events), not polled.  Forcing 60 s polling for a weather-only config
+            # is wasteful and unnecessary.  Use "balanced" (120 s) instead.
+            # GPS-enabled configs already return above via the has_module(GPS) path
+            # so this branch only fires when GPS is absent.
+            interval = UPDATE_INTERVALS.get("balanced", 120)
         else:
             total_modules = self.module_count()
             if total_modules > 15:

@@ -126,7 +126,14 @@ class AdaptivePollingController:
         self._max_interval = max(calculated_max, idle_target)
         self._idle_interval = idle_target
         self._idle_grace = max(idle_grace_seconds, 0.0)
-        self._target_cycle = max(target_cycle_ms / 1000.0, self._min_interval)
+        # BUG FIX: _target_cycle is the target *duration* of a single update cycle
+        # in seconds (e.g. 200 ms → 0.2 s).  The previous code mixed two separate
+        # domains by taking max(duration_target, _min_interval), where _min_interval
+        # is a *polling interval* (≥ 15 s).  This forced _target_cycle to ≥ 15 s,
+        # making every API cycle (0.1–2 s) look "fast" → interval always drifted
+        # to minimum regardless of actual load.  Fix: keep _target_cycle strictly
+        # as a sub-second duration target, floored at 1 ms to avoid div-by-zero.
+        self._target_cycle = max(target_cycle_ms / 1000.0, 0.001)
         self._current_interval = min(base_interval, self._max_interval)
         self._error_streak = 0
         self._entity_saturation = 0.0

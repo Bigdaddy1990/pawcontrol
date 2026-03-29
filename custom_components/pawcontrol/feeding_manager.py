@@ -83,6 +83,15 @@ class MealType(Enum):
     SUPPLEMENT = "supplement"
 
 
+# Module-level constant — avoids re-allocating a frozenset on every portion
+# calculation call.  Treat and Supplement are intentionally small servings;
+# applying MINIMUM_NUTRITION_PORTION_G to them would violate safety factors
+# for toy/small breeds where 50 g could exceed the entire daily ration.
+_NON_MEAL_TYPES: Final[frozenset[MealType]] = frozenset(
+    {MealType.TREAT, MealType.SUPPLEMENT}
+)
+
+
 class FeedingScheduleType(Enum):
     """Feeding schedule type enumeration."""
 
@@ -403,11 +412,17 @@ class MealSchedule:
 
     def get_next_feeding_time(self) -> datetime:
         """Get next scheduled feeding time."""
+        # dt_util.now() is already timezone-aware (HA's local timezone).
+        # Replacing time components directly avoids the naive-datetime pitfall of
+        # datetime.combine(today, scheduled_time) + as_local(), which can produce
+        # a wrong date when the local timezone shifts the day boundary past midnight.
         now = dt_util.now()
-        today = now.date()
-
-        scheduled = datetime.combine(today, self.scheduled_time)
-        scheduled = dt_util.as_local(scheduled)
+        scheduled = now.replace(
+            hour=self.scheduled_time.hour,
+            minute=self.scheduled_time.minute,
+            second=self.scheduled_time.second,
+            microsecond=0,
+        )
 
         if scheduled <= now:
             scheduled += timedelta(days=1)
@@ -658,15 +673,31 @@ class FeedingConfig:
         }
 
         multiplier = meal_multipliers.get(meal_type, 1.0)
-        calculated_portion = base_portion * multiplier
+        # Normalize multipliers across the active meal slots so the sum of all
+        # portions equals daily_food_amount regardless of meals_per_day.
+        # Without normalization, e.g. 2 meals (B:1.1 + D:1.0) sum to 2.1 instead
+        # of 2.0, systematically overfeeding the dog by ~5% per day.
+        active_weight = (
+            sum(
+                meal_multipliers.get(s.meal_type, 1.0)
+                for s in self.meal_schedules
+                if s.enabled
+            )
+            if self.meal_schedules
+            else float(self.meals_per_day)
+        )
+        # Guard: avoid zero-division when no schedules are enabled
+        if active_weight <= 0:
+            active_weight = float(self.meals_per_day) or 1.0
+        calculated_portion = (self.daily_food_amount * multiplier) / active_weight
 
         # Apply tolerance if configured
         if self.portion_tolerance > 0:
             tolerance_factor = 1.0 + (self.portion_tolerance / 100.0)
             calculated_portion = min(
                 calculated_portion * tolerance_factor,
-                self.daily_food_amount * 0.6,
-            )  # Max 60% in one meal
+                self.daily_food_amount * MAX_PORTION_SAFETY_FACTOR,
+            )  # Max 60% in one meal — uses constant so ceiling stays in sync
 
         return round(calculated_portion, 1)
 
@@ -743,12 +774,9 @@ class FeedingConfig:
         )  # Max 60% of daily amount (100% if single meal)
         portion = max(min_portion, min(portion, max_portion))
 
-        # FIX B6: Apply MINIMUM_NUTRITION_PORTION_G only for primary meals
-        # (breakfast / lunch / dinner).  Treats and supplements are intentionally
-        # small; forcing them to 50+ grams violates the safety factors defined
-        # by MIN_PORTION_SAFETY_FACTOR and is especially dangerous for toy/small
-        # breeds where 50 g could exceed the entire daily ration.
-        _NON_MEAL_TYPES = frozenset({MealType.TREAT, MealType.SUPPLEMENT})
+        # Apply MINIMUM_NUTRITION_PORTION_G only for primary meals
+        # (breakfast / lunch / dinner). Treats and supplements are intentionally
+        # small — enforced via the module-level _NON_MEAL_TYPES constant.
         if meal_type not in _NON_MEAL_TYPES:
             portion = max(portion, MINIMUM_NUTRITION_PORTION_G)
 
@@ -1153,7 +1181,12 @@ class FeedingManager:
         # OPTIMIZATION: Feeding data cache
         self._data_cache: FeedingSnapshotCache = {}
         self._cache_time: dict[str, datetime] = {}
-        self._cache_ttl = timedelta(seconds=10)
+        # Cache TTL tuned to survive one full real_time polling cycle (30 s
+        # minimum interval).  A 10 s TTL caused cache thrashing: every entity
+        # subscribing within the same coordinator cycle got an uncached, freshly
+        # computed snapshot.  25 s keeps the cache hot for the whole cycle while
+        # still expiring before the next one begins.
+        self._cache_ttl = timedelta(seconds=25)
 
         # OPTIMIZATION: Statistics cache
         self._stats_cache: FeedingStatisticsCache = {}
