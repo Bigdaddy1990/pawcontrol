@@ -268,7 +268,7 @@ def test_validate_notification_targets_accepts_single_values() -> None:
     )
     missing_targets = validate_notification_targets(
         None, enum_type=_NotificationChannel
-    )  # noqa: E501
+    )
 
     assert single_string.targets == [_NotificationChannel.MOBILE]
     assert single_string.invalid == []

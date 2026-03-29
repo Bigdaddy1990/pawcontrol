@@ -87,7 +87,7 @@ class MealType(Enum):
 # calculation call.  Treat and Supplement are intentionally small servings;
 # applying MINIMUM_NUTRITION_PORTION_G to them would violate safety factors
 # for toy/small breeds where 50 g could exceed the entire daily ration.
-_NON_MEAL_TYPES: Final[frozenset[MealType]] = frozenset(
+_NON_MEAL_TYPES: Final[frozenset[MealType]] = frozenset(  # noqa: F821
     {MealType.TREAT, MealType.SUPPLEMENT}
 )
 
