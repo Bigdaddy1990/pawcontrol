@@ -1,5 +1,6 @@
 """Tests for PawControl device API client helpers."""
 
+from collections.abc import Mapping
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -27,17 +28,19 @@ def test_coerce_json_mutable_handles_none_and_mapping_inputs() -> None:
 
 
 class _FakeResponse:
+    _MISSING = object()
+
     def __init__(
         self,
         *,
         status: int = 200,
         headers: dict[str, str] | None = None,
-        json_payload: object | None = None,
+        json_payload: object = _MISSING,
         text_payload: str = "",
     ) -> None:
         self.status = status
         self.headers = headers or {}
-        self._json_payload = json_payload if json_payload is not None else {}
+        self._json_payload = {} if json_payload is self._MISSING else json_payload
         self._text_payload = text_payload
 
     async def json(self) -> object:
@@ -57,6 +60,22 @@ class _FakeSession:
     async def request(self, *args: object, **kwargs: object) -> _FakeResponse:
         self.calls.append((args, kwargs))
         return self._response
+
+
+class _MappingPayload(Mapping[str, object]):
+    """Simple mapping implementation used to exercise mapping coercion paths."""
+
+    def __init__(self, values: dict[str, object]) -> None:
+        self._values = values
+
+    def __getitem__(self, key: str) -> object:
+        return self._values[key]
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __len__(self) -> int:
+        return len(self._values)
 
 
 def test_validate_device_endpoint_requires_http_and_hostname() -> None:
@@ -158,6 +177,27 @@ async def test_async_get_feeding_payload_uses_expected_resource_path() -> None:
 
     assert payload == {"scheduled": True}
     client.async_get_json.assert_awaited_once_with("/api/dogs/dog-42/feeding")
+
+
+@pytest.mark.asyncio
+async def test_async_get_json_coerces_none_payload_to_empty_mapping() -> None:
+    """JSON helper should normalise null payloads into mutable empty mappings."""
+    session = _FakeSession(_FakeResponse(json_payload=None))
+    client = PawControlDeviceClient(session, endpoint="https://example.test")
+
+    assert await client.async_get_json("/api/status") == {}
+
+
+@pytest.mark.asyncio
+async def test_async_get_json_coerces_mapping_payload_to_mutable_mapping() -> None:
+    """JSON helper should copy generic mappings into mutable dict payloads."""
+    session = _FakeSession(_FakeResponse(json_payload=_MappingPayload({"ok": True})))
+    client = PawControlDeviceClient(session, endpoint="https://example.test")
+
+    payload = await client.async_get_json("/api/status")
+
+    assert payload == {"ok": True}
+    assert isinstance(payload, dict)
 
 
 @pytest.mark.asyncio
