@@ -20,7 +20,10 @@ from custom_components.pawcontrol.const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
-from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed, PawControlSetupError
+from custom_components.pawcontrol.exceptions import (
+    ConfigEntryAuthFailed,
+    PawControlSetupError,
+)
 from custom_components.pawcontrol.types import DogConfigData
 
 

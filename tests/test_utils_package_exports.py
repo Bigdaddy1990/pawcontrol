@@ -11,7 +11,7 @@ from custom_components.pawcontrol.utils import serialize
 def _reloaded_utils_module() -> object:
     """Reload the utils package so module-level export wiring is exercised."""
     module_name = "custom_components.pawcontrol.utils"
-    module = importlib.import_module(module_name)
+    importlib.import_module(module_name)
 
     # `tests/unit/test_utils_package_exports.py` intentionally removes and
     # reinstalls the package module while exercising import wiring. Importing

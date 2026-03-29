@@ -10,8 +10,8 @@ from custom_components.pawcontrol.exceptions import (
     GPSError,
     PawControlError,
     ServiceUnavailableError,
-    get_exception_class,
     create_error_context,
+    get_exception_class,
     handle_exception_gracefully,
     raise_from_error_code,
 )
@@ -90,7 +90,6 @@ def test_handle_exception_gracefully_reraises_critical() -> None:
 
 def test_handle_exception_gracefully_swallows_unexpected_when_configured() -> None:
     """Unexpected exceptions should return default when reraise is disabled."""
-
     wrapped = handle_exception_gracefully(
         lambda: (_ for _ in ()).throw(RuntimeError("boom")),
         default_return="fallback",

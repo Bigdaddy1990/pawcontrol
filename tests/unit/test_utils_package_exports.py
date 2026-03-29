@@ -71,7 +71,9 @@ def test_utils_getattr_resolves_serialize_helpers_lazily() -> None:
         "serialize_dataclass",
         "serialize_entity_attributes",
     ):
-        assert getattr(utils_module, helper_name) is getattr(serialize_module, helper_name)
+        assert getattr(utils_module, helper_name) is getattr(
+            serialize_module, helper_name
+        )  # noqa: E501
 
 
 def test_utils_getattr_raises_for_unknown_symbol() -> None:
