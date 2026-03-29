@@ -7,6 +7,7 @@ import pytest
 
 from custom_components.pawcontrol.device_api import (
     PawControlDeviceClient,
+    _coerce_json_mutable,
     validate_device_endpoint,
 )
 from custom_components.pawcontrol.exceptions import (
@@ -14,6 +15,15 @@ from custom_components.pawcontrol.exceptions import (
     NetworkError,
     RateLimitError,
 )
+
+
+def test_coerce_json_mutable_handles_none_and_mapping_inputs() -> None:
+    """Coercion helper should normalize optional and mapping payloads."""
+    assert _coerce_json_mutable(None) == {}
+    assert _coerce_json_mutable({"dog": "Milo"}) == {"dog": "Milo"}
+
+    mapping_view = {"steps": 3}.items().mapping
+    assert _coerce_json_mutable(mapping_view) == {"steps": 3}
 
 
 class _FakeResponse:
