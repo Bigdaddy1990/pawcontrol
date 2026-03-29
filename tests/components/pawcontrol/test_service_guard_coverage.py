@@ -32,6 +32,74 @@ def test_coerce_int_handles_supported_input_and_fallbacks(
     assert _coerce_int(value) == expected
 
 
+def test_service_guard_result_bool_and_mapping_behaviour() -> None:
+    """Guard result payloads should preserve optional reason/description fields."""
+    executed = ServiceGuardResult("notify", "mobile_app", executed=True)
+    skipped = ServiceGuardResult(
+        "switch",
+        "turn_on",
+        executed=False,
+        reason="quiet_hours",
+        description="muted",
+    )
+
+    assert bool(executed) is True
+    assert bool(skipped) is False
+    assert executed.to_mapping() == {
+        "domain": "notify",
+        "service": "mobile_app",
+        "executed": True,
+    }
+    assert skipped.to_mapping() == {
+        "domain": "switch",
+        "service": "turn_on",
+        "executed": False,
+        "reason": "quiet_hours",
+        "description": "muted",
+    }
+
+
+def test_snapshot_summary_metrics_and_zero_payload() -> None:
+    """Snapshot helpers should build stable summary and metrics payloads."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("notify", "mobile_app", executed=True),
+        ServiceGuardResult("switch", "turn_on", executed=False, reason="quiet"),
+        ServiceGuardResult("script", "turn_on", executed=False),
+    ])
+
+    assert snapshot.executed == 1
+    assert snapshot.skipped == 2
+    assert snapshot.reasons == {"quiet": 1, "unknown": 1}
+    assert snapshot.history() == [
+        {"domain": "notify", "service": "mobile_app", "executed": True},
+        {
+            "domain": "switch",
+            "service": "turn_on",
+            "executed": False,
+            "reason": "quiet",
+        },
+        {"domain": "script", "service": "turn_on", "executed": False},
+    ]
+    assert snapshot.to_summary() == {
+        "executed": 1,
+        "skipped": 2,
+        "reasons": {"quiet": 1, "unknown": 1},
+        "results": snapshot.history(),
+    }
+    assert snapshot.to_metrics() == {
+        "executed": 1,
+        "skipped": 2,
+        "reasons": {"quiet": 1, "unknown": 1},
+        "last_results": snapshot.history(),
+    }
+    assert ServiceGuardSnapshot.zero_metrics() == {
+        "executed": 0,
+        "skipped": 0,
+        "reasons": {},
+        "last_results": [],
+    }
+
+
 def test_snapshot_accumulate_merges_reason_counts_and_replaces_history() -> None:
     """Accumulation should merge counters and overwrite last results with history."""
     snapshot = ServiceGuardSnapshot.from_sequence([
@@ -104,7 +172,9 @@ def test_normalise_guard_helpers_filter_invalid_values() -> None:
     ]
 
 
-@pytest.mark.parametrize("payload", [None, "not-a-sequence", b"bytes", bytearray(b"x")])
-def test_normalise_guard_history_rejects_non_sequence_payloads(payload: object) -> None:
-    """Guard history should return an empty payload for unsupported inputs."""
-    assert normalise_guard_history(payload) == []
+def test_normalise_guard_history_rejects_non_sequence_payloads() -> None:
+    """Non-sequences and raw bytes/strings should return empty history."""
+    assert normalise_guard_history("not-a-history") == []
+    assert normalise_guard_history(b"not-a-history") == []
+    assert normalise_guard_history(bytearray(b"not-a-history")) == []
+    assert normalise_guard_history(123) == []
