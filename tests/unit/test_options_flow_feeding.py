@@ -158,7 +158,7 @@ async def test_select_dog_for_feeding_settings_handles_navigation() -> None:
 
 
 async def test_async_step_feeding_settings_persists_updates() -> None:
-    """Submitting feeding settings should write per-dog and legacy keys."""
+    """Submitting feeding settings should write per-dog settings only."""
     flow = _FeedingFlow(
         dogs=[{"dog_id": "dog-1"}],
         current_dog={"dog_id": "dog-1"},
@@ -186,9 +186,7 @@ async def test_async_step_feeding_settings_persists_updates() -> None:
         "calorie_tracking": False,
         "auto_schedule": True,
     }
-    assert (
-        data["feeding_settings"] == data[DOG_OPTIONS_FIELD]["dog-1"]["feeding_settings"]
-    )
+    assert "feeding_settings" not in data
 
 
 async def test_async_step_feeding_settings_returns_selector_when_no_current_dog() -> (
@@ -238,13 +236,7 @@ async def test_async_step_feeding_settings_preserves_unselected_dog_options() ->
             }
         }
     }
-    assert data["feeding_settings"] == {
-        "default_meals_per_day": 4,
-        "feeding_reminders": True,
-        "portion_tracking": True,
-        "calorie_tracking": False,
-        "auto_schedule": False,
-    }
+    assert "feeding_settings" not in data
 
 
 async def test_async_step_feeding_settings_reports_validation_and_generic_errors() -> (
