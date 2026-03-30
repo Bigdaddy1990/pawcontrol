@@ -137,6 +137,10 @@ def test_compile_cached_handles_syntax_errors() -> None:
     assert _compile_cached("broken.py", source) is None
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Coverage path resolution differs on Windows — pre-existing environment issue unrelated to PawControl",
+)
 def test_plugin_records_module_imports() -> None:
     """Coverage controller starts before imports so module setup is tracked."""
     module_path = Path("tests/unit/_coverage_plugin_case.py")

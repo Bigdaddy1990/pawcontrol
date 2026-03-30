@@ -330,6 +330,8 @@ def test_dog_config_registry_from_entry_and_interval_paths() -> None:
         {"dog_id": "buddy", "dog_name": "Buddy", CONF_MODULES: {"weather": True}}
     ])
     weather_registry._modules_cache["buddy"] = frozenset({"weather"})
+    # BUG FIX (Patch 11): Weather data in HA is subscription-based, not polled.
+    # Interval corrected from 60 s (frequent) to 120 s (balanced).
     assert weather_registry.calculate_update_interval({}) == 120
 
     balanced_registry = DogConfigRegistry([

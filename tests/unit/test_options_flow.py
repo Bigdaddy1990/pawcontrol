@@ -235,7 +235,14 @@ def _assert_notification_snapshot(
     )
 
     dog_options = cast(DogOptionsMap, options["dog_options"])
-    assert set(dog_options) == set(dog_modules)
+    # Patch 16: Use a subset check instead of strict equality.
+    # The options flow now always writes the per-dog entry, so dogs that were
+    # configured in mock_config_entry (e.g. "test_dog") may appear in dog_options
+    # alongside the expected dogs.  We verify that all expected dogs are present
+    # and correct, without constraining which other dogs the flow may have added.
+    assert set(dog_modules).issubset(set(dog_options)), (
+        f"Expected dogs {set(dog_modules)} not all found in {set(dog_options)}"
+    )
 
     for dog_id, modules in dog_modules.items():
         _assert_dog_modules(dog_options, dog_id, modules)
@@ -1477,7 +1484,12 @@ async def test_weather_settings_normalisation(
 async def test_feeding_settings_coercion(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """Feeding options should normalise numeric ranges and booleans."""
+    """Feeding options should normalise numeric ranges and booleans.
+
+    Patch 10/16: Settings are stored under dog_options[dog_id]["feeding_settings"],
+    not at the top-level "feeding_settings" key (which was a legacy dual-write).
+    The mock_config_entry has dog_id="test_dog", so we look up that path.
+    """
     flow = PawControlOptionsFlow()
     flow.hass = hass
     flow.initialize_from_config_entry(mock_config_entry)
@@ -1493,12 +1505,17 @@ async def test_feeding_settings_coercion(
     assert result["type"] == FlowResultType.CREATE_ENTRY
 
     options = cast(PawControlOptionsData, result["data"])
-    dog_options = cast(dict[str, object], options.get(DOG_OPTIONS_FIELD, {}))
-    if dog_options:
-        first_dog_options = cast(dict[str, object], next(iter(dog_options.values())))
-        feeding = cast(FeedingOptions, first_dog_options["feeding_settings"])
-    else:
-        feeding = cast(FeedingOptions, options["feeding_settings"])
+    # Settings are now exclusively in the per-dog location.
+    dog_options = options[DOG_OPTIONS_FIELD]
+    # Find the first dog entry that has feeding_settings written.
+    feeding: FeedingOptions | None = None
+    for entry in dog_options.values():
+        if "feeding_settings" in entry:
+            feeding = cast(FeedingOptions, entry["feeding_settings"])
+            break
+    assert feeding is not None, "feeding_settings not found in any dog_options entry"
+    # Global legacy key must not exist.
+    assert "feeding_settings" not in options
 
     assert feeding["default_meals_per_day"] == 6
     assert feeding["feeding_reminders"] is False

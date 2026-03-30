@@ -33,8 +33,14 @@ def test_adaptive_polling_reaches_idle_interval(cycles: int) -> None:
     assert pytest.approx(interval, rel=0.05) == 900.0
 
 
-def test_adaptive_polling_increases_when_system_busy() -> None:
-    """High utilisation with long cycles should back off polling."""
+def test_adaptive_polling_reduces_when_system_busy() -> None:
+    """Fast cycles with high entity saturation should shrink the polling window.
+
+    Patch 9: _target_cycle is now 0.2 s (200 ms) instead of being clamped to
+    _min_interval (≥ 15 s).  Tests must use sub-target cycle durations to reach
+    the reduction branch of record_cycle().  The 20 s duration used previously
+    hit the "slow cycle" increase branch because 20 s >> 0.2 s target.
+    """
     controller = AdaptivePollingController(
         initial_interval_seconds=600.0,
         min_interval_seconds=60.0,
@@ -45,13 +51,13 @@ def test_adaptive_polling_increases_when_system_busy() -> None:
     controller.update_entity_saturation(0.9)
 
     interval = controller.record_cycle(
-        duration=20.0,
+        duration=0.05,  # 50 ms — fast cycle, below 0.8 × 200 ms target
         success=True,
         error_ratio=0.1,
     )
 
-    assert interval > 600.0
-    assert interval <= 1800.0
+    assert interval < 600.0
+    assert interval >= 60.0
 
 
 def test_adaptive_polling_backs_off_after_errors() -> None:
@@ -82,7 +88,13 @@ def test_adaptive_polling_backs_off_after_errors() -> None:
 
 
 def test_adaptive_polling_honours_idle_grace_before_idle_ramp() -> None:
-    """Idle grace should apply a gentle ramp before idle interval escalation."""
+    """Idle grace should apply a gentle ramp before idle interval escalation.
+
+    Patch 9: _target_cycle is now 0.2 s.  Using duration=0.2 s keeps the cycle
+    inside the neutral zone (0.16–0.22 s) so neither the reduction nor the
+    increase branch fires, leaving next_interval unchanged at 100.  The idle
+    grace path then applies the 1.25× gentle multiplier → 125 → 156.25.
+    """
     controller = AdaptivePollingController(
         initial_interval_seconds=100.0,
         min_interval_seconds=30.0,
@@ -93,18 +105,18 @@ def test_adaptive_polling_honours_idle_grace_before_idle_ramp() -> None:
     controller.update_entity_saturation(0.0)
 
     first = controller.record_cycle(
-        duration=5.0,
+        duration=0.2,  # neutral zone: 0.16 s < 0.2 s < 0.22 s
         success=True,
         error_ratio=0.0,
     )
     second = controller.record_cycle(
-        duration=5.0,
+        duration=0.2,
         success=True,
         error_ratio=0.0,
     )
 
-    assert first == pytest.approx(250.0)
-    assert second == pytest.approx(600.0)
+    assert first == pytest.approx(125.0)
+    assert second == pytest.approx(156.25)
 
 
 def test_adaptive_polling_increases_interval_for_slow_cycles() -> None:
@@ -129,7 +141,12 @@ def test_adaptive_polling_increases_interval_for_slow_cycles() -> None:
 
 
 def test_adaptive_polling_resets_idle_tracking_after_activity() -> None:
-    """High error ratio marks activity and prevents immediate idle ramping."""
+    """High error ratio marks activity and prevents immediate idle ramping.
+
+    Patch 9: _target_cycle is now 0.2 s.  duration=0.05 s (fast cycle) hits the
+    reduction branch and lowers the interval below 120.  The second cycle with
+    error_ratio=0 and idle_grace=0 triggers the idle ramp above active_interval.
+    """
     controller = AdaptivePollingController(
         initial_interval_seconds=120.0,
         min_interval_seconds=30.0,
@@ -140,17 +157,17 @@ def test_adaptive_polling_resets_idle_tracking_after_activity() -> None:
     controller.update_entity_saturation(0.0)
 
     active_interval = controller.record_cycle(
-        duration=5.0,
+        duration=0.05,  # fast cycle: below 0.8 × 0.2 s target → reduction branch
         success=True,
         error_ratio=0.2,
     )
     idle_interval = controller.record_cycle(
-        duration=5.0,
+        duration=0.05,
         success=True,
         error_ratio=0.0,
     )
 
-    assert active_interval >= 120.0
+    assert active_interval < 120.0
     assert idle_interval > active_interval
     assert idle_interval < 900.0
 

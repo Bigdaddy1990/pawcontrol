@@ -158,7 +158,13 @@ async def test_select_dog_for_feeding_settings_handles_navigation() -> None:
 
 
 async def test_async_step_feeding_settings_persists_updates() -> None:
-    """Submitting feeding settings should write per-dog settings only."""
+    """Submitting feeding settings should write per-dog entry only.
+
+    Patch 10 removed the dual-write to the global ``feeding_settings`` key.
+    Settings are now stored exclusively under
+    ``dog_options[dog_id]["feeding_settings"]`` which is the canonical location
+    read by ``_current_feeding_options()``.
+    """
     flow = _FeedingFlow(
         dogs=[{"dog_id": "dog-1"}],
         current_dog={"dog_id": "dog-1"},
@@ -179,13 +185,16 @@ async def test_async_step_feeding_settings_persists_updates() -> None:
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     data = result["data"]
-    assert data[DOG_OPTIONS_FIELD]["dog-1"]["feeding_settings"] == {
+    expected_settings = {
         "default_meals_per_day": 5,
         "feeding_reminders": False,
         "portion_tracking": True,
         "calorie_tracking": False,
         "auto_schedule": True,
     }
+    # Settings must be written to the correct per-dog location.
+    assert data[DOG_OPTIONS_FIELD]["dog-1"]["feeding_settings"] == expected_settings
+    # Global legacy key must NOT be written — it shadowed per-dog values on reload.
     assert "feeding_settings" not in data
 
 
@@ -206,7 +215,12 @@ async def test_async_step_feeding_settings_returns_selector_when_no_current_dog(
 
 
 async def test_async_step_feeding_settings_preserves_unselected_dog_options() -> None:
-    """Saving for a non-listed dog should not overwrite existing dog options map."""
+    """Saving for a non-listed dog should not overwrite existing dog options map.
+
+    Patch 10: ``feeding_settings`` is no longer written to the top-level options
+    dict.  The assertion now verifies that existing per-dog entries are untouched
+    and that no global ``feeding_settings`` key is injected.
+    """
     flow = _FeedingFlow(
         dogs=[{"dog_id": "dog-2"}],
         current_dog={"dog_id": "dog-2"},
@@ -229,13 +243,21 @@ async def test_async_step_feeding_settings_preserves_unselected_dog_options() ->
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     data = result["data"]
-    assert data[DOG_OPTIONS_FIELD] == {
-        "dog-1": {
-            "feeding_settings": {
-                "default_meals_per_day": 2,
-            }
+    # Existing dog-1 entry must be preserved untouched.
+    assert data[DOG_OPTIONS_FIELD]["dog-1"] == {
+        "feeding_settings": {
+            "default_meals_per_day": 2,
         }
     }
+    # dog-2 settings must be stored under dog_options, not at top level.
+    assert data[DOG_OPTIONS_FIELD]["dog-2"]["feeding_settings"] == {
+        "default_meals_per_day": 4,
+        "feeding_reminders": True,
+        "portion_tracking": True,
+        "calorie_tracking": False,
+        "auto_schedule": False,
+    }
+    # Global legacy key must NOT be present.
     assert "feeding_settings" not in data
 
 
