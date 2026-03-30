@@ -3,22 +3,23 @@
 Covers: normalize_dog_id, validate_dog_name, ensure_dog_modules_config,
         ensure_dog_options_entry
 """
+
 from __future__ import annotations
 
 import pytest
 
+from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.migrations import (
     ensure_dog_modules_config,
     ensure_dog_options_entry,
     normalize_dog_id,
     validate_dog_name,
 )
-from custom_components.pawcontrol.exceptions import ValidationError
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # normalize_dog_id
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_normalize_dog_id_lowercase() -> None:
@@ -52,6 +53,7 @@ def test_normalize_dog_id_empty_returns_empty() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # validate_dog_name
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_validate_dog_name_valid() -> None:
@@ -93,6 +95,7 @@ def test_validate_dog_name_not_required_empty() -> None:
 # ensure_dog_modules_config
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_ensure_dog_modules_config_empty() -> None:
     result = ensure_dog_modules_config({})
@@ -109,6 +112,7 @@ def test_ensure_dog_modules_config_with_values() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # ensure_dog_options_entry
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_ensure_dog_options_entry_minimal() -> None:

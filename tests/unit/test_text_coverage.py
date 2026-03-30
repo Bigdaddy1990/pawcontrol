@@ -4,6 +4,7 @@ Covers: PawControlAllergiesText, PawControlBehaviorNotesText,
         PawControlBreederInfoText, PawControlCustomLabelText
         constructors, native_value, extra_state_attributes
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -30,6 +31,7 @@ def _coord(dog_id="rex"):
 # PawControlAllergiesText
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_allergies_text_init() -> None:
     e = PawControlAllergiesText(_coord(), "rex", "Rex")
@@ -54,6 +56,7 @@ def test_allergies_text_extra_attrs() -> None:
 # PawControlBehaviorNotesText
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_behavior_notes_init() -> None:
     e = PawControlBehaviorNotesText(_coord(), "rex", "Rex")
@@ -69,6 +72,7 @@ def test_behavior_notes_unique_id() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlBreederInfoText
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_breeder_info_init() -> None:
@@ -86,6 +90,7 @@ def test_breeder_info_native_value() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlCustomLabelText
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_custom_label_init() -> None:

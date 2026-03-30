@@ -2,7 +2,10 @@
 
 Covers: build_dog_status_snapshot, summarize_entity_budgets, ensure_dog_modules_mapping
 """
+
 from __future__ import annotations
+
+from datetime import UTC
 
 import pytest
 
@@ -12,10 +15,10 @@ from custom_components.pawcontrol.coordinator_runtime import (
     summarize_entity_budgets,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # build_dog_status_snapshot
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_build_dog_status_snapshot_empty_data() -> None:
@@ -58,6 +61,7 @@ def test_build_dog_status_snapshot_full_payload() -> None:
 # summarize_entity_budgets
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_summarize_entity_budgets_empty() -> None:
     result = summarize_entity_budgets([])
@@ -67,13 +71,18 @@ def test_summarize_entity_budgets_empty() -> None:
 @pytest.mark.unit
 def test_summarize_entity_budgets_single() -> None:
     from datetime import datetime, timezone
+
     from custom_components.pawcontrol.coordinator_runtime import EntityBudgetSnapshot
+
     snap = EntityBudgetSnapshot(
-        dog_id="rex", profile="standard",
-        capacity=100, base_allocation=20, dynamic_allocation=5,
+        dog_id="rex",
+        profile="standard",
+        capacity=100,
+        base_allocation=20,
+        dynamic_allocation=5,
         requested_entities=("sensor.rex_weight",),
         denied_requests=(),
-        recorded_at=datetime.now(timezone.utc),
+        recorded_at=datetime.now(UTC),
     )
     result = summarize_entity_budgets([snap])
     assert isinstance(result, dict)
@@ -82,11 +91,15 @@ def test_summarize_entity_budgets_single() -> None:
 @pytest.mark.unit
 def test_summarize_entity_budgets_multiple() -> None:
     from datetime import datetime, timezone
+
     from custom_components.pawcontrol.coordinator_runtime import EntityBudgetSnapshot
-    now = datetime.now(timezone.utc)
+
+    now = datetime.now(UTC)
     snaps = [
         EntityBudgetSnapshot("rex", "standard", 100, 20, 5, ("s1",), (), now),
-        EntityBudgetSnapshot("buddy", "standard", 100, 18, 3, ("s2", "s3"), ("s4",), now),
+        EntityBudgetSnapshot(
+            "buddy", "standard", 100, 18, 3, ("s2", "s3"), ("s4",), now
+        ),  # noqa: E501
     ]
     result = summarize_entity_budgets(snaps)
     assert isinstance(result, dict)
@@ -95,6 +108,7 @@ def test_summarize_entity_budgets_multiple() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # ensure_dog_modules_mapping
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_ensure_dog_modules_mapping_empty() -> None:

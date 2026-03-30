@@ -3,22 +3,21 @@
 Covers: compile_redaction_patterns, classify_error_reason,
         diagnostics_redaction helpers, PawControlDiagnostics structure
 """
+
 from __future__ import annotations
 
 import pytest
 
 from custom_components.pawcontrol.diagnostics import (
-    compile_redaction_patterns,
     classify_error_reason,
+    compile_redaction_patterns,
 )
-from custom_components.pawcontrol.diagnostics_redaction import (
-    redact_sensitive_data,
-)
-
+from custom_components.pawcontrol.diagnostics_redaction import redact_sensitive_data
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # compile_redaction_patterns
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_compile_redaction_patterns_empty() -> None:
@@ -35,6 +34,7 @@ def test_compile_redaction_patterns_known_keys() -> None:
 @pytest.mark.unit
 def test_compile_redaction_patterns_produces_regex() -> None:
     import re
+
     patterns = compile_redaction_patterns(["secret"])
     # Patterns must be compilable regexes
     for p in patterns:
@@ -44,6 +44,7 @@ def test_compile_redaction_patterns_produces_regex() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # classify_error_reason (from diagnostics)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_classify_error_reason_timeout() -> None:
@@ -59,7 +60,9 @@ def test_classify_error_reason_none() -> None:
 
 @pytest.mark.unit
 def test_classify_error_reason_network_error() -> None:
-    result = classify_error_reason("connection refused", error=ConnectionError("refused"))
+    result = classify_error_reason(
+        "connection refused", error=ConnectionError("refused")
+    )  # noqa: E501
     assert isinstance(result, str)
 
 

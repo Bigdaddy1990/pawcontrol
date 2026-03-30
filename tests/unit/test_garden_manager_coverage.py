@@ -2,16 +2,17 @@
 
 Covers: normalize_value (garden_manager re-export)
 """
+
 from __future__ import annotations
 
 import pytest
 
 from custom_components.pawcontrol.garden_manager import normalize_value
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # normalize_value (same semantics as walk_manager.normalize_value)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_normalize_value_int_passthrough() -> None:

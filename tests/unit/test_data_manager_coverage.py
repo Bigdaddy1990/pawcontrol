@@ -144,7 +144,7 @@ def test_dog_profile_as_dict() -> None:
         "feeding_history",
         "walk_history",
         "health_history",
-    ):  # noqa: E501
+    ):
         assert key in d
 
 
@@ -250,7 +250,7 @@ async def test_data_manager_async_get_registered_dogs(mock_hass) -> None:
     # Each entry is a DogConfigData TypedDict or plain dict; verify dog exists
     found = any(
         (d.get("dog_id") if isinstance(d, dict) else getattr(d, "dog_id", None))
-        == "rex"  # noqa: E501
+        == "rex"
         or (d.get("dog_id") if isinstance(d, dict) else None) is not None
         for d in dogs
     )

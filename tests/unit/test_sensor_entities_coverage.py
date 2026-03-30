@@ -5,6 +5,7 @@ Covers: PawControlActivityLevelSensor, PawControlCaloriesBurnedTodaySensor,
         PawControlBodyConditionScoreSensor
         constructors, native_value, extra_state_attributes
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -22,11 +23,18 @@ from custom_components.pawcontrol.sensor import (
 
 def _coord(dog_id="rex"):
     c = MagicMock()
-    c.data = {dog_id: {
-        "walk": {"walk_in_progress": False, "walks_today": 0,
-                 "total_duration_today": 0.0, "total_distance_today": 0.0},
-        "feeding": {}, "health": {},
-    }}
+    c.data = {
+        dog_id: {
+            "walk": {
+                "walk_in_progress": False,
+                "walks_today": 0,
+                "total_duration_today": 0.0,
+                "total_distance_today": 0.0,
+            },
+            "feeding": {},
+            "health": {},
+        }
+    }
     c.last_update_success = True
     c.get_dog_data = MagicMock(return_value={})
     return c
@@ -35,6 +43,7 @@ def _coord(dog_id="rex"):
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlActivityLevelSensor
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_activity_level_sensor_init() -> None:
@@ -60,6 +69,7 @@ def test_activity_level_extra_attrs() -> None:
 # PawControlCaloriesBurnedTodaySensor
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_calories_burned_sensor_init() -> None:
     s = PawControlCaloriesBurnedTodaySensor(_coord(), "rex", "Rex")
@@ -83,6 +93,7 @@ def test_calories_burned_unique_id() -> None:
 # PawControlCurrentWalkDurationSensor
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_current_walk_duration_sensor_init() -> None:
     s = PawControlCurrentWalkDurationSensor(_coord(), "rex", "Rex")
@@ -100,6 +111,7 @@ def test_current_walk_duration_native_value() -> None:
 # PawControlAverageWalkDurationSensor
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_average_walk_duration_sensor_init() -> None:
     s = PawControlAverageWalkDurationSensor(_coord(), "rex", "Rex")
@@ -116,6 +128,7 @@ def test_average_walk_duration_native_value() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlBodyConditionScoreSensor
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_body_condition_score_sensor_init() -> None:

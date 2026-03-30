@@ -3,18 +3,21 @@
 Covers: _extract_gps_tracking_input, PawControlNumberBase native_value/set_native_value,
         entity constructors, extra_state_attributes
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.pawcontrol.number import _build_gps_tracking_input as _extract_gps_tracking_input
-
+from custom_components.pawcontrol.number import (
+    _build_gps_tracking_input as _extract_gps_tracking_input,
+)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # _extract_gps_tracking_input
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_extract_gps_tracking_empty() -> None:

@@ -3,9 +3,10 @@
 Covers: PawControlDateBase.native_value, extra_state_attributes (with/without value,
         birthdate age calc), async_set_value, entity constructors
 """
+
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -27,6 +28,7 @@ def _make_date_entity(cls, coordinator=None, dog_id="rex", dog_name="Rex"):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Constructors
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_birthdate_date_init() -> None:
@@ -51,6 +53,7 @@ def test_last_vet_visit_init() -> None:
 # native_value
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_native_value_none_initially() -> None:
     e = _make_date_entity(PawControlBirthdateDate)
@@ -69,6 +72,7 @@ def test_native_value_after_set() -> None:
 # extra_state_attributes
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_extra_state_attributes_no_value() -> None:
     e = _make_date_entity(PawControlBirthdateDate)
@@ -84,8 +88,9 @@ def test_extra_state_attributes_future_date(monkeypatch) -> None:
     future = date(2025, 6, 15)
     e._current_value = future
 
-    fixed_now = datetime(2025, 6, 1, tzinfo=timezone.utc)
+    fixed_now = datetime(2025, 6, 1, tzinfo=UTC)
     import custom_components.pawcontrol.date as date_mod
+
     monkeypatch.setattr(date_mod.dt_util, "now", lambda: fixed_now)
 
     attrs = e.extra_state_attributes
@@ -100,8 +105,9 @@ def test_extra_state_attributes_past_birthdate_has_age(monkeypatch) -> None:
     birth = date(2020, 6, 1)
     e._current_value = birth
 
-    fixed_now = datetime(2025, 6, 1, tzinfo=timezone.utc)
+    fixed_now = datetime(2025, 6, 1, tzinfo=UTC)
     import custom_components.pawcontrol.date as date_mod
+
     monkeypatch.setattr(date_mod.dt_util, "now", lambda: fixed_now)
 
     attrs = e.extra_state_attributes
@@ -114,6 +120,7 @@ def test_extra_state_attributes_past_birthdate_has_age(monkeypatch) -> None:
 # async_set_value
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_set_value_updates_current() -> None:
@@ -122,7 +129,6 @@ async def test_async_set_value_updates_current() -> None:
     e.async_write_ha_state = MagicMock()
 
     # Patch _get_data_manager to return None so no await is attempted
-    from unittest.mock import patch
     with patch.object(e, "_get_data_manager", return_value=None):
         d = date(2022, 1, 1)
         await e.async_set_value(d)

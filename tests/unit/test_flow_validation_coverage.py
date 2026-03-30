@@ -204,7 +204,7 @@ def test_valid_modules_dict_accepted() -> None:
             "dog_id": "rex",
             "dog_name": "Rex",
             "modules": {"feeding": True, "walk": False},
-        },  # noqa: E501
+        },
         existing_ids=set(),
         current_dog_count=0,
         max_dogs=10,

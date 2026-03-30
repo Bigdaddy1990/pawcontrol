@@ -4,6 +4,7 @@ Covers: _normalise_issue_severity, _issue_registry_supports_kwarg,
         classify_error_reason, ensure_cache_repair_aggregate,
         async_create_issue (mocked), async_schedule_repair_evaluation
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -18,10 +19,10 @@ from custom_components.pawcontrol.repairs import (
 )
 from tests.helpers.homeassistant_test_stubs import IssueSeverity
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # _normalise_issue_severity
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_normalise_severity_from_enum() -> None:
@@ -51,21 +52,25 @@ def test_normalise_severity_non_string_falls_back() -> None:
 # _issue_registry_supports_kwarg
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_present() -> None:
     def create_issue(hass, domain, *, translation_key, **kwargs): ...
+
     assert _issue_registry_supports_kwarg(create_issue, "translation_key") is True
 
 
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_via_var_keyword() -> None:
     def create_issue(hass, domain, **kwargs): ...
+
     assert _issue_registry_supports_kwarg(create_issue, "any_key") is True
 
 
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_absent() -> None:
     def create_issue(hass, domain): ...
+
     assert _issue_registry_supports_kwarg(create_issue, "translation_key") is False
 
 
@@ -77,6 +82,7 @@ def test_issue_registry_supports_kwarg_not_callable() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # classify_error_reason
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_classify_error_reason_with_string() -> None:
@@ -101,6 +107,7 @@ def test_classify_error_reason_with_exception() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # ensure_cache_repair_aggregate
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_ensure_cache_repair_aggregate_none() -> None:

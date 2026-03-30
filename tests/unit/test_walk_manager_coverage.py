@@ -2,16 +2,17 @@
 
 Covers: is_number, normalize_value utility functions
 """
+
 from __future__ import annotations
 
 import pytest
 
 from custom_components.pawcontrol.walk_manager import is_number, normalize_value
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # is_number
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_is_number_int() -> None:
@@ -58,6 +59,7 @@ def test_is_number_list_false() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # normalize_value
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_normalize_value_int() -> None:

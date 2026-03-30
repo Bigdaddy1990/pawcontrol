@@ -2,16 +2,17 @@
 
 LRUCache methods are all async — must use pytest.mark.asyncio.
 """
+
 from __future__ import annotations
 
 import pytest
 
 from custom_components.pawcontrol.cache import CacheStats, LRUCache
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # LRUCache — basic async operations
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -53,7 +54,7 @@ async def test_lru_cache_evicts_when_full() -> None:
     await cache.set("a", 1)
     await cache.set("b", 2)
     await cache.set("c", 3)
-    await cache.set("d", 4)   # evicts LRU
+    await cache.set("d", 4)  # evicts LRU
     assert await cache.get("d") == 4
 
 
@@ -91,6 +92,7 @@ async def test_lru_cache_none_value() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # CacheStats
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_cache_stats_init() -> None:

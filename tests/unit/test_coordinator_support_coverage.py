@@ -2,6 +2,7 @@
 
 Covers: coerce_dog_modules_config, ensure_dog_config_data
 """
+
 from __future__ import annotations
 
 import pytest
@@ -11,10 +12,10 @@ from custom_components.pawcontrol.coordinator_support import (
     ensure_dog_config_data,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # coerce_dog_modules_config
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_coerce_dog_modules_config_none() -> None:
@@ -55,6 +56,7 @@ def test_coerce_dog_modules_config_all_false() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # ensure_dog_config_data
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_ensure_dog_config_data_valid() -> None:

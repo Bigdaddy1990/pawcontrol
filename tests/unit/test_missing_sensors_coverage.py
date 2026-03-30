@@ -3,9 +3,10 @@
 Covers: calculate_activity_level, calculate_calories_burned_today,
         calculate_hours_since, derive_next_feeding_time
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -16,10 +17,10 @@ from custom_components.pawcontrol.missing_sensors import (
     derive_next_feeding_time,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # calculate_hours_since
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_calculate_hours_since_none() -> None:
@@ -28,7 +29,7 @@ def test_calculate_hours_since_none() -> None:
 
 @pytest.mark.unit
 def test_calculate_hours_since_recent() -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     two_hours_ago = now - timedelta(hours=2)
     result = calculate_hours_since(two_hours_ago, reference=now)
     assert result is not None
@@ -37,7 +38,7 @@ def test_calculate_hours_since_recent() -> None:
 
 @pytest.mark.unit
 def test_calculate_hours_since_zero() -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     result = calculate_hours_since(now, reference=now)
     assert result is not None
     assert result == pytest.approx(0.0, abs=0.01)
@@ -45,7 +46,7 @@ def test_calculate_hours_since_zero() -> None:
 
 @pytest.mark.unit
 def test_calculate_hours_since_string_timestamp() -> None:
-    ref = datetime(2025, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+    ref = datetime(2025, 6, 1, 12, 0, 0, tzinfo=UTC)
     ts = "2025-06-01T10:00:00+00:00"
     result = calculate_hours_since(ts, reference=ref)
     assert result is not None
@@ -55,6 +56,7 @@ def test_calculate_hours_since_string_timestamp() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # calculate_activity_level
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_calculate_activity_level_no_data() -> None:
@@ -81,6 +83,7 @@ def test_calculate_activity_level_sedentary() -> None:
 # calculate_calories_burned_today
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_calculate_calories_burned_no_walk() -> None:
     result = calculate_calories_burned_today({}, 20.0, {})
@@ -99,6 +102,7 @@ def test_calculate_calories_burned_with_distance() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # derive_next_feeding_time
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_derive_next_feeding_time_empty() -> None:

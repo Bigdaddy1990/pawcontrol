@@ -4,6 +4,7 @@ Covers: PawControlWalkInProgressBinarySensor, PawControlFeedingDueBinarySensor,
         PawControlActivityLevelConcernBinarySensor constructors,
         is_on property, extra_state_attributes
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -28,6 +29,7 @@ def _coord(dog_id="rex"):
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlWalkInProgressBinarySensor
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_walk_in_progress_sensor_init() -> None:
@@ -59,6 +61,7 @@ def test_walk_in_progress_unique_id() -> None:
 # PawControlFeedingDueBinarySensor
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_feeding_due_sensor_init() -> None:
     s = PawControlFeedingDueBinarySensor(_coord(), "rex", "Rex")
@@ -82,6 +85,7 @@ def test_feeding_due_extra_attrs() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlActivityLevelConcernBinarySensor
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_activity_concern_sensor_init() -> None:

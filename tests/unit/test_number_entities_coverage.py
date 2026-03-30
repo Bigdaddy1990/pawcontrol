@@ -4,6 +4,7 @@ Covers: PawControlDogWeightNumber, PawControlMealsPerDayNumber,
         PawControlDailyFoodAmountNumber, PawControlPortionSizeNumber
         constructors, native_value, extra_state_attributes
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -29,6 +30,7 @@ def _coord(dog_id="rex"):
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlDogWeightNumber
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_dog_weight_number_init() -> None:
@@ -67,6 +69,7 @@ def test_dog_weight_unique_id() -> None:
 # PawControlMealsPerDayNumber
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_meals_per_day_init() -> None:
     e = PawControlMealsPerDayNumber(_coord(), "rex", "Rex")
@@ -84,6 +87,7 @@ def test_meals_per_day_native_value() -> None:
 # PawControlDailyFoodAmountNumber
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_daily_food_amount_init() -> None:
     e = PawControlDailyFoodAmountNumber(_coord(), "rex", "Rex")
@@ -100,6 +104,7 @@ def test_daily_food_amount_native_value() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlPortionSizeNumber
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_portion_size_number_init() -> None:

@@ -3,6 +3,7 @@
 Covers: compute_data_diff, compute_dog_diff, get_changed_fields,
         should_notify_entities, DataDiff, DogDataDiff, SmartDiffTracker
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,10 +17,10 @@ from custom_components.pawcontrol.coordinator_diffing import (
     should_notify_entities,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # compute_data_diff
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_compute_data_diff_both_none() -> None:
@@ -68,6 +69,7 @@ def test_compute_data_diff_new_none() -> None:
 # compute_dog_diff
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_compute_dog_diff_both_none() -> None:
     diff = compute_dog_diff("rex", None, None)
@@ -93,6 +95,7 @@ def test_compute_dog_diff_walk_changed() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # get_changed_fields
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_get_changed_fields_empty_diff() -> None:
@@ -123,11 +126,15 @@ def test_get_changed_fields_exclude_removed() -> None:
 # should_notify_entities
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_should_notify_entities_no_changes() -> None:
     from custom_components.pawcontrol.coordinator_diffing import CoordinatorDataDiff
+
     # CoordinatorDataDiff: dog_diffs, added_dogs, removed_dogs
-    coordinator_diff = CoordinatorDataDiff(dog_diffs={}, added_dogs=frozenset(), removed_dogs=frozenset())
+    coordinator_diff = CoordinatorDataDiff(
+        dog_diffs={}, added_dogs=frozenset(), removed_dogs=frozenset()
+    )  # noqa: E501
     result = should_notify_entities(coordinator_diff)
     assert isinstance(result, bool)
 
@@ -135,6 +142,9 @@ def test_should_notify_entities_no_changes() -> None:
 @pytest.mark.unit
 def test_should_notify_entities_with_dog_filter() -> None:
     from custom_components.pawcontrol.coordinator_diffing import CoordinatorDataDiff
-    coordinator_diff = CoordinatorDataDiff(dog_diffs={}, added_dogs=frozenset(), removed_dogs=frozenset())
+
+    coordinator_diff = CoordinatorDataDiff(
+        dog_diffs={}, added_dogs=frozenset(), removed_dogs=frozenset()
+    )  # noqa: E501
     result = should_notify_entities(coordinator_diff, dog_id="rex")
     assert isinstance(result, bool)
