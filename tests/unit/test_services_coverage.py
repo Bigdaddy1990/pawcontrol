@@ -13,16 +13,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.services import (
     PawControlServiceManager,
     async_setup_daily_reset_scheduler,
 )
-from custom_components.pawcontrol.const import DOMAIN
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # _apply_service_call_metrics (internal helper — tested via module import)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_service_call_telemetry_via_runtime_data(mock_hass) -> None:
@@ -81,6 +81,7 @@ def test_service_call_telemetry_via_runtime_data(mock_hass) -> None:
 # PawControlServiceManager — init deduplication
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_service_manager_deduplication(mock_hass) -> None:
     """Second PawControlServiceManager reuses the first instance's task."""
@@ -105,6 +106,7 @@ def test_service_manager_deduplication(mock_hass) -> None:
 # async_setup_daily_reset_scheduler
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_setup_daily_reset_scheduler_returns_unsub(
@@ -119,9 +121,7 @@ async def test_setup_daily_reset_scheduler_returns_unsub(
     mock_config_entry.async_on_unload = MagicMock()
 
     with (
-        patch(
-            "custom_components.pawcontrol.services.dt_util"
-        ) as mock_dt,
+        patch("custom_components.pawcontrol.services.dt_util") as mock_dt,
         patch(
             "custom_components.pawcontrol.services.async_track_time_change",
             return_value=MagicMock(),
@@ -153,9 +153,7 @@ async def test_setup_daily_reset_scheduler_invalid_time(
     mock_config_entry.async_on_unload = MagicMock()
 
     with (
-        patch(
-            "custom_components.pawcontrol.services.dt_util"
-        ) as mock_dt,
+        patch("custom_components.pawcontrol.services.dt_util") as mock_dt,
         patch(
             "custom_components.pawcontrol.services.async_track_time_change",
             return_value=MagicMock(),
@@ -166,10 +164,8 @@ async def test_setup_daily_reset_scheduler_invalid_time(
         ),
     ):
         # First call (invalid) returns None; second call (default) returns valid time
-        mock_dt.parse_time = MagicMock(
-            side_effect=[None, dt_time(23, 59, 0)]
-        )
-        result = await async_setup_daily_reset_scheduler(mock_hass, mock_config_entry)
+        mock_dt.parse_time = MagicMock(side_effect=[None, dt_time(23, 59, 0)])
+        await async_setup_daily_reset_scheduler(mock_hass, mock_config_entry)
 
     mock_config_entry.async_on_unload.assert_called_once()
 
@@ -178,11 +174,12 @@ async def test_setup_daily_reset_scheduler_invalid_time(
 # async_unload_services
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_unload_services(mock_hass) -> None:
     """async_unload_services should not raise even with no registered services."""
-    from custom_components.pawcontrol.services import async_unload_services  # noqa: PLC0415
+    from custom_components.pawcontrol.services import async_unload_services
 
     mock_hass.services = MagicMock()
     mock_hass.services.async_remove = MagicMock()

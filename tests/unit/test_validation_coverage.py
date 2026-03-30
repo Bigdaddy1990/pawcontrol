@@ -4,6 +4,7 @@ Covers: coerce_float, coerce_int, _parse_time_string, validate_dog_name,
         validate_coordinate, validate_gps_source, validate_notify_service,
         validate_time_window, coerce_dog_id, parse_notification_targets
 """
+
 from __future__ import annotations
 
 from datetime import time
@@ -11,6 +12,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.validation import (
     InputCoercionError,
     coerce_float,
@@ -19,12 +21,11 @@ from custom_components.pawcontrol.validation import (
     validate_dog_name,
     validate_time_window,
 )
-from custom_components.pawcontrol.exceptions import ValidationError
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # coerce_float
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_coerce_float_bool_raises() -> None:
@@ -65,6 +66,7 @@ def test_coerce_float_unsupported_type_raises() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # coerce_int
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_coerce_int_bool_raises() -> None:
@@ -109,6 +111,7 @@ def test_coerce_int_bad_string_raises() -> None:
 # validate_dog_name
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_validate_dog_name_valid() -> None:
     assert validate_dog_name("Rex") == "Rex"
@@ -146,6 +149,7 @@ def test_validate_dog_name_too_long_raises() -> None:
 # validate_coordinate
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_validate_coordinate_valid_lat() -> None:
     result = validate_coordinate(52.5, field="lat", minimum=-90.0, maximum=90.0)
@@ -161,12 +165,16 @@ def test_validate_coordinate_out_of_range_raises() -> None:
 @pytest.mark.unit
 def test_validate_coordinate_empty_required_raises() -> None:
     with pytest.raises(ValidationError):
-        validate_coordinate(None, field="lat", minimum=-90.0, maximum=90.0, required=True)
+        validate_coordinate(
+            None, field="lat", minimum=-90.0, maximum=90.0, required=True
+        )  # noqa: E501
 
 
 @pytest.mark.unit
 def test_validate_coordinate_empty_optional_returns_none() -> None:
-    result = validate_coordinate(None, field="lat", minimum=-90.0, maximum=90.0, required=False)
+    result = validate_coordinate(
+        None, field="lat", minimum=-90.0, maximum=90.0, required=False
+    )  # noqa: E501
     assert result is None
 
 
@@ -180,11 +188,14 @@ def test_validate_coordinate_non_numeric_raises() -> None:
 # validate_time_window
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_validate_time_window_valid() -> None:
     start, end = validate_time_window(
-        "08:00", "22:00",
-        start_field="start", end_field="end",
+        "08:00",
+        "22:00",
+        start_field="start",
+        end_field="end",
     )
     assert "08" in start
     assert "22" in end
@@ -193,9 +204,12 @@ def test_validate_time_window_valid() -> None:
 @pytest.mark.unit
 def test_validate_time_window_uses_defaults() -> None:
     start, end = validate_time_window(
-        None, None,
-        start_field="start", end_field="end",
-        default_start="07:00", default_end="23:00",
+        None,
+        None,
+        start_field="start",
+        end_field="end",
+        default_start="07:00",
+        default_end="23:00",
     )
     assert "07" in start
     assert "23" in end
@@ -205,8 +219,10 @@ def test_validate_time_window_uses_defaults() -> None:
 def test_validate_time_window_missing_required_raises() -> None:
     with pytest.raises(ValidationError):
         validate_time_window(
-            None, None,
-            start_field="start", end_field="end",
+            None,
+            None,
+            start_field="start",
+            end_field="end",
         )
 
 
@@ -214,8 +230,10 @@ def test_validate_time_window_missing_required_raises() -> None:
 def test_validate_time_window_invalid_format_raises() -> None:
     with pytest.raises(ValidationError):
         validate_time_window(
-            "not-a-time", "22:00",
-            start_field="start", end_field="end",
+            "not-a-time",
+            "22:00",
+            start_field="start",
+            end_field="end",
         )
 
 
@@ -223,9 +241,11 @@ def test_validate_time_window_invalid_format_raises() -> None:
 # validate_gps_source
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_validate_gps_source_manual(mock_hass) -> None:
     from custom_components.pawcontrol.validation import validate_gps_source
+
     result = validate_gps_source(mock_hass, "manual")
     assert result == "manual"
 
@@ -233,6 +253,7 @@ def test_validate_gps_source_manual(mock_hass) -> None:
 @pytest.mark.unit
 def test_validate_gps_source_webhook(mock_hass) -> None:
     from custom_components.pawcontrol.validation import validate_gps_source
+
     result = validate_gps_source(mock_hass, "webhook")
     assert result == "webhook"
 
@@ -240,6 +261,7 @@ def test_validate_gps_source_webhook(mock_hass) -> None:
 @pytest.mark.unit
 def test_validate_gps_source_non_string_raises(mock_hass) -> None:
     from custom_components.pawcontrol.validation import validate_gps_source
+
     with pytest.raises(ValidationError):
         validate_gps_source(mock_hass, 42)
 
@@ -247,6 +269,7 @@ def test_validate_gps_source_non_string_raises(mock_hass) -> None:
 @pytest.mark.unit
 def test_validate_gps_source_not_found_raises(mock_hass) -> None:
     from custom_components.pawcontrol.validation import validate_gps_source
+
     mock_hass.states.get = MagicMock(return_value=None)
     with pytest.raises(ValidationError):
         validate_gps_source(mock_hass, "device_tracker.unknown")

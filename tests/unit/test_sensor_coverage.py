@@ -6,9 +6,10 @@ Covers lines from coverage report:
   _coerce_float, _coerce_int, _coerce_utc_datetime, _coerce_module_payload,
   _get_cache_ttl, PawControlLastActionSensor, PawControlDogStatusSensor)
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timezone, date
+from datetime import UTC, date, datetime, timezone
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
@@ -18,24 +19,28 @@ from custom_components.pawcontrol.sensor import (
     get_activity_score_cache_ttl,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # _get_cache_ttl  (lines 183-215)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_get_cache_ttl_no_coordinator() -> None:
     """Cache TTL defaults to 300 when coordinator has no update_interval."""
     from unittest.mock import Mock
+
     coord = Mock()
     coord.update_interval = None
     assert get_activity_score_cache_ttl(coord) == 300
 
 
 @pytest.mark.unit
-def test_get_cache_ttl_from_timedelta(mock_hass, mock_config_entry, mock_session) -> None:
+def test_get_cache_ttl_from_timedelta(
+    mock_hass, mock_config_entry, mock_session
+) -> None:  # noqa: E501
     """TTL derived from coordinator update_interval timedelta."""
     from datetime import timedelta
+
     from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
@@ -45,9 +50,12 @@ def test_get_cache_ttl_from_timedelta(mock_hass, mock_config_entry, mock_session
 
 
 @pytest.mark.unit
-def test_get_cache_ttl_clamps_to_min(mock_hass, mock_config_entry, mock_session) -> None:
+def test_get_cache_ttl_clamps_to_min(
+    mock_hass, mock_config_entry, mock_session
+) -> None:  # noqa: E501
     """Very short intervals still return at least 60 s."""
     from datetime import timedelta
+
     from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
@@ -59,6 +67,7 @@ def test_get_cache_ttl_clamps_to_min(mock_hass, mock_config_entry, mock_session)
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlSensorBase._coerce_float  (lines 503-515)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_coerce_float_bool() -> None:
@@ -87,6 +96,7 @@ def test_coerce_float_none_returns_default() -> None:
 # PawControlSensorBase._coerce_int  (lines 517-530)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_coerce_int_bool() -> None:
     assert PawControlSensorBase._coerce_int(True) == 1
@@ -114,6 +124,7 @@ def test_coerce_int_none_returns_default() -> None:
 # PawControlSensorBase._coerce_utc_datetime  (lines 532-540)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_coerce_utc_datetime_none() -> None:
     assert PawControlSensorBase._coerce_utc_datetime(None) is None
@@ -121,7 +132,7 @@ def test_coerce_utc_datetime_none() -> None:
 
 @pytest.mark.unit
 def test_coerce_utc_datetime_from_datetime() -> None:
-    dt = datetime(2025, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+    dt = datetime(2025, 6, 1, 12, 0, 0, tzinfo=UTC)
     result = PawControlSensorBase._coerce_utc_datetime(dt)
     assert isinstance(result, datetime)
 
@@ -141,6 +152,7 @@ def test_coerce_utc_datetime_unsupported_type() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlSensorBase._coerce_module_payload  (lines 494-499)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_coerce_module_payload_mapping() -> None:
@@ -164,6 +176,7 @@ def test_coerce_module_payload_non_mapping() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlSensorBase._coerce_feeding_payload and walk/gps variants
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_coerce_feeding_payload_mapping() -> None:

@@ -21,10 +21,7 @@ from custom_components.pawcontrol.coordinator_runtime import (
     EntityBudgetSnapshot,
     RuntimeCycleInfo,
 )
-from custom_components.pawcontrol.exceptions import (
-    ConfigEntryAuthFailed,
-    UpdateFailed,
-)
+from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed, UpdateFailed
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -112,9 +109,7 @@ def test_clear_runtime_managers_resets_all(
 # runtime_managers setter  (lines 282-287)
 # ──────────────────────────────────────────────────────────────────────────────
 @pytest.mark.unit
-def test_runtime_managers_setter(
-    mock_hass, mock_config_entry, mock_session
-) -> None:
+def test_runtime_managers_setter(mock_hass, mock_config_entry, mock_session) -> None:
     """runtime_managers setter should replace the cached container."""
     import custom_components.pawcontrol.types as paw_types
 
@@ -187,7 +182,7 @@ async def test_async_patch_gps_no_payload_warns(
     """GPS patch should warn and return when no payload exists for the dog."""
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coord._setup_complete = True
-    coord._data = {"test_dog": None}   # type: ignore[assignment]
+    coord._data = {"test_dog": None}  # type: ignore[assignment]
     coord.last_update_success = True
     coord.async_request_refresh = AsyncMock()
     await coord.async_patch_gps_update("test_dog")
@@ -242,7 +237,7 @@ async def test_selective_refresh_deduplicates_ids(
 def test_available_false_when_last_update_failed(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """available should be False when last_update_success is False."""
+    """Available should be False when last_update_success is False."""
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coord.last_update_success = False
     assert coord.available is False
@@ -252,7 +247,7 @@ def test_available_false_when_last_update_failed(
 def test_available_false_when_too_many_consecutive_errors(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """available should be False when consecutive errors reach the threshold."""
+    """Available should be False when consecutive errors reach the threshold."""
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coord.last_update_success = True
     coord._metrics.consecutive_errors = 5
@@ -263,7 +258,7 @@ def test_available_false_when_too_many_consecutive_errors(
 def test_available_true_when_healthy(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """available should be True when last update succeeded and errors < 5."""
+    """Available should be True when last update succeeded and errors < 5."""
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coord.last_update_success = True
     coord._metrics.consecutive_errors = 0
@@ -435,9 +430,7 @@ async def test_async_update_data_propagates_update_failed(
 ) -> None:
     """UpdateFailed raised in execute_cycle must propagate unmodified."""
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
-    coord._runtime.execute_cycle = AsyncMock(
-        side_effect=UpdateFailed("api down")
-    )
+    coord._runtime.execute_cycle = AsyncMock(side_effect=UpdateFailed("api down"))
     with pytest.raises(UpdateFailed):
         await coord._async_update_data()
 

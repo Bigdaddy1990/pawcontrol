@@ -506,7 +506,7 @@ def validate_gps_coordinates(latitude: Any, longitude: Any) -> tuple[float, floa
     ):
         lat = float(latitude)
         lon = float(longitude)
-        if (  # noqa: E501 — coordinate range check intentionally long
+        if (
             MIN_LATITUDE <= lat <= MAX_LATITUDE
             and MIN_LONGITUDE <= lon <= MAX_LONGITUDE
         ):

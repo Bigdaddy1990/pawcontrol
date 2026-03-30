@@ -4,18 +4,18 @@ Covers: _validate_dog_id (all branches), _coerce_int/_coerce_float error paths,
         _validate_breed, validate_dog_setup_input (field errors, max_dogs, modules),
         validate_dog_update_input, FlowValidationError
 """
+
 from __future__ import annotations
 
 import pytest
 
-from custom_components.pawcontrol.flow_validation import (
-    validate_dog_setup_input,
-)
 from custom_components.pawcontrol.exceptions import FlowValidationError
+from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # _validate_dog_id paths (lines 62-71)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_validate_dog_id_invalid_format() -> None:
@@ -83,6 +83,7 @@ def test_validate_dog_id_valid() -> None:
 # max_dogs limit (line 231-232)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_max_dogs_reached() -> None:
     with pytest.raises(FlowValidationError) as exc_info:
@@ -98,6 +99,7 @@ def test_max_dogs_reached() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # Dog name validation (line 236-238)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_dog_name_already_exists() -> None:
@@ -123,9 +125,11 @@ def test_dog_name_too_long() -> None:
         )
     assert "dog_name" in exc_info.value.field_errors
 
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # FlowValidationError structure
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_flow_validation_error_field_and_base() -> None:
@@ -147,6 +151,7 @@ def test_flow_validation_error_empty() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # _validate_breed paths (lines 95-107)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_validate_dog_setup_with_valid_breed() -> None:
@@ -190,11 +195,16 @@ def test_validate_dog_setup_breed_too_long() -> None:
 # invalid modules (line 253-254)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_valid_modules_dict_accepted() -> None:
     """Valid dict modules payload is accepted and normalised."""
     result = validate_dog_setup_input(
-        {"dog_id": "rex", "dog_name": "Rex", "modules": {"feeding": True, "walk": False}},
+        {
+            "dog_id": "rex",
+            "dog_name": "Rex",
+            "modules": {"feeding": True, "walk": False},
+        },  # noqa: E501
         existing_ids=set(),
         current_dog_count=0,
         max_dogs=10,
