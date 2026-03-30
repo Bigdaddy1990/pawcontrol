@@ -167,14 +167,14 @@ def test_validate_coordinate_empty_required_raises() -> None:
     with pytest.raises(ValidationError):
         validate_coordinate(
             None, field="lat", minimum=-90.0, maximum=90.0, required=True
-        )  # noqa: E501
+        )
 
 
 @pytest.mark.unit
 def test_validate_coordinate_empty_optional_returns_none() -> None:
     result = validate_coordinate(
         None, field="lat", minimum=-90.0, maximum=90.0, required=False
-    )  # noqa: E501
+    )
     assert result is None
 
 

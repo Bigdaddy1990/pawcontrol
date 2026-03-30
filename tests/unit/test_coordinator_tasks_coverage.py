@@ -307,7 +307,7 @@ def test_build_runtime_statistics_returns_dict(
     assert isinstance(result, dict)
     assert (
         "update_counts" in result or "performance_metrics" in result or len(result) >= 0
-    )  # noqa: E501
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -3,6 +3,7 @@
 Covers: PawControlMainPowerSwitch, PawControlModuleSwitch, PawControlFeatureSwitch
         constructors, is_on, extra_state_attributes
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -28,6 +29,7 @@ def _make_coord(dog_id="rex"):
 # PawControlMainPowerSwitch
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_main_power_switch_init() -> None:
     s = PawControlMainPowerSwitch(_make_coord(), "rex", "Rex")
@@ -52,12 +54,17 @@ def test_main_power_switch_extra_attrs() -> None:
 # PawControlModuleSwitch
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_module_switch_init() -> None:
     s = PawControlModuleSwitch(
-        _make_coord(), "rex", "Rex",
-        module_id="feeding", module_name="Feeding",
-        icon="mdi:food", initial_state=True,
+        _make_coord(),
+        "rex",
+        "Rex",
+        module_id="feeding",
+        module_name="Feeding",
+        icon="mdi:food",
+        initial_state=True,
     )
     assert s._dog_id == "rex"
 
@@ -65,9 +72,13 @@ def test_module_switch_init() -> None:
 @pytest.mark.unit
 def test_module_switch_is_on_reflects_initial() -> None:
     s = PawControlModuleSwitch(
-        _make_coord(), "rex", "Rex",
-        module_id="feeding", module_name="Feeding",
-        icon="mdi:food", initial_state=True,
+        _make_coord(),
+        "rex",
+        "Rex",
+        module_id="feeding",
+        module_name="Feeding",
+        icon="mdi:food",
+        initial_state=True,
     )
     result = s.is_on
     # Accepts True or bool without raising
@@ -77,9 +88,13 @@ def test_module_switch_is_on_reflects_initial() -> None:
 @pytest.mark.unit
 def test_module_switch_extra_attributes() -> None:
     s = PawControlModuleSwitch(
-        _make_coord(), "rex", "Rex",
-        module_id="walk", module_name="Walk",
-        icon="mdi:walk", initial_state=False,
+        _make_coord(),
+        "rex",
+        "Rex",
+        module_id="walk",
+        module_name="Walk",
+        icon="mdi:walk",
+        initial_state=False,
     )
     attrs = s.extra_state_attributes
     assert isinstance(attrs, dict)
@@ -89,12 +104,17 @@ def test_module_switch_extra_attributes() -> None:
 # PawControlFeatureSwitch
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_feature_switch_init() -> None:
     s = PawControlFeatureSwitch(
-        _make_coord(), "rex", "Rex",
-        feature_id="treats_enabled", feature_name="Treats",
-        icon="mdi:candy", module="feeding",
+        _make_coord(),
+        "rex",
+        "Rex",
+        feature_id="treats_enabled",
+        feature_name="Treats",
+        icon="mdi:candy",
+        module="feeding",
     )
     assert s._dog_id == "rex"
 
@@ -102,9 +122,13 @@ def test_feature_switch_init() -> None:
 @pytest.mark.unit
 def test_feature_switch_is_on_false_by_default() -> None:
     s = PawControlFeatureSwitch(
-        _make_coord(), "rex", "Rex",
-        feature_id="treats_enabled", feature_name="Treats",
-        icon="mdi:candy", module="feeding",
+        _make_coord(),
+        "rex",
+        "Rex",
+        feature_id="treats_enabled",
+        feature_name="Treats",
+        icon="mdi:candy",
+        module="feeding",
     )
     result = s.is_on
     assert isinstance(result, bool)
@@ -113,9 +137,13 @@ def test_feature_switch_is_on_false_by_default() -> None:
 @pytest.mark.unit
 def test_feature_switch_unique_id() -> None:
     s = PawControlFeatureSwitch(
-        _make_coord(), "rex", "Rex",
-        feature_id="water_tracking", feature_name="Water",
-        icon="mdi:water", module="feeding",
+        _make_coord(),
+        "rex",
+        "Rex",
+        feature_id="water_tracking",
+        feature_name="Water",
+        icon="mdi:water",
+        module="feeding",
     )
     assert "rex" in s._attr_unique_id
     assert "water_tracking" in s._attr_unique_id

@@ -3,6 +3,7 @@
 Covers: HealthCalculator.calculate_daily_calories, calculate_bmi,
         activity_score, calculate_life_stage, calculate_ideal_weight_range
 """
+
 from __future__ import annotations
 
 import pytest
@@ -14,10 +15,10 @@ from custom_components.pawcontrol.health_calculator import (
     LifeStage,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # calculate_life_stage
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_life_stage_puppy() -> None:
@@ -48,6 +49,7 @@ def test_life_stage_large_breed_senior_earlier() -> None:
 # calculate_bmi
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_calculate_bmi_typical_dog() -> None:
     # 25 kg, 55 cm height → BMI = 25 / (0.55^2) ≈ 82.6
@@ -66,6 +68,7 @@ def test_calculate_bmi_small_dog() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # activity_score
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_activity_score_young_active() -> None:
@@ -92,6 +95,7 @@ def test_activity_score_zero_steps() -> None:
 # calculate_daily_calories
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_calculate_daily_calories_adult_active() -> None:
     kcal = HealthCalculator.calculate_daily_calories(
@@ -106,11 +110,13 @@ def test_calculate_daily_calories_adult_active() -> None:
 @pytest.mark.unit
 def test_calculate_daily_calories_puppy_higher() -> None:
     adult = HealthCalculator.calculate_daily_calories(
-        weight=10.0, life_stage=LifeStage.ADULT,
+        weight=10.0,
+        life_stage=LifeStage.ADULT,
         activity_level=ActivityLevel.MODERATE,
     )
     puppy = HealthCalculator.calculate_daily_calories(
-        weight=10.0, life_stage=LifeStage.PUPPY,
+        weight=10.0,
+        life_stage=LifeStage.PUPPY,
         activity_level=ActivityLevel.MODERATE,
     )
     assert isinstance(adult, float) and isinstance(puppy, float)
@@ -119,12 +125,16 @@ def test_calculate_daily_calories_puppy_higher() -> None:
 @pytest.mark.unit
 def test_calculate_daily_calories_spayed_lower() -> None:
     intact = HealthCalculator.calculate_daily_calories(
-        weight=20.0, life_stage=LifeStage.ADULT,
-        activity_level=ActivityLevel.MODERATE, spayed_neutered=False,
+        weight=20.0,
+        life_stage=LifeStage.ADULT,
+        activity_level=ActivityLevel.MODERATE,
+        spayed_neutered=False,
     )
     spayed = HealthCalculator.calculate_daily_calories(
-        weight=20.0, life_stage=LifeStage.ADULT,
-        activity_level=ActivityLevel.MODERATE, spayed_neutered=True,
+        weight=20.0,
+        life_stage=LifeStage.ADULT,
+        activity_level=ActivityLevel.MODERATE,
+        spayed_neutered=True,
     )
     assert isinstance(intact, float) and isinstance(spayed, float)
 
@@ -132,7 +142,8 @@ def test_calculate_daily_calories_spayed_lower() -> None:
 @pytest.mark.unit
 def test_calculate_daily_calories_with_bcs() -> None:
     kcal = HealthCalculator.calculate_daily_calories(
-        weight=22.0, life_stage=LifeStage.ADULT,
+        weight=22.0,
+        life_stage=LifeStage.ADULT,
         activity_level=ActivityLevel.LOW,
         body_condition_score=BodyConditionScore.HEAVY,
     )
@@ -143,6 +154,7 @@ def test_calculate_daily_calories_with_bcs() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # calculate_ideal_weight_range
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_calculate_ideal_weight_range_returns_tuple() -> None:

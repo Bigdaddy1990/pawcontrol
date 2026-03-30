@@ -417,12 +417,12 @@ async def test_get_daily_stats_returns_structure(mock_hass) -> None:
         stats.get("total_fed_today")
         if isinstance(stats, dict)
         else getattr(stats, "total_fed_today", None)
-    )  # noqa: E501
+    )
     meals = (
         stats.get("meals_today")
         if isinstance(stats, dict)
         else getattr(stats, "meals_today", None)
-    )  # noqa: E501
+    )
     assert total == 0.0
     assert meals == 0
 
@@ -439,12 +439,12 @@ async def test_get_daily_stats_after_feeding(mock_hass) -> None:
         stats.get("total_fed_today")
         if isinstance(stats, dict)
         else getattr(stats, "total_fed_today", None)
-    )  # noqa: E501
+    )
     meals = (
         stats.get("meals_today")
         if isinstance(stats, dict)
         else getattr(stats, "meals_today", None)
-    )  # noqa: E501
+    )
     assert total == pytest.approx(350.0, abs=1.0)
     assert meals == 2
 

@@ -3,6 +3,7 @@
 Covers: PawControlGPSTracker constructor, latitude/longitude/source_type,
         extra_state_attributes, available, battery_level, async_update_location
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -23,6 +24,7 @@ def _coord(dog_id="rex"):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Constructor + basic properties
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_gps_tracker_init() -> None:
@@ -88,15 +90,19 @@ def test_gps_tracker_location_accuracy() -> None:
 # async_update_location
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_update_location_does_not_raise() -> None:
     """async_update_location completes without raising on a minimal mock."""
-    from unittest.mock import patch, AsyncMock
+    from unittest.mock import patch
+
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     t.async_write_ha_state = MagicMock()
-    with patch.object(t, "_update_coordinator_gps_data", new=AsyncMock()), \
-         patch.object(t, "_update_route_tracking", new=AsyncMock()):
+    with (
+        patch.object(t, "_update_coordinator_gps_data", new=AsyncMock()),
+        patch.object(t, "_update_route_tracking", new=AsyncMock()),
+    ):
         # Should not raise regardless of GPS module mock state
         await t.async_update_location(latitude=52.52, longitude=13.40, accuracy=5)
 
@@ -105,13 +111,19 @@ async def test_async_update_location_does_not_raise() -> None:
 @pytest.mark.asyncio
 async def test_async_update_location_with_all_params() -> None:
     """async_update_location accepts all optional parameters."""
-    from unittest.mock import patch, AsyncMock
+    from unittest.mock import patch
+
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     t.async_write_ha_state = MagicMock()
-    with patch.object(t, "_update_coordinator_gps_data", new=AsyncMock()), \
-         patch.object(t, "_update_route_tracking", new=AsyncMock()):
+    with (
+        patch.object(t, "_update_coordinator_gps_data", new=AsyncMock()),
+        patch.object(t, "_update_route_tracking", new=AsyncMock()),
+    ):
         await t.async_update_location(
-            latitude=48.14, longitude=11.58,
-            accuracy=10, altitude=520.0,
-            speed=2.5, heading=90.0,
+            latitude=48.14,
+            longitude=11.58,
+            accuracy=10,
+            altitude=520.0,
+            speed=2.5,
+            heading=90.0,
         )

@@ -2,7 +2,8 @@
 
 Covers: default_rejection_metrics, derive_rejection_metrics,
         normalise_webhook_status, build_security_scorecard
-"""
+"""  # noqa: E501
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -15,10 +16,10 @@ from custom_components.pawcontrol.coordinator_observability import (
     normalise_webhook_status,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # default_rejection_metrics
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_default_rejection_metrics_returns_dict() -> None:
@@ -43,6 +44,7 @@ def test_default_rejection_metrics_has_schema_version() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # derive_rejection_metrics
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_derive_rejection_metrics_none() -> None:
@@ -78,6 +80,7 @@ def test_derive_rejection_metrics_partial_data() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # normalise_webhook_status
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_normalise_webhook_status_none_manager() -> None:

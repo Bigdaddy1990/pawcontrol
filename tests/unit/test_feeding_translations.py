@@ -174,7 +174,7 @@ def test_normalise_helpers_cover_text_count_and_date_fallbacks() -> None:
 
     assert _normalise_text(Path("/tmp/meal-plan.txt")) == str(
         Path("/tmp/meal-plan.txt")
-    )  # noqa: E501
+    )
     assert _normalise_text(b"  telemetry offline  ") == "telemetry offline"
     assert _normalise_text(memoryview(b"  Buddy  ")) == "Buddy"
     assert _normalise_text(None) is None

@@ -2,6 +2,7 @@
 
 Covers: _domain_store, _haversine_m, _extract_coords
 """
+
 from __future__ import annotations
 
 import math
@@ -9,17 +10,17 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.external_bindings import (
     _domain_store,
     _extract_coords,
     _haversine_m,
 )
-from custom_components.pawcontrol.const import DOMAIN
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # _haversine_m
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_haversine_same_point() -> None:
@@ -36,6 +37,7 @@ def test_haversine_berlin_to_munich() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # _extract_coords
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_extract_coords_valid() -> None:
@@ -75,6 +77,7 @@ def test_extract_coords_with_altitude() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # _domain_store
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_domain_store_creates_dict(mock_hass) -> None:

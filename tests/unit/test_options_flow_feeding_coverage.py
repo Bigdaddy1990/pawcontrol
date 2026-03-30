@@ -4,16 +4,17 @@ Covers: FeedingOptionsMixin._coerce_meals_per_day (static),
         _current_feeding_options, async_step_feeding_settings,
         async_step_feeding_dog_select
 """
+
 from __future__ import annotations
 
 import pytest
 
 from custom_components.pawcontrol.options_flow_feeding import FeedingOptionsMixin
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # _coerce_meals_per_day (static method)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_coerce_meals_per_day_none_returns_default() -> None:

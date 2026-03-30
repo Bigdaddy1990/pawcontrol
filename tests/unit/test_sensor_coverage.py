@@ -37,7 +37,7 @@ def test_get_cache_ttl_no_coordinator() -> None:
 @pytest.mark.unit
 def test_get_cache_ttl_from_timedelta(
     mock_hass, mock_config_entry, mock_session
-) -> None:  # noqa: E501
+) -> None:
     """TTL derived from coordinator update_interval timedelta."""
     from datetime import timedelta
 
@@ -52,7 +52,7 @@ def test_get_cache_ttl_from_timedelta(
 @pytest.mark.unit
 def test_get_cache_ttl_clamps_to_min(
     mock_hass, mock_config_entry, mock_session
-) -> None:  # noqa: E501
+) -> None:
     """Very short intervals still return at least 60 s."""
     from datetime import timedelta
 

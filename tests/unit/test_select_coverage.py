@@ -4,6 +4,7 @@ Covers: PawControlFeedingModeSelect, PawControlFoodTypeSelect,
         PawControlDogSizeSelect, PawControlFeedingScheduleSelect
         constructors, current_option, options, extra_state_attributes
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -29,6 +30,7 @@ def _coord(dog_id="rex"):
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlFeedingModeSelect
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_feeding_mode_select_init() -> None:
@@ -61,6 +63,7 @@ def test_feeding_mode_extra_attrs() -> None:
 # PawControlFoodTypeSelect
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_food_type_select_init() -> None:
     s = PawControlFoodTypeSelect(_coord(), "rex", "Rex")
@@ -76,6 +79,7 @@ def test_food_type_select_options_non_empty() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlDogSizeSelect
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_dog_size_select_init() -> None:
@@ -101,6 +105,7 @@ def test_dog_size_select_has_size_options() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlFeedingScheduleSelect
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_feeding_schedule_select_init() -> None:
