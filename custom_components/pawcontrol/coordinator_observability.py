@@ -71,12 +71,16 @@ class EntityBudgetTracker:
         """Return aggregate utilisation across all tracked dogs."""
         if not self._snapshots:
             return 0.0
-        total_capacity = sum(snapshot.capacity for snapshot in self._snapshots.values())
+        # OPTIMISATION: single pass instead of two separate sum() calls over the
+        # same iterator.  With up to MAX_DOGS_PER_ENTRY (10) dogs this saves a
+        # dict-values traversal on every coordinator cycle.
+        total_capacity = 0
+        total_allocated = 0
+        for snapshot in self._snapshots.values():
+            total_capacity += snapshot.capacity
+            total_allocated += snapshot.total_allocated
         if total_capacity <= 0:
             return 0.0
-        total_allocated = sum(
-            snapshot.total_allocated for snapshot in self._snapshots.values()
-        )
         return max(0.0, min(1.0, total_allocated / total_capacity))
 
     def summary(self) -> EntityBudgetSummary:

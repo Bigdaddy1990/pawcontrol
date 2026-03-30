@@ -423,11 +423,22 @@ async def _async_initialize_all_managers(
                 ),
             )
 
-    # Wait for all initializations; collect exceptions instead of cancelling siblings
+    # Wait for all initializations; collect exceptions instead of cancelling siblings.
+    # BUG FIX: The original loop raised only the *first* exception it encountered.
+    # When ConfigEntryAuthFailed appeared as the second element (e.g. feeding_manager
+    # raised it while the coordinator refresh was already OK), it was silently
+    # discarded — HA never received the re-auth signal.
+    # Fix: make two passes — prioritise ConfigEntryAuthFailed so HA can surface the
+    # re-authentication prompt, then re-raise the first remaining exception.
     results = await asyncio.gather(*initialization_tasks, return_exceptions=True)
-    for result in results:
-        if isinstance(result, BaseException):
-            raise result
+    exceptions: list[BaseException] = [
+        r for r in results if isinstance(r, BaseException)
+    ]
+    for exc in exceptions:
+        if isinstance(exc, ConfigEntryAuthFailed):
+            raise exc
+    for exc in exceptions:
+        raise exc
 
 
 async def _async_initialize_geofencing_manager(

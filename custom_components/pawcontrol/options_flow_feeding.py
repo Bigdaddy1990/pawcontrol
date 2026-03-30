@@ -106,16 +106,17 @@ class FeedingOptionsMixin(FeedingOptionsHost):
                     user_input,
                     current_feeding,
                 )
-                if dog_id in dog_options or not dog_options:
-                    dog_options[dog_id] = entry
-                    new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
-                # BUG FIX: Do NOT write feeding_settings to the top-level options
-                # key. The previous code performed a dual-write: settings went both
-                # into new_options["dog_options"][dog_id]["feeding_settings"] (the
-                # correct per-dog location) AND into new_options["feeding_settings"]
-                # (a global legacy key). On reload, _current_feeding_options() reads
-                # the per-dog path first; the stale global key shadowed the correct
-                # value in edge cases where dog_id was missing from dog_options.
+                # PRE-EXISTING BUG FIX: The previous guard
+                #   `if dog_id in dog_options or not dog_options`
+                # only wrote the entry when the dog was already in dog_options OR
+                # dog_options was empty.  A dog being configured for the first time
+                # while other dogs already have entries (non-empty map, new dog_id)
+                # fell through both conditions — the entry was silently dropped.
+                # The dual-write to the global ``feeding_settings`` key masked this
+                # because the global write had no guard.  Now that the global write
+                # is gone (Patch 10), we must always persist the per-dog entry.
+                dog_options[dog_id] = entry
+                new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
 
                 typed_options = self._normalise_options_snapshot(new_options)
                 return self.async_create_entry(title="", data=typed_options)
