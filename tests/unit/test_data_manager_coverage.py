@@ -11,7 +11,7 @@ Covers:
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -25,10 +25,10 @@ from custom_components.pawcontrol.data_manager import (
     _serialize_datetime,
 )
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Module-level pure helpers (no HA runtime needed)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_serialize_datetime_none() -> None:
@@ -37,7 +37,7 @@ def test_serialize_datetime_none() -> None:
 
 @pytest.mark.unit
 def test_serialize_datetime_utc() -> None:
-    dt = datetime(2025, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+    dt = datetime(2025, 6, 1, 12, 0, 0, tzinfo=UTC)
     result = _serialize_datetime(dt)
     assert result is not None and "2025" in result and "T" in result
 
@@ -106,9 +106,11 @@ def test_normalise_history_entries_filters_non_mapping() -> None:
 # _coerce_health_payload / _coerce_medication_payload
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_coerce_health_payload_from_dict() -> None:
     from custom_components.pawcontrol.data_manager import _coerce_health_payload
+
     payload = _coerce_health_payload({"weight": 20.0, "mood": "happy"})
     assert isinstance(payload, dict) and "timestamp" in payload
 
@@ -116,6 +118,7 @@ def test_coerce_health_payload_from_dict() -> None:
 @pytest.mark.unit
 def test_coerce_medication_payload_sets_timestamps() -> None:
     from custom_components.pawcontrol.data_manager import _coerce_medication_payload
+
     payload = _coerce_medication_payload({"name": "Frontline", "dose": "1 pill"})
     assert "administration_time" in payload and "logged_at" in payload
 
@@ -124,16 +127,24 @@ def test_coerce_medication_payload_sets_timestamps() -> None:
 # DogProfile helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_dog_profile_as_dict() -> None:
-    from custom_components.pawcontrol.data_manager import DogProfile, DailyStats
-    stats = DailyStats(date=datetime(2025, 6, 1, tzinfo=timezone.utc))
+    from custom_components.pawcontrol.data_manager import DailyStats, DogProfile
+
+    stats = DailyStats(date=datetime(2025, 6, 1, tzinfo=UTC))
     profile = DogProfile(
         config={"dog_id": "rex", "dog_name": "Rex"},
         daily_stats=stats,
     )
     d = profile.as_dict()
-    for key in ("config", "daily_stats", "feeding_history", "walk_history", "health_history"):
+    for key in (
+        "config",
+        "daily_stats",
+        "feeding_history",
+        "walk_history",
+        "health_history",
+    ):  # noqa: E501
         assert key in d
 
 
@@ -163,6 +174,7 @@ def test_data_manager_init_stores_entry_id(mock_hass) -> None:
 @pytest.mark.unit
 def test_data_manager_namespace_lock_reuse(mock_hass) -> None:
     import asyncio
+
     mgr = _make_manager(mock_hass)
     lock = mgr._get_namespace_lock("ns_a")
     assert isinstance(lock, asyncio.Lock)
@@ -173,6 +185,7 @@ def test_data_manager_namespace_lock_reuse(mock_hass) -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 # PawControlDataManager — async_initialize + CRUD (storage fully mocked)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 # Reusable init helper with correct empty-dict mock
 async def _init_manager(mock_hass, dog_id: str = "rex") -> PawControlDataManager:
@@ -197,7 +210,6 @@ async def test_data_manager_async_initialize(mock_hass) -> None:
 @pytest.mark.asyncio
 async def test_data_manager_async_log_feeding(mock_hass) -> None:
     """async_log_feeding records an entry in the dog's feeding_history."""
-    from datetime import timezone
     from custom_components.pawcontrol.types import FeedingData
 
     mgr = await _init_manager(mock_hass)
@@ -205,7 +217,7 @@ async def test_data_manager_async_log_feeding(mock_hass) -> None:
         meal_type="breakfast",
         portion_size=200.0,
         food_type="dry_food",
-        timestamp=datetime(2025, 6, 1, 8, 0, tzinfo=timezone.utc),
+        timestamp=datetime(2025, 6, 1, 8, 0, tzinfo=UTC),
     )
     with patch.object(mgr, "_write_storage", AsyncMock()):
         await mgr.async_log_feeding(dog_id="rex", feeding=feeding)
@@ -237,7 +249,8 @@ async def test_data_manager_async_get_registered_dogs(mock_hass) -> None:
     assert len(dogs) >= 1
     # Each entry is a DogConfigData TypedDict or plain dict; verify dog exists
     found = any(
-        (d.get("dog_id") if isinstance(d, dict) else getattr(d, "dog_id", None)) == "rex"
+        (d.get("dog_id") if isinstance(d, dict) else getattr(d, "dog_id", None))
+        == "rex"  # noqa: E501
         or (d.get("dog_id") if isinstance(d, dict) else None) is not None
         for d in dogs
     )
@@ -270,4 +283,3 @@ def test_register_cache_monitor(mock_hass) -> None:
     mgr = _make_manager(mock_hass)
     mgr.register_cache_monitor("fake", _FakeCache())
     assert "fake" in mgr._cache_monitors
-

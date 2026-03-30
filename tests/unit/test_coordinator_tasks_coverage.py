@@ -12,19 +12,20 @@ Pure helpers tested directly:
   resolve_service_guard_metrics, resolve_entity_factory_guard_metrics,
   shutdown, ensure_background_task
 """
+
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 import custom_components.pawcontrol.coordinator_tasks as ct
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # _normalise_breaker_state  (lines 885-903)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_normalise_breaker_state_string() -> None:
@@ -48,6 +49,7 @@ def test_normalise_breaker_state_empty_string() -> None:
 def test_normalise_breaker_state_object_with_value() -> None:
     class _State:
         value = "half-open"
+
     assert ct._normalise_breaker_state(_State()) == "half_open"
 
 
@@ -59,6 +61,7 @@ def test_normalise_breaker_state_non_string_coerced() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # _stringify_breaker_name  (lines 905-919)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_stringify_breaker_name_string() -> None:
@@ -82,6 +85,7 @@ def test_stringify_breaker_name_empty_string() -> None:
 # _coerce_int  (lines 921-942)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_coerce_int_bool() -> None:
     assert ct._coerce_int(True) == 1
@@ -103,6 +107,7 @@ def test_coerce_int_invalid() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # _normalise_string_list  (lines 944-969)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_normalise_string_list_none() -> None:
@@ -132,6 +137,7 @@ def test_normalise_string_list_non_string_items() -> None:
 # default_rejection_metrics  (line ~1082)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_default_rejection_metrics_structure() -> None:
     """default_rejection_metrics returns all required keys with zero values."""
@@ -146,6 +152,7 @@ def test_default_rejection_metrics_structure() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # resolve_service_guard_metrics + resolve_entity_factory_guard_metrics
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_resolve_service_guard_metrics_none() -> None:
@@ -181,12 +188,13 @@ def test_resolve_entity_factory_guard_metrics_none() -> None:
 # shutdown  (lines 1437-1446)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_shutdown_cancels_maintenance(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """shutdown cancels the maintenance subscription and clears data."""
+    """Shutdown cancels the maintenance subscription and clears data."""
     from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
@@ -206,7 +214,7 @@ async def test_shutdown_cancels_maintenance(
 async def test_shutdown_no_maintenance_task(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """shutdown is safe when no maintenance task is running."""
+    """Shutdown is safe when no maintenance task is running."""
     from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
@@ -218,6 +226,7 @@ async def test_shutdown_no_maintenance_task(
 # ═══════════════════════════════════════════════════════════════════════════════
 # ensure_background_task  (lines 1342-1353)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_ensure_background_task_starts_when_none(
@@ -249,8 +258,9 @@ def test_ensure_background_task_idempotent(
 
     called = []
     monkeypatch.setattr(
-        ct, "async_track_time_interval",
-        lambda *a, **kw: called.append(1) or MagicMock()
+        ct,
+        "async_track_time_interval",
+        lambda *a, **kw: called.append(1) or MagicMock(),
     )
 
     ct.ensure_background_task(coord, timedelta(seconds=3600))
@@ -261,6 +271,7 @@ def test_ensure_background_task_idempotent(
 # ═══════════════════════════════════════════════════════════════════════════════
 # build_update_statistics  (line 1298)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_build_update_statistics_returns_dict(
@@ -278,6 +289,7 @@ def test_build_update_statistics_returns_dict(
 # build_runtime_statistics  (line 1339)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_build_runtime_statistics_returns_dict(
     mock_hass, mock_config_entry, mock_session, monkeypatch: pytest.MonkeyPatch
@@ -293,12 +305,15 @@ def test_build_runtime_statistics_returns_dict(
 
     result = ct.build_runtime_statistics(coord)
     assert isinstance(result, dict)
-    assert "update_counts" in result or "performance_metrics" in result or len(result) >= 0
+    assert (
+        "update_counts" in result or "performance_metrics" in result or len(result) >= 0
+    )  # noqa: E501
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # run_maintenance  (lines 1356-1432)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -326,17 +341,19 @@ async def test_run_maintenance_resets_consecutive_errors(
 ) -> None:
     """Consecutive errors are reset after >1h of stability."""
     from datetime import datetime, timezone
-    from custom_components.pawcontrol.coordinator import PawControlCoordinator
+
     import homeassistant.util.dt as dt_util_mod
+
+    from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coord.last_update_success = True
     coord._metrics.consecutive_errors = 3
     # Set last update 2 hours ago
-    old_ts = datetime(2020, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+    old_ts = datetime(2020, 1, 1, 10, 0, 0, tzinfo=UTC)
     coord.last_update_success_time = old_ts
 
-    now_ts = datetime(2020, 1, 1, 12, 30, 0, tzinfo=timezone.utc)
+    now_ts = datetime(2020, 1, 1, 12, 30, 0, tzinfo=UTC)
     monkeypatch.setattr(ct.dt_util, "utcnow", lambda: now_ts)
     monkeypatch.setattr(ct, "get_runtime_data", lambda *a: None)
     monkeypatch.setattr(ct, "capture_cache_diagnostics", lambda *a: None)

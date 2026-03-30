@@ -26,10 +26,10 @@ from custom_components.pawcontrol.feeding_manager import (
     MealType,
 )
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _make_config(
     dog_id: str = "rex",
@@ -63,6 +63,7 @@ async def _init_manager(hass, dog_id: str = "rex", weight: float = 20.0):
 # ══════════════════════════════════════════════════════════════════════════════
 # FeedingConfig.calculate_portion_size  (lines 641-703)
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_calculate_portion_zero_meals() -> None:
@@ -141,6 +142,7 @@ def test_calculate_portion_with_active_schedule_weights() -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 # FeedingConfig — helper methods
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_get_special_diet_info_no_diet() -> None:
@@ -237,6 +239,7 @@ def test_get_todays_schedules_all_days() -> None:
 # FeedingManager.async_initialize
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_initialize_stores_dog(mock_hass) -> None:
@@ -269,8 +272,11 @@ async def test_async_initialize_twice_resets(mock_hass) -> None:
     """Calling async_initialize a second time should reset all state."""
     mgr = await _init_manager(mock_hass, "dog1")
     await mgr.async_initialize([
-        {"dog_id": "dog2", "weight": 10.0,
-         "feeding_config": {"meals_per_day": 3, "daily_food_amount": 300.0}}
+        {
+            "dog_id": "dog2",
+            "weight": 10.0,
+            "feeding_config": {"meals_per_day": 3, "daily_food_amount": 300.0},
+        }
     ])
     assert mgr.get_feeding_config("dog1") is None
     assert mgr.get_feeding_config("dog2") is not None
@@ -279,6 +285,7 @@ async def test_async_initialize_twice_resets(mock_hass) -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 # FeedingManager.async_add_feeding
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -355,6 +362,7 @@ async def test_async_add_feeding_uses_timestamp_alias(mock_hass) -> None:
 # FeedingManager — utility methods
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_calculate_portion_without_config(mock_hass) -> None:
@@ -405,8 +413,16 @@ async def test_get_daily_stats_returns_structure(mock_hass) -> None:
     mgr = await _init_manager(mock_hass)
     stats = mgr.get_daily_stats("rex")
     # get_daily_stats returns a dict-like or dataclass — support both shapes
-    total = stats.get("total_fed_today") if isinstance(stats, dict) else getattr(stats, "total_fed_today", None)
-    meals = stats.get("meals_today") if isinstance(stats, dict) else getattr(stats, "meals_today", None)
+    total = (
+        stats.get("total_fed_today")
+        if isinstance(stats, dict)
+        else getattr(stats, "total_fed_today", None)
+    )  # noqa: E501
+    meals = (
+        stats.get("meals_today")
+        if isinstance(stats, dict)
+        else getattr(stats, "meals_today", None)
+    )  # noqa: E501
     assert total == 0.0
     assert meals == 0
 
@@ -419,8 +435,16 @@ async def test_get_daily_stats_after_feeding(mock_hass) -> None:
     await mgr.async_add_feeding("rex", 200.0, meal_type="breakfast")
     await mgr.async_add_feeding("rex", 150.0, meal_type="dinner")
     stats = mgr.get_daily_stats("rex")
-    total = stats.get("total_fed_today") if isinstance(stats, dict) else getattr(stats, "total_fed_today", None)
-    meals = stats.get("meals_today") if isinstance(stats, dict) else getattr(stats, "meals_today", None)
+    total = (
+        stats.get("total_fed_today")
+        if isinstance(stats, dict)
+        else getattr(stats, "total_fed_today", None)
+    )  # noqa: E501
+    meals = (
+        stats.get("meals_today")
+        if isinstance(stats, dict)
+        else getattr(stats, "meals_today", None)
+    )  # noqa: E501
     assert total == pytest.approx(350.0, abs=1.0)
     assert meals == 2
 
@@ -444,6 +468,7 @@ async def test_get_active_emergency_none_by_default(mock_hass) -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 # FeedingManager._normalize_special_diet
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_normalize_special_diet_none(mock_hass) -> None:
@@ -481,6 +506,7 @@ def test_normalize_special_diet_non_string_items(mock_hass) -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 # FeedingManager.async_batch_add_feedings
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -522,6 +548,7 @@ async def test_async_batch_add_feedings_skips_invalid_amount(mock_hass) -> None:
 # FeedingManager — history limit enforcement
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_feeding_history_respects_max_limit(mock_hass) -> None:
@@ -538,6 +565,7 @@ async def test_feeding_history_respects_max_limit(mock_hass) -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 # MealSchedule helpers
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_meal_schedule_get_reminder_time_disabled() -> None:

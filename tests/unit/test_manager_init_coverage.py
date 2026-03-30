@@ -3,6 +3,7 @@
 Covers: _async_initialize_manager_with_timeout (timeout + exception paths),
         _attach_managers_to_coordinator, _register_runtime_monitors
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -16,15 +17,16 @@ from custom_components.pawcontrol.setup.manager_init import (
     _register_runtime_monitors,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # _async_initialize_manager_with_timeout
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_initialize_manager_success() -> None:
     """Successful coroutine completes without raising."""
+
     async def _good_coro() -> None:
         await asyncio.sleep(0)
 
@@ -35,6 +37,7 @@ async def test_initialize_manager_success() -> None:
 @pytest.mark.asyncio
 async def test_initialize_manager_timeout_raises() -> None:
     """Coroutine that never finishes raises TimeoutError."""
+
     async def _slow_coro() -> None:
         await asyncio.sleep(999)
 
@@ -48,6 +51,7 @@ async def test_initialize_manager_timeout_raises() -> None:
 @pytest.mark.asyncio
 async def test_initialize_manager_exception_propagates() -> None:
     """Generic exception from coroutine propagates to caller."""
+
     async def _bad_coro() -> None:
         raise RuntimeError("init failed")
 
@@ -58,6 +62,7 @@ async def test_initialize_manager_exception_propagates() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # _attach_managers_to_coordinator (lines 554-590)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_attach_managers_to_coordinator(
@@ -124,6 +129,7 @@ def test_attach_managers_with_optional_gps(
 # ═══════════════════════════════════════════════════════════════════════════════
 # _register_runtime_monitors (lines 605-636)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_register_runtime_monitors_no_data_manager() -> None:

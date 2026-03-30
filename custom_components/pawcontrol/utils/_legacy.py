@@ -1244,7 +1244,8 @@ def parse_weight(weight_input: str | float | int) -> float | None:
         try:
             # Convert pounds to kilograms
             lbs = float(
-                weight_str.replace(
+                weight_str
+                .replace(
                     "lbs",
                     "",
                 )

@@ -5,24 +5,25 @@ Covers: CircuitBreaker.call(), _record_success(), _record_failure(),
         CircuitBreakerStats.to_dict(), is_closed/is_open/is_half_open,
         ServiceUnavailableError when circuit is open
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
 import pytest
 
+from custom_components.pawcontrol.exceptions import ServiceUnavailableError
 from custom_components.pawcontrol.resilience import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerStats,
     CircuitState,
 )
-from custom_components.pawcontrol.exceptions import ServiceUnavailableError
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CircuitBreakerStats
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_circuit_breaker_stats_to_dict() -> None:
@@ -41,6 +42,7 @@ def test_circuit_breaker_stats_to_dict() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # CircuitBreaker properties
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_circuit_breaker_initial_state() -> None:
@@ -61,6 +63,7 @@ def test_circuit_breaker_state_property() -> None:
 # CircuitBreaker.call — success path
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_circuit_breaker_call_success() -> None:
@@ -75,6 +78,7 @@ async def test_circuit_breaker_call_success() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # CircuitBreaker.call — failure path opens circuit
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -94,15 +98,17 @@ async def test_circuit_breaker_opens_after_threshold() -> None:
 # CircuitBreaker.call — OPEN blocks calls with ServiceUnavailableError
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_circuit_breaker_open_blocks_calls() -> None:
-    """OPEN circuit with recent failure stays OPEN and raises ServiceUnavailableError."""
+    """OPEN circuit with recent failure stays OPEN and raises ServiceUnavailableError."""  # noqa: E501
     import time as time_mod
+
     cb = CircuitBreaker("test")
     # Set last_failure_time to now → timeout not elapsed → stays OPEN
     cb._stats.state = CircuitState.OPEN
-    cb._stats.last_failure_time = time_mod.time()   # very recent
+    cb._stats.last_failure_time = time_mod.time()  # very recent
 
     func = AsyncMock(return_value="ok")
     with pytest.raises(ServiceUnavailableError, match="OPEN"):
@@ -112,6 +118,7 @@ async def test_circuit_breaker_open_blocks_calls() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # HALF_OPEN → CLOSED on successive successes
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -131,6 +138,7 @@ async def test_circuit_breaker_half_open_to_closed() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # Excluded exceptions do NOT count as failures
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio

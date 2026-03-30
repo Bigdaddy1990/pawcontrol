@@ -5,6 +5,7 @@ Covers: DogNotFoundError, GPSError, WalkError, WalkAlreadyInProgressError,
         NetworkError, NotificationError, ValidationError, PawControlError,
         RateLimitError, InvalidWeightError, InvalidMealTypeError
 """
+
 from __future__ import annotations
 
 import pytest
@@ -29,14 +30,15 @@ from custom_components.pawcontrol.exceptions import (
     WalkNotInProgressError,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # PawControlError (base)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_pawcontrol_error_basic() -> None:
-    from custom_components.pawcontrol.exceptions import ErrorSeverity, ErrorCategory
+    from custom_components.pawcontrol.exceptions import ErrorCategory, ErrorSeverity
+
     err = PawControlError(
         "Something went wrong",
         error_code="err_001",
@@ -58,6 +60,7 @@ def test_pawcontrol_setup_error() -> None:
 # DogNotFoundError
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_dog_not_found_no_available() -> None:
     err = DogNotFoundError("rex")
@@ -76,6 +79,7 @@ def test_dog_not_found_with_available() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # WalkError, WalkAlreadyInProgressError, WalkNotInProgressError
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_walk_error() -> None:
@@ -105,6 +109,7 @@ def test_walk_not_in_progress() -> None:
 # GPSError, GPSUnavailableError, InvalidCoordinatesError
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_gps_error_basic() -> None:
     err = GPSError("GPS lost", dog_id="rex")
@@ -133,6 +138,7 @@ def test_invalid_coordinates() -> None:
 # ConfigurationError
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_configuration_error() -> None:
     err = ConfigurationError("api_key", value="bad_key", reason="Too short")
@@ -148,6 +154,7 @@ def test_configuration_error_minimal() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # ServiceUnavailableError, NetworkError, NotificationError
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_service_unavailable() -> None:
@@ -171,6 +178,7 @@ def test_notification_error() -> None:
 # ValidationError
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_validation_error_full() -> None:
     err = ValidationError("weight", -5, "weight_too_low", min_value=0, max_value=200)
@@ -188,6 +196,7 @@ def test_validation_error_minimal() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # RateLimitError, InvalidWeightError, InvalidMealTypeError
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_rate_limit_error() -> None:

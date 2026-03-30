@@ -5,6 +5,7 @@ Covers: record_bool_coercion_event, get_bool_coercion_metrics,
         summarise_reconfigure_options, get_runtime_performance_stats,
         ensure_runtime_performance_stats, get_runtime_store_health
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -25,6 +26,7 @@ from custom_components.pawcontrol.telemetry import (
 # ═══════════════════════════════════════════════════════════════════════════════
 # bool coercion metrics (lines ~318-346)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.fixture(autouse=True)
 def reset_coercion_state():
@@ -77,6 +79,7 @@ def test_reset_bool_coercion_metrics() -> None:
 # summarise_reconfigure_options (lines ~496-511)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_summarise_reconfigure_options_none() -> None:
     result = summarise_reconfigure_options(None)
@@ -99,6 +102,7 @@ def test_summarise_reconfigure_options_empty_dict() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # get_runtime_performance_stats / ensure_runtime_performance_stats (lines ~590-607)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_get_runtime_performance_stats_none() -> None:
