@@ -1885,7 +1885,6 @@ class DataUpdateCoordinator:
         self.hass = hass
         self.logger = logger
         self.name = name or "stub"
-        self.data: object | None = None
 
     async def async_config_entry_first_refresh(self) -> None:
         return None
@@ -1893,12 +1892,14 @@ class DataUpdateCoordinator:
     async def async_request_refresh(self) -> None:
         return None
 
-    def async_update_listeners(self) -> None:
-        return None
-
     def async_set_updated_data(self, data: object) -> None:
+        """Store updated data — mirrors DataUpdateCoordinator.async_set_updated_data.
+
+        Patch 18: Added so that coordinator.async_apply_module_updates() can call
+        this method directly without a getattr guard (Patch 8).  The stub sets
+        self.data so downstream assertions in unit tests can verify the value.
+        """
         self.data = data
-        self.async_update_listeners()
 
     @classmethod
     def __class_getitem__(cls, item):  # pragma: no cover - helper stub
