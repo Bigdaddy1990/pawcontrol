@@ -7,8 +7,6 @@ Covers lines identified in the CI coverage report:
                   625, 642, 645, 649
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, Mock, patch

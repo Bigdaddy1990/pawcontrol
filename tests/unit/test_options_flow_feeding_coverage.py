@@ -5,8 +5,6 @@ Covers: FeedingOptionsMixin._coerce_meals_per_day (static),
         async_step_feeding_dog_select
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.options_flow_feeding import FeedingOptionsMixin

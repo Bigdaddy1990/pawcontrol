@@ -3,8 +3,6 @@
 LRUCache methods are all async — must use pytest.mark.asyncio.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.cache import CacheStats, LRUCache

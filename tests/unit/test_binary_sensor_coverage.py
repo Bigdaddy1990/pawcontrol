@@ -5,8 +5,6 @@ Covers: PawControlWalkInProgressBinarySensor, PawControlFeedingDueBinarySensor,
         is_on property, extra_state_attributes
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest

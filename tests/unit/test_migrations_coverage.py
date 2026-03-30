@@ -4,8 +4,6 @@ Covers: normalize_dog_id, validate_dog_name, ensure_dog_modules_config,
         ensure_dog_options_entry
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.exceptions import ValidationError

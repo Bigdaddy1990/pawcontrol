@@ -4,8 +4,6 @@ Covers: HealthCalculator.calculate_daily_calories, calculate_bmi,
         activity_score, calculate_life_stage, calculate_ideal_weight_range
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.health_calculator import (

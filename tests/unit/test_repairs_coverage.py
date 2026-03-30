@@ -5,8 +5,6 @@ Covers: _normalise_issue_severity, _issue_registry_supports_kwarg,
         async_create_issue (mocked), async_schedule_repair_evaluation
 """
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -55,21 +53,21 @@ def test_normalise_severity_non_string_falls_back() -> None:
 
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_present() -> None:
-    def create_issue(hass, domain, *, translation_key, **kwargs): ...
+    def create_issue(hass, domain, *, translation_key, **kwargs) -> None: ...
 
     assert _issue_registry_supports_kwarg(create_issue, "translation_key") is True
 
 
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_via_var_keyword() -> None:
-    def create_issue(hass, domain, **kwargs): ...
+    def create_issue(hass, domain, **kwargs) -> None: ...
 
     assert _issue_registry_supports_kwarg(create_issue, "any_key") is True
 
 
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_absent() -> None:
-    def create_issue(hass, domain): ...
+    def create_issue(hass, domain) -> None: ...
 
     assert _issue_registry_supports_kwarg(create_issue, "translation_key") is False
 

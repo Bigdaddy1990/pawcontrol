@@ -6,8 +6,6 @@ Covers: DogNotFoundError, GPSError, WalkError, WalkAlreadyInProgressError,
         RateLimitError, InvalidWeightError, InvalidMealTypeError
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.exceptions import (

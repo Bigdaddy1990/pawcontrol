@@ -4,8 +4,6 @@ Covers: PawControlGPSTracker constructor, latitude/longitude/source_type,
         extra_state_attributes, available, battery_level, async_update_location
 """
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

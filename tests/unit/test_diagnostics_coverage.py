@@ -4,8 +4,6 @@ Covers: compile_redaction_patterns, classify_error_reason,
         diagnostics_redaction helpers, PawControlDiagnostics structure
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.diagnostics import (

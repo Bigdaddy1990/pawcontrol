@@ -3,8 +3,6 @@
 Covers: build_dog_status_snapshot, summarize_entity_budgets, ensure_dog_modules_mapping
 """
 
-from __future__ import annotations
-
 from datetime import UTC
 
 import pytest

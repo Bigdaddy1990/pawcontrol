@@ -4,8 +4,6 @@ Covers: default_rejection_metrics, derive_rejection_metrics,
         normalise_webhook_status, build_security_scorecard
 """  # noqa: E501
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest

@@ -13,8 +13,6 @@ Pure helpers tested directly:
   shutdown, ensure_background_task
 """
 
-from __future__ import annotations
-
 from datetime import UTC, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 

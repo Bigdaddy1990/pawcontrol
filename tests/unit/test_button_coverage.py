@@ -4,8 +4,6 @@ Covers: PawControlStartWalkButton, PawControlEndGardenSessionButton,
         PawControlCallDogButton constructors, async_press error paths
 """
 
-from __future__ import annotations
-
 import contextlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
