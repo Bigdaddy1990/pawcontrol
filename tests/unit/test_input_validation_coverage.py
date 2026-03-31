@@ -2,6 +2,7 @@
 
 Covers: sanitize_user_input, InputValidator, InputSanitizer
 """
+
 from __future__ import annotations
 
 import pytest
@@ -12,8 +13,8 @@ from custom_components.pawcontrol.input_validation import (
     sanitize_user_input,
 )
 
-
 # ─── sanitize_user_input ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_sanitize_user_input_basic() -> None:
@@ -47,6 +48,7 @@ def test_sanitize_user_input_html_stripped() -> None:
 
 # ─── InputSanitizer ──────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_input_sanitizer_init() -> None:
     sanitizer = InputSanitizer()
@@ -72,6 +74,7 @@ def test_input_sanitizer_sanitize_sql() -> None:
 
 
 # ─── InputValidator ──────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_input_validator_init() -> None:

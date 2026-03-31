@@ -3,6 +3,7 @@
 Covers: ErrorRecoveryCoordinator init, handle_error_with_recovery,
         get_error_recovery_coordinator
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
