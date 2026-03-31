@@ -54,7 +54,7 @@ def test_normalise_severity_non_string_falls_back() -> None:
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_present() -> None:
     def create_issue(
-        hass: object,
+        hass: HomeAssistant,
         domain: str,
         *,
         translation_key: str,
