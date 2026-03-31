@@ -54,26 +54,23 @@ def test_normalise_severity_non_string_falls_back() -> None:
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_present() -> None:
     def create_issue(hass, domain, *, translation_key, **kwargs) -> None:
-        pass
-        pass
+        return None
 
     assert _issue_registry_supports_kwarg(create_issue, "translation_key") is True
 
 
 @pytest.mark.unit
+def test_issue_registry_supports_kwarg_catch_all_kwargs() -> None:
     def create_issue(hass, domain, **kwargs) -> None:
-        pass
-    def create_issue(hass, domain, **kwargs) -> None:
-        pass
+        return None
 
     assert _issue_registry_supports_kwarg(create_issue, "any_key") is True
 
 
-    def create_issue(hass, domain) -> None:
-        pass
+@pytest.mark.unit
 def test_issue_registry_supports_kwarg_absent() -> None:
     def create_issue(hass, domain) -> None:
-        pass
+        return None
 
     assert _issue_registry_supports_kwarg(create_issue, "translation_key") is False
 

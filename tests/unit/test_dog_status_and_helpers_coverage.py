@@ -4,11 +4,13 @@ dog_status: build_dog_status_snapshot
 validation_helpers: format_coordinate_validation_error, normalise_existing_names,
                     safe_validate_interval, validate_dog_name, validate_coordinate
 """
+
 from __future__ import annotations
 
 import pytest
 
 from custom_components.pawcontrol.dog_status import build_dog_status_snapshot
+from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.validation_helpers import (
     format_coordinate_validation_error,
     normalise_existing_names,
@@ -16,12 +18,11 @@ from custom_components.pawcontrol.validation_helpers import (
     validate_coordinate,
     validate_dog_name,
 )
-from custom_components.pawcontrol.exceptions import ValidationError
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # build_dog_status_snapshot
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_build_dog_status_snapshot_empty() -> None:
@@ -47,6 +48,7 @@ def test_build_dog_status_snapshot_with_feeding() -> None:
 # normalise_existing_names
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_normalise_existing_names_none() -> None:
     result = normalise_existing_names(None)
@@ -66,33 +68,53 @@ def test_normalise_existing_names_set() -> None:
 # safe_validate_interval
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_safe_validate_interval_valid() -> None:
-    result = safe_validate_interval(60, default=30, minimum=1, maximum=3600, field="interval")
+    result = safe_validate_interval(
+        60, default=30, minimum=1, maximum=3600, field="interval"
+    )
     assert result == 60
 
 
 @pytest.mark.unit
 def test_safe_validate_interval_below_min_clamps() -> None:
-    result = safe_validate_interval(0, default=30, minimum=1, maximum=3600, field="interval", clamp=True)
+    result = safe_validate_interval(
+        0,
+        default=30,
+        minimum=1,
+        maximum=3600,
+        field="interval",
+        clamp=True,
+    )
     assert result == 1
 
 
 @pytest.mark.unit
 def test_safe_validate_interval_above_max_clamps() -> None:
-    result = safe_validate_interval(9999, default=30, minimum=1, maximum=3600, field="interval", clamp=True)
+    result = safe_validate_interval(
+        9999,
+        default=30,
+        minimum=1,
+        maximum=3600,
+        field="interval",
+        clamp=True,
+    )
     assert result == 3600
 
 
 @pytest.mark.unit
 def test_safe_validate_interval_none_uses_default() -> None:
-    result = safe_validate_interval(None, default=30, minimum=1, maximum=3600, field="interval")
+    result = safe_validate_interval(
+        None, default=30, minimum=1, maximum=3600, field="interval"
+    )
     assert result == 30
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # validate_dog_name (validation_helpers)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_vh_validate_dog_name_valid() -> None:
@@ -110,6 +132,7 @@ def test_vh_validate_dog_name_strips() -> None:
 # validate_coordinate / format_coordinate_validation_error
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_validate_coordinate_valid_lat() -> None:
     result = validate_coordinate(52.5, field="latitude", minimum=-90, maximum=90)
@@ -124,7 +147,9 @@ def test_validate_coordinate_invalid_raises() -> None:
 
 @pytest.mark.unit
 def test_format_coordinate_validation_error() -> None:
-    err = ValidationError("latitude", 999.0, "out_of_range", min_value=-90, max_value=90)
+    err = ValidationError(
+        "latitude", 999.0, "out_of_range", min_value=-90, max_value=90
+    )
     result = format_coordinate_validation_error(err)
     assert isinstance(result, str)
     assert len(result) > 0
