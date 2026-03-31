@@ -3,8 +3,6 @@
 Covers: RateLimitConfig, RateLimitState, WebhookRateLimiter
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.webhook_security import (
