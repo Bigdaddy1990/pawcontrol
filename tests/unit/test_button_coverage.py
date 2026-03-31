@@ -86,11 +86,13 @@ def test_end_garden_button_unique_id() -> None:
 async def test_end_garden_button_press_service_error() -> None:
     b = PawControlEndGardenSessionButton(_coord(), "rex", "Rex")
     b.hass = MagicMock()
-    with patch.object(
-        b, "_async_press_service", new=AsyncMock(side_effect=Exception("fail"))
-    ):  # noqa: E501, SIM117
-        with contextlib.suppress(Exception):
-            await b.async_press()
+    with (
+        patch.object(
+            b, "_async_press_service", new=AsyncMock(side_effect=Exception("fail"))
+        ),
+        contextlib.suppress(Exception),
+    ):
+        await b.async_press()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
