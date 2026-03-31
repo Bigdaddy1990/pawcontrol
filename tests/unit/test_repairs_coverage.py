@@ -67,7 +67,7 @@ def test_issue_registry_supports_kwarg_present() -> None:
 
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_catch_all_kwargs() -> None:
-    def create_issue(hass: object, domain: str, **kwargs: object) -> None:
+    def create_issue(hass: HomeAssistant, domain: str, **kwargs: object) -> None:
         return None
 
     assert _issue_registry_supports_kwarg(create_issue, "any_key") is True
