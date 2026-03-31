@@ -8,19 +8,26 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
+  checks: write 
+  id-token: write
 
 concurrency:
   group: autofix-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  UV_SYSTEM_PYTHON: "1"
+  PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.14' }}
+  HA_SPEC: ${{ vars.HA_VERSION != '' && format('=={0}', vars.HA_VERSION) || '' }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  GH_TOKEN: ${{ github.token }}
+
 jobs:
   autofix:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    env:
-      UV_SYSTEM_PYTHON: "1"
-      PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.14' }}
-
     steps:
       - uses: actions/checkout@v6
         with:
@@ -29,7 +36,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
+          
       - name: Install uv (with cache)
         uses: astral-sh/setup-uv@v7
         with:
