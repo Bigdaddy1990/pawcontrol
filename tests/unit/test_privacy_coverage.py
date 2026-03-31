@@ -2,6 +2,7 @@
 
 Covers: mask_string, anonymize_user_id, DataHasher, GPSAnonymizer
 """
+
 from __future__ import annotations
 
 import pytest
@@ -13,10 +14,10 @@ from custom_components.pawcontrol.privacy import (
     mask_string,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # mask_string
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_mask_string_basic() -> None:
@@ -47,6 +48,7 @@ def test_mask_string_zero_visible() -> None:
 # anonymize_user_id
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.unit
 def test_anonymize_user_id_returns_string() -> None:
     result = anonymize_user_id("rex_owner_123")
@@ -71,6 +73,7 @@ def test_anonymize_user_id_different_inputs() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # DataHasher
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_data_hasher_init() -> None:
@@ -105,6 +108,7 @@ def test_data_hasher_different_inputs() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # GPSAnonymizer
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_gps_anonymizer_init() -> None:

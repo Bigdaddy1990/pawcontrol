@@ -60,7 +60,7 @@ def test_classify_error_reason_none() -> None:
 def test_classify_error_reason_network_error() -> None:
     result = classify_error_reason(
         "connection refused", error=ConnectionError("refused")
-    )  # noqa: E501
+    )
     assert isinstance(result, str)
 
 

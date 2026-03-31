@@ -132,7 +132,7 @@ def test_should_notify_entities_no_changes() -> None:
     # CoordinatorDataDiff: dog_diffs, added_dogs, removed_dogs
     coordinator_diff = CoordinatorDataDiff(
         dog_diffs={}, added_dogs=frozenset(), removed_dogs=frozenset()
-    )  # noqa: E501
+    )
     result = should_notify_entities(coordinator_diff)
     assert isinstance(result, bool)
 
@@ -143,6 +143,6 @@ def test_should_notify_entities_with_dog_filter() -> None:
 
     coordinator_diff = CoordinatorDataDiff(
         dog_diffs={}, added_dogs=frozenset(), removed_dogs=frozenset()
-    )  # noqa: E501
+    )
     result = should_notify_entities(coordinator_diff, dog_id="rex")
     assert isinstance(result, bool)

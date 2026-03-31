@@ -56,7 +56,7 @@ async def test_start_walk_button_press_service_error() -> None:
     b.hass = MagicMock()
     with patch.object(
         b, "_async_press_service", new=AsyncMock(side_effect=Exception("fail"))
-    ):  # noqa: E501
+    ):
         # Should catch and log, not propagate
         try:  # noqa: SIM105
             await b.async_press()
