@@ -4,8 +4,6 @@ Covers: calculate_activity_level, calculate_calories_burned_today,
         calculate_hours_since, derive_next_feeding_time
 """
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest

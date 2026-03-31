@@ -6,8 +6,6 @@ Covers:
   _resolve_dog error paths, async_unload_services
 """
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 

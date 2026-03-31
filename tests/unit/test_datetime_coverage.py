@@ -5,8 +5,6 @@ Covers: PawControlDateTimeBase.native_value, extra_state_attributes,
         async_setup_entry early returns, entity constructors
 """
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 

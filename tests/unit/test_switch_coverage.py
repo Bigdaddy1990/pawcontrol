@@ -4,8 +4,6 @@ Covers: PawControlMainPowerSwitch, PawControlModuleSwitch, PawControlFeatureSwit
         constructors, is_on, extra_state_attributes
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest

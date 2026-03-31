@@ -4,8 +4,6 @@ Covers: _async_initialize_manager_with_timeout (timeout + exception paths),
         _attach_managers_to_coordinator, _register_runtime_monitors
 """
 
-from __future__ import annotations
-
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 

@@ -3,8 +3,6 @@
 Covers: coerce_dog_modules_config, ensure_dog_config_data
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.coordinator_support import (

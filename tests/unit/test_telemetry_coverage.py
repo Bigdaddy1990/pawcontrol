@@ -6,8 +6,6 @@ Covers: record_bool_coercion_event, get_bool_coercion_metrics,
         ensure_runtime_performance_stats, get_runtime_store_health
 """
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 

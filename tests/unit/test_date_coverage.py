@@ -4,8 +4,6 @@ Covers: PawControlDateBase.native_value, extra_state_attributes (with/without va
         birthdate age calc), async_set_value, entity constructors
 """
 
-from __future__ import annotations
-
 from datetime import UTC, date, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 

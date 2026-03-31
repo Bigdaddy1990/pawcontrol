@@ -4,8 +4,6 @@ Covers: _extract_gps_tracking_input, PawControlNumberBase native_value/set_nativ
         entity constructors, extra_state_attributes
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest

@@ -3,8 +3,6 @@
 Covers: _domain_store, _haversine_m, _extract_coords
 """
 
-from __future__ import annotations
-
 import math
 from unittest.mock import MagicMock
 

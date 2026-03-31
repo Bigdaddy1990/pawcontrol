@@ -5,8 +5,6 @@ Covers: _validate_dog_id (all branches), _coerce_int/_coerce_float error paths,
         validate_dog_update_input, FlowValidationError
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.exceptions import FlowValidationError

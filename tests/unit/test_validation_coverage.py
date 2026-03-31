@@ -5,8 +5,6 @@ Covers: coerce_float, coerce_int, _parse_time_string, validate_dog_name,
         validate_time_window, coerce_dog_id, parse_notification_targets
 """
 
-from __future__ import annotations
-
 from datetime import time
 from unittest.mock import MagicMock
 

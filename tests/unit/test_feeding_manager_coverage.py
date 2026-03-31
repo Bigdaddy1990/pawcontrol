@@ -11,8 +11,6 @@ Covers:
                   get_feeding_data, get_active_emergency
 """
 
-from __future__ import annotations
-
 from datetime import datetime, time, timedelta
 from unittest.mock import MagicMock, patch
 

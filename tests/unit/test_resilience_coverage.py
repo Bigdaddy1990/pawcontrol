@@ -6,8 +6,6 @@ Covers: CircuitBreaker.call(), _record_success(), _record_failure(),
         ServiceUnavailableError when circuit is open
 """
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock
 
 import pytest

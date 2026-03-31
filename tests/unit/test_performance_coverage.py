@@ -4,8 +4,6 @@ Covers: enable/disable_performance_monitoring, get_performance_summary,
         get_slow_operations, performance_tracker context manager
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.performance import (

@@ -5,8 +5,6 @@ Covers: PawControlFeedingModeSelect, PawControlFoodTypeSelect,
         constructors, current_option, options, extra_state_attributes
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest

@@ -4,8 +4,6 @@ Covers: compute_data_diff, compute_dog_diff, get_changed_fields,
         should_notify_entities, DataDiff, DogDataDiff, SmartDiffTracker
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.coordinator_diffing import (

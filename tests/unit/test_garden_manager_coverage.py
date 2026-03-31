@@ -3,8 +3,6 @@
 Covers: normalize_value (garden_manager re-export)
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.garden_manager import normalize_value

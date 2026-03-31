@@ -5,8 +5,6 @@ Covers: PawControlAllergiesText, PawControlBehaviorNotesText,
         constructors, native_value, extra_state_attributes
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest
