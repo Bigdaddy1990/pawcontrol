@@ -3,8 +3,6 @@
 Covers: component_translation_key, resolve_translation, resolve_component_translation
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.translation_helpers import (

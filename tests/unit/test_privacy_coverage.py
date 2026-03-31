@@ -3,8 +3,6 @@
 Covers: mask_string, anonymize_user_id, DataHasher, GPSAnonymizer
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.privacy import (

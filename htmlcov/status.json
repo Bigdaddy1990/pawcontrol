@@ -1,1 +1,2618 @@
-{"note":"This file is an internal implementation detail to speed up HTML report generation. Its format can change at any time. You might be looking for the JSON report: https://coverage.rtfd.io/cmd.html#cmd-json","format":5,"version":"7.13.5","globals":"9483facb2c86611576e9a20f8c1e3912","files":{"z_2cfafb4492f559dd___init___py":{"hash":"6a1e13f7b4beaae643ae3a27f7d81746","index":{"url":"z_2cfafb4492f559dd___init___py.html","file":"custom_components/pawcontrol/__init__.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":326,"n_excluded":0,"n_missing":326,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_coordinator_py":{"hash":"e4016afa19e3cd190ee82bd7a630c16d","index":{"url":"z_2cfafb4492f559dd_coordinator_py.html","file":"custom_components/pawcontrol/coordinator.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":291,"n_excluded":11,"n_missing":291,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_exceptions_py":{"hash":"1b2b62c786ff6a9a48252e00f506853b","index":{"url":"z_2cfafb4492f559dd_exceptions_py.html","file":"custom_components/pawcontrol/exceptions.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":343,"n_excluded":0,"n_missing":343,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_external_bindings_py":{"hash":"4a06bb70515fba68a0716b5a8e9f01b4","index":{"url":"z_2cfafb4492f559dd_external_bindings_py.html","file":"custom_components/pawcontrol/external_bindings.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":121,"n_excluded":2,"n_missing":121,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_feeding_manager_py":{"hash":"f0151a8204f116b27d3011629fa30a54","index":{"url":"z_2cfafb4492f559dd_feeding_manager_py.html","file":"custom_components/pawcontrol/feeding_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":1546,"n_excluded":25,"n_missing":1546,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_gps_manager_py":{"hash":"3e3911ffe41e67436bca51e12669146b","index":{"url":"z_2cfafb4492f559dd_gps_manager_py.html","file":"custom_components/pawcontrol/gps_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":594,"n_excluded":8,"n_missing":594,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_health_calculator_py":{"hash":"af003e667aef9c686187fb025ed176e9","index":{"url":"z_2cfafb4492f559dd_health_calculator_py.html","file":"custom_components/pawcontrol/health_calculator.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":515,"n_excluded":2,"n_missing":515,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_notifications_py":{"hash":"e2387b6d9442a494120d5a4460809813","index":{"url":"z_2cfafb4492f559dd_notifications_py.html","file":"custom_components/pawcontrol/notifications.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":1008,"n_excluded":12,"n_missing":1008,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_coordinator_observability_py":{"hash":"875e3226bdd7316c4aa38c69417398ba","index":{"url":"z_2cfafb4492f559dd_coordinator_observability_py.html","file":"custom_components/pawcontrol/coordinator_observability.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":146,"n_excluded":5,"n_missing":146,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_coordinator_runtime_py":{"hash":"3d0194895bb27705937529f4a53f8b89","index":{"url":"z_2cfafb4492f559dd_coordinator_runtime_py.html","file":"custom_components/pawcontrol/coordinator_runtime.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":198,"n_excluded":5,"n_missing":198,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_coordinator_support_py":{"hash":"c597d85324d582a6fbfcefd1dd660375","index":{"url":"z_2cfafb4492f559dd_coordinator_support_py.html","file":"custom_components/pawcontrol/coordinator_support.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":290,"n_excluded":15,"n_missing":290,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_dog_status_py":{"hash":"e9c88bca12dc96095d9177458d2222ba","index":{"url":"z_2cfafb4492f559dd_dog_status_py.html","file":"custom_components/pawcontrol/dog_status.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":49,"n_excluded":0,"n_missing":49,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_module_adapters_py":{"hash":"a8f81ab76bb006d3a36316b2185a2dd0","index":{"url":"z_2cfafb4492f559dd_module_adapters_py.html","file":"custom_components/pawcontrol/module_adapters.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":439,"n_excluded":42,"n_missing":439,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_types_py":{"hash":"a3235e0cfeef8e2ac535f3ffbc8989c7","index":{"url":"z_2cfafb4492f559dd_types_py.html","file":"custom_components/pawcontrol/types.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":1867,"n_excluded":32,"n_missing":1867,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_coordinator_tasks_py":{"hash":"1108418924b414a2eb3fdb5f20f9eb70","index":{"url":"z_2cfafb4492f559dd_coordinator_tasks_py.html","file":"custom_components/pawcontrol/coordinator_tasks.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":759,"n_excluded":22,"n_missing":759,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_device_api_py":{"hash":"b4217f91ca499f9642db057713ee1c27","index":{"url":"z_2cfafb4492f559dd_device_api_py.html","file":"custom_components/pawcontrol/device_api.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":70,"n_excluded":10,"n_missing":70,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_http_client_py":{"hash":"1942353161869f5f8e97f6771bd5f79d","index":{"url":"z_2cfafb4492f559dd_http_client_py.html","file":"custom_components/pawcontrol/http_client.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":26,"n_excluded":0,"n_missing":26,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_performance_py":{"hash":"5474281b209946236fb26dc8a3c8cb2d","index":{"url":"z_2cfafb4492f559dd_performance_py.html","file":"custom_components/pawcontrol/performance.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":289,"n_excluded":8,"n_missing":289,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_resilience_py":{"hash":"9fddfda8b0a84a187a4242906c02f500","index":{"url":"z_2cfafb4492f559dd_resilience_py.html","file":"custom_components/pawcontrol/resilience.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":224,"n_excluded":0,"n_missing":224,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_runtime_data_py":{"hash":"91099c0ada9ecb9922fbe0650889eb54","index":{"url":"z_2cfafb4492f559dd_runtime_data_py.html","file":"custom_components/pawcontrol/runtime_data.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":313,"n_excluded":16,"n_missing":313,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_telemetry_py":{"hash":"c02d4e7e0faf568e9f55b5192bf32cd0","index":{"url":"z_2cfafb4492f559dd_telemetry_py.html","file":"custom_components/pawcontrol/telemetry.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":971,"n_excluded":2,"n_missing":971,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_dashboard_shared_py":{"hash":"96b20b3af359332ec1304dc5f91fe978","index":{"url":"z_2cfafb4492f559dd_dashboard_shared_py.html","file":"custom_components/pawcontrol/dashboard_shared.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":30,"n_excluded":0,"n_missing":30,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_feeding_translations_py":{"hash":"235da2e7251ffadc2426f231cdc99053","index":{"url":"z_2cfafb4492f559dd_feeding_translations_py.html","file":"custom_components/pawcontrol/feeding_translations.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":357,"n_excluded":14,"n_missing":357,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_language_py":{"hash":"9b83ce3a577a5972598534d822c8892f","index":{"url":"z_2cfafb4492f559dd_language_py.html","file":"custom_components/pawcontrol/language.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":26,"n_excluded":0,"n_missing":26,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_logging_utils_py":{"hash":"e5274f91134b94d27dd125bb6a95c62a","index":{"url":"z_2cfafb4492f559dd_logging_utils_py.html","file":"custom_components/pawcontrol/logging_utils.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":92,"n_excluded":0,"n_missing":92,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_migrations_py":{"hash":"da9c7590923e19eda86b6c6b2233f10b","index":{"url":"z_2cfafb4492f559dd_migrations_py.html","file":"custom_components/pawcontrol/migrations.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":161,"n_excluded":0,"n_missing":161,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_mqtt_push_py":{"hash":"536a745e5a3302607ddf48789f6726b9","index":{"url":"z_2cfafb4492f559dd_mqtt_push_py.html","file":"custom_components/pawcontrol/mqtt_push.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":81,"n_excluded":2,"n_missing":81,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_person_entity_manager_py":{"hash":"87a092539ded60b5d1ca0a4de65107fe","index":{"url":"z_2cfafb4492f559dd_person_entity_manager_py.html","file":"custom_components/pawcontrol/person_entity_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":372,"n_excluded":0,"n_missing":372,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_push_router_py":{"hash":"e2bf5211aeabd824aa3482f542f7d30d","index":{"url":"z_2cfafb4492f559dd_push_router_py.html","file":"custom_components/pawcontrol/push_router.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":248,"n_excluded":3,"n_missing":248,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_repairs_py":{"hash":"f253e8f67573481a7a4093f99f2f037f","index":{"url":"z_2cfafb4492f559dd_repairs_py.html","file":"custom_components/pawcontrol/repairs.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":1053,"n_excluded":18,"n_missing":1053,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_translation_helpers_py":{"hash":"2cfeac4648e4718f1d9b68288c68f19f","index":{"url":"z_2cfafb4492f559dd_translation_helpers_py.html","file":"custom_components/pawcontrol/translation_helpers.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":118,"n_excluded":3,"n_missing":118,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_validation_py":{"hash":"006ab06f83c787f53529eb7dcf03807b","index":{"url":"z_2cfafb4492f559dd_validation_py.html","file":"custom_components/pawcontrol/validation.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":515,"n_excluded":2,"n_missing":515,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_webhook_security_py":{"hash":"a992fa01af5d0fa0d82fdf4593dc8336","index":{"url":"z_2cfafb4492f559dd_webhook_security_py.html","file":"custom_components/pawcontrol/webhook_security.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":163,"n_excluded":0,"n_missing":163,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_service_guard_py":{"hash":"c27f6ed1bc17ad5c3c8607702a70fd86","index":{"url":"z_2cfafb4492f559dd_service_guard_py.html","file":"custom_components/pawcontrol/service_guard.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":109,"n_excluded":5,"n_missing":109,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_coordinator_accessors_py":{"hash":"970ec50e40b34c9048977894fe7ebfcb","index":{"url":"z_2cfafb4492f559dd_coordinator_accessors_py.html","file":"custom_components/pawcontrol/coordinator_accessors.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":42,"n_excluded":24,"n_missing":42,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_data_manager_py":{"hash":"2318ee646e84907f1d6db4c3f8e9e77b","index":{"url":"z_2cfafb4492f559dd_data_manager_py.html","file":"custom_components/pawcontrol/data_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":1516,"n_excluded":59,"n_missing":1516,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_door_sensor_manager_py":{"hash":"e15a2d3b09dfa83f501d8edbd6b5247d","index":{"url":"z_2cfafb4492f559dd_door_sensor_manager_py.html","file":"custom_components/pawcontrol/door_sensor_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":623,"n_excluded":6,"n_missing":623,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_entity_factory_py":{"hash":"97247638134e1ee15926548440525b09","index":{"url":"z_2cfafb4492f559dd_entity_factory_py.html","file":"custom_components/pawcontrol/entity_factory.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":661,"n_excluded":11,"n_missing":661,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_garden_manager_py":{"hash":"f88f8735f8eeb75b576d30fd19bc8754","index":{"url":"z_2cfafb4492f559dd_garden_manager_py.html","file":"custom_components/pawcontrol/garden_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":539,"n_excluded":13,"n_missing":539,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_geofencing_py":{"hash":"44d55a3ddc21e6812664d960ff47cc3d","index":{"url":"z_2cfafb4492f559dd_geofencing_py.html","file":"custom_components/pawcontrol/geofencing.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":419,"n_excluded":4,"n_missing":419,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_grooming_translations_py":{"hash":"75287a8a88242152b1f4a28782cca2b5","index":{"url":"z_2cfafb4492f559dd_grooming_translations_py.html","file":"custom_components/pawcontrol/grooming_translations.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":27,"n_excluded":0,"n_missing":27,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_helper_manager_py":{"hash":"9758ad6ef6615ed0a28e9e7a754499e7","index":{"url":"z_2cfafb4492f559dd_helper_manager_py.html","file":"custom_components/pawcontrol/helper_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":452,"n_excluded":4,"n_missing":452,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_feeding_py":{"hash":"70e86d20f38a2e5b13ac215af5ce892b","index":{"url":"z_2cfafb4492f559dd_options_flow_feeding_py.html","file":"custom_components/pawcontrol/options_flow_feeding.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":68,"n_excluded":10,"n_missing":68,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_script_manager_py":{"hash":"7826622cb1c775ca33a12457e3b7dd08","index":{"url":"z_2cfafb4492f559dd_script_manager_py.html","file":"custom_components/pawcontrol/script_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":1167,"n_excluded":28,"n_missing":1167,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_b9aa523b8e805893___init___py":{"hash":"20207e6db9bbe32f461de49e0272aad9","index":{"url":"z_b9aa523b8e805893___init___py.html","file":"custom_components/pawcontrol/setup/__init__.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":5,"n_excluded":0,"n_missing":5,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_b9aa523b8e805893_cleanup_py":{"hash":"9bae19459fbf6624bbc66775162846c0","index":{"url":"z_b9aa523b8e805893_cleanup_py.html","file":"custom_components/pawcontrol/setup/cleanup.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":84,"n_excluded":3,"n_missing":84,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_b9aa523b8e805893_manager_init_py":{"hash":"113f1bd6cf4247e453411f959e6f671f","index":{"url":"z_b9aa523b8e805893_manager_init_py.html","file":"custom_components/pawcontrol/setup/manager_init.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":208,"n_excluded":3,"n_missing":208,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_b9aa523b8e805893_platform_setup_py":{"hash":"c61ddf9510de85a791920fceb0aa38e3","index":{"url":"z_b9aa523b8e805893_platform_setup_py.html","file":"custom_components/pawcontrol/setup/platform_setup.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":114,"n_excluded":3,"n_missing":114,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_b9aa523b8e805893_validation_py":{"hash":"b2b1ae570ac0f690d1d220bf17b55d6c","index":{"url":"z_b9aa523b8e805893_validation_py.html","file":"custom_components/pawcontrol/setup/validation.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":61,"n_excluded":2,"n_missing":61,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_validation_helpers_py":{"hash":"0559bec02d0a2f5b40de63e753101c9c","index":{"url":"z_2cfafb4492f559dd_validation_helpers_py.html","file":"custom_components/pawcontrol/validation_helpers.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":39,"n_excluded":0,"n_missing":39,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_walk_manager_py":{"hash":"223651d8ea8ef416e822577599a69563","index":{"url":"z_2cfafb4492f559dd_walk_manager_py.html","file":"custom_components/pawcontrol/walk_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":911,"n_excluded":5,"n_missing":911,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_weather_manager_py":{"hash":"82955b4984b368ae1d789ba7bea45a71","index":{"url":"z_2cfafb4492f559dd_weather_manager_py.html","file":"custom_components/pawcontrol/weather_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":814,"n_excluded":4,"n_missing":814,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_weather_translations_py":{"hash":"795e7a468b1846ff8c116d7fbdf31653","index":{"url":"z_2cfafb4492f559dd_weather_translations_py.html","file":"custom_components/pawcontrol/weather_translations.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":57,"n_excluded":0,"n_missing":57,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_flow_validation_py":{"hash":"73efa87d4e98c99e8957914fd31ca976","index":{"url":"z_2cfafb4492f559dd_flow_validation_py.html","file":"custom_components/pawcontrol/flow_validation.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":224,"n_excluded":0,"n_missing":224,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_shared_py":{"hash":"3be6d9378bf9a794eeb653dce3210c5d","index":{"url":"z_2cfafb4492f559dd_options_flow_shared_py.html","file":"custom_components/pawcontrol/options_flow_shared.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":416,"n_excluded":15,"n_missing":416,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_selector_shim_py":{"hash":"10e34c9765fdcdd87d3909bb2c7fc390","index":{"url":"z_2cfafb4492f559dd_selector_shim_py.html","file":"custom_components/pawcontrol/selector_shim.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":69,"n_excluded":8,"n_missing":69,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_services_py":{"hash":"f337ed8fa22389164767f6dd26feba39","index":{"url":"z_2cfafb4492f559dd_services_py.html","file":"custom_components/pawcontrol/services.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":1775,"n_excluded":34,"n_missing":1775,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_webhooks_py":{"hash":"04b618e49e92e9fe3082439bb6f62e7d","index":{"url":"z_2cfafb4492f559dd_webhooks_py.html","file":"custom_components/pawcontrol/webhooks.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":121,"n_excluded":4,"n_missing":121,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_api_validator_py":{"hash":"1641396cd02deb30aaf1db49d854a3fe","index":{"url":"z_2cfafb4492f559dd_api_validator_py.html","file":"custom_components/pawcontrol/api_validator.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":153,"n_excluded":0,"n_missing":153,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_base_manager_py":{"hash":"ea922a619cfd78cf4d3d8c556882f64a","index":{"url":"z_2cfafb4492f559dd_base_manager_py.html","file":"custom_components/pawcontrol/base_manager.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":143,"n_excluded":3,"n_missing":143,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_binary_sensor_py":{"hash":"a1dab07aebd0d9c41ff0babbc8340c90","index":{"url":"z_2cfafb4492f559dd_binary_sensor_py.html","file":"custom_components/pawcontrol/binary_sensor.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":864,"n_excluded":6,"n_missing":864,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_button_py":{"hash":"b1f51cd8a700729bde659710fc541d8b","index":{"url":"z_2cfafb4492f559dd_button_py.html","file":"custom_components/pawcontrol/button.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":636,"n_excluded":12,"n_missing":636,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_cache_py":{"hash":"1bfd96e3f67940f25fc1cc1486ebf024","index":{"url":"z_2cfafb4492f559dd_cache_py.html","file":"custom_components/pawcontrol/cache.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":200,"n_excluded":2,"n_missing":200,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_entry_helpers_py":{"hash":"a0cf92dcdd7d12a218821653dce299a5","index":{"url":"z_2cfafb4492f559dd_config_entry_helpers_py.html","file":"custom_components/pawcontrol/config_entry_helpers.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":9,"n_excluded":0,"n_missing":9,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_py":{"hash":"342f36b064b73b2d9c2b71db54532d96","index":{"url":"z_2cfafb4492f559dd_config_flow_py.html","file":"custom_components/pawcontrol/config_flow.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":3,"n_excluded":0,"n_missing":3,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_base_py":{"hash":"edee213645cc35b168f56b85aedc188c","index":{"url":"z_2cfafb4492f559dd_config_flow_base_py.html","file":"custom_components/pawcontrol/config_flow_base.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":202,"n_excluded":0,"n_missing":202,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_dashboard_extension_py":{"hash":"260dd2e5312bc075fef809eaaf4dfeab","index":{"url":"z_2cfafb4492f559dd_config_flow_dashboard_extension_py.html","file":"custom_components/pawcontrol/config_flow_dashboard_extension.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":55,"n_excluded":29,"n_missing":55,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_discovery_py":{"hash":"ea59139a40c9faf0a191bb076541ce90","index":{"url":"z_2cfafb4492f559dd_config_flow_discovery_py.html","file":"custom_components/pawcontrol/config_flow_discovery.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":94,"n_excluded":76,"n_missing":94,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_dogs_py":{"hash":"474759815fcc1156a590e5e3d158705c","index":{"url":"z_2cfafb4492f559dd_config_flow_dogs_py.html","file":"custom_components/pawcontrol/config_flow_dogs.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":424,"n_excluded":20,"n_missing":424,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_external_py":{"hash":"3a63649d1ca9ddb22ccef7e3808cf596","index":{"url":"z_2cfafb4492f559dd_config_flow_external_py.html","file":"custom_components/pawcontrol/config_flow_external.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":134,"n_excluded":59,"n_missing":134,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_main_py":{"hash":"7ae1fc919b5147b7fead2d6328593489","index":{"url":"z_2cfafb4492f559dd_config_flow_main_py.html","file":"custom_components/pawcontrol/config_flow_main.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":1023,"n_excluded":5,"n_missing":1023,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_modules_py":{"hash":"6779aed79372bde0aa0aaa9adb54477f","index":{"url":"z_2cfafb4492f559dd_config_flow_modules_py.html","file":"custom_components/pawcontrol/config_flow_modules.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":172,"n_excluded":53,"n_missing":172,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_monitor_py":{"hash":"16868d1280f29c56440f1edfb1c2fca2","index":{"url":"z_2cfafb4492f559dd_config_flow_monitor_py.html","file":"custom_components/pawcontrol/config_flow_monitor.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":34,"n_excluded":0,"n_missing":34,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_placeholders_py":{"hash":"d6aa09347711b6bb4502980353a90764","index":{"url":"z_2cfafb4492f559dd_config_flow_placeholders_py.html","file":"custom_components/pawcontrol/config_flow_placeholders.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":21,"n_excluded":0,"n_missing":21,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_profile_py":{"hash":"8d240e553ce4ac040580a2b60143abe7","index":{"url":"z_2cfafb4492f559dd_config_flow_profile_py.html","file":"custom_components/pawcontrol/config_flow_profile.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":45,"n_excluded":2,"n_missing":45,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_reauth_py":{"hash":"de4b17f36f30e3a3552333cef08ecd93","index":{"url":"z_2cfafb4492f559dd_config_flow_reauth_py.html","file":"custom_components/pawcontrol/config_flow_reauth.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":225,"n_excluded":54,"n_missing":225,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_config_flow_schemas_py":{"hash":"86757f86b08bbc0c8b003f4bbda4b943","index":{"url":"z_2cfafb4492f559dd_config_flow_schemas_py.html","file":"custom_components/pawcontrol/config_flow_schemas.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":7,"n_excluded":0,"n_missing":7,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_coordinator_access_enforcement_py":{"hash":"3a2d0e97d2d4620ffd5a95fb2afca984","index":{"url":"z_2cfafb4492f559dd_coordinator_access_enforcement_py.html","file":"custom_components/pawcontrol/coordinator_access_enforcement.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":103,"n_excluded":3,"n_missing":103,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_coordinator_diffing_py":{"hash":"5ebbaf29010afccb9f5a4d3ccca84e1f","index":{"url":"z_2cfafb4492f559dd_coordinator_diffing_py.html","file":"custom_components/pawcontrol/coordinator_diffing.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":211,"n_excluded":1,"n_missing":211,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_dashboard_cards_py":{"hash":"2ccde6bd719ca096f5391ff6f6154370","index":{"url":"z_2cfafb4492f559dd_dashboard_cards_py.html","file":"custom_components/pawcontrol/dashboard_cards.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":911,"n_excluded":2,"n_missing":911,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_dashboard_generator_py":{"hash":"1be90eeb0c57dd9432885b2a9e34b4eb","index":{"url":"z_2cfafb4492f559dd_dashboard_generator_py.html","file":"custom_components/pawcontrol/dashboard_generator.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":874,"n_excluded":3,"n_missing":874,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_dashboard_renderer_py":{"hash":"9ea18092da8cf528dbe3c85b811d1d78","index":{"url":"z_2cfafb4492f559dd_dashboard_renderer_py.html","file":"custom_components/pawcontrol/dashboard_renderer.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":293,"n_excluded":0,"n_missing":293,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_dashboard_templates_py":{"hash":"46c12c371aa2a54a317c871afb7d3849","index":{"url":"z_2cfafb4492f559dd_dashboard_templates_py.html","file":"custom_components/pawcontrol/dashboard_templates.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":948,"n_excluded":2,"n_missing":948,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_date_py":{"hash":"6ee5199bb2405cb0675c7c6ff968b84a","index":{"url":"z_2cfafb4492f559dd_date_py.html","file":"custom_components/pawcontrol/date.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":281,"n_excluded":0,"n_missing":281,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_datetime_py":{"hash":"4a7db3d01655c1675a5c824da466987e","index":{"url":"z_2cfafb4492f559dd_datetime_py.html","file":"custom_components/pawcontrol/datetime.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":274,"n_excluded":2,"n_missing":274,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_device_action_py":{"hash":"9906d5a29a39e9efe93c288e8a92dae7","index":{"url":"z_2cfafb4492f559dd_device_action_py.html","file":"custom_components/pawcontrol/device_action.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":59,"n_excluded":0,"n_missing":59,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_device_automation_helpers_py":{"hash":"b58dbdcabbfb632063c90fc3bcaa28ef","index":{"url":"z_2cfafb4492f559dd_device_automation_helpers_py.html","file":"custom_components/pawcontrol/device_automation_helpers.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":87,"n_excluded":3,"n_missing":87,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_device_condition_py":{"hash":"d1b4ae5b51aec9f0874065975c0943ee","index":{"url":"z_2cfafb4492f559dd_device_condition_py.html","file":"custom_components/pawcontrol/device_condition.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":89,"n_excluded":2,"n_missing":89,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_device_tracker_py":{"hash":"f80780769eaf63b6298e111f031990d1","index":{"url":"z_2cfafb4492f559dd_device_tracker_py.html","file":"custom_components/pawcontrol/device_tracker.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":457,"n_excluded":0,"n_missing":457,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_device_trigger_py":{"hash":"df3607be93694941feacd589e587b4a7","index":{"url":"z_2cfafb4492f559dd_device_trigger_py.html","file":"custom_components/pawcontrol/device_trigger.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":62,"n_excluded":0,"n_missing":62,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_diagnostics_py":{"hash":"73bd41faee8c762a9e6ab721f64138ce","index":{"url":"z_2cfafb4492f559dd_diagnostics_py.html","file":"custom_components/pawcontrol/diagnostics.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":804,"n_excluded":19,"n_missing":804,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_diagnostics_redaction_py":{"hash":"7e4abfd510b2e305ebb27b77cd8bccc1","index":{"url":"z_2cfafb4492f559dd_diagnostics_redaction_py.html","file":"custom_components/pawcontrol/diagnostics_redaction.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":32,"n_excluded":0,"n_missing":32,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_discovery_py":{"hash":"66b634534b233c82bf968411e7984ab7","index":{"url":"z_2cfafb4492f559dd_discovery_py.html","file":"custom_components/pawcontrol/discovery.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":259,"n_excluded":2,"n_missing":259,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_entity_py":{"hash":"f3ef6bab2213be5aa5c132ebdc128227","index":{"url":"z_2cfafb4492f559dd_entity_py.html","file":"custom_components/pawcontrol/entity.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":200,"n_excluded":4,"n_missing":200,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_entity_optimization_py":{"hash":"2ea755413003398338758c1059330fb2","index":{"url":"z_2cfafb4492f559dd_entity_optimization_py.html","file":"custom_components/pawcontrol/entity_optimization.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":147,"n_excluded":2,"n_missing":147,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_error_decorators_py":{"hash":"be84ebb0d6f8745d13e4af1e3c5ade00","index":{"url":"z_2cfafb4492f559dd_error_decorators_py.html","file":"custom_components/pawcontrol/error_decorators.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":241,"n_excluded":9,"n_missing":241,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_error_recovery_py":{"hash":"5312aaf454871b69f72f419b1d17ed5b","index":{"url":"z_2cfafb4492f559dd_error_recovery_py.html","file":"custom_components/pawcontrol/error_recovery.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":120,"n_excluded":2,"n_missing":120,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_flow_helpers_py":{"hash":"70c257a3e3877fe46bf3bb1612bad084","index":{"url":"z_2cfafb4492f559dd_flow_helpers_py.html","file":"custom_components/pawcontrol/flow_helpers.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":176,"n_excluded":2,"n_missing":176,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d___init___py":{"hash":"5359708f4760c0160af6c28e130854db","index":{"url":"z_d3ab79fd447c315d___init___py.html","file":"custom_components/pawcontrol/flow_steps/__init__.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":5,"n_excluded":0,"n_missing":5,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d_gps_py":{"hash":"3811b889b282014affc3825b60485a72","index":{"url":"z_d3ab79fd447c315d_gps_py.html","file":"custom_components/pawcontrol/flow_steps/gps.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":321,"n_excluded":118,"n_missing":321,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d_gps_helpers_py":{"hash":"e9f946c4dfd72cb0b8a2b345f0702799","index":{"url":"z_d3ab79fd447c315d_gps_helpers_py.html","file":"custom_components/pawcontrol/flow_steps/gps_helpers.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":14,"n_excluded":0,"n_missing":14,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d_gps_schemas_py":{"hash":"51f596a2d513a810c246f7d970d7d91a","index":{"url":"z_d3ab79fd447c315d_gps_schemas_py.html","file":"custom_components/pawcontrol/flow_steps/gps_schemas.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":17,"n_excluded":0,"n_missing":17,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d_health_py":{"hash":"0007a8f1ac89ca71b9eb63d58b91f2f0","index":{"url":"z_d3ab79fd447c315d_health_py.html","file":"custom_components/pawcontrol/flow_steps/health.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":117,"n_excluded":63,"n_missing":117,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d_health_helpers_py":{"hash":"fc9de65362fbfdb784a139f456daa910","index":{"url":"z_d3ab79fd447c315d_health_helpers_py.html","file":"custom_components/pawcontrol/flow_steps/health_helpers.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":47,"n_excluded":0,"n_missing":47,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d_health_schemas_py":{"hash":"959ac43368dcb2092b02bcd1bca4129b","index":{"url":"z_d3ab79fd447c315d_health_schemas_py.html","file":"custom_components/pawcontrol/flow_steps/health_schemas.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":33,"n_excluded":0,"n_missing":33,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d_notifications_py":{"hash":"e3e84d4f5cd75ff0610812787dab2206","index":{"url":"z_d3ab79fd447c315d_notifications_py.html","file":"custom_components/pawcontrol/flow_steps/notifications.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":86,"n_excluded":111,"n_missing":86,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d_notifications_helpers_py":{"hash":"f0fcc575713f43211f66a8749ca4a263","index":{"url":"z_d3ab79fd447c315d_notifications_helpers_py.html","file":"custom_components/pawcontrol/flow_steps/notifications_helpers.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":38,"n_excluded":0,"n_missing":38,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d_notifications_schemas_py":{"hash":"f65d6448527c0b859f528b1e7de923df","index":{"url":"z_d3ab79fd447c315d_notifications_schemas_py.html","file":"custom_components/pawcontrol/flow_steps/notifications_schemas.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":7,"n_excluded":0,"n_missing":7,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_d3ab79fd447c315d_system_settings_py":{"hash":"eb0416858ceb809deb1c709484e74770","index":{"url":"z_d3ab79fd447c315d_system_settings_py.html","file":"custom_components/pawcontrol/flow_steps/system_settings.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":253,"n_excluded":19,"n_missing":253,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_flow_validators_py":{"hash":"3511f0853b63f90f0fda9cd5187c4d7f","index":{"url":"z_2cfafb4492f559dd_flow_validators_py.html","file":"custom_components/pawcontrol/flow_validators.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":19,"n_excluded":0,"n_missing":19,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_dfeb0227848cde45___init___py":{"hash":"072af87cfa3a142f314761e8982ce6aa","index":{"url":"z_dfeb0227848cde45___init___py.html","file":"custom_components/pawcontrol/flows/__init__.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":0,"n_excluded":0,"n_missing":0,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_dfeb0227848cde45_garden_py":{"hash":"8f75a4363847603025562d36d76aa0b7","index":{"url":"z_dfeb0227848cde45_garden_py.html","file":"custom_components/pawcontrol/flows/garden.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":6,"n_excluded":0,"n_missing":6,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_dfeb0227848cde45_walk_helpers_py":{"hash":"5098765a05d5dc515413ea9ed1f6a32e","index":{"url":"z_dfeb0227848cde45_walk_helpers_py.html","file":"custom_components/pawcontrol/flows/walk_helpers.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":2,"n_excluded":0,"n_missing":2,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_dfeb0227848cde45_walk_schemas_py":{"hash":"059eb5235eb751fa479b7a82f2a2122e","index":{"url":"z_dfeb0227848cde45_walk_schemas_py.html","file":"custom_components/pawcontrol/flows/walk_schemas.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":19,"n_excluded":0,"n_missing":19,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_health_enhancements_py":{"hash":"0cdd9cd23733f4845983feffb7b32327","index":{"url":"z_2cfafb4492f559dd_health_enhancements_py.html","file":"custom_components/pawcontrol/health_enhancements.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":249,"n_excluded":0,"n_missing":249,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_helpers_py":{"hash":"decf21f4b817e5b4e00e2f032253f2b9","index":{"url":"z_2cfafb4492f559dd_helpers_py.html","file":"custom_components/pawcontrol/helpers.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":1071,"n_excluded":0,"n_missing":1071,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_input_validation_py":{"hash":"11ac44daf3b5785e7b3758ab0f9c6dfb","index":{"url":"z_2cfafb4492f559dd_input_validation_py.html","file":"custom_components/pawcontrol/input_validation.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":155,"n_excluded":0,"n_missing":155,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_manager_compliance_py":{"hash":"36b4a7547cecaa2938cc55b704431b79","index":{"url":"z_2cfafb4492f559dd_manager_compliance_py.html","file":"custom_components/pawcontrol/manager_compliance.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":128,"n_excluded":2,"n_missing":128,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_missing_sensors_py":{"hash":"3830309dbcaf0c80558e304725ec821f","index":{"url":"z_2cfafb4492f559dd_missing_sensors_py.html","file":"custom_components/pawcontrol/missing_sensors.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":309,"n_excluded":0,"n_missing":309,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_optimized_entity_base_py":{"hash":"80c44829ae44f793484f8702f201e9d5","index":{"url":"z_2cfafb4492f559dd_optimized_entity_base_py.html","file":"custom_components/pawcontrol/optimized_entity_base.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":663,"n_excluded":8,"n_missing":663,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_py":{"hash":"516fe8bce593e4853b7a39dfd8adfb6d","index":{"url":"z_2cfafb4492f559dd_options_flow_py.html","file":"custom_components/pawcontrol/options_flow.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":3,"n_excluded":0,"n_missing":3,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_dogs_management_py":{"hash":"ccc10d120c73b40d75866620313001f9","index":{"url":"z_2cfafb4492f559dd_options_flow_dogs_management_py.html","file":"custom_components/pawcontrol/options_flow_dogs_management.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":254,"n_excluded":19,"n_missing":254,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_door_sensor_py":{"hash":"408fb9f90259cd5c5cbdc05e5f01f4c4","index":{"url":"z_2cfafb4492f559dd_options_flow_door_sensor_py.html","file":"custom_components/pawcontrol/options_flow_door_sensor.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":152,"n_excluded":26,"n_missing":152,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_hosts_py":{"hash":"8dabc67728b712fb96944e40bd18ab4c","index":{"url":"z_2cfafb4492f559dd_options_flow_hosts_py.html","file":"custom_components/pawcontrol/options_flow_hosts.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":6,"n_excluded":30,"n_missing":6,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_import_export_py":{"hash":"4065623efb7acad18b55ba2ff102cea5","index":{"url":"z_2cfafb4492f559dd_options_flow_import_export_py.html","file":"custom_components/pawcontrol/options_flow_import_export.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":63,"n_excluded":16,"n_missing":63,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_main_py":{"hash":"84b93bd8190d4789227e4b696f933f5b","index":{"url":"z_2cfafb4492f559dd_options_flow_main_py.html","file":"custom_components/pawcontrol/options_flow_main.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":404,"n_excluded":6,"n_missing":404,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_menu_py":{"hash":"fcb0233ee91b7d3dadbc5e4004b87901","index":{"url":"z_2cfafb4492f559dd_options_flow_menu_py.html","file":"custom_components/pawcontrol/options_flow_menu.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":6,"n_excluded":15,"n_missing":6,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_profiles_py":{"hash":"901e52a2496e95b262e0d6b4bac3c94f","index":{"url":"z_2cfafb4492f559dd_options_flow_profiles_py.html","file":"custom_components/pawcontrol/options_flow_profiles.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":235,"n_excluded":15,"n_missing":235,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_options_flow_support_py":{"hash":"e125e478fa1fa4c1c2526757c06f5fc7","index":{"url":"z_2cfafb4492f559dd_options_flow_support_py.html","file":"custom_components/pawcontrol/options_flow_support.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":3,"n_excluded":0,"n_missing":3,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_privacy_py":{"hash":"0ed57284d3cfe24bd971c0c8ba043c12","index":{"url":"z_2cfafb4492f559dd_privacy_py.html","file":"custom_components/pawcontrol/privacy.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":121,"n_excluded":0,"n_missing":121,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_reproduce_state_py":{"hash":"e7b2ba91b4d251eac2cc4468ee76da65","index":{"url":"z_2cfafb4492f559dd_reproduce_state_py.html","file":"custom_components/pawcontrol/reproduce_state.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":22,"n_excluded":0,"n_missing":22,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_schemas_py":{"hash":"8da51e0f81d0193a4bc8614c7caf4b3a","index":{"url":"z_2cfafb4492f559dd_schemas_py.html","file":"custom_components/pawcontrol/schemas.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":74,"n_excluded":0,"n_missing":74,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_sensor_py":{"hash":"f3cf462b350859f9409317558b7a423a","index":{"url":"z_2cfafb4492f559dd_sensor_py.html","file":"custom_components/pawcontrol/sensor.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":1788,"n_excluded":21,"n_missing":1788,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_switch_py":{"hash":"ea4dc2f83e5f4471459eb177c7a50500","index":{"url":"z_2cfafb4492f559dd_switch_py.html","file":"custom_components/pawcontrol/switch.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":314,"n_excluded":0,"n_missing":314,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_system_health_py":{"hash":"e225ed979d5e89597cd89d15e561fef2","index":{"url":"z_2cfafb4492f559dd_system_health_py.html","file":"custom_components/pawcontrol/system_health.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":512,"n_excluded":2,"n_missing":512,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_text_py":{"hash":"70c697408bdf36de4c8547ed49058517","index":{"url":"z_2cfafb4492f559dd_text_py.html","file":"custom_components/pawcontrol/text.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":495,"n_excluded":3,"n_missing":495,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_25e42bf33c714094___init___py":{"hash":"cc45a507596b157cabb34a285f1f48db","index":{"url":"z_25e42bf33c714094___init___py.html","file":"custom_components/pawcontrol/utils/__init__.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":23,"n_excluded":0,"n_missing":23,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_25e42bf33c714094__legacy_py":{"hash":"4e0db8aac400076233fb1d1725785511","index":{"url":"z_25e42bf33c714094__legacy_py.html","file":"custom_components/pawcontrol/utils/_legacy.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":775,"n_excluded":124,"n_missing":775,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_25e42bf33c714094_normalize_py":{"hash":"661bafeca8a523dc9825e103421d6ec2","index":{"url":"z_25e42bf33c714094_normalize_py.html","file":"custom_components/pawcontrol/utils/normalize.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":22,"n_excluded":0,"n_missing":22,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_compat_py":{"hash":"24567f39f78b617881f7b33ba574165b","index":{"url":"z_2cfafb4492f559dd_compat_py.html","file":"custom_components/pawcontrol/compat.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":427,"n_excluded":15,"n_missing":427,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_const_py":{"hash":"b803ba70d483d1644021e2f7de974eb7","index":{"url":"z_2cfafb4492f559dd_const_py.html","file":"custom_components/pawcontrol/const.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":258,"n_excluded":21,"n_missing":258,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_error_classification_py":{"hash":"467ac72743adcab6ec2dee3e97a8aea2","index":{"url":"z_2cfafb4492f559dd_error_classification_py.html","file":"custom_components/pawcontrol/error_classification.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":34,"n_excluded":0,"n_missing":34,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_number_py":{"hash":"055af0519d382793da403745f9b9a3e0","index":{"url":"z_2cfafb4492f559dd_number_py.html","file":"custom_components/pawcontrol/number.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":459,"n_excluded":11,"n_missing":459,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_2cfafb4492f559dd_select_py":{"hash":"f9aefdd0795f2a9d0bbc66e57634736a","index":{"url":"z_2cfafb4492f559dd_select_py.html","file":"custom_components/pawcontrol/select.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":439,"n_excluded":8,"n_missing":439,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}},"z_25e42bf33c714094_serialize_py":{"hash":"6f39d2ed42d7fbf080bb43b183ef1a21","index":{"url":"z_25e42bf33c714094_serialize_py.html","file":"custom_components/pawcontrol/utils/serialize.py","description":"","nums":{"precision":2,"n_files":1,"n_statements":42,"n_excluded":0,"n_missing":42,"n_branches":0,"n_partial_branches":0,"n_missing_branches":0}}}}}
+{
+  "files": {
+    "z_25e42bf33c714094___init___py": {
+      "hash": "cc45a507596b157cabb34a285f1f48db",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/utils/__init__.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 23,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 23,
+          "precision": 2
+        },
+        "url": "z_25e42bf33c714094___init___py.html"
+      }
+    },
+    "z_25e42bf33c714094__legacy_py": {
+      "hash": "4e0db8aac400076233fb1d1725785511",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/utils/_legacy.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 124,
+          "n_files": 1,
+          "n_missing": 775,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 775,
+          "precision": 2
+        },
+        "url": "z_25e42bf33c714094__legacy_py.html"
+      }
+    },
+    "z_25e42bf33c714094_normalize_py": {
+      "hash": "661bafeca8a523dc9825e103421d6ec2",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/utils/normalize.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 22,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 22,
+          "precision": 2
+        },
+        "url": "z_25e42bf33c714094_normalize_py.html"
+      }
+    },
+    "z_25e42bf33c714094_serialize_py": {
+      "hash": "6f39d2ed42d7fbf080bb43b183ef1a21",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/utils/serialize.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 42,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 42,
+          "precision": 2
+        },
+        "url": "z_25e42bf33c714094_serialize_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd___init___py": {
+      "hash": "6a1e13f7b4beaae643ae3a27f7d81746",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/__init__.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 326,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 326,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd___init___py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_api_validator_py": {
+      "hash": "1641396cd02deb30aaf1db49d854a3fe",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/api_validator.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 153,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 153,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_api_validator_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_base_manager_py": {
+      "hash": "ea922a619cfd78cf4d3d8c556882f64a",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/base_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 3,
+          "n_files": 1,
+          "n_missing": 143,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 143,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_base_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_binary_sensor_py": {
+      "hash": "a1dab07aebd0d9c41ff0babbc8340c90",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/binary_sensor.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 6,
+          "n_files": 1,
+          "n_missing": 864,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 864,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_binary_sensor_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_button_py": {
+      "hash": "b1f51cd8a700729bde659710fc541d8b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/button.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 12,
+          "n_files": 1,
+          "n_missing": 636,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 636,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_button_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_cache_py": {
+      "hash": "1bfd96e3f67940f25fc1cc1486ebf024",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/cache.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 200,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 200,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_cache_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_compat_py": {
+      "hash": "24567f39f78b617881f7b33ba574165b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/compat.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 15,
+          "n_files": 1,
+          "n_missing": 427,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 427,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_compat_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_entry_helpers_py": {
+      "hash": "a0cf92dcdd7d12a218821653dce299a5",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_entry_helpers.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 9,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 9,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_entry_helpers_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_base_py": {
+      "hash": "edee213645cc35b168f56b85aedc188c",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_base.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 202,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 202,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_base_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_dashboard_extension_py": {
+      "hash": "260dd2e5312bc075fef809eaaf4dfeab",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_dashboard_extension.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 29,
+          "n_files": 1,
+          "n_missing": 55,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 55,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_dashboard_extension_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_discovery_py": {
+      "hash": "ea59139a40c9faf0a191bb076541ce90",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_discovery.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 76,
+          "n_files": 1,
+          "n_missing": 94,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 94,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_discovery_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_dogs_py": {
+      "hash": "474759815fcc1156a590e5e3d158705c",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_dogs.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 20,
+          "n_files": 1,
+          "n_missing": 424,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 424,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_dogs_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_external_py": {
+      "hash": "3a63649d1ca9ddb22ccef7e3808cf596",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_external.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 59,
+          "n_files": 1,
+          "n_missing": 134,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 134,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_external_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_main_py": {
+      "hash": "7ae1fc919b5147b7fead2d6328593489",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_main.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 5,
+          "n_files": 1,
+          "n_missing": 1023,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 1023,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_main_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_modules_py": {
+      "hash": "6779aed79372bde0aa0aaa9adb54477f",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_modules.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 53,
+          "n_files": 1,
+          "n_missing": 172,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 172,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_modules_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_monitor_py": {
+      "hash": "16868d1280f29c56440f1edfb1c2fca2",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_monitor.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 34,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 34,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_monitor_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_placeholders_py": {
+      "hash": "d6aa09347711b6bb4502980353a90764",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_placeholders.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 21,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 21,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_placeholders_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_profile_py": {
+      "hash": "8d240e553ce4ac040580a2b60143abe7",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_profile.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 45,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 45,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_profile_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_py": {
+      "hash": "342f36b064b73b2d9c2b71db54532d96",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 3,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 3,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_reauth_py": {
+      "hash": "de4b17f36f30e3a3552333cef08ecd93",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_reauth.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 54,
+          "n_files": 1,
+          "n_missing": 225,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 225,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_reauth_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_config_flow_schemas_py": {
+      "hash": "86757f86b08bbc0c8b003f4bbda4b943",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/config_flow_schemas.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 7,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 7,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_config_flow_schemas_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_const_py": {
+      "hash": "b803ba70d483d1644021e2f7de974eb7",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/const.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 21,
+          "n_files": 1,
+          "n_missing": 258,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 258,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_const_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_coordinator_access_enforcement_py": {
+      "hash": "3a2d0e97d2d4620ffd5a95fb2afca984",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/coordinator_access_enforcement.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 3,
+          "n_files": 1,
+          "n_missing": 103,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 103,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_coordinator_access_enforcement_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_coordinator_accessors_py": {
+      "hash": "970ec50e40b34c9048977894fe7ebfcb",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/coordinator_accessors.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 24,
+          "n_files": 1,
+          "n_missing": 42,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 42,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_coordinator_accessors_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_coordinator_diffing_py": {
+      "hash": "5ebbaf29010afccb9f5a4d3ccca84e1f",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/coordinator_diffing.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 1,
+          "n_files": 1,
+          "n_missing": 211,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 211,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_coordinator_diffing_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_coordinator_observability_py": {
+      "hash": "875e3226bdd7316c4aa38c69417398ba",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/coordinator_observability.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 5,
+          "n_files": 1,
+          "n_missing": 146,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 146,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_coordinator_observability_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_coordinator_py": {
+      "hash": "e4016afa19e3cd190ee82bd7a630c16d",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/coordinator.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 11,
+          "n_files": 1,
+          "n_missing": 291,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 291,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_coordinator_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_coordinator_runtime_py": {
+      "hash": "3d0194895bb27705937529f4a53f8b89",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/coordinator_runtime.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 5,
+          "n_files": 1,
+          "n_missing": 198,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 198,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_coordinator_runtime_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_coordinator_support_py": {
+      "hash": "c597d85324d582a6fbfcefd1dd660375",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/coordinator_support.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 15,
+          "n_files": 1,
+          "n_missing": 290,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 290,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_coordinator_support_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_coordinator_tasks_py": {
+      "hash": "1108418924b414a2eb3fdb5f20f9eb70",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/coordinator_tasks.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 22,
+          "n_files": 1,
+          "n_missing": 759,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 759,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_coordinator_tasks_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_dashboard_cards_py": {
+      "hash": "2ccde6bd719ca096f5391ff6f6154370",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/dashboard_cards.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 911,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 911,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_dashboard_cards_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_dashboard_generator_py": {
+      "hash": "1be90eeb0c57dd9432885b2a9e34b4eb",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/dashboard_generator.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 3,
+          "n_files": 1,
+          "n_missing": 874,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 874,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_dashboard_generator_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_dashboard_renderer_py": {
+      "hash": "9ea18092da8cf528dbe3c85b811d1d78",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/dashboard_renderer.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 293,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 293,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_dashboard_renderer_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_dashboard_shared_py": {
+      "hash": "96b20b3af359332ec1304dc5f91fe978",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/dashboard_shared.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 30,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 30,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_dashboard_shared_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_dashboard_templates_py": {
+      "hash": "46c12c371aa2a54a317c871afb7d3849",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/dashboard_templates.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 948,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 948,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_dashboard_templates_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_data_manager_py": {
+      "hash": "2318ee646e84907f1d6db4c3f8e9e77b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/data_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 59,
+          "n_files": 1,
+          "n_missing": 1516,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 1516,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_data_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_date_py": {
+      "hash": "6ee5199bb2405cb0675c7c6ff968b84a",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/date.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 281,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 281,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_date_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_datetime_py": {
+      "hash": "4a7db3d01655c1675a5c824da466987e",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/datetime.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 274,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 274,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_datetime_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_device_action_py": {
+      "hash": "9906d5a29a39e9efe93c288e8a92dae7",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/device_action.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 59,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 59,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_device_action_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_device_api_py": {
+      "hash": "b4217f91ca499f9642db057713ee1c27",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/device_api.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 10,
+          "n_files": 1,
+          "n_missing": 70,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 70,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_device_api_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_device_automation_helpers_py": {
+      "hash": "b58dbdcabbfb632063c90fc3bcaa28ef",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/device_automation_helpers.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 3,
+          "n_files": 1,
+          "n_missing": 87,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 87,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_device_automation_helpers_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_device_condition_py": {
+      "hash": "d1b4ae5b51aec9f0874065975c0943ee",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/device_condition.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 89,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 89,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_device_condition_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_device_tracker_py": {
+      "hash": "f80780769eaf63b6298e111f031990d1",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/device_tracker.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 457,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 457,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_device_tracker_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_device_trigger_py": {
+      "hash": "df3607be93694941feacd589e587b4a7",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/device_trigger.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 62,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 62,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_device_trigger_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_diagnostics_py": {
+      "hash": "73bd41faee8c762a9e6ab721f64138ce",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/diagnostics.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 19,
+          "n_files": 1,
+          "n_missing": 804,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 804,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_diagnostics_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_diagnostics_redaction_py": {
+      "hash": "7e4abfd510b2e305ebb27b77cd8bccc1",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/diagnostics_redaction.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 32,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 32,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_diagnostics_redaction_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_discovery_py": {
+      "hash": "66b634534b233c82bf968411e7984ab7",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/discovery.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 259,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 259,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_discovery_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_dog_status_py": {
+      "hash": "e9c88bca12dc96095d9177458d2222ba",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/dog_status.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 49,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 49,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_dog_status_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_door_sensor_manager_py": {
+      "hash": "e15a2d3b09dfa83f501d8edbd6b5247d",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/door_sensor_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 6,
+          "n_files": 1,
+          "n_missing": 623,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 623,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_door_sensor_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_entity_factory_py": {
+      "hash": "97247638134e1ee15926548440525b09",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/entity_factory.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 11,
+          "n_files": 1,
+          "n_missing": 661,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 661,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_entity_factory_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_entity_optimization_py": {
+      "hash": "2ea755413003398338758c1059330fb2",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/entity_optimization.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 147,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 147,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_entity_optimization_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_entity_py": {
+      "hash": "f3ef6bab2213be5aa5c132ebdc128227",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/entity.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 4,
+          "n_files": 1,
+          "n_missing": 200,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 200,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_entity_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_error_classification_py": {
+      "hash": "467ac72743adcab6ec2dee3e97a8aea2",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/error_classification.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 34,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 34,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_error_classification_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_error_decorators_py": {
+      "hash": "be84ebb0d6f8745d13e4af1e3c5ade00",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/error_decorators.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 9,
+          "n_files": 1,
+          "n_missing": 241,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 241,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_error_decorators_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_error_recovery_py": {
+      "hash": "5312aaf454871b69f72f419b1d17ed5b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/error_recovery.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 120,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 120,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_error_recovery_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_exceptions_py": {
+      "hash": "1b2b62c786ff6a9a48252e00f506853b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/exceptions.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 343,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 343,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_exceptions_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_external_bindings_py": {
+      "hash": "4a06bb70515fba68a0716b5a8e9f01b4",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/external_bindings.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 121,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 121,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_external_bindings_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_feeding_manager_py": {
+      "hash": "f0151a8204f116b27d3011629fa30a54",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/feeding_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 25,
+          "n_files": 1,
+          "n_missing": 1546,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 1546,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_feeding_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_feeding_translations_py": {
+      "hash": "235da2e7251ffadc2426f231cdc99053",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/feeding_translations.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 14,
+          "n_files": 1,
+          "n_missing": 357,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 357,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_feeding_translations_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_flow_helpers_py": {
+      "hash": "70c257a3e3877fe46bf3bb1612bad084",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_helpers.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 176,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 176,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_flow_helpers_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_flow_validation_py": {
+      "hash": "73efa87d4e98c99e8957914fd31ca976",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_validation.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 224,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 224,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_flow_validation_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_flow_validators_py": {
+      "hash": "3511f0853b63f90f0fda9cd5187c4d7f",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_validators.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 19,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 19,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_flow_validators_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_garden_manager_py": {
+      "hash": "f88f8735f8eeb75b576d30fd19bc8754",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/garden_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 13,
+          "n_files": 1,
+          "n_missing": 539,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 539,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_garden_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_geofencing_py": {
+      "hash": "44d55a3ddc21e6812664d960ff47cc3d",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/geofencing.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 4,
+          "n_files": 1,
+          "n_missing": 419,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 419,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_geofencing_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_gps_manager_py": {
+      "hash": "3e3911ffe41e67436bca51e12669146b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/gps_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 8,
+          "n_files": 1,
+          "n_missing": 594,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 594,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_gps_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_grooming_translations_py": {
+      "hash": "75287a8a88242152b1f4a28782cca2b5",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/grooming_translations.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 27,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 27,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_grooming_translations_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_health_calculator_py": {
+      "hash": "af003e667aef9c686187fb025ed176e9",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/health_calculator.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 515,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 515,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_health_calculator_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_health_enhancements_py": {
+      "hash": "0cdd9cd23733f4845983feffb7b32327",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/health_enhancements.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 249,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 249,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_health_enhancements_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_helper_manager_py": {
+      "hash": "9758ad6ef6615ed0a28e9e7a754499e7",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/helper_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 4,
+          "n_files": 1,
+          "n_missing": 452,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 452,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_helper_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_helpers_py": {
+      "hash": "decf21f4b817e5b4e00e2f032253f2b9",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/helpers.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 1071,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 1071,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_helpers_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_http_client_py": {
+      "hash": "1942353161869f5f8e97f6771bd5f79d",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/http_client.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 26,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 26,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_http_client_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_input_validation_py": {
+      "hash": "11ac44daf3b5785e7b3758ab0f9c6dfb",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/input_validation.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 155,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 155,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_input_validation_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_language_py": {
+      "hash": "9b83ce3a577a5972598534d822c8892f",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/language.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 26,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 26,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_language_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_logging_utils_py": {
+      "hash": "e5274f91134b94d27dd125bb6a95c62a",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/logging_utils.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 92,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 92,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_logging_utils_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_manager_compliance_py": {
+      "hash": "36b4a7547cecaa2938cc55b704431b79",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/manager_compliance.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 128,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 128,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_manager_compliance_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_migrations_py": {
+      "hash": "da9c7590923e19eda86b6c6b2233f10b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/migrations.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 161,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 161,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_migrations_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_missing_sensors_py": {
+      "hash": "3830309dbcaf0c80558e304725ec821f",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/missing_sensors.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 309,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 309,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_missing_sensors_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_module_adapters_py": {
+      "hash": "a8f81ab76bb006d3a36316b2185a2dd0",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/module_adapters.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 42,
+          "n_files": 1,
+          "n_missing": 439,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 439,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_module_adapters_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_mqtt_push_py": {
+      "hash": "536a745e5a3302607ddf48789f6726b9",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/mqtt_push.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 81,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 81,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_mqtt_push_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_notifications_py": {
+      "hash": "e2387b6d9442a494120d5a4460809813",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/notifications.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 12,
+          "n_files": 1,
+          "n_missing": 1008,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 1008,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_notifications_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_number_py": {
+      "hash": "055af0519d382793da403745f9b9a3e0",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/number.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 11,
+          "n_files": 1,
+          "n_missing": 459,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 459,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_number_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_optimized_entity_base_py": {
+      "hash": "80c44829ae44f793484f8702f201e9d5",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/optimized_entity_base.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 8,
+          "n_files": 1,
+          "n_missing": 663,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 663,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_optimized_entity_base_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_dogs_management_py": {
+      "hash": "ccc10d120c73b40d75866620313001f9",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow_dogs_management.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 19,
+          "n_files": 1,
+          "n_missing": 254,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 254,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_dogs_management_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_door_sensor_py": {
+      "hash": "408fb9f90259cd5c5cbdc05e5f01f4c4",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow_door_sensor.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 26,
+          "n_files": 1,
+          "n_missing": 152,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 152,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_door_sensor_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_feeding_py": {
+      "hash": "70e86d20f38a2e5b13ac215af5ce892b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow_feeding.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 10,
+          "n_files": 1,
+          "n_missing": 68,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 68,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_feeding_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_hosts_py": {
+      "hash": "8dabc67728b712fb96944e40bd18ab4c",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow_hosts.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 30,
+          "n_files": 1,
+          "n_missing": 6,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 6,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_hosts_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_import_export_py": {
+      "hash": "4065623efb7acad18b55ba2ff102cea5",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow_import_export.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 16,
+          "n_files": 1,
+          "n_missing": 63,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 63,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_import_export_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_main_py": {
+      "hash": "84b93bd8190d4789227e4b696f933f5b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow_main.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 6,
+          "n_files": 1,
+          "n_missing": 404,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 404,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_main_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_menu_py": {
+      "hash": "fcb0233ee91b7d3dadbc5e4004b87901",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow_menu.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 15,
+          "n_files": 1,
+          "n_missing": 6,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 6,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_menu_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_profiles_py": {
+      "hash": "901e52a2496e95b262e0d6b4bac3c94f",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow_profiles.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 15,
+          "n_files": 1,
+          "n_missing": 235,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 235,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_profiles_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_py": {
+      "hash": "516fe8bce593e4853b7a39dfd8adfb6d",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 3,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 3,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_shared_py": {
+      "hash": "3be6d9378bf9a794eeb653dce3210c5d",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow_shared.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 15,
+          "n_files": 1,
+          "n_missing": 416,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 416,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_shared_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_options_flow_support_py": {
+      "hash": "e125e478fa1fa4c1c2526757c06f5fc7",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/options_flow_support.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 3,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 3,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_options_flow_support_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_performance_py": {
+      "hash": "5474281b209946236fb26dc8a3c8cb2d",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/performance.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 8,
+          "n_files": 1,
+          "n_missing": 289,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 289,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_performance_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_person_entity_manager_py": {
+      "hash": "87a092539ded60b5d1ca0a4de65107fe",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/person_entity_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 372,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 372,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_person_entity_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_privacy_py": {
+      "hash": "0ed57284d3cfe24bd971c0c8ba043c12",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/privacy.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 121,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 121,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_privacy_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_push_router_py": {
+      "hash": "e2bf5211aeabd824aa3482f542f7d30d",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/push_router.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 3,
+          "n_files": 1,
+          "n_missing": 248,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 248,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_push_router_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_repairs_py": {
+      "hash": "f253e8f67573481a7a4093f99f2f037f",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/repairs.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 18,
+          "n_files": 1,
+          "n_missing": 1053,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 1053,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_repairs_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_reproduce_state_py": {
+      "hash": "e7b2ba91b4d251eac2cc4468ee76da65",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/reproduce_state.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 22,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 22,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_reproduce_state_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_resilience_py": {
+      "hash": "9fddfda8b0a84a187a4242906c02f500",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/resilience.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 224,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 224,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_resilience_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_runtime_data_py": {
+      "hash": "91099c0ada9ecb9922fbe0650889eb54",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/runtime_data.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 16,
+          "n_files": 1,
+          "n_missing": 313,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 313,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_runtime_data_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_schemas_py": {
+      "hash": "8da51e0f81d0193a4bc8614c7caf4b3a",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/schemas.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 74,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 74,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_schemas_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_script_manager_py": {
+      "hash": "7826622cb1c775ca33a12457e3b7dd08",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/script_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 28,
+          "n_files": 1,
+          "n_missing": 1167,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 1167,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_script_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_select_py": {
+      "hash": "f9aefdd0795f2a9d0bbc66e57634736a",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/select.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 8,
+          "n_files": 1,
+          "n_missing": 439,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 439,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_select_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_selector_shim_py": {
+      "hash": "10e34c9765fdcdd87d3909bb2c7fc390",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/selector_shim.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 8,
+          "n_files": 1,
+          "n_missing": 69,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 69,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_selector_shim_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_sensor_py": {
+      "hash": "f3cf462b350859f9409317558b7a423a",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/sensor.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 21,
+          "n_files": 1,
+          "n_missing": 1788,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 1788,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_sensor_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_service_guard_py": {
+      "hash": "c27f6ed1bc17ad5c3c8607702a70fd86",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/service_guard.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 5,
+          "n_files": 1,
+          "n_missing": 109,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 109,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_service_guard_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_services_py": {
+      "hash": "f337ed8fa22389164767f6dd26feba39",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/services.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 34,
+          "n_files": 1,
+          "n_missing": 1775,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 1775,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_services_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_switch_py": {
+      "hash": "ea4dc2f83e5f4471459eb177c7a50500",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/switch.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 314,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 314,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_switch_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_system_health_py": {
+      "hash": "e225ed979d5e89597cd89d15e561fef2",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/system_health.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 512,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 512,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_system_health_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_telemetry_py": {
+      "hash": "c02d4e7e0faf568e9f55b5192bf32cd0",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/telemetry.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 971,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 971,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_telemetry_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_text_py": {
+      "hash": "70c697408bdf36de4c8547ed49058517",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/text.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 3,
+          "n_files": 1,
+          "n_missing": 495,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 495,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_text_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_translation_helpers_py": {
+      "hash": "2cfeac4648e4718f1d9b68288c68f19f",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/translation_helpers.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 3,
+          "n_files": 1,
+          "n_missing": 118,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 118,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_translation_helpers_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_types_py": {
+      "hash": "a3235e0cfeef8e2ac535f3ffbc8989c7",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/types.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 32,
+          "n_files": 1,
+          "n_missing": 1867,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 1867,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_types_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_validation_helpers_py": {
+      "hash": "0559bec02d0a2f5b40de63e753101c9c",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/validation_helpers.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 39,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 39,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_validation_helpers_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_validation_py": {
+      "hash": "006ab06f83c787f53529eb7dcf03807b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/validation.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 515,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 515,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_validation_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_walk_manager_py": {
+      "hash": "223651d8ea8ef416e822577599a69563",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/walk_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 5,
+          "n_files": 1,
+          "n_missing": 911,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 911,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_walk_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_weather_manager_py": {
+      "hash": "82955b4984b368ae1d789ba7bea45a71",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/weather_manager.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 4,
+          "n_files": 1,
+          "n_missing": 814,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 814,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_weather_manager_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_weather_translations_py": {
+      "hash": "795e7a468b1846ff8c116d7fbdf31653",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/weather_translations.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 57,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 57,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_weather_translations_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_webhook_security_py": {
+      "hash": "a992fa01af5d0fa0d82fdf4593dc8336",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/webhook_security.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 163,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 163,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_webhook_security_py.html"
+      }
+    },
+    "z_2cfafb4492f559dd_webhooks_py": {
+      "hash": "04b618e49e92e9fe3082439bb6f62e7d",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/webhooks.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 4,
+          "n_files": 1,
+          "n_missing": 121,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 121,
+          "precision": 2
+        },
+        "url": "z_2cfafb4492f559dd_webhooks_py.html"
+      }
+    },
+    "z_b9aa523b8e805893___init___py": {
+      "hash": "20207e6db9bbe32f461de49e0272aad9",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/setup/__init__.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 5,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 5,
+          "precision": 2
+        },
+        "url": "z_b9aa523b8e805893___init___py.html"
+      }
+    },
+    "z_b9aa523b8e805893_cleanup_py": {
+      "hash": "9bae19459fbf6624bbc66775162846c0",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/setup/cleanup.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 3,
+          "n_files": 1,
+          "n_missing": 84,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 84,
+          "precision": 2
+        },
+        "url": "z_b9aa523b8e805893_cleanup_py.html"
+      }
+    },
+    "z_b9aa523b8e805893_manager_init_py": {
+      "hash": "113f1bd6cf4247e453411f959e6f671f",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/setup/manager_init.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 3,
+          "n_files": 1,
+          "n_missing": 208,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 208,
+          "precision": 2
+        },
+        "url": "z_b9aa523b8e805893_manager_init_py.html"
+      }
+    },
+    "z_b9aa523b8e805893_platform_setup_py": {
+      "hash": "c61ddf9510de85a791920fceb0aa38e3",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/setup/platform_setup.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 3,
+          "n_files": 1,
+          "n_missing": 114,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 114,
+          "precision": 2
+        },
+        "url": "z_b9aa523b8e805893_platform_setup_py.html"
+      }
+    },
+    "z_b9aa523b8e805893_validation_py": {
+      "hash": "b2b1ae570ac0f690d1d220bf17b55d6c",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/setup/validation.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 2,
+          "n_files": 1,
+          "n_missing": 61,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 61,
+          "precision": 2
+        },
+        "url": "z_b9aa523b8e805893_validation_py.html"
+      }
+    },
+    "z_d3ab79fd447c315d___init___py": {
+      "hash": "5359708f4760c0160af6c28e130854db",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/__init__.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 5,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 5,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d___init___py.html"
+      }
+    },
+    "z_d3ab79fd447c315d_gps_helpers_py": {
+      "hash": "e9f946c4dfd72cb0b8a2b345f0702799",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/gps_helpers.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 14,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 14,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d_gps_helpers_py.html"
+      }
+    },
+    "z_d3ab79fd447c315d_gps_py": {
+      "hash": "3811b889b282014affc3825b60485a72",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/gps.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 118,
+          "n_files": 1,
+          "n_missing": 321,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 321,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d_gps_py.html"
+      }
+    },
+    "z_d3ab79fd447c315d_gps_schemas_py": {
+      "hash": "51f596a2d513a810c246f7d970d7d91a",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/gps_schemas.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 17,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 17,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d_gps_schemas_py.html"
+      }
+    },
+    "z_d3ab79fd447c315d_health_helpers_py": {
+      "hash": "fc9de65362fbfdb784a139f456daa910",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/health_helpers.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 47,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 47,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d_health_helpers_py.html"
+      }
+    },
+    "z_d3ab79fd447c315d_health_py": {
+      "hash": "0007a8f1ac89ca71b9eb63d58b91f2f0",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/health.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 63,
+          "n_files": 1,
+          "n_missing": 117,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 117,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d_health_py.html"
+      }
+    },
+    "z_d3ab79fd447c315d_health_schemas_py": {
+      "hash": "959ac43368dcb2092b02bcd1bca4129b",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/health_schemas.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 33,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 33,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d_health_schemas_py.html"
+      }
+    },
+    "z_d3ab79fd447c315d_notifications_helpers_py": {
+      "hash": "f0fcc575713f43211f66a8749ca4a263",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/notifications_helpers.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 38,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 38,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d_notifications_helpers_py.html"
+      }
+    },
+    "z_d3ab79fd447c315d_notifications_py": {
+      "hash": "e3e84d4f5cd75ff0610812787dab2206",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/notifications.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 111,
+          "n_files": 1,
+          "n_missing": 86,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 86,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d_notifications_py.html"
+      }
+    },
+    "z_d3ab79fd447c315d_notifications_schemas_py": {
+      "hash": "f65d6448527c0b859f528b1e7de923df",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/notifications_schemas.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 7,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 7,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d_notifications_schemas_py.html"
+      }
+    },
+    "z_d3ab79fd447c315d_system_settings_py": {
+      "hash": "eb0416858ceb809deb1c709484e74770",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flow_steps/system_settings.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 19,
+          "n_files": 1,
+          "n_missing": 253,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 253,
+          "precision": 2
+        },
+        "url": "z_d3ab79fd447c315d_system_settings_py.html"
+      }
+    },
+    "z_dfeb0227848cde45___init___py": {
+      "hash": "072af87cfa3a142f314761e8982ce6aa",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flows/__init__.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 0,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 0,
+          "precision": 2
+        },
+        "url": "z_dfeb0227848cde45___init___py.html"
+      }
+    },
+    "z_dfeb0227848cde45_garden_py": {
+      "hash": "8f75a4363847603025562d36d76aa0b7",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flows/garden.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 6,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 6,
+          "precision": 2
+        },
+        "url": "z_dfeb0227848cde45_garden_py.html"
+      }
+    },
+    "z_dfeb0227848cde45_walk_helpers_py": {
+      "hash": "5098765a05d5dc515413ea9ed1f6a32e",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flows/walk_helpers.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 2,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 2,
+          "precision": 2
+        },
+        "url": "z_dfeb0227848cde45_walk_helpers_py.html"
+      }
+    },
+    "z_dfeb0227848cde45_walk_schemas_py": {
+      "hash": "059eb5235eb751fa479b7a82f2a2122e",
+      "index": {
+        "description": "",
+        "file": "custom_components/pawcontrol/flows/walk_schemas.py",
+        "nums": {
+          "n_branches": 0,
+          "n_excluded": 0,
+          "n_files": 1,
+          "n_missing": 19,
+          "n_missing_branches": 0,
+          "n_partial_branches": 0,
+          "n_statements": 19,
+          "precision": 2
+        },
+        "url": "z_dfeb0227848cde45_walk_schemas_py.html"
+      }
+    }
+  },
+  "format": 5,
+  "globals": "9483facb2c86611576e9a20f8c1e3912",
+  "note": "This file is an internal implementation detail to speed up HTML report generation. Its format can change at any time. You might be looking for the JSON report: https://coverage.rtfd.io/cmd.html#cmd-json",
+  "version": "7.13.5"
+}

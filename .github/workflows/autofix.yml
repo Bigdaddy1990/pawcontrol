@@ -9,7 +9,7 @@ permissions:
   contents: write
   pull-requests: write
   actions: write
-  checks: write 
+  checks: write
   id-token: write
 
 concurrency:

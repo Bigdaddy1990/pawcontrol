@@ -3,8 +3,6 @@
 Covers: get_logger, redact_sensitive, redact_value, StructuredLogger
 """
 
-from __future__ import annotations
-
 import logging
 
 import pytest

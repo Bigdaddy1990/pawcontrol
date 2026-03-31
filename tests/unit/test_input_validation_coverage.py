@@ -3,8 +3,6 @@
 Covers: sanitize_user_input, InputValidator, InputSanitizer
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.input_validation import (

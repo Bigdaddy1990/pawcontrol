@@ -5,8 +5,6 @@ validation_helpers: format_coordinate_validation_error, normalise_existing_names
                     safe_validate_interval, validate_dog_name, validate_coordinate
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.dog_status import build_dog_status_snapshot

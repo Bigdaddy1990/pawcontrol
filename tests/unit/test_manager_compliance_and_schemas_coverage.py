@@ -4,8 +4,6 @@ manager_compliance: ComplianceReport, check_required_methods
 schemas: validate_json_schema_payload, SchemaViolation
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.manager_compliance import (
@@ -48,10 +46,10 @@ def test_compliance_report_empty_issues() -> None:
 @pytest.mark.unit
 def test_check_required_methods_all_present() -> None:
     class GoodManager:
-        async def async_initialize(self):
+        async def async_initialize(self) -> None:
             pass
 
-        async def async_shutdown(self):
+        async def async_shutdown(self) -> None:
             pass
 
     # check_required_methods returns a ComplianceReport or similar
@@ -62,7 +60,7 @@ def test_check_required_methods_all_present() -> None:
 @pytest.mark.unit
 def test_check_required_methods_missing_method() -> None:
     class BadManager:
-        async def async_initialize(self):
+        async def async_initialize(self) -> None:
             pass
 
     result = check_required_methods(BadManager, ["async_initialize", "async_shutdown"])
