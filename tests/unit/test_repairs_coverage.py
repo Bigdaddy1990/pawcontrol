@@ -54,7 +54,7 @@ def test_normalise_severity_non_string_falls_back() -> None:
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_present() -> None:
     def create_issue(
-        hass: HomeAssistant,
+        hass: object,
         domain: str,
         *,
         translation_key: str,
@@ -67,7 +67,7 @@ def test_issue_registry_supports_kwarg_present() -> None:
 
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_catch_all_kwargs() -> None:
-    def create_issue(hass: HomeAssistant, domain: str, **kwargs: object) -> None:
+    def create_issue(hass: object, domain: str, **kwargs: object) -> None:
         return None
 
     assert _issue_registry_supports_kwarg(create_issue, "any_key") is True
@@ -75,7 +75,7 @@ def test_issue_registry_supports_kwarg_catch_all_kwargs() -> None:
 
 @pytest.mark.unit
 def test_issue_registry_supports_kwarg_absent() -> None:
-    def create_issue(hass: HomeAssistant, domain: str) -> None:
+    def create_issue(hass: object, domain: str) -> None:
         return None
 
     assert _issue_registry_supports_kwarg(create_issue, "translation_key") is False

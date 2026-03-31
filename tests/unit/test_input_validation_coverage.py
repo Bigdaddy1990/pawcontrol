@@ -55,19 +55,22 @@ def test_input_sanitizer_init() -> None:
 
 @pytest.mark.unit
 def test_input_sanitizer_sanitize_string() -> None:
-    result = InputSanitizer.sanitize_string("Hello World")
+    s = InputSanitizer()
+    result = s.sanitize_string("Hello World")
     assert isinstance(result, str)
 
 
 @pytest.mark.unit
 def test_input_sanitizer_sanitize_html() -> None:
-    result = InputSanitizer.sanitize_html("<b>Bold</b> text")
+    s = InputSanitizer()
+    result = s.sanitize_html("<b>Bold</b> text")
     assert isinstance(result, str)
 
 
 @pytest.mark.unit
 def test_input_sanitizer_sanitize_sql() -> None:
-    result = InputSanitizer.sanitize_sql("SELECT * FROM dogs WHERE id='1'")
+    s = InputSanitizer()
+    result = s.sanitize_sql("SELECT * FROM dogs WHERE id='1'")
     assert isinstance(result, str)
 
 
@@ -82,27 +85,27 @@ def test_input_validator_init() -> None:
 
 @pytest.mark.unit
 def test_input_validator_validate_string_valid() -> None:
-    validator = InputValidator()
-    result = validator.validate_string("Rex", field="dog_name")
+    v = InputValidator()
+    result = v.validate_string("Rex")
     assert result is not None
 
 
 @pytest.mark.unit
 def test_input_validator_validate_string_empty() -> None:
-    validator = InputValidator()
-    result = validator.validate_string("", field="dog_name")
+    v = InputValidator()
+    result = v.validate_string("")
     assert result is not None
 
 
 @pytest.mark.unit
 def test_input_validator_validate_integer() -> None:
-    validator = InputValidator()
-    result = validator.validate_integer(42, field="count")
+    v = InputValidator()
+    result = v.validate_integer(42)
     assert result is not None
 
 
 @pytest.mark.unit
 def test_input_validator_validate_float() -> None:
-    validator = InputValidator()
-    result = validator.validate_float(3.14, field="weight")
+    v = InputValidator()
+    result = v.validate_float(3.14)
     assert result is not None
