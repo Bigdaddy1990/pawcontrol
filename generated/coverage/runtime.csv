@@ -1,0 +1,9 @@
+file,statements,executed,missed,coverage_percent,runtime_seconds,host,cpu_count
+custom_components/pawcontrol/error_recovery.py,96,96,0,100.0,0.0,localhost,32
+custom_components/pawcontrol/exceptions.py,177,177,0,100.0,0.0,localhost,32
+custom_components/pawcontrol/logging_utils.py,52,52,0,100.0,0.0,localhost,32
+custom_components/pawcontrol/resilience.py,100,100,0,100.0,0.0,localhost,32
+custom_components/pawcontrol/input_validation.py,71,71,0,100.0,0.0,localhost,32
+custom_components/pawcontrol/manager_compliance.py,47,47,0,100.0,0.0,localhost,32
+custom_components/pawcontrol/schemas.py,144,144,0,100.0,0.0,localhost,32
+custom_components/pawcontrol/validation.py,171,171,0,100.0,0.0,localhost,32
