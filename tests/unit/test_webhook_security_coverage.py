@@ -2,6 +2,7 @@
 
 Covers: RateLimitConfig, RateLimitState, WebhookRateLimiter
 """
+
 from __future__ import annotations
 
 import pytest
@@ -11,10 +12,10 @@ from custom_components.pawcontrol.webhook_security import (
     WebhookRateLimiter,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # RateLimitConfig
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_rate_limit_config_defaults() -> None:
@@ -40,6 +41,7 @@ def test_rate_limit_config_custom() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # WebhookRateLimiter
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.unit
 def test_rate_limiter_init_default() -> None:

@@ -3,6 +3,7 @@
 manager_compliance: ComplianceReport, check_required_methods
 schemas: validate_json_schema_payload, SchemaViolation
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,8 +17,8 @@ from custom_components.pawcontrol.schemas import (
     validate_json_schema_payload,
 )
 
-
 # ─── ComplianceReport ────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_compliance_report_compliant() -> None:
@@ -43,11 +44,15 @@ def test_compliance_report_empty_issues() -> None:
 
 # ─── check_required_methods ──────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_check_required_methods_all_present() -> None:
     class GoodManager:
-        async def async_initialize(self): pass
-        async def async_shutdown(self): pass
+        async def async_initialize(self):
+            pass
+
+        async def async_shutdown(self):
+            pass
 
     # check_required_methods returns a ComplianceReport or similar
     result = check_required_methods(GoodManager, ["async_initialize", "async_shutdown"])
@@ -57,13 +62,15 @@ def test_check_required_methods_all_present() -> None:
 @pytest.mark.unit
 def test_check_required_methods_missing_method() -> None:
     class BadManager:
-        async def async_initialize(self): pass
+        async def async_initialize(self):
+            pass
 
     result = check_required_methods(BadManager, ["async_initialize", "async_shutdown"])
     assert result is not None
 
 
 # ─── validate_json_schema_payload ────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_validate_json_schema_payload_valid() -> None:
@@ -104,6 +111,7 @@ def test_validate_json_schema_payload_empty_payload() -> None:
 
 
 # ─── SchemaViolation ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_schema_violation_init() -> None:

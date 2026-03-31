@@ -97,7 +97,7 @@ def test_summarize_entity_budgets_multiple() -> None:
         EntityBudgetSnapshot("rex", "standard", 100, 20, 5, ("s1",), (), now),
         EntityBudgetSnapshot(
             "buddy", "standard", 100, 18, 3, ("s2", "s3"), ("s4",), now
-        ),  # noqa: E501
+        ),
     ]
     result = summarize_entity_budgets(snaps)
     assert isinstance(result, dict)
