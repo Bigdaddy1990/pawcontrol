@@ -42,9 +42,6 @@ jobs:
         run: |
           set -e
           pre-commit run --all-files
-          # python-typing-update is a manual-stage hook; its --py314-plus flag is
-          # declared under args: in .pre-commit-config.yaml and must NOT be passed
-          # on the CLI.
           pre-commit run --hook-stage manual python-typing-update --all-files || true
           python -m mypy custom_components/pawcontrol
 
