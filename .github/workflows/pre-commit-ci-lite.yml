@@ -18,7 +18,6 @@ env:
   HA_SPEC: ${{ vars.HA_VERSION != '' && format('=={0}', vars.HA_VERSION) || '' }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-  GH_TOKEN: ${{ github.token }}
 
 concurrency:
   group: pre-commit-lite-${{ github.workflow }}-${{ github.ref }}
