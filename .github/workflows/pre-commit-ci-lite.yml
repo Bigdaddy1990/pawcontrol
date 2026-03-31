@@ -12,13 +12,6 @@ permissions:
   checks: write
   id-token: write
 
-env:
-  UV_SYSTEM_PYTHON: "1"
-  PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.14' }}
-  HA_SPEC: ${{ vars.HA_VERSION != '' && format('=={0}', vars.HA_VERSION) || '' }}
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
 concurrency:
   group: pre-commit-lite-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
