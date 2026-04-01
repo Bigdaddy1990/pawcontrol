@@ -48,3 +48,33 @@ def test_resolve_async_create_issue_handles_import_failure(monkeypatch: Any) -> 
     monkeypatch.setattr(module, "import_module", _raise)
 
     assert module._resolve_async_create_issue() is module.async_create_issue
+
+
+def test_resolve_async_create_issue_prefers_callable_override(
+    monkeypatch: Any,
+) -> None:
+    """A callable async issue override should be returned when available."""
+
+    async def _patched_issue_creator(*_: Any, **__: Any) -> None:
+        return None
+
+    monkeypatch.setattr(
+        module,
+        "import_module",
+        lambda _: SimpleNamespace(async_create_issue=_patched_issue_creator),
+    )
+
+    assert module._resolve_async_create_issue() is _patched_issue_creator
+
+
+def test_resolve_async_create_issue_falls_back_on_invalid_override(
+    monkeypatch: Any,
+) -> None:
+    """Non-callable issue overrides should use the module default helper."""
+    monkeypatch.setattr(
+        module,
+        "import_module",
+        lambda _: SimpleNamespace(async_create_issue="not-callable"),
+    )
+
+    assert module._resolve_async_create_issue() is module.async_create_issue
