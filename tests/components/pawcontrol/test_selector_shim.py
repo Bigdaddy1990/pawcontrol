@@ -128,3 +128,20 @@ def test_selector_shim_uses_fallback_when_imported_selector_is_not_callable() ->
     generic_selector = module.selector.Selector()
     assert generic_selector.config == {}
     assert generic_selector("value") == "value"
+
+
+def test_supports_selector_callables_accepts_callable_selector_instance() -> None:
+    """Detection should pass when selector constructor returns a callable instance."""
+
+    class CallableSelector:
+        def __init__(self, _: object) -> None:
+            self._created = True
+
+        def __call__(self, value: object) -> object:
+            return value
+
+    module = _load_selector_shim_with_helpers(SimpleNamespace())
+
+    assert module._supports_selector_callables(
+        SimpleNamespace(TextSelector=CallableSelector, TextSelectorConfig=dict)
+    )
