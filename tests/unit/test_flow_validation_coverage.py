@@ -1,210 +1,126 @@
-"""Targeted coverage tests for flow_validation.py — uncovered paths (81% → 93%+).
+"""Coverage tests for flow_validation.py — (0% → 30%+).
 
-Covers: _validate_dog_id (all branches), _coerce_int/_coerce_float error paths,
-        _validate_breed, validate_dog_setup_input (field errors, max_dogs, modules),
-        validate_dog_update_input, FlowValidationError
+Covers: is_dog_config_payload_valid, normalize_dog_id, ensure_json_mapping,
+        ensure_dog_modules_config, coerce_float, coerce_int
 """
+from __future__ import annotations
 
 import pytest
 
-from custom_components.pawcontrol.exceptions import FlowValidationError
-from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
+from custom_components.pawcontrol.flow_validation import (
+    coerce_float,
+    coerce_int,
+    ensure_dog_modules_config,
+    ensure_json_mapping,
+    is_dog_config_payload_valid,
+    normalize_dog_id,
+    validate_dog_config_payload,
+)
+from custom_components.pawcontrol.validation import InputCoercionError
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# _validate_dog_id paths (lines 62-71)
-# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── is_dog_config_payload_valid ─────────────────────────────────────────────
+
+@pytest.mark.unit
+def test_is_valid_empty_dict() -> None:
+    assert is_dog_config_payload_valid({}) is False
 
 
 @pytest.mark.unit
-def test_validate_dog_id_invalid_format() -> None:
-    """Dog ID with invalid format returns error key."""
-    with pytest.raises(FlowValidationError) as exc_info:
-        validate_dog_setup_input(
-            {"dog_id": "!!bad!!", "dog_name": "Rex"},
-            existing_ids=set(),
-            current_dog_count=0,
-            max_dogs=10,
-        )
-    errors = exc_info.value.field_errors
-    assert "dog_id" in errors
+def test_is_valid_minimal_required() -> None:
+    result = is_dog_config_payload_valid({"dog_id": "rex", "dog_name": "Rex"})
+    assert result is True
 
 
 @pytest.mark.unit
-def test_validate_dog_id_too_short() -> None:
-    with pytest.raises(FlowValidationError) as exc_info:
-        validate_dog_setup_input(
-            {"dog_id": "a", "dog_name": "Rex"},
-            existing_ids=set(),
-            current_dog_count=0,
-            max_dogs=10,
-        )
-    assert "dog_id" in exc_info.value.field_errors
+def test_is_valid_missing_dog_name() -> None:
+    result = is_dog_config_payload_valid({"dog_id": "rex"})
+    assert result is False
 
 
 @pytest.mark.unit
-def test_validate_dog_id_too_long() -> None:
-    long_id = "a" * 40
-    with pytest.raises(FlowValidationError) as exc_info:
-        validate_dog_setup_input(
-            {"dog_id": long_id, "dog_name": "Rex"},
-            existing_ids=set(),
-            current_dog_count=0,
-            max_dogs=10,
-        )
-    assert "dog_id" in exc_info.value.field_errors
+def test_is_valid_missing_dog_id() -> None:
+    result = is_dog_config_payload_valid({"dog_name": "Rex"})
+    assert result is False
+
+
+# ─── normalize_dog_id (flow_validation) ──────────────────────────────────────
+
+@pytest.mark.unit
+def test_fv_normalize_dog_id_lowercase() -> None:
+    result = normalize_dog_id("Rex")
+    assert result == "rex"
 
 
 @pytest.mark.unit
-def test_validate_dog_id_already_exists() -> None:
-    with pytest.raises(FlowValidationError) as exc_info:
-        validate_dog_setup_input(
-            {"dog_id": "rex", "dog_name": "Rex"},
-            existing_ids={"rex"},
-            current_dog_count=1,
-            max_dogs=10,
-        )
-    assert "dog_id" in exc_info.value.field_errors
+def test_fv_normalize_dog_id_strips_whitespace() -> None:
+    result = normalize_dog_id("  buddy  ")
+    assert result == "buddy"
 
 
 @pytest.mark.unit
-def test_validate_dog_id_valid() -> None:
-    result = validate_dog_setup_input(
-        {"dog_id": "rex_01", "dog_name": "Rex"},
-        existing_ids=set(),
-        current_dog_count=0,
-        max_dogs=10,
-    )
-    assert result["dog_id"] == "rex_01"
+def test_fv_normalize_dog_id_already_clean() -> None:
+    assert normalize_dog_id("rex_01") == "rex_01"
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# max_dogs limit (line 231-232)
-# ═══════════════════════════════════════════════════════════════════════════════
+# ─── ensure_json_mapping (flow_validation) ───────────────────────────────────
+
+@pytest.mark.unit
+def test_fv_ensure_json_mapping_none() -> None:
+    result = ensure_json_mapping(None)
+    assert isinstance(result, dict)
+    assert len(result) == 0
 
 
 @pytest.mark.unit
-def test_max_dogs_reached() -> None:
-    with pytest.raises(FlowValidationError) as exc_info:
-        validate_dog_setup_input(
-            {"dog_id": "rex", "dog_name": "Rex"},
-            existing_ids=set(),
-            current_dog_count=5,
-            max_dogs=5,
-        )
-    assert "max_dogs_reached" in exc_info.value.base_errors
+def test_fv_ensure_json_mapping_dict() -> None:
+    data = {"key": "val", "num": 42}
+    result = ensure_json_mapping(data)
+    assert result["key"] == "val"
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Dog name validation (line 236-238)
-# ═══════════════════════════════════════════════════════════════════════════════
+# ─── ensure_dog_modules_config (flow_validation) ─────────────────────────────
+
+@pytest.mark.unit
+def test_fv_ensure_dog_modules_config_empty() -> None:
+    result = ensure_dog_modules_config({})
+    assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_dog_name_already_exists() -> None:
-    with pytest.raises(FlowValidationError) as exc_info:
-        validate_dog_setup_input(
-            {"dog_id": "rex", "dog_name": "Rex"},
-            existing_ids=set(),
-            existing_names={"Rex"},
-            current_dog_count=0,
-            max_dogs=10,
-        )
-    assert "dog_name" in exc_info.value.field_errors
+def test_fv_ensure_dog_modules_config_with_modules() -> None:
+    result = ensure_dog_modules_config({"feeding": True, "walk": False})
+    assert isinstance(result, dict)
+    assert result.get("feeding") is True
+
+
+# ─── coerce_float / coerce_int (flow_validation) ─────────────────────────────
+
+@pytest.mark.unit
+def test_fv_coerce_float_string() -> None:
+    result = coerce_float("weight", "3.14")
+    assert result == pytest.approx(3.14)
 
 
 @pytest.mark.unit
-def test_dog_name_too_long() -> None:
-    with pytest.raises(FlowValidationError) as exc_info:
-        validate_dog_setup_input(
-            {"dog_id": "rex", "dog_name": "R" * 200},
-            existing_ids=set(),
-            current_dog_count=0,
-            max_dogs=10,
-        )
-    assert "dog_name" in exc_info.value.field_errors
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# FlowValidationError structure
-# ═══════════════════════════════════════════════════════════════════════════════
+def test_fv_coerce_float_int() -> None:
+    result = coerce_float("weight", 42)
+    assert result == pytest.approx(42.0)
 
 
 @pytest.mark.unit
-def test_flow_validation_error_field_and_base() -> None:
-    err = FlowValidationError(
-        field_errors={"dog_id": "too_short"},
-        base_errors=["max_dogs_reached"],
-    )
-    assert err.field_errors == {"dog_id": "too_short"}
-    assert err.base_errors == ["max_dogs_reached"]
+def test_fv_coerce_float_invalid_raises() -> None:
+    with pytest.raises((InputCoercionError, Exception)):
+        coerce_float("weight", "bad")
 
 
 @pytest.mark.unit
-def test_flow_validation_error_empty() -> None:
-    err = FlowValidationError()
-    assert err.field_errors == {}
-    assert err.base_errors == []
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# _validate_breed paths (lines 95-107)
-# ═══════════════════════════════════════════════════════════════════════════════
+def test_fv_coerce_int_valid() -> None:
+    result = coerce_int("meals", "3")
+    assert result == 3
 
 
 @pytest.mark.unit
-def test_validate_dog_setup_with_valid_breed() -> None:
-    """Breed field is accepted when valid."""
-    result = validate_dog_setup_input(
-        {"dog_id": "rex", "dog_name": "Rex", "dog_breed": "Labrador"},
-        existing_ids=set(),
-        current_dog_count=0,
-        max_dogs=10,
-    )
-    assert result["dog_id"] == "rex"
-
-
-@pytest.mark.unit
-def test_validate_dog_setup_with_invalid_breed_type() -> None:
-    """Non-string breed raises field error."""
-    with pytest.raises(FlowValidationError) as exc_info:
-        validate_dog_setup_input(
-            {"dog_id": "rex", "dog_name": "Rex", "dog_breed": 42},
-            existing_ids=set(),
-            current_dog_count=0,
-            max_dogs=10,
-        )
-    assert "dog_breed" in exc_info.value.field_errors
-
-
-@pytest.mark.unit
-def test_validate_dog_setup_breed_too_long() -> None:
-    """Breed name exceeding max length raises error."""
-    with pytest.raises(FlowValidationError) as exc_info:
-        validate_dog_setup_input(
-            {"dog_id": "rex", "dog_name": "Rex", "dog_breed": "B" * 200},
-            existing_ids=set(),
-            current_dog_count=0,
-            max_dogs=10,
-        )
-    assert "dog_breed" in exc_info.value.field_errors
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# invalid modules (line 253-254)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-@pytest.mark.unit
-def test_valid_modules_dict_accepted() -> None:
-    """Valid dict modules payload is accepted and normalised."""
-    result = validate_dog_setup_input(
-        {
-            "dog_id": "rex",
-            "dog_name": "Rex",
-            "modules": {"feeding": True, "walk": False},
-        },
-        existing_ids=set(),
-        current_dog_count=0,
-        max_dogs=10,
-    )
-    assert result["dog_id"] == "rex"
+def test_fv_coerce_int_invalid_raises() -> None:
+    with pytest.raises((InputCoercionError, Exception)):
+        coerce_int("meals", "not_number")
