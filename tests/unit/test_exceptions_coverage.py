@@ -5,6 +5,8 @@ Covers: PawControlError, ValidationError, ConfigurationError,
         create_error_context, get_exception_class
 """
 
+from datetime import UTC, datetime
+
 import pytest
 
 from custom_components.pawcontrol.exceptions import (
@@ -44,6 +46,42 @@ def test_pawcontrol_error_default_severity() -> None:
 def test_pawcontrol_error_is_exception() -> None:
     with pytest.raises(PawControlError):
         raise PawControlError("boom")
+
+
+@pytest.mark.unit
+def test_pawcontrol_error_normalizes_context_and_supports_chaining() -> None:
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    err = PawControlError(
+        "payload error",
+        context={
+            "count": 3,
+            "seen_at": now,
+            "tags": ["a", {"nested": True}],
+            "ignored": None,
+        },
+    )
+
+    chained = err.add_context("new_value", {"when": now}).add_recovery_suggestion(
+        "Try again"
+    )
+
+    assert chained is err
+    assert "ignored" not in err.context
+    assert err.context["seen_at"] == now.isoformat()
+    assert err.context["tags"] == ["a", {"nested": True}]
+    assert err.context["new_value"] == {"when": now.isoformat()}
+    assert err.recovery_suggestions[-1] == "Try again"
+
+
+@pytest.mark.unit
+def test_pawcontrol_error_capture_stack_opt_in() -> None:
+    class _StackError(PawControlError):
+        CAPTURE_STACK = True
+
+    err = _StackError("capture stack")
+
+    assert err.stack_trace is not None
+    assert err.stack_trace
 
 
 # ─── ValidationError ─────────────────────────────────────────────────────────
