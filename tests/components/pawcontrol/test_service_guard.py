@@ -202,3 +202,27 @@ def test_normalise_guard_history_and_bool_cover_edge_paths() -> None:
     assert bool(executed) is True
     assert bool(skipped) is False
     assert normalise_guard_history(b"invalid-bytes") == []
+
+
+def test_service_guard_snapshot_accumulate_coerces_invalid_numeric_strings() -> None:
+    """Accumulate should treat non-numeric strings as zero counts."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("light", "turn_on", False, reason="quiet_hours"),
+    ])
+
+    metrics: dict[str, object] = {
+        "executed": "bad-value",
+        "skipped": "also-bad",
+        "reasons": {"quiet_hours": "not-a-number"},
+    }
+
+    accumulated = snapshot.accumulate(metrics)
+
+    assert accumulated["executed"] == 0
+    assert accumulated["skipped"] == 1
+    assert accumulated["reasons"] == {"quiet_hours": 1}
+
+
+def test_normalise_guard_history_rejects_bytearray_payload() -> None:
+    """History normalization should reject bytearray payloads like bytes."""
+    assert normalise_guard_history(bytearray(b"invalid-bytearray")) == []

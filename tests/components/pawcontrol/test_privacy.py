@@ -112,3 +112,35 @@ def test_hash_helpers_and_mask_utilities_are_deterministic() -> None:
         anonymize_user_id("walker")
         == f"user_{hashlib.sha256(b'walker').hexdigest()[:8]}"
     )
+
+
+def test_pii_redactor_supports_callable_redaction_and_passthrough_non_strings() -> None:
+    """Custom callable rules should run and non-string values pass through."""
+    redactor = PIIRedactor()
+    redactor.add_rule(RedactionRule(redactor=lambda value: value.replace("token", "[TOKEN]")))
+
+    assert redactor.redact_text("token=abc") == "[TOKEN]=abc"
+    assert redactor.redact_text(123) == 123
+
+
+@pytest.mark.asyncio
+async def test_privacy_manager_prepare_diagnostics_and_add_rule() -> None:
+    """Diagnostics helper should sanitize with default hashing and custom rules."""
+    manager = PrivacyManager(Mock(spec=HomeAssistant), gps_precision=3)
+    manager.add_redaction_rule(RedactionRule(field_names=["custom_secret"]))
+
+    result = await manager.async_prepare_diagnostics({
+        "email": "owner@example.com",
+        "latitude": 52.516275,
+        "longitude": 13.377704,
+        "device_id": "device-42",
+        "mac_address": "AA:BB:CC:DD:EE:FF",
+        "custom_secret": "hidden",
+    })
+
+    assert result["email"] == "[EMAIL]"
+    assert result["latitude"] == 52.516
+    assert result["longitude"] == 13.378
+    assert result["device_id"] == hashlib.sha256(b"device-42").hexdigest()
+    assert result["mac_address"] == hashlib.sha256(b"AA:BB:CC:DD:EE:FF").hexdigest()
+    assert result["custom_secret"] == "[REDACTED]"
