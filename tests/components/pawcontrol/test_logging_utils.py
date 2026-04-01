@@ -26,6 +26,18 @@ def test_redact_sensitive_redacts_nested_and_partial_sensitive_keys() -> None:
     }
 
 
+def test_redact_sensitive_returns_new_mapping_without_mutating_input() -> None:
+    """Redaction should preserve the caller payload while returning a new mapping."""
+    payload = {"token": "abc", "profile": {"password": "secret"}}
+
+    redacted = logging_utils.redact_sensitive(payload)
+
+    assert redacted is not payload
+    assert payload == {"token": "abc", "profile": {"password": "secret"}}
+    assert redacted["token"] == "***REDACTED***"
+    assert redacted["profile"]["password"] == "***REDACTED***"
+
+
 def test_redact_value_only_masks_sensitive_key() -> None:
     """redact_value should keep non-sensitive values untouched."""
     assert logging_utils.redact_value("api_token", "x") == "***REDACTED***"
@@ -70,6 +82,11 @@ def test_structured_logger_emit_skips_when_level_disabled() -> None:
     logger.debug("ignored", foo="bar")
 
     logger.logger.log.assert_not_called()
+
+
+def test_structured_logger_format_context_empty_kwargs_returns_empty_suffix() -> None:
+    """Formatting without context should return an empty suffix."""
+    assert StructuredLogger._format_context() == ""
 
 
 def test_structured_logger_exception_critical_and_is_enabled_for() -> None:
