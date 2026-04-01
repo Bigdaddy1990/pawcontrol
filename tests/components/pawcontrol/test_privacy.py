@@ -1,11 +1,10 @@
 """Tests for privacy and anonymization helpers."""
 
-from __future__ import annotations
-
 import hashlib
 from typing import Any
 from unittest.mock import Mock
 
+from homeassistant.core import HomeAssistant
 import pytest
 
 from custom_components.pawcontrol.privacy import (
@@ -17,7 +16,6 @@ from custom_components.pawcontrol.privacy import (
     mask_string,
     sanitize_return_value,
 )
-from homeassistant.core import HomeAssistant
 
 
 def test_pii_redactor_redacts_default_patterns_and_nested_values() -> None:
@@ -50,7 +48,11 @@ def test_pii_redactor_field_name_rule_redacts_named_fields() -> None:
     redactor = PIIRedactor()
     redactor.add_rule(RedactionRule(field_names=["api_key", "secret"]))
 
-    redacted = redactor.redact_dict({"api_key": "abc123", "secret": "xyz", "safe": "ok"})
+    redacted = redactor.redact_dict({
+        "api_key": "abc123",
+        "secret": "xyz",
+        "safe": "ok",
+    })
 
     assert redacted == {"api_key": "[REDACTED]", "secret": "[REDACTED]", "safe": "ok"}
 
@@ -100,7 +102,13 @@ def test_hash_helpers_and_mask_utilities_are_deterministic() -> None:
     """Hashing and masking helpers should return stable, predictable output."""
     hasher = DataHasher()
 
-    assert hasher.hash_string("abc", salt="salt-") == hashlib.sha256(b"salt-abc").hexdigest()
+    assert (
+        hasher.hash_string("abc", salt="salt-")
+        == hashlib.sha256(b"salt-abc").hexdigest()
+    )
     assert mask_string("secret", visible_chars=2) == "se****"
     assert mask_string("dog", visible_chars=4) == "***"
-    assert anonymize_user_id("walker") == f"user_{hashlib.sha256(b'walker').hexdigest()[:8]}"
+    assert (
+        anonymize_user_id("walker")
+        == f"user_{hashlib.sha256(b'walker').hexdigest()[:8]}"
+    )
