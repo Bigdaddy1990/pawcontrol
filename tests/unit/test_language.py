@@ -44,3 +44,19 @@ def test_normalize_code_handles_none() -> None:
     from custom_components.pawcontrol.language import _normalize_code
 
     assert _normalize_code(None) == ""
+
+
+def test_normalize_code_normalizes_separator_and_case() -> None:
+    """Internal normalization should downcase and keep only the base language."""
+    from custom_components.pawcontrol.language import _normalize_code
+
+    assert _normalize_code("PT_br") == "pt"
+    assert _normalize_code(" En-US ") == "en"
+
+
+def test_normalize_language_ignores_empty_supported_entries() -> None:
+    """Empty supported entries should be discarded before membership checks."""
+    supported = {"", "___", "de-DE"}
+
+    assert normalize_language("de-at", supported=supported, default="en") == "de"
+    assert normalize_language("fr", supported=supported, default="en") == "en"
