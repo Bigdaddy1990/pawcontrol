@@ -51,7 +51,7 @@ def test_sanitize_path_blocks_encoded_traversal_and_normalizes() -> None:
     sanitizer = InputSanitizer()
 
     normalized = sanitizer.sanitize_path("docs/readme.txt")
-    assert normalized.endswith("docs/readme.txt")
+    assert Path(normalized).as_posix().endswith("docs/readme.txt")
 
     with pytest.raises(ValidationError, match="Path traversal sequences"):
         sanitizer.sanitize_path("..%2fsecret.txt")
