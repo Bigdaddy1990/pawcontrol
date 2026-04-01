@@ -80,6 +80,6 @@ def test_helper_entity_metadata_as_dict() -> None:
         "domain": "input_text",
         "name": "Dog Notes",
         "icon": "mdi:note",
-    }  # noqa: E501
+    }
     assert meta["domain"] == "input_text"
     assert meta["name"] == "Dog Notes"
