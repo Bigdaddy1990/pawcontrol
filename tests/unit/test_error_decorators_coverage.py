@@ -2,16 +2,17 @@
 
 Covers: get_repair_issue_id, map_to_repair_issue
 """
+
 from __future__ import annotations
 
 import pytest
 
 from custom_components.pawcontrol.error_decorators import get_repair_issue_id
 from custom_components.pawcontrol.exceptions import (
+    ConfigurationError,
     PawControlError,
     ValidationError,
     WalkError,
-    ConfigurationError,
 )
 
 

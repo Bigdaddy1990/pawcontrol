@@ -2,6 +2,7 @@
 
 CacheDiagnosticsSnapshot is a dataclass; HelperEntityMetadata is a TypedDict.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -13,8 +14,8 @@ from custom_components.pawcontrol.helper_manager import (
     ensure_dog_modules_config,
 )
 
-
 # ─── ensure_dog_config_data ──────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_ensure_dog_config_data_valid() -> None:
@@ -37,6 +38,7 @@ def test_ensure_dog_config_data_full() -> None:
 
 # ─── ensure_dog_modules_config ───────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_ensure_dog_modules_config_empty() -> None:
     result = ensure_dog_modules_config({})
@@ -51,6 +53,7 @@ def test_ensure_dog_modules_config_with_values() -> None:
 
 
 # ─── CacheDiagnosticsSnapshot (dataclass) ────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_cache_diagnostics_snapshot_init() -> None:
@@ -72,8 +75,13 @@ def test_cache_diagnostics_snapshot_with_error() -> None:
 
 # ─── HelperEntityMetadata (TypedDict) ────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_helper_entity_metadata_as_dict() -> None:
-    meta: HelperEntityMetadata = {"domain": "input_text", "name": "Dog Notes", "icon": "mdi:note"}
+    meta: HelperEntityMetadata = {
+        "domain": "input_text",
+        "name": "Dog Notes",
+        "icon": "mdi:note",
+    }  # noqa: E501
     assert meta["domain"] == "input_text"
     assert meta["name"] == "Dog Notes"

@@ -2,6 +2,7 @@
 
 Covers: calculate_distance, validate_coordinates, validate_coordinate_pair, GPSLocation
 """
+
 from __future__ import annotations
 
 import pytest
@@ -13,8 +14,8 @@ from custom_components.pawcontrol.geofencing import (
     validate_coordinates,
 )
 
-
 # ─── calculate_distance ──────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_calculate_distance_same_point() -> None:
@@ -44,6 +45,7 @@ def test_calculate_distance_positive() -> None:
 
 # ─── validate_coordinates ────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_validate_coordinates_valid() -> None:
     assert validate_coordinates(52.52, 13.40) is True
@@ -72,6 +74,7 @@ def test_validate_coordinates_zero() -> None:
 
 # ─── validate_coordinate_pair ────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_validate_coordinate_pair_valid() -> None:
     lat, lon = validate_coordinate_pair(52.52, 13.40)
@@ -81,11 +84,12 @@ def test_validate_coordinate_pair_valid() -> None:
 
 @pytest.mark.unit
 def test_validate_coordinate_pair_invalid_raises() -> None:
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         validate_coordinate_pair(999.0, 13.40)
 
 
 # ─── GPSLocation ─────────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_gps_location_init() -> None:

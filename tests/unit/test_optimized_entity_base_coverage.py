@@ -2,6 +2,7 @@
 
 Covers: EntityRegistry, clear_global_entity_registry, ensure_json_mapping
 """
+
 from __future__ import annotations
 
 import pytest
@@ -12,8 +13,8 @@ from custom_components.pawcontrol.optimized_entity_base import (
     ensure_json_mapping,
 )
 
-
 # ─── clear_global_entity_registry ────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_clear_global_entity_registry_no_raise() -> None:
@@ -27,6 +28,7 @@ def test_clear_global_entity_registry_idempotent() -> None:
 
 
 # ─── ensure_json_mapping ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_ensure_json_mapping_none() -> None:
@@ -50,6 +52,7 @@ def test_ensure_json_mapping_empty() -> None:
 
 
 # ─── EntityRegistry ──────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_entity_registry_init() -> None:

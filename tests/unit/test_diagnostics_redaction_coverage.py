@@ -2,6 +2,7 @@
 
 Covers: compile_redaction_patterns, redact_sensitive_data
 """
+
 from __future__ import annotations
 
 import pytest
@@ -11,8 +12,8 @@ from custom_components.pawcontrol.diagnostics_redaction import (
     redact_sensitive_data,
 )
 
-
 # ─── compile_redaction_patterns ──────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_compile_redaction_patterns_empty() -> None:
@@ -33,6 +34,7 @@ def test_compile_redaction_patterns_single_key() -> None:
 
 
 # ─── redact_sensitive_data ───────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_redact_sensitive_data_empty_dict() -> None:

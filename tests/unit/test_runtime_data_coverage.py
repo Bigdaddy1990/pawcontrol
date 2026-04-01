@@ -3,6 +3,7 @@
 Covers: RuntimeDataUnavailableError, RuntimeDataIncompatibleError,
         describe_runtime_store_status, get_runtime_data
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -15,8 +16,8 @@ from custom_components.pawcontrol.runtime_data import (
     get_runtime_data,
 )
 
-
 # ─── RuntimeDataUnavailableError ─────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_runtime_data_unavailable_error_raise() -> None:
@@ -38,6 +39,7 @@ def test_runtime_data_unavailable_message() -> None:
 
 # ─── RuntimeDataIncompatibleError ────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_runtime_data_incompatible_error_raise() -> None:
     with pytest.raises(RuntimeDataIncompatibleError):
@@ -51,6 +53,7 @@ def test_runtime_data_incompatible_is_exception() -> None:
 
 
 # ─── get_runtime_data ────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_get_runtime_data_missing_returns_none() -> None:

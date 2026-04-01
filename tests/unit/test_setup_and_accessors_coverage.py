@@ -3,17 +3,18 @@
 setup/validation: ensure_dog_config_data
 setup/cleanup: module importable
 coordinator_accessors: CoordinatorDataAccessMixin, CoordinatorDogData
-"""
+"""  # noqa: E501
+
 from __future__ import annotations
 
 import pytest
 
-from custom_components.pawcontrol.setup.validation import ensure_dog_config_data
 import custom_components.pawcontrol.coordinator_accessors as ca
 import custom_components.pawcontrol.setup.cleanup as sc
-
+from custom_components.pawcontrol.setup.validation import ensure_dog_config_data
 
 # ─── setup/validation: ensure_dog_config_data ────────────────────────────────
+
 
 @pytest.mark.unit
 def test_setup_ensure_dog_config_data_valid() -> None:
@@ -30,12 +31,18 @@ def test_setup_ensure_dog_config_data_empty() -> None:
 
 @pytest.mark.unit
 def test_setup_ensure_dog_config_data_full() -> None:
-    data = {"dog_id": "rex", "dog_name": "Rex", "dog_breed": "Labrador", "dog_weight": 22.0}
+    data = {
+        "dog_id": "rex",
+        "dog_name": "Rex",
+        "dog_breed": "Labrador",
+        "dog_weight": 22.0,
+    }  # noqa: E501
     result = ensure_dog_config_data(data)
     assert result is None or isinstance(result, dict)
 
 
 # ─── setup/cleanup: importable ───────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_setup_cleanup_module_importable() -> None:
@@ -44,11 +51,12 @@ def test_setup_cleanup_module_importable() -> None:
 
 @pytest.mark.unit
 def test_setup_cleanup_has_contents() -> None:
-    attrs = [a for a in dir(sc) if not a.startswith('_')]
+    attrs = [a for a in dir(sc) if not a.startswith("_")]
     assert len(attrs) >= 0
 
 
 # ─── coordinator_accessors: CoordinatorDataAccessMixin ───────────────────────
+
 
 @pytest.mark.unit
 def test_coordinator_accessors_module_importable() -> None:

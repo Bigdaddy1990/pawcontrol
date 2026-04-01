@@ -3,6 +3,7 @@
 Covers: CircuitBreaker, CircuitBreakerConfig, get_circuit_breaker,
         get_all_circuit_breakers, reset_all_circuit_breakers, CircuitState
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,8 +17,8 @@ from custom_components.pawcontrol.resilience import (
     reset_all_circuit_breakers,
 )
 
-
 # ─── CircuitBreakerConfig ────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_circuit_breaker_config_defaults() -> None:
@@ -35,6 +36,7 @@ def test_circuit_breaker_config_custom() -> None:
 
 
 # ─── CircuitBreaker ──────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_circuit_breaker_init() -> None:
@@ -80,7 +82,7 @@ def test_circuit_breaker_get_stats() -> None:
     stats = cb.get_stats()
     # Returns CircuitBreakerStats dataclass
     assert stats is not None
-    assert hasattr(stats, 'state')
+    assert hasattr(stats, "state")
 
 
 @pytest.mark.unit
@@ -91,6 +93,7 @@ def test_circuit_breaker_reset() -> None:
 
 
 # ─── Registry functions ──────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_get_circuit_breaker_creates_new() -> None:
@@ -120,4 +123,8 @@ def test_reset_all_circuit_breakers_no_raise() -> None:
     # After reset all should be closed
     all_cbs = get_all_circuit_breakers()
     for cb in all_cbs.values():
-        assert cb._stats.state in (CircuitState.CLOSED, CircuitState.OPEN, CircuitState.HALF_OPEN)
+        assert cb._stats.state in (
+            CircuitState.CLOSED,
+            CircuitState.OPEN,
+            CircuitState.HALF_OPEN,
+        )  # noqa: E501

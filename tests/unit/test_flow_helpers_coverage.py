@@ -3,6 +3,7 @@
 Covers: build_boolean_schema, build_number_schema, build_select_schema,
         build_text_schema, coerce_bool, coerce_optional_float
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,8 +17,8 @@ from custom_components.pawcontrol.flow_helpers import (
     coerce_optional_float,
 )
 
-
 # ─── build_boolean_schema ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_build_boolean_schema_returns_dict() -> None:
@@ -32,6 +33,7 @@ def test_build_boolean_schema_default_true() -> None:
 
 
 # ─── build_number_schema ──────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_build_number_schema_basic() -> None:
@@ -53,6 +55,7 @@ def test_build_number_schema_with_step() -> None:
 
 # ─── build_select_schema ──────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_build_select_schema_basic() -> None:
     schema = build_select_schema("breed", ["labrador", "poodle", "husky"])
@@ -73,6 +76,7 @@ def test_build_select_schema_required() -> None:
 
 # ─── build_text_schema ────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_build_text_schema_basic() -> None:
     schema = build_text_schema("dog_name")
@@ -92,6 +96,7 @@ def test_build_text_schema_required() -> None:
 
 
 # ─── coerce_bool ─────────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_coerce_bool_true_values() -> None:
@@ -121,6 +126,7 @@ def test_coerce_bool_invalid_uses_default() -> None:
 
 
 # ─── coerce_optional_float ────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_coerce_optional_float_int() -> None:

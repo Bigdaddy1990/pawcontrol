@@ -2,6 +2,7 @@
 
 Covers: require_runtime_data decorator, LocationSource
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -10,8 +11,8 @@ import pytest
 
 from custom_components.pawcontrol.external_bindings import LocationSource
 
-
 # ─── LocationSource ──────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_location_source_has_values() -> None:

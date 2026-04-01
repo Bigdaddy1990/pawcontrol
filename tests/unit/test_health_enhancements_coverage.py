@@ -3,9 +3,10 @@
 Covers: EnhancedHealthProfile, EnhancedHealthCalculator methods,
         DewormingRecord, DewormingType
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 
@@ -16,8 +17,8 @@ from custom_components.pawcontrol.health_enhancements import (
     EnhancedHealthProfile,
 )
 
-
 # ─── EnhancedHealthProfile ────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_enhanced_health_profile_minimal() -> None:
@@ -47,13 +48,14 @@ def test_enhanced_health_profile_empty_lists() -> None:
 
 # ─── DewormingRecord ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_deworming_record_init() -> None:
     record = DewormingRecord(
         treatment_type=DewormingType.BROAD_SPECTRUM,
         medication_name="Milbemax",
-        date_given=datetime(2025, 1, 15, tzinfo=timezone.utc),
-        next_due_date=datetime(2025, 7, 15, tzinfo=timezone.utc),
+        date_given=datetime(2025, 1, 15, tzinfo=UTC),
+        next_due_date=datetime(2025, 7, 15, tzinfo=UTC),
     )
     assert record.medication_name == "Milbemax"
 
@@ -65,6 +67,7 @@ def test_deworming_type_values() -> None:
 
 
 # ─── EnhancedHealthCalculator ────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_enhanced_calculator_vaccination_schedule() -> None:
@@ -81,13 +84,13 @@ def test_enhanced_calculator_deworming_schedule() -> None:
 
 @pytest.mark.unit
 def test_generate_vaccination_schedule() -> None:
-    birth = datetime(2022, 6, 1, tzinfo=timezone.utc)
+    birth = datetime(2022, 6, 1, tzinfo=UTC)
     result = EnhancedHealthCalculator.generate_vaccination_schedule(birth_date=birth)
     assert isinstance(result, list)
 
 
 @pytest.mark.unit
 def test_generate_deworming_schedule() -> None:
-    birth = datetime(2022, 6, 1, tzinfo=timezone.utc)
+    birth = datetime(2022, 6, 1, tzinfo=UTC)
     result = EnhancedHealthCalculator.generate_deworming_schedule(birth_date=birth)
     assert isinstance(result, list)

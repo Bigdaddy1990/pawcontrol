@@ -3,6 +3,7 @@
 FeedingDailyStats, FeedingSnapshot, FeedingModulePayload are TypedDicts
 → constructed as plain dicts.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -13,23 +14,32 @@ from custom_components.pawcontrol.module_adapters import (
     FeedingSnapshot,
 )
 
-
 # ─── FeedingDailyStats (TypedDict) ───────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_feeding_daily_stats_as_dict() -> None:
-    stats: FeedingDailyStats = {"total_fed_today": 400.0, "meals_today": 2, "remaining_calories": 200}
+    stats: FeedingDailyStats = {
+        "total_fed_today": 400.0,
+        "meals_today": 2,
+        "remaining_calories": 200,
+    }  # noqa: E501
     assert stats["meals_today"] == 2
     assert stats["total_fed_today"] == pytest.approx(400.0)
 
 
 @pytest.mark.unit
 def test_feeding_daily_stats_zero() -> None:
-    stats: FeedingDailyStats = {"total_fed_today": 0.0, "meals_today": 0, "remaining_calories": 500}
+    stats: FeedingDailyStats = {
+        "total_fed_today": 0.0,
+        "meals_today": 0,
+        "remaining_calories": 500,
+    }  # noqa: E501
     assert stats["meals_today"] == 0
 
 
 # ─── FeedingSnapshot (TypedDict) ─────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_feeding_snapshot_has_status() -> None:
@@ -44,6 +54,7 @@ def test_feeding_snapshot_next_feeding() -> None:
 
 
 # ─── FeedingModulePayload (TypedDict) ─────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_feeding_module_payload_status() -> None:
