@@ -4,7 +4,7 @@ Covers: EnhancedHealthProfile, EnhancedHealthCalculator methods,
         DewormingRecord, DewormingType
 """
 
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
