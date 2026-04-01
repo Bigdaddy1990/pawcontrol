@@ -806,3 +806,91 @@ def test_require_coordinator_data_raises_without_instance_args() -> None:
 
     with pytest.raises(PawControlError, match="instance method"):
         _wrapped()
+
+
+@pytest.mark.asyncio
+async def test_handle_errors_async_wrapper_returns_default_on_noncritical_error() -> (
+    None
+):
+    """Async handlers should return configured defaults for noncritical errors."""
+
+    class MockInstance:
+        @handle_errors(default_return="fallback", reraise_validation_errors=False)
+        async def _wrapped(self) -> str:
+            raise PawControlError("recoverable", severity=ErrorSeverity.MEDIUM)
+
+    assert await MockInstance()._wrapped() == "fallback"
+
+
+def test_handle_errors_sync_wrapper_returns_default_on_noncritical_error() -> None:
+    """Sync handlers should return configured defaults for noncritical errors."""
+
+    class MockInstance:
+        @handle_errors(default_return="fallback", reraise_validation_errors=False)
+        def _wrapped(self) -> str:
+            raise PawControlError("recoverable", severity=ErrorSeverity.MEDIUM)
+
+    assert MockInstance()._wrapped() == "fallback"
+
+
+@pytest.mark.asyncio
+async def test_retry_on_error_async_returns_none_when_attempts_are_zero() -> None:
+    """Retry wrappers should gracefully return ``None`` with zero attempts."""
+
+    calls = 0
+
+    @retry_on_error(max_attempts=0)
+    async def _wrapped() -> str:
+        nonlocal calls
+        calls += 1
+        return "never"
+
+    assert await _wrapped() is None
+    assert calls == 0
+
+
+def test_retry_on_error_sync_returns_none_when_attempts_are_zero() -> None:
+    """Sync retry wrappers should mirror the zero-attempt async behaviour."""
+
+    calls = 0
+
+    @retry_on_error(max_attempts=0)
+    def _wrapped() -> str:
+        nonlocal calls
+        calls += 1
+        return "never"
+
+    assert _wrapped() is None
+    assert calls == 0
+
+
+def test_validate_dog_exists_wrapper_errors_without_bound_instance() -> None:
+    """Decorator should fail fast when called as a free function with kwargs."""
+
+    @validate_dog_exists()
+    def _wrapped(self: object, dog_id: str) -> str:
+        return dog_id
+
+    with pytest.raises(PawControlError, match="instance method"):
+        _wrapped(dog_id="buddy")
+
+
+def test_map_to_repair_issue_sync_uses_coordinator_hass() -> None:
+    """Sync wrapper should derive hass from ``self.coordinator`` when needed."""
+
+    class MockInstance:
+        def __init__(self) -> None:
+            self.coordinator = MagicMock()
+            self.coordinator.hass = object()
+
+        @map_to_repair_issue("sync_network_issue", severity="error")
+        def perform(self) -> None:
+            raise NetworkError("offline")
+
+    with (
+        patch("custom_components.pawcontrol.error_decorators.issue_registry") as ir,
+        pytest.raises(NetworkError),
+    ):
+        MockInstance().perform()
+
+    assert ir.async_create_issue.call_args.args[0] is not None
