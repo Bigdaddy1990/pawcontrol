@@ -2,6 +2,7 @@
 
 Covers: ActivityLevel, BodyConditionScore enums, HealthCalculator class
 """
+
 from __future__ import annotations
 
 import pytest
@@ -11,8 +12,8 @@ from custom_components.pawcontrol.health_calculator import (
     BodyConditionScore,
 )
 
-
 # ─── ActivityLevel ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_activity_level_has_members() -> None:
@@ -41,6 +42,7 @@ def test_activity_level_values_are_strings() -> None:
 
 
 # ─── BodyConditionScore ───────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_body_condition_score_has_members() -> None:

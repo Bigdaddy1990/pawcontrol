@@ -119,7 +119,7 @@ def test_pii_redactor_supports_callable_redaction_and_passthrough_non_strings() 
     redactor = PIIRedactor()
     redactor.add_rule(
         RedactionRule(redactor=lambda value: value.replace("token", "[TOKEN]"))
-    )  # noqa: E501
+    )
 
     assert redactor.redact_text("token=abc") == "[TOKEN]=abc"
     assert redactor.redact_text(123) == 123
