@@ -259,6 +259,29 @@ def test_ensure_allowed_github_api_url_rejects_foreign_host() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("line_rate", "expected"),
+    [
+        ("not-a-number", 0.0),
+        (None, 0.0),
+    ],
+)
+def test_parse_coverage_percent_returns_zero_for_invalid_values(
+    tmp_path, line_rate: str | None, expected: float
+) -> None:
+    """Invalid ``line-rate`` values should degrade to zero coverage percent."""
+    coverage_xml = tmp_path / "coverage.xml"
+    if line_rate is None:
+        coverage_xml.write_text("<coverage></coverage>", encoding="utf-8")
+    else:
+        coverage_xml.write_text(
+            f"<coverage line-rate='{line_rate}'></coverage>",
+            encoding="utf-8",
+        )
+
+    assert publish_coverage._parse_coverage_percent(coverage_xml) == expected
+
+
 def test_ensure_allowed_github_api_url_accepts_expected_endpoint() -> None:
     """Valid GitHub API URLs should pass validation."""
     publish_coverage.ensure_allowed_github_api_url(
