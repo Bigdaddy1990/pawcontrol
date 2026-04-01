@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+from aiohttp import ClientError
+from aiohttp.client_exceptions import ContentTypeError
 import pytest
 
 from custom_components.pawcontrol.device_api import (
@@ -60,6 +62,16 @@ class _FakeSession:
     async def request(self, *args: object, **kwargs: object) -> _FakeResponse:
         self.calls.append((args, kwargs))
         return self._response
+
+
+class _FailingSession:
+    closed = False
+
+    def __init__(self, error: Exception) -> None:
+        self._error = error
+
+    async def request(self, *args: object, **kwargs: object) -> _FakeResponse:
+        raise self._error
 
 
 class _MappingPayload(Mapping[str, object]):
@@ -134,6 +146,18 @@ async def test_async_request_raises_rate_limit_with_retry_after_header() -> None
 
 
 @pytest.mark.asyncio
+async def test_async_request_rate_limit_defaults_to_60_when_header_is_invalid() -> None:
+    """HTTP 429 should fall back to 60 seconds for non-numeric Retry-After values."""
+    session = _FakeSession(_FakeResponse(status=429, headers={"Retry-After": "later"}))
+    client = PawControlDeviceClient(session, endpoint="https://example.test")
+
+    with pytest.raises(RateLimitError) as err:
+        await client._async_request("GET", "/api/status")
+
+    assert err.value.retry_after == 60
+
+
+@pytest.mark.asyncio
 async def test_async_request_raises_network_error_for_http_failures() -> None:
     """HTTP errors should include endpoint status and body details."""
     session = _FakeSession(_FakeResponse(status=500, text_payload=" boom "))
@@ -162,6 +186,18 @@ async def test_async_get_json_uses_resilience_manager_when_available() -> None:
         "GET",
         "/api/dogs/1/feeding",
     )
+
+
+@pytest.mark.asyncio
+async def test_async_get_json_without_api_key_sends_no_headers() -> None:
+    """Requests should not include auth headers when no API key is configured."""
+    session = _FakeSession(_FakeResponse(json_payload={"ok": True}))
+    client = PawControlDeviceClient(session, endpoint="https://example.test")
+
+    await client.async_get_json("/api/status")
+
+    _, kwargs = session.calls[0]
+    assert kwargs["headers"] is None
 
 
 @pytest.mark.asyncio
@@ -213,3 +249,48 @@ async def test_async_request_protected_delegates_to_raw_request() -> None:
 
     assert result is response
     client._async_request.assert_awaited_once_with("GET", "/api/status")
+
+
+@pytest.mark.asyncio
+async def test_async_request_maps_transport_exceptions_to_network_error() -> None:
+    """Transport exceptions should be normalized into network errors."""
+    timeout_client = PawControlDeviceClient(
+        _FailingSession(TimeoutError()),
+        endpoint="https://example.test",
+    )
+    with pytest.raises(NetworkError, match="Timed out while contacting"):
+        await timeout_client._async_request("GET", "/api/status")
+
+    client_error_client = PawControlDeviceClient(
+        _FailingSession(ClientError("boom")),
+        endpoint="https://example.test",
+    )
+    with pytest.raises(NetworkError, match="Client error talking to device API"):
+        await client_error_client._async_request("GET", "/api/status")
+
+    os_error_client = PawControlDeviceClient(
+        _FailingSession(OSError("offline")),
+        endpoint="https://example.test",
+    )
+    with pytest.raises(NetworkError, match="Network error talking to device API"):
+        await os_error_client._async_request("GET", "/api/status")
+
+
+@pytest.mark.asyncio
+async def test_async_get_json_raises_network_error_for_non_json_payload() -> None:
+    """Invalid JSON responses should raise a normalized network error."""
+
+    class _NonJsonResponse(_FakeResponse):
+        async def json(self) -> object:
+            request_info = SimpleNamespace(real_url="https://example.test/api/status")
+            raise ContentTypeError(
+                request_info=request_info,
+                history=(),
+                message="Not JSON",
+            )
+
+    session = _FakeSession(_NonJsonResponse())
+    client = PawControlDeviceClient(session, endpoint="https://example.test")
+
+    with pytest.raises(NetworkError, match="non-JSON response"):
+        await client.async_get_json("/api/status")
