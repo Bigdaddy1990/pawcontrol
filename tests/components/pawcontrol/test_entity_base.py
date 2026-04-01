@@ -329,6 +329,29 @@ def test_dog_data_cache_and_status_snapshot_handle_unavailable_or_invalid_data()
     assert attrs == {}
 
 
+def test_extra_state_attributes_sets_last_updated_none_without_datetime() -> None:
+    """Last-updated should be None when coordinator timestamp is not a datetime."""
+    entity = _make_entity()
+    entity.coordinator.last_update_success_time = "invalid"  # type: ignore[assignment]
+
+    attrs = entity.extra_state_attributes
+
+    assert attrs["last_updated"] is None
+
+
+def test_append_dog_info_attributes_ignores_non_mapping_dog_data() -> None:
+    """Dog-info enrichment should skip payloads that are not mappings."""
+    entity = _make_entity()
+    entity._dog_data_cache.clear()
+    entity._cache_timestamp.clear()
+    entity.coordinator.data["dog-1"] = cast(CoordinatorDogData, ["not", "mapping"])
+
+    attrs: dict[str, object] = {}
+    entity._append_dog_info_attributes(attrs)
+
+    assert attrs == {}
+
+
 def test_get_module_data_rejects_invalid_module_identifiers() -> None:
     """Module lookup should short-circuit for invalid or empty module names."""
     entity = _make_entity()
