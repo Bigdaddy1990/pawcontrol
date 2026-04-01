@@ -71,7 +71,7 @@ def test_normalise_guard_result_payload_blocked() -> None:
 
 @pytest.mark.unit
 @pytest.mark.xfail(
-    reason="ServiceGuardResult signature unknown due to circular import at inspection time"
+    reason="Known circular import blocks ServiceGuardResult signature inspection"
 )
 def test_service_guard_result_allowed() -> None:
     r = ServiceGuardResult(guard_id="test", service="walk_start", allowed=True)
@@ -80,7 +80,7 @@ def test_service_guard_result_allowed() -> None:
 
 @pytest.mark.unit
 @pytest.mark.xfail(
-    reason="ServiceGuardResult signature unknown due to circular import at inspection time"
+    reason="Known circular import blocks ServiceGuardResult signature inspection"
 )
 def test_service_guard_result_denied() -> None:
     r = ServiceGuardResult(
