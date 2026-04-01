@@ -272,3 +272,41 @@ def test_validate_url_and_unknown_validator_errors() -> None:
 
     with pytest.raises(AttributeError):
         validate_and_sanitize("value", "missing_validator")
+
+
+def test_validator_collects_multiple_field_errors_from_schema() -> None:
+    """Schema validation should accumulate prefixed field errors."""
+    validator = InputValidator()
+
+    result = validator.validate_dict(
+        {
+            "age": "oops",
+            "score": "3.14",
+            "email": "invalid",
+            "site": "ftp://invalid.example",
+        },
+        {
+            "age": {"type": "int", "required": True, "min_value": 1},
+            "score": {"type": "float", "min_value": 10.0, "max_value": 2.0},
+            "email": {"type": "email", "required": True},
+            "site": {"type": "url"},
+        },
+    )
+
+    assert not result.is_valid
+    assert any(error.startswith("age:") for error in result.errors)
+    assert any(error.startswith("score:") for error in result.errors)
+    assert any(error.startswith("email:") for error in result.errors)
+    assert any(error.startswith("site:") for error in result.errors)
+
+
+def test_validate_integer_value_error_and_success_path() -> None:
+    validator = InputValidator()
+
+    invalid = validator.validate_integer("not-an-int")
+    assert not invalid.is_valid
+    assert invalid.errors == ["Cannot convert to integer: not-an-int"]
+
+    valid = validator.validate_integer("8", min_value=0, max_value=10)
+    assert valid.is_valid
+    assert valid.sanitized_value == 8
