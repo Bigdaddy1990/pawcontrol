@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.input_validation import (

@@ -117,7 +117,9 @@ def test_hash_helpers_and_mask_utilities_are_deterministic() -> None:
 def test_pii_redactor_supports_callable_redaction_and_passthrough_non_strings() -> None:
     """Custom callable rules should run and non-string values pass through."""
     redactor = PIIRedactor()
-    redactor.add_rule(RedactionRule(redactor=lambda value: value.replace("token", "[TOKEN]")))
+    redactor.add_rule(
+        RedactionRule(redactor=lambda value: value.replace("token", "[TOKEN]"))
+    )  # noqa: E501
 
     assert redactor.redact_text("token=abc") == "[TOKEN]=abc"
     assert redactor.redact_text(123) == 123
