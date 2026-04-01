@@ -1,21 +1,27 @@
 """Coverage tests for feeding_translations.py + dashboard_shared.py + config_entry_helpers.py
-and flow_steps/gps_schemas.py + notifications_schemas.py + health_schemas.py
-"""
+and flow_steps/gps_schemas.py + notifications_schemas.py + health_schemas.py.
+"""  # noqa: D205, E501
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.pawcontrol.feeding_translations import get_feeding_compliance_translations
-from custom_components.pawcontrol.dashboard_shared import coerce_dog_config, coerce_dog_configs
 from custom_components.pawcontrol.config_entry_helpers import get_entry_dogs
+from custom_components.pawcontrol.dashboard_shared import (
+    coerce_dog_config,
+    coerce_dog_configs,
+)
+from custom_components.pawcontrol.feeding_translations import (
+    get_feeding_compliance_translations,
+)
 import custom_components.pawcontrol.flow_steps.gps_schemas as gps_sch
-import custom_components.pawcontrol.flow_steps.notifications_schemas as notif_sch
 import custom_components.pawcontrol.flow_steps.health_schemas as health_sch
-
+import custom_components.pawcontrol.flow_steps.notifications_schemas as notif_sch
 
 # ─── get_feeding_compliance_translations ─────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_feeding_compliance_translations_english() -> None:
@@ -43,6 +49,7 @@ def test_feeding_compliance_translations_unknown() -> None:
 
 # ─── coerce_dog_config ────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_coerce_dog_config_minimal() -> None:
     result = coerce_dog_config({"dog_id": "rex", "dog_name": "Rex"})
@@ -56,6 +63,7 @@ def test_coerce_dog_config_empty() -> None:
 
 
 # ─── coerce_dog_configs ───────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_coerce_dog_configs_empty_list() -> None:
@@ -74,6 +82,7 @@ def test_coerce_dog_configs_with_entries() -> None:
 
 
 # ─── get_entry_dogs ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_get_entry_dogs_no_dogs() -> None:
@@ -94,6 +103,7 @@ def test_get_entry_dogs_with_dogs() -> None:
 
 
 # ─── flow_steps schemas (import-level coverage) ──────────────────────────────
+
 
 @pytest.mark.unit
 def test_gps_schemas_importable() -> None:

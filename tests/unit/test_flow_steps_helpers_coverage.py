@@ -1,23 +1,26 @@
 """Coverage tests for flow_steps helpers + device_automation_helpers."""
+
 from __future__ import annotations
 
 import pytest
 
+from custom_components.pawcontrol.device_automation_helpers import (
+    build_dog_status_snapshot,
+    build_unique_id,
+)
+from custom_components.pawcontrol.exceptions import ValidationError
+import custom_components.pawcontrol.flow_steps.gps_helpers as gps_h
 from custom_components.pawcontrol.flow_steps.gps_helpers import (
     build_gps_source_options,
     validation_error_key,
 )
-from custom_components.pawcontrol.flow_steps.notifications_helpers import validate_int_range
-from custom_components.pawcontrol.device_automation_helpers import (
-    build_unique_id,
-    build_dog_status_snapshot,
-)
-from custom_components.pawcontrol.exceptions import ValidationError
-import custom_components.pawcontrol.flow_steps.gps_helpers as gps_h
 import custom_components.pawcontrol.flow_steps.health_helpers as health_h
-
+from custom_components.pawcontrol.flow_steps.notifications_helpers import (
+    validate_int_range,
+)
 
 # ─── build_gps_source_options ─────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_build_gps_source_options_empty() -> None:
@@ -28,12 +31,16 @@ def test_build_gps_source_options_empty() -> None:
 
 @pytest.mark.unit
 def test_build_gps_source_options_with_entries() -> None:
-    result = build_gps_source_options({"ha_person": "HA Person", "gps_device": "GPS Device"})
+    result = build_gps_source_options({
+        "ha_person": "HA Person",
+        "gps_device": "GPS Device",
+    })  # noqa: E501
     assert isinstance(result, dict)
     assert "ha_person" in result
 
 
 # ─── validation_error_key ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_validation_error_key_with_constraint() -> None:
@@ -52,6 +59,7 @@ def test_validation_error_key_uses_fallback() -> None:
 
 # ─── validate_int_range ───────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_validate_int_range_valid() -> None:
     result = validate_int_range(5, field="count", minimum=1, maximum=10)
@@ -60,7 +68,9 @@ def test_validate_int_range_valid() -> None:
 
 @pytest.mark.unit
 def test_validate_int_range_none_not_required() -> None:
-    result = validate_int_range(None, field="count", minimum=1, maximum=10, required=False)
+    result = validate_int_range(
+        None, field="count", minimum=1, maximum=10, required=False
+    )  # noqa: E501
     assert result is None
 
 
@@ -77,6 +87,7 @@ def test_validate_int_range_clamp_above() -> None:
 
 
 # ─── build_unique_id ──────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_build_unique_id_basic() -> None:
@@ -95,6 +106,7 @@ def test_build_unique_id_different_inputs() -> None:
 
 # ─── build_dog_status_snapshot ────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_build_dog_status_snapshot_empty() -> None:
     result = build_dog_status_snapshot("rex", {})
@@ -109,6 +121,7 @@ def test_build_dog_status_snapshot_with_data() -> None:
 
 
 # ─── module imports ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_gps_helpers_module_importable() -> None:

@@ -3,6 +3,7 @@
 Covers: is_dog_config_payload_valid, normalize_dog_id, ensure_json_mapping,
         ensure_dog_modules_config, coerce_float, coerce_int
 """
+
 from __future__ import annotations
 
 import pytest
@@ -18,8 +19,8 @@ from custom_components.pawcontrol.flow_validation import (
 )
 from custom_components.pawcontrol.validation import InputCoercionError
 
-
 # ─── is_dog_config_payload_valid ─────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_is_valid_empty_dict() -> None:
@@ -46,6 +47,7 @@ def test_is_valid_missing_dog_id() -> None:
 
 # ─── normalize_dog_id (flow_validation) ──────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_fv_normalize_dog_id_lowercase() -> None:
     result = normalize_dog_id("Rex")
@@ -65,6 +67,7 @@ def test_fv_normalize_dog_id_already_clean() -> None:
 
 # ─── ensure_json_mapping (flow_validation) ───────────────────────────────────
 
+
 @pytest.mark.unit
 def test_fv_ensure_json_mapping_none() -> None:
     result = ensure_json_mapping(None)
@@ -81,6 +84,7 @@ def test_fv_ensure_json_mapping_dict() -> None:
 
 # ─── ensure_dog_modules_config (flow_validation) ─────────────────────────────
 
+
 @pytest.mark.unit
 def test_fv_ensure_dog_modules_config_empty() -> None:
     result = ensure_dog_modules_config({})
@@ -95,6 +99,7 @@ def test_fv_ensure_dog_modules_config_with_modules() -> None:
 
 
 # ─── coerce_float / coerce_int (flow_validation) ─────────────────────────────
+
 
 @pytest.mark.unit
 def test_fv_coerce_float_string() -> None:

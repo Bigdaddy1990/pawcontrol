@@ -1,20 +1,23 @@
-"""Coverage tests for flow_steps modules — system_settings, health, notifications, __init__."""
+"""Coverage tests for flow_steps modules — system_settings, health, notifications, __init__."""  # noqa: E501
+
 from __future__ import annotations
 
 import pytest
 
-from custom_components.pawcontrol.flow_steps.system_settings import normalize_performance_mode
+import custom_components.pawcontrol.flow_steps as fs_init
+import custom_components.pawcontrol.flow_steps.health as health_mod
+import custom_components.pawcontrol.flow_steps.notifications as notif_mod
 from custom_components.pawcontrol.flow_steps.notifications import (
     NotificationOptions,
     ensure_notification_options,
 )
-import custom_components.pawcontrol.flow_steps as fs_init
 import custom_components.pawcontrol.flow_steps.system_settings as ss_mod
-import custom_components.pawcontrol.flow_steps.health as health_mod
-import custom_components.pawcontrol.flow_steps.notifications as notif_mod
-
+from custom_components.pawcontrol.flow_steps.system_settings import (
+    normalize_performance_mode,
+)
 
 # ─── normalize_performance_mode ──────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_normalize_performance_mode_balanced() -> None:
@@ -54,6 +57,7 @@ def test_normalize_performance_mode_with_current() -> None:
 
 # ─── ensure_notification_options ─────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_ensure_notification_options_empty() -> None:
     result = ensure_notification_options({})
@@ -78,6 +82,7 @@ def test_ensure_notification_options_with_defaults() -> None:
 
 # ─── NotificationOptions (TypedDict) ─────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_notification_options_as_dict() -> None:
     opts: NotificationOptions = {
@@ -91,6 +96,7 @@ def test_notification_options_as_dict() -> None:
 
 
 # ─── module import checks ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_flow_steps_init_importable() -> None:
