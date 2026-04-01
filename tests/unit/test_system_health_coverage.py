@@ -2,24 +2,23 @@
 
 Covers: get_runtime_data, get_runtime_performance_stats, derive_rejection_metrics
 """
-from __future__ import annotations
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 
+from custom_components.pawcontrol.coordinator_observability import (
+    default_rejection_metrics,
+    derive_rejection_metrics,
+)
 from custom_components.pawcontrol.system_health import (
     get_runtime_data,
     get_runtime_performance_stats,
 )
-from custom_components.pawcontrol.coordinator_observability import (
-    derive_rejection_metrics,
-    default_rejection_metrics,
-)
-
 
 # ─── get_runtime_data ────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_get_runtime_data_no_data(mock_hass) -> None:
@@ -31,6 +30,7 @@ def test_get_runtime_data_no_data(mock_hass) -> None:
 @pytest.mark.unit
 def test_get_runtime_data_with_entry(mock_hass) -> None:
     from custom_components.pawcontrol.const import DOMAIN
+
     mock_runtime = MagicMock()
     mock_hass.data = {DOMAIN: {"test_entry": mock_runtime}}
     result = get_runtime_data(mock_hass, "test_entry")
@@ -38,6 +38,7 @@ def test_get_runtime_data_with_entry(mock_hass) -> None:
 
 
 # ─── get_runtime_performance_stats ───────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_get_runtime_performance_stats_none() -> None:
@@ -61,6 +62,7 @@ def test_get_runtime_performance_stats_present() -> None:
 
 
 # ─── derive / default_rejection_metrics ──────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_default_rejection_metrics_keys() -> None:

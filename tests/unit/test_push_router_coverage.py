@@ -2,7 +2,6 @@
 
 Covers: PushResult (TypedDict), get_entry_push_telemetry_snapshot
 """
-from __future__ import annotations
 
 from unittest.mock import MagicMock
 
@@ -13,8 +12,8 @@ from custom_components.pawcontrol.push_router import (
     get_entry_push_telemetry_snapshot,
 )
 
-
 # ─── PushResult (TypedDict) ──────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_push_result_success() -> None:
@@ -25,7 +24,12 @@ def test_push_result_success() -> None:
 
 @pytest.mark.unit
 def test_push_result_failure() -> None:
-    r: PushResult = {"ok": False, "status": "failed", "error": "timeout", "dog_id": "buddy"}
+    r: PushResult = {
+        "ok": False,
+        "status": "failed",
+        "error": "timeout",
+        "dog_id": "buddy",
+    }
     assert r["ok"] is False
     assert r["error"] == "timeout"
 
@@ -37,6 +41,7 @@ def test_push_result_minimal() -> None:
 
 
 # ─── get_entry_push_telemetry_snapshot ───────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_get_entry_push_telemetry_snapshot_no_data() -> None:

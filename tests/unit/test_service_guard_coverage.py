@@ -3,7 +3,6 @@
 Covers: normalise_guard_history, normalise_guard_result_payload,
         ServiceGuardResult, ServiceGuardResultPayload
 """
-from __future__ import annotations
 
 import pytest
 
@@ -13,8 +12,8 @@ from custom_components.pawcontrol.service_guard import (
     normalise_guard_result_payload,
 )
 
-
 # ─── normalise_guard_history ─────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_normalise_guard_history_none() -> None:
@@ -31,7 +30,9 @@ def test_normalise_guard_history_empty_list() -> None:
 
 @pytest.mark.unit
 def test_normalise_guard_history_with_entries() -> None:
-    history = [{"action": "walk_start", "success": True, "timestamp": "2025-01-01T10:00:00Z"}]
+    history = [
+        {"action": "walk_start", "success": True, "timestamp": "2025-01-01T10:00:00Z"}
+    ]
     result = normalise_guard_history(history)
     assert isinstance(result, list)
 
@@ -43,6 +44,7 @@ def test_normalise_guard_history_invalid_entry() -> None:
 
 
 # ─── normalise_guard_result_payload ──────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_normalise_guard_result_payload_empty() -> None:
@@ -66,15 +68,22 @@ def test_normalise_guard_result_payload_blocked() -> None:
 
 # ─── ServiceGuardResult ───────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
-@pytest.mark.xfail(reason="ServiceGuardResult signature unknown due to circular import at inspection time")
+@pytest.mark.xfail(
+    reason="Known circular import blocks ServiceGuardResult signature inspection"
+)
 def test_service_guard_result_allowed() -> None:
     r = ServiceGuardResult(guard_id="test", service="walk_start", allowed=True)
     assert r.allowed is True
 
 
 @pytest.mark.unit
-@pytest.mark.xfail(reason="ServiceGuardResult signature unknown due to circular import at inspection time")
+@pytest.mark.xfail(
+    reason="Known circular import blocks ServiceGuardResult signature inspection"
+)
 def test_service_guard_result_denied() -> None:
-    r = ServiceGuardResult(guard_id="test", service="walk_start", allowed=False, reason="rate_limited")
+    r = ServiceGuardResult(
+        guard_id="test", service="walk_start", allowed=False, reason="rate_limited"
+    )
     assert r.allowed is False

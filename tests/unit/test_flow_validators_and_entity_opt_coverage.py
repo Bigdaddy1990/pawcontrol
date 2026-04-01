@@ -4,23 +4,22 @@ flow_validators: validate_dog_name, validate_flow_gps_coordinates,
                  validate_flow_geofence_radius
 entity_optimization: calculate_optimal_update_interval, estimate_state_write_reduction
 """
-from __future__ import annotations
 
 import pytest
 
-from custom_components.pawcontrol.flow_validators import (
-    validate_dog_name,
-    validate_flow_geofence_radius,
-    validate_flow_gps_coordinates,
-)
 from custom_components.pawcontrol.entity_optimization import (
     calculate_optimal_update_interval,
     estimate_state_write_reduction,
 )
 from custom_components.pawcontrol.exceptions import ValidationError
-
+from custom_components.pawcontrol.flow_validators import (
+    validate_dog_name,
+    validate_flow_geofence_radius,
+    validate_flow_gps_coordinates,
+)
 
 # ─── validate_dog_name ────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_fv_validate_dog_name_valid() -> None:
@@ -48,6 +47,7 @@ def test_fv_validate_dog_name_not_required_none() -> None:
 
 # ─── validate_flow_gps_coordinates ────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_validate_gps_coords_valid() -> None:
     lat, lon = validate_flow_gps_coordinates(52.52, 13.40)
@@ -69,25 +69,33 @@ def test_validate_gps_coords_invalid_lon_raises() -> None:
 
 # ─── validate_flow_geofence_radius ────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_validate_geofence_radius_valid() -> None:
-    result = validate_flow_geofence_radius(100.0, field="radius", min_value=10.0, max_value=5000.0)
+    result = validate_flow_geofence_radius(
+        100.0, field="radius", min_value=10.0, max_value=5000.0
+    )
     assert result == pytest.approx(100.0)
 
 
 @pytest.mark.unit
 def test_validate_geofence_radius_too_small_raises() -> None:
     with pytest.raises((ValidationError, Exception)):
-        validate_flow_geofence_radius(1.0, field="radius", min_value=10.0, max_value=5000.0)
+        validate_flow_geofence_radius(
+            1.0, field="radius", min_value=10.0, max_value=5000.0
+        )
 
 
 @pytest.mark.unit
 def test_validate_geofence_radius_none_not_required() -> None:
-    result = validate_flow_geofence_radius(None, field="radius", min_value=10.0, max_value=5000.0, required=False)
+    result = validate_flow_geofence_radius(
+        None, field="radius", min_value=10.0, max_value=5000.0, required=False
+    )
     assert result is None
 
 
 # ─── calculate_optimal_update_interval ────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_calculate_optimal_update_interval_walk() -> None:
@@ -111,6 +119,7 @@ def test_calculate_optimal_update_interval_default_volatility() -> None:
 
 
 # ─── estimate_state_write_reduction ───────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_estimate_state_write_reduction_basic() -> None:

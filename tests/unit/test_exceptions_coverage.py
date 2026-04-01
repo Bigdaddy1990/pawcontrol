@@ -4,7 +4,6 @@ Covers: PawControlError, ValidationError, ConfigurationError,
         WalkError, DogNotFoundError, AuthenticationError,
         create_error_context, get_exception_class
 """
-from __future__ import annotations
 
 import pytest
 
@@ -19,8 +18,8 @@ from custom_components.pawcontrol.exceptions import (
     get_exception_class,
 )
 
-
 # ─── PawControlError ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_pawcontrol_error_basic() -> None:
@@ -49,6 +48,7 @@ def test_pawcontrol_error_is_exception() -> None:
 
 # ─── ValidationError ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_validation_error_basic() -> None:
     err = ValidationError("weight", -1.0, "too_low")
@@ -71,6 +71,7 @@ def test_validation_error_no_value() -> None:
 
 # ─── ConfigurationError ──────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_configuration_error_basic() -> None:
     err = ConfigurationError("api_url")
@@ -85,6 +86,7 @@ def test_configuration_error_with_value() -> None:
 
 
 # ─── WalkError ───────────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_walk_error_basic() -> None:
@@ -101,6 +103,7 @@ def test_walk_error_with_walk_id() -> None:
 
 # ─── DogNotFoundError ────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_dog_not_found_error_basic() -> None:
     err = DogNotFoundError("rex")
@@ -116,6 +119,7 @@ def test_dog_not_found_error_with_available() -> None:
 
 # ─── AuthenticationError ─────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_authentication_error_basic() -> None:
     err = AuthenticationError("invalid token")
@@ -129,6 +133,7 @@ def test_authentication_error_with_service() -> None:
 
 
 # ─── create_error_context ────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_create_error_context_empty() -> None:
@@ -150,6 +155,7 @@ def test_create_error_context_extra_kwargs() -> None:
 
 
 # ─── get_exception_class ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_get_exception_class_known_code() -> None:

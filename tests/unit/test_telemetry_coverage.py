@@ -2,7 +2,6 @@
 
 Covers: get_bool_coercion_metrics, BoolCoercionMetrics/Summary (TypedDicts)
 """
-from __future__ import annotations
 
 import pytest
 
@@ -13,8 +12,8 @@ from custom_components.pawcontrol.telemetry import (
     get_runtime_bool_coercion_summary,
 )
 
-
 # ─── get_bool_coercion_metrics ────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_get_bool_coercion_metrics_returns_dict() -> None:
@@ -37,6 +36,7 @@ def test_get_bool_coercion_metrics_numeric_values() -> None:
 
 # ─── get_runtime_bool_coercion_summary ────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_get_runtime_bool_coercion_summary_none() -> None:
     result = get_runtime_bool_coercion_summary(None)
@@ -45,11 +45,16 @@ def test_get_runtime_bool_coercion_summary_none() -> None:
 
 # ─── BoolCoercionMetrics (TypedDict) ─────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_bool_coercion_metrics_as_dict() -> None:
     m: BoolCoercionMetrics = {
-        "total": 10, "defaulted": 2, "fallback": 1,
-        "reset_count": 0, "type_counts": {}, "reason_counts": {},
+        "total": 10,
+        "defaulted": 2,
+        "fallback": 1,
+        "reset_count": 0,
+        "type_counts": {},
+        "reason_counts": {},
     }
     assert m["total"] == 10
     assert m["defaulted"] == 2
@@ -57,18 +62,29 @@ def test_bool_coercion_metrics_as_dict() -> None:
 
 @pytest.mark.unit
 def test_bool_coercion_metrics_empty() -> None:
-    m: BoolCoercionMetrics = {"total": 0, "defaulted": 0, "fallback": 0,
-                               "reset_count": 0, "type_counts": {}, "reason_counts": {}}
+    m: BoolCoercionMetrics = {
+        "total": 0,
+        "defaulted": 0,
+        "fallback": 0,
+        "reset_count": 0,
+        "type_counts": {},
+        "reason_counts": {},
+    }
     assert m["total"] == 0
 
 
 # ─── BoolCoercionSummary (TypedDict) ─────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_bool_coercion_summary_as_dict() -> None:
     s: BoolCoercionSummary = {
-        "recorded": True, "total": 5, "defaulted": 1,
-        "fallback": 0, "reset_count": 0, "first_seen": None,
+        "recorded": True,
+        "total": 5,
+        "defaulted": 1,
+        "fallback": 0,
+        "reset_count": 0,
+        "first_seen": None,
     }
     assert s["recorded"] is True
     assert s["total"] == 5

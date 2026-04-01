@@ -3,7 +3,6 @@
 Covers: ensure_homeassistant_config_entry_symbols,
         ensure_homeassistant_exception_symbols
 """
-from __future__ import annotations
 
 import pytest
 
