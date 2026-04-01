@@ -836,7 +836,6 @@ def test_handle_errors_sync_wrapper_returns_default_on_noncritical_error() -> No
 @pytest.mark.asyncio
 async def test_retry_on_error_async_returns_none_when_attempts_are_zero() -> None:
     """Retry wrappers should gracefully return ``None`` with zero attempts."""
-
     calls = 0
 
     @retry_on_error(max_attempts=0)
@@ -851,7 +850,6 @@ async def test_retry_on_error_async_returns_none_when_attempts_are_zero() -> Non
 
 def test_retry_on_error_sync_returns_none_when_attempts_are_zero() -> None:
     """Sync retry wrappers should mirror the zero-attempt async behaviour."""
-
     calls = 0
 
     @retry_on_error(max_attempts=0)

@@ -86,7 +86,7 @@ def _parse_coverage_percent(coverage_xml: Path) -> float:
     line_rate = root.attrib.get("line-rate")
     try:
         return float(line_rate) * 100.0
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0.0
 
 
