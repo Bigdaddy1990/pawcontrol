@@ -74,7 +74,7 @@ def test_validate_gps_coords_invalid_lon_raises() -> None:
 def test_validate_geofence_radius_valid() -> None:
     result = validate_flow_geofence_radius(
         100.0, field="radius", min_value=10.0, max_value=5000.0
-    )  # noqa: E501
+    )
     assert result == pytest.approx(100.0)
 
 
@@ -83,14 +83,14 @@ def test_validate_geofence_radius_too_small_raises() -> None:
     with pytest.raises((ValidationError, Exception)):
         validate_flow_geofence_radius(
             1.0, field="radius", min_value=10.0, max_value=5000.0
-        )  # noqa: E501
+        )
 
 
 @pytest.mark.unit
 def test_validate_geofence_radius_none_not_required() -> None:
     result = validate_flow_geofence_radius(
         None, field="radius", min_value=10.0, max_value=5000.0, required=False
-    )  # noqa: E501
+    )
     assert result is None
 
 

@@ -125,4 +125,4 @@ def test_reset_all_circuit_breakers_no_raise() -> None:
             CircuitState.CLOSED,
             CircuitState.OPEN,
             CircuitState.HALF_OPEN,
-        )  # noqa: E501
+        )

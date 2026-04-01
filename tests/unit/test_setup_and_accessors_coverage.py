@@ -34,7 +34,7 @@ def test_setup_ensure_dog_config_data_full() -> None:
         "dog_name": "Rex",
         "dog_breed": "Labrador",
         "dog_weight": 22.0,
-    }  # noqa: E501
+    }
     result = ensure_dog_config_data(data)
     assert result is None or isinstance(result, dict)
 

@@ -29,7 +29,7 @@ def test_push_result_failure() -> None:
         "status": "failed",
         "error": "timeout",
         "dog_id": "buddy",
-    }  # noqa: E501
+    }
     assert r["ok"] is False
     assert r["error"] == "timeout"
 

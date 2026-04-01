@@ -21,7 +21,7 @@ def test_feeding_daily_stats_as_dict() -> None:
         "total_fed_today": 400.0,
         "meals_today": 2,
         "remaining_calories": 200,
-    }  # noqa: E501
+    }
     assert stats["meals_today"] == 2
     assert stats["total_fed_today"] == pytest.approx(400.0)
 
@@ -32,7 +32,7 @@ def test_feeding_daily_stats_zero() -> None:
         "total_fed_today": 0.0,
         "meals_today": 0,
         "remaining_calories": 500,
-    }  # noqa: E501
+    }
     assert stats["meals_today"] == 0
 
 
