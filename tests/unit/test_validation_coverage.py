@@ -3,6 +3,7 @@
 Covers: clamp_float_range, clamp_int_range, coerce_float, coerce_int,
         normalize_dog_id, InputCoercionError
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,40 +17,51 @@ from custom_components.pawcontrol.validation import (
     normalize_dog_id,
 )
 
-
 # ─── clamp_float_range ────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_clamp_float_range_within_bounds() -> None:
-    result = clamp_float_range(5.0, field="weight", minimum=0.0, maximum=100.0, default=50.0)
+    result = clamp_float_range(
+        5.0, field="weight", minimum=0.0, maximum=100.0, default=50.0
+    )  # noqa: E501
     assert result == pytest.approx(5.0)
 
 
 @pytest.mark.unit
 def test_clamp_float_range_below_min() -> None:
-    result = clamp_float_range(-1.0, field="weight", minimum=0.0, maximum=100.0, default=50.0)
+    result = clamp_float_range(
+        -1.0, field="weight", minimum=0.0, maximum=100.0, default=50.0
+    )  # noqa: E501
     assert result == pytest.approx(0.0)
 
 
 @pytest.mark.unit
 def test_clamp_float_range_above_max() -> None:
-    result = clamp_float_range(999.0, field="weight", minimum=0.0, maximum=100.0, default=50.0)
+    result = clamp_float_range(
+        999.0, field="weight", minimum=0.0, maximum=100.0, default=50.0
+    )  # noqa: E501
     assert result == pytest.approx(100.0)
 
 
 @pytest.mark.unit
 def test_clamp_float_range_none_uses_default() -> None:
-    result = clamp_float_range(None, field="weight", minimum=0.0, maximum=100.0, default=50.0)
+    result = clamp_float_range(
+        None, field="weight", minimum=0.0, maximum=100.0, default=50.0
+    )  # noqa: E501
     assert result == pytest.approx(50.0)
 
 
 @pytest.mark.unit
 def test_clamp_float_range_at_boundary() -> None:
-    result = clamp_float_range(100.0, field="weight", minimum=0.0, maximum=100.0, default=50.0)
+    result = clamp_float_range(
+        100.0, field="weight", minimum=0.0, maximum=100.0, default=50.0
+    )  # noqa: E501
     assert result == pytest.approx(100.0)
 
 
 # ─── clamp_int_range ──────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_clamp_int_range_within_bounds() -> None:
@@ -77,6 +89,7 @@ def test_clamp_int_range_none_uses_default() -> None:
 
 # ─── coerce_float ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_coerce_float_int_input() -> None:
     result = coerce_float("weight", 42)
@@ -96,6 +109,7 @@ def test_coerce_float_invalid_raises() -> None:
 
 
 # ─── coerce_int ───────────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_coerce_int_float_raises() -> None:
@@ -118,6 +132,7 @@ def test_coerce_int_invalid_raises() -> None:
 
 # ─── normalize_dog_id ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_normalize_dog_id_lowercase() -> None:
     result = normalize_dog_id("Rex")
@@ -136,6 +151,7 @@ def test_normalize_dog_id_already_normalized() -> None:
 
 
 # ─── InputCoercionError ───────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_input_coercion_error_init() -> None:
