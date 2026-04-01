@@ -32,7 +32,7 @@ def test_normalise_guard_history_empty_list() -> None:
 def test_normalise_guard_history_with_entries() -> None:
     history = [
         {"action": "walk_start", "success": True, "timestamp": "2025-01-01T10:00:00Z"}
-    ]  # noqa: E501
+    ]
     result = normalise_guard_history(history)
     assert isinstance(result, list)
 
@@ -71,8 +71,8 @@ def test_normalise_guard_result_payload_blocked() -> None:
 
 @pytest.mark.unit
 @pytest.mark.xfail(
-    reason="ServiceGuardResult signature unknown due to circular import at inspection time"
-)  # noqa: E501
+    reason="Known circular import blocks ServiceGuardResult signature inspection"
+)
 def test_service_guard_result_allowed() -> None:
     r = ServiceGuardResult(guard_id="test", service="walk_start", allowed=True)
     assert r.allowed is True
@@ -80,10 +80,10 @@ def test_service_guard_result_allowed() -> None:
 
 @pytest.mark.unit
 @pytest.mark.xfail(
-    reason="ServiceGuardResult signature unknown due to circular import at inspection time"
-)  # noqa: E501
+    reason="Known circular import blocks ServiceGuardResult signature inspection"
+)
 def test_service_guard_result_denied() -> None:
     r = ServiceGuardResult(
         guard_id="test", service="walk_start", allowed=False, reason="rate_limited"
-    )  # noqa: E501
+    )
     assert r.allowed is False

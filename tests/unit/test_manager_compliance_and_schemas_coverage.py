@@ -45,8 +45,8 @@ def test_compliance_report_empty_issues() -> None:
 
 @pytest.mark.unit
 @pytest.mark.xfail(
-    reason="pre-existing bug: check_required_methods calls .add_issue() on list"
-)  # noqa: E501
+    reason="Known bug: check_required_methods calls .add_issue() on list"
+)
 def test_check_required_methods_all_present() -> None:
     class GoodManager:
         async def async_initialize(self) -> None:
@@ -61,8 +61,8 @@ def test_check_required_methods_all_present() -> None:
 
 @pytest.mark.unit
 @pytest.mark.xfail(
-    reason="pre-existing bug: check_required_methods calls .add_issue() on list"
-)  # noqa: E501
+    reason="Known bug: check_required_methods calls .add_issue() on list"
+)
 def test_check_required_methods_missing_method() -> None:
     class BadManager:
         async def async_initialize(self) -> None:
