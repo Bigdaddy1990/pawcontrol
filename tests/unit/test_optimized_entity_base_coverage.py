@@ -3,8 +3,6 @@
 Covers: EntityRegistry, clear_global_entity_registry, ensure_json_mapping
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.optimized_entity_base import (

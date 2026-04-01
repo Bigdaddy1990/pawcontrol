@@ -4,8 +4,6 @@ Covers: RuntimeDataUnavailableError, RuntimeDataIncompatibleError,
         describe_runtime_store_status, get_runtime_data
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest

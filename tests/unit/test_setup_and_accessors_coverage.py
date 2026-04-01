@@ -5,8 +5,6 @@ setup/cleanup: module importable
 coordinator_accessors: CoordinatorDataAccessMixin, CoordinatorDogData
 """  # noqa: E501
 
-from __future__ import annotations
-
 import pytest
 
 import custom_components.pawcontrol.coordinator_accessors as ca

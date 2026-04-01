@@ -4,8 +4,6 @@ Covers: build_boolean_schema, build_number_schema, build_select_schema,
         build_text_schema, coerce_bool, coerce_optional_float
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.flow_helpers import (

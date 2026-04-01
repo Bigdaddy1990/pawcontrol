@@ -4,8 +4,6 @@ Covers: normalise_guard_history, normalise_guard_result_payload,
         ServiceGuardResult, ServiceGuardResultPayload
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.service_guard import (

@@ -5,8 +5,6 @@ flow_validators: validate_dog_name, validate_flow_gps_coordinates,
 entity_optimization: calculate_optimal_update_interval, estimate_state_write_reduction
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.entity_optimization import (

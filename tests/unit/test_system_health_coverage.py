@@ -3,8 +3,6 @@
 Covers: get_runtime_data, get_runtime_performance_stats, derive_rejection_metrics
 """
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 

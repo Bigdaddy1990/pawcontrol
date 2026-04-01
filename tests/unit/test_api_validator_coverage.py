@@ -3,8 +3,6 @@
 Covers: APIValidationResult, APIHealthStatus, APIAuthenticationResult constructors
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.api_validator import (

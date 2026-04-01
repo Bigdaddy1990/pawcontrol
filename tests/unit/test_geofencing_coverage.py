@@ -3,8 +3,6 @@
 Covers: calculate_distance, validate_coordinates, validate_coordinate_pair, GPSLocation
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.geofencing import (

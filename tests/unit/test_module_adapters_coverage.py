@@ -4,8 +4,6 @@ FeedingDailyStats, FeedingSnapshot, FeedingModulePayload are TypedDicts
 → constructed as plain dicts.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.module_adapters import (

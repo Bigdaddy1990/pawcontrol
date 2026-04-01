@@ -3,8 +3,6 @@
 Covers: get_registered_managers, register_manager, ManagerLifecycleError
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.base_manager import (

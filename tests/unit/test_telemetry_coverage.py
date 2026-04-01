@@ -3,8 +3,6 @@
 Covers: get_bool_coercion_metrics, BoolCoercionMetrics/Summary (TypedDicts)
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.telemetry import (

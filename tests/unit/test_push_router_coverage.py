@@ -3,8 +3,6 @@
 Covers: PushResult (TypedDict), get_entry_push_telemetry_snapshot
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest

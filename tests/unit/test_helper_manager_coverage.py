@@ -3,8 +3,6 @@
 CacheDiagnosticsSnapshot is a dataclass; HelperEntityMetadata is a TypedDict.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.helper_manager import (

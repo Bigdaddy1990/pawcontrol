@@ -5,8 +5,6 @@ Covers: PawControlError, ValidationError, ConfigurationError,
         create_error_context, get_exception_class
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.exceptions import (

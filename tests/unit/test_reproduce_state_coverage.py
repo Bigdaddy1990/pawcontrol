@@ -4,8 +4,6 @@ reproduce_state has no standalone fns — only module-level imports.
 We trigger coverage by importing and testing any exposed API.
 """
 
-from __future__ import annotations
-
 import pytest
 
 import custom_components.pawcontrol.reproduce_state as rs

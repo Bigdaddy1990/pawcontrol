@@ -5,8 +5,6 @@ compat: bind_exception_alias, ensure_homeassistant_exception_symbols,
         ensure_homeassistant_config_entry_symbols
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.compat import (

@@ -4,8 +4,6 @@ Covers: CircuitBreaker, CircuitBreakerConfig, get_circuit_breaker,
         get_all_circuit_breakers, reset_all_circuit_breakers, CircuitState
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.resilience import (

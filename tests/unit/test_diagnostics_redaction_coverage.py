@@ -3,8 +3,6 @@
 Covers: compile_redaction_patterns, redact_sensitive_data
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.diagnostics_redaction import (
