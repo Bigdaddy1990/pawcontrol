@@ -1,89 +1,162 @@
-"""Targeted coverage tests for service_guard.py — pure helpers (0% → 25%+).
-
-Covers: normalise_guard_history, normalise_guard_result_payload,
-        ServiceGuardResult, ServiceGuardResultPayload
-"""
+"""Coverage tests for service_guard telemetry helpers."""
 
 import pytest
 
 from custom_components.pawcontrol.service_guard import (
     ServiceGuardResult,
+    ServiceGuardSnapshot,
     normalise_guard_history,
     normalise_guard_result_payload,
 )
 
-# ─── normalise_guard_history ─────────────────────────────────────────────────
-
 
 @pytest.mark.unit
-def test_normalise_guard_history_none() -> None:
-    result = normalise_guard_history(None)
-    assert isinstance(result, list) or result is not None
-
-
-@pytest.mark.unit
-def test_normalise_guard_history_empty_list() -> None:
-    result = normalise_guard_history([])
-    assert isinstance(result, list)
-    assert len(result) == 0
-
-
-@pytest.mark.unit
-def test_normalise_guard_history_with_entries() -> None:
-    history = [
-        {"action": "walk_start", "success": True, "timestamp": "2025-01-01T10:00:00Z"}
-    ]
-    result = normalise_guard_history(history)
-    assert isinstance(result, list)
-
-
-@pytest.mark.unit
-def test_normalise_guard_history_invalid_entry() -> None:
-    result = normalise_guard_history(["bad_entry", None, 42])
-    assert isinstance(result, list)
-
-
-# ─── normalise_guard_result_payload ──────────────────────────────────────────
-
-
-@pytest.mark.unit
-def test_normalise_guard_result_payload_empty() -> None:
-    result = normalise_guard_result_payload({})
-    assert isinstance(result, dict)
-
-
-@pytest.mark.unit
-def test_normalise_guard_result_payload_with_data() -> None:
-    payload = {"allowed": True, "reason": "ok", "guard_id": "feeding_guard"}
-    result = normalise_guard_result_payload(payload)
-    assert isinstance(result, dict)
-
-
-@pytest.mark.unit
-def test_normalise_guard_result_payload_blocked() -> None:
-    payload = {"allowed": False, "reason": "rate_limited", "retry_after": 60}
-    result = normalise_guard_result_payload(payload)
-    assert isinstance(result, dict)
-
-
-# ─── ServiceGuardResult ───────────────────────────────────────────────────────
-
-
-@pytest.mark.unit
-@pytest.mark.xfail(
-    reason="Known circular import blocks ServiceGuardResult signature inspection"
-)
-def test_service_guard_result_allowed() -> None:
-    r = ServiceGuardResult(guard_id="test", service="walk_start", allowed=True)
-    assert r.allowed is True
-
-
-@pytest.mark.unit
-@pytest.mark.xfail(
-    reason="Known circular import blocks ServiceGuardResult signature inspection"
-)
-def test_service_guard_result_denied() -> None:
-    r = ServiceGuardResult(
-        guard_id="test", service="walk_start", allowed=False, reason="rate_limited"
+def test_service_guard_result_to_mapping_and_bool() -> None:
+    result = ServiceGuardResult(
+        domain="pawcontrol",
+        service="walk_start",
+        executed=False,
+        reason="rate_limited",
+        description="Too many calls",
     )
-    assert r.allowed is False
+
+    assert bool(result) is False
+    assert result.to_mapping() == {
+        "domain": "pawcontrol",
+        "service": "walk_start",
+        "executed": False,
+        "reason": "rate_limited",
+        "description": "Too many calls",
+    }
+
+
+@pytest.mark.unit
+def test_service_guard_snapshot_aggregation_helpers() -> None:
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult(
+            domain="pawcontrol",
+            service="walk_start",
+            executed=True,
+        ),
+        ServiceGuardResult(
+            domain="pawcontrol",
+            service="walk_start",
+            executed=False,
+            reason="rate_limited",
+        ),
+        ServiceGuardResult(
+            domain="pawcontrol",
+            service="walk_start",
+            executed=False,
+        ),
+    ])
+
+    assert snapshot.executed == 1
+    assert snapshot.skipped == 2
+    assert snapshot.reasons == {"rate_limited": 1, "unknown": 1}
+    assert snapshot.to_summary()["executed"] == 1
+    assert snapshot.to_metrics()["last_results"][1]["reason"] == "rate_limited"
+
+
+@pytest.mark.unit
+def test_service_guard_snapshot_accumulate_coerces_and_merges() -> None:
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult(domain="pawcontrol", service="walk", executed=False),
+        ServiceGuardResult(
+            domain="pawcontrol",
+            service="walk",
+            executed=False,
+            reason="blocked",
+        ),
+    ])
+
+    metrics: dict[str, object] = {
+        "executed": "2",
+        "skipped": True,
+        "reasons": {"blocked": 4, "bad_value": "oops"},
+        "last_results": "invalid",
+    }
+
+    merged = snapshot.accumulate(metrics)
+
+    assert merged["executed"] == 2
+    assert merged["skipped"] == 3
+    assert merged["reasons"] == {"blocked": 5, "bad_value": 0, "unknown": 1}
+    assert isinstance(merged["last_results"], list)
+
+
+@pytest.mark.unit
+def test_service_guard_snapshot_accumulate_reasons_recreated_when_invalid() -> None:
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult(domain="pawcontrol", service="walk", executed=False)
+    ])
+
+    metrics: dict[str, object] = {"reasons": "invalid"}
+    merged = snapshot.accumulate(metrics)
+
+    assert merged["executed"] == 0
+    assert merged["skipped"] == 1
+    assert merged["reasons"] == {"unknown": 1}
+
+
+@pytest.mark.unit
+def test_normalise_guard_result_payload_keeps_only_valid_fields() -> None:
+    payload = {
+        "executed": 1,
+        "domain": "pawcontrol",
+        "service": "walk",
+        "reason": "rate_limited",
+        "description": "Denied",
+        "ignored": "value",
+    }
+
+    assert normalise_guard_result_payload(payload) == {
+        "executed": True,
+        "domain": "pawcontrol",
+        "service": "walk",
+        "reason": "rate_limited",
+        "description": "Denied",
+    }
+
+
+@pytest.mark.unit
+def test_normalise_guard_result_payload_drops_empty_strings() -> None:
+    payload = {
+        "executed": 0,
+        "domain": "",
+        "service": "",
+        "reason": "",
+        "description": "",
+    }
+
+    assert normalise_guard_result_payload(payload) == {"executed": False}
+
+
+@pytest.mark.unit
+def test_normalise_guard_history_non_sequence_returns_empty_list() -> None:
+    assert normalise_guard_history(None) == []
+    assert normalise_guard_history("not-a-list") == []
+
+
+@pytest.mark.unit
+def test_normalise_guard_history_accepts_result_objects_and_mappings() -> None:
+    entries = [
+        ServiceGuardResult(domain="pawcontrol", service="walk", executed=True),
+        {
+            "executed": False,
+            "domain": "pawcontrol",
+            "service": "walk",
+            "reason": "blocked",
+        },
+        42,
+    ]
+
+    assert normalise_guard_history(entries) == [
+        {"domain": "pawcontrol", "service": "walk", "executed": True},
+        {
+            "executed": False,
+            "domain": "pawcontrol",
+            "service": "walk",
+            "reason": "blocked",
+        },
+    ]
