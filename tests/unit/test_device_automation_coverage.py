@@ -2,7 +2,8 @@
 
 Covers: ActionDefinition, ConditionDefinition, TriggerDefinition dataclasses
         and resolve_device_context helpers.
-"""
+"""  # noqa: E501
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -18,12 +19,12 @@ from custom_components.pawcontrol.device_condition import (
     DeviceConditionPayload,
 )
 from custom_components.pawcontrol.device_trigger import (
-    TriggerDefinition,
     DeviceTriggerPayload,
+    TriggerDefinition,
 )
 
-
 # ─── ActionDefinition ────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_action_definition_init() -> None:
@@ -44,6 +45,7 @@ def test_device_action_payload_is_dict() -> None:
 
 
 # ─── ConditionDefinition ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_condition_definition_init() -> None:
@@ -69,12 +71,15 @@ def test_condition_definition_feeding() -> None:
 @pytest.mark.unit
 def test_device_condition_payload_is_dict() -> None:
     payload: DeviceConditionPayload = {
-        "type": "is_walking", "device_id": "dev_001", "platform": "device"
+        "type": "is_walking",
+        "device_id": "dev_001",
+        "platform": "device",
     }
     assert payload["type"] == "is_walking"
 
 
 # ─── TriggerDefinition ───────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_trigger_definition_minimal() -> None:
@@ -113,19 +118,23 @@ def test_device_trigger_payload_is_dict() -> None:
 
 # ─── module import checks ─────────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_device_action_has_resolve_device_context() -> None:
     import custom_components.pawcontrol.device_action as da
+
     assert hasattr(da, "resolve_device_context")
 
 
 @pytest.mark.unit
 def test_device_condition_has_build_unique_id() -> None:
     import custom_components.pawcontrol.device_condition as dc
+
     assert hasattr(dc, "build_unique_id")
 
 
 @pytest.mark.unit
 def test_device_trigger_has_build_unique_id() -> None:
     import custom_components.pawcontrol.device_trigger as dt
+
     assert hasattr(dt, "build_unique_id")

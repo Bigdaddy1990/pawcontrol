@@ -3,6 +3,7 @@
 Covers: log_direct_access_warning, print_access_guidelines,
         CoordinatorAccessViolation, CoordinatorDataProxy
 """
+
 from __future__ import annotations
 
 import pytest
@@ -14,8 +15,8 @@ from custom_components.pawcontrol.coordinator_access_enforcement import (
     print_access_guidelines,
 )
 
-
 # ─── log_direct_access_warning ────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_log_direct_access_warning_no_raise() -> None:
@@ -25,12 +26,14 @@ def test_log_direct_access_warning_no_raise() -> None:
 @pytest.mark.unit
 def test_log_direct_access_warning_with_method() -> None:
     log_direct_access_warning(
-        "sensor.rex_activity", "activity",
+        "sensor.rex_activity",
+        "activity",
         coordinator_method="get_dog_activity",
     )
 
 
 # ─── print_access_guidelines ──────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_print_access_guidelines_no_raise() -> None:
@@ -38,6 +41,7 @@ def test_print_access_guidelines_no_raise() -> None:
 
 
 # ─── CoordinatorAccessViolation ───────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_coordinator_access_violation_init() -> None:
@@ -58,6 +62,7 @@ def test_coordinator_access_violation_raise() -> None:
 
 
 # ─── CoordinatorDataProxy ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_coordinator_data_proxy_init() -> None:

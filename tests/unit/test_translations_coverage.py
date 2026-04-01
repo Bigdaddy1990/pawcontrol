@@ -1,15 +1,16 @@
-"""Coverage tests for language.py + grooming_translations.py + weather_translations.py."""
+"""Coverage tests for language.py + grooming_translations.py + weather_translations.py."""  # noqa: E501
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.pawcontrol.language import normalize_language
 from custom_components.pawcontrol.grooming_translations import (
     translated_grooming_label,
     translated_grooming_template,
 )
+from custom_components.pawcontrol.language import normalize_language
 from custom_components.pawcontrol.weather_translations import (
     WeatherAlertTranslation,
     WeatherTranslations,
@@ -17,8 +18,8 @@ from custom_components.pawcontrol.weather_translations import (
     get_weather_translations,
 )
 
-
 # ─── normalize_language ──────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_normalize_language_none_returns_default() -> None:
@@ -59,6 +60,7 @@ def test_normalize_language_unsupported_falls_back() -> None:
 
 # ─── translated_grooming_label ────────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_translated_grooming_label_no_hass() -> None:
     result = translated_grooming_label(None, None, "brush")
@@ -73,6 +75,7 @@ def test_translated_grooming_label_with_lang() -> None:
 
 # ─── translated_grooming_template ─────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_translated_grooming_template_no_hass() -> None:
     result = translated_grooming_template(None, None, "reminder")
@@ -80,6 +83,7 @@ def test_translated_grooming_template_no_hass() -> None:
 
 
 # ─── empty_weather_translations ───────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_empty_weather_translations_returns_dict() -> None:
@@ -94,6 +98,7 @@ def test_empty_weather_translations_has_keys() -> None:
 
 
 # ─── get_weather_translations ─────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_get_weather_translations_english() -> None:
@@ -115,9 +120,13 @@ def test_get_weather_translations_unknown_lang() -> None:
 
 # ─── WeatherAlertTranslation / WeatherTranslations (TypedDicts) ───────────────
 
+
 @pytest.mark.unit
 def test_weather_alert_translation_as_dict() -> None:
-    alert: WeatherAlertTranslation = {"title": "Storm warning", "message": "Take shelter"}
+    alert: WeatherAlertTranslation = {
+        "title": "Storm warning",
+        "message": "Take shelter",
+    }  # noqa: E501
     assert alert["title"] == "Storm warning"
 
 

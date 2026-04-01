@@ -2,6 +2,7 @@
 
 Covers: DeviceEndpoint, NetworkError, RateLimitError, validate_device_endpoint
 """
+
 from __future__ import annotations
 
 import pytest
@@ -13,8 +14,8 @@ from custom_components.pawcontrol.device_api import (
     validate_device_endpoint,
 )
 
-
 # ─── validate_device_endpoint ────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_validate_device_endpoint_valid_url() -> None:
@@ -30,17 +31,18 @@ def test_validate_device_endpoint_https() -> None:
 
 @pytest.mark.unit
 def test_validate_device_endpoint_invalid_raises() -> None:
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         validate_device_endpoint("not_a_url")
 
 
 @pytest.mark.unit
 def test_validate_device_endpoint_empty_raises() -> None:
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         validate_device_endpoint("")
 
 
 # ─── DeviceEndpoint ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_device_endpoint_init() -> None:
@@ -58,6 +60,7 @@ def test_device_endpoint_with_api_key() -> None:
 
 
 # ─── NetworkError ─────────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_network_error_basic() -> None:
@@ -86,6 +89,7 @@ def test_network_error_is_exception() -> None:
 
 
 # ─── RateLimitError ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_rate_limit_error_basic() -> None:

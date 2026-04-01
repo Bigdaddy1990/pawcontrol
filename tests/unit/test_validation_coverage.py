@@ -24,7 +24,7 @@ from custom_components.pawcontrol.validation import (
 def test_clamp_float_range_within_bounds() -> None:
     result = clamp_float_range(
         5.0, field="weight", minimum=0.0, maximum=100.0, default=50.0
-    )  # noqa: E501
+    )
     assert result == pytest.approx(5.0)
 
 
@@ -32,7 +32,7 @@ def test_clamp_float_range_within_bounds() -> None:
 def test_clamp_float_range_below_min() -> None:
     result = clamp_float_range(
         -1.0, field="weight", minimum=0.0, maximum=100.0, default=50.0
-    )  # noqa: E501
+    )
     assert result == pytest.approx(0.0)
 
 
@@ -40,7 +40,7 @@ def test_clamp_float_range_below_min() -> None:
 def test_clamp_float_range_above_max() -> None:
     result = clamp_float_range(
         999.0, field="weight", minimum=0.0, maximum=100.0, default=50.0
-    )  # noqa: E501
+    )
     assert result == pytest.approx(100.0)
 
 
@@ -48,7 +48,7 @@ def test_clamp_float_range_above_max() -> None:
 def test_clamp_float_range_none_uses_default() -> None:
     result = clamp_float_range(
         None, field="weight", minimum=0.0, maximum=100.0, default=50.0
-    )  # noqa: E501
+    )
     assert result == pytest.approx(50.0)
 
 
@@ -56,7 +56,7 @@ def test_clamp_float_range_none_uses_default() -> None:
 def test_clamp_float_range_at_boundary() -> None:
     result = clamp_float_range(
         100.0, field="weight", minimum=0.0, maximum=100.0, default=50.0
-    )  # noqa: E501
+    )
     assert result == pytest.approx(100.0)
 
 
