@@ -216,6 +216,50 @@ async def test_register_entry_mqtt_uses_default_topic_and_handles_subscribe_erro
 
 
 @pytest.mark.asyncio
+async def test_register_entry_mqtt_replaces_existing_subscription(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Re-registering should unsubscribe stale callbacks before storing the new one."""
+    old_unsub_called = False
+
+    async def _old_unsub() -> None:
+        nonlocal old_unsub_called
+        old_unsub_called = True
+
+    hass = SimpleNamespace(
+        data={DOMAIN: {mqtt_push._MQTT_STORE_KEY: {"entry-id": _old_unsub}}}
+    )
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "mqtt"}}]},
+        options={CONF_MQTT_ENABLED: True},
+    )
+
+    def _new_unsub() -> None:
+        return None
+
+    async def _async_subscribe(
+        _hass: object,
+        topic: str,
+        callback: Callable[[object], Awaitable[None]],
+        qos: int,
+    ) -> Callable[[], None]:
+        del callback
+        assert topic == DEFAULT_MQTT_TOPIC
+        assert qos == 0
+        return _new_unsub
+
+    mqtt_module = ModuleType("homeassistant.components.mqtt")
+    mqtt_module.async_subscribe = _async_subscribe  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "homeassistant.components.mqtt", mqtt_module)
+
+    await mqtt_push.async_register_entry_mqtt(hass, entry)
+
+    assert old_unsub_called is True
+    assert hass.data[DOMAIN][mqtt_push._MQTT_STORE_KEY]["entry-id"] is _new_unsub
+
+
+@pytest.mark.asyncio
 async def test_unregister_entry_mqtt_supports_async_unsubscribe() -> None:
     """Unregister should await async unsubscribe callbacks and remove entries."""
     awaitable_unsub = _AwaitableUnsub()
