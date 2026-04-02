@@ -1,7 +1,5 @@
 """Coverage tests for webhooks.py + flows/garden.py + flows/walk_schemas.py + selector_shim.py."""  # noqa: E501
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest
