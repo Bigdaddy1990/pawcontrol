@@ -4,8 +4,6 @@ Covers: log_direct_access_warning, print_access_guidelines,
         CoordinatorAccessViolation, CoordinatorDataProxy
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.coordinator_access_enforcement import (

@@ -4,8 +4,6 @@ Covers: is_dog_config_payload_valid, normalize_dog_id, ensure_json_mapping,
         ensure_dog_modules_config, coerce_float, coerce_int
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.flow_validation import (

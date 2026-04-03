@@ -4,8 +4,6 @@ Covers: clamp_float_range, clamp_int_range, coerce_float, coerce_int,
         normalize_dog_id, InputCoercionError
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.validation import (

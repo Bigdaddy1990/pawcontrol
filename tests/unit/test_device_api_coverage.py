@@ -3,8 +3,6 @@
 Covers: DeviceEndpoint, NetworkError, RateLimitError, validate_device_endpoint
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.device_api import (

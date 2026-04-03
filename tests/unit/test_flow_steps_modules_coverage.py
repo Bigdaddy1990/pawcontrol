@@ -1,7 +1,5 @@
 """Coverage tests for flow_steps modules — system_settings, health, notifications, __init__."""  # noqa: E501
 
-from __future__ import annotations
-
 import pytest
 
 import custom_components.pawcontrol.flow_steps as fs_init

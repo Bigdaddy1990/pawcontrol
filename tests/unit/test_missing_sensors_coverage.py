@@ -3,8 +3,6 @@
 Covers: calculate_hours_since, ensure_utc_datetime
 """
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest

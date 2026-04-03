@@ -2,8 +2,6 @@
 and flow_steps/gps_schemas.py + notifications_schemas.py + health_schemas.py.
 """  # noqa: D205, E501
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest
