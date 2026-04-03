@@ -4,8 +4,6 @@ Covers: walk_helpers, config_flow_schemas, options_flow_hosts,
         options_flow_menu, options_flow_support
 """
 
-from __future__ import annotations
-
 import pytest
 
 import custom_components.pawcontrol.config_flow_schemas as cfs

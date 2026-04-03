@@ -1,7 +1,5 @@
 """Coverage tests for http_client.py + mqtt_push.py — module imports (0% → 15%+)."""
 
-from __future__ import annotations
-
 import pytest
 
 import custom_components.pawcontrol.http_client as hc

@@ -3,8 +3,6 @@
 Covers: ActivityLevel, BodyConditionScore enums, HealthCalculator class
 """
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.health_calculator import (

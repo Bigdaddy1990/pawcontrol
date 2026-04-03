@@ -1,7 +1,5 @@
 """Coverage tests for flow_steps helpers + device_automation_helpers."""
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.device_automation_helpers import (
