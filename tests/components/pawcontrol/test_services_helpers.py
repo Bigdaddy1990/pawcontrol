@@ -1,6 +1,7 @@
 """Unit tests for service helper utilities."""
 
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import Mock, patch
 
 from homeassistant.config_entries import ConfigEntryState
@@ -52,6 +53,52 @@ def test_format_expires_in_hours_error_fallback_and_range() -> None:
         )
         == "expires_in_hours must be a number"
     )
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (
+            ValidationError(
+                "expires_in_hours",
+                constraint="expires_in_hours_out_of_range",
+                min_value=2,
+            ),
+            "expires_in_hours must be greater than 2",
+        ),
+        (
+            ValidationError(
+                "expires_in_hours",
+                constraint="expires_in_hours_out_of_range",
+                max_value=12,
+            ),
+            "expires_in_hours must be less than 12",
+        ),
+        (
+            ValidationError(
+                "expires_in_hours",
+                constraint="expires_in_hours_out_of_range",
+            ),
+            "expires_in_hours is out of range",
+        ),
+        (
+            ValidationError("expires_in_hours", constraint="expires_in_hours_required"),
+            "expires_in_hours is required",
+        ),
+        (
+            ValidationError(
+                "expires_in_hours",
+                constraint="expires_in_hours_not_numeric",
+            ),
+            "expires_in_hours must be a number",
+        ),
+    ],
+)
+def test_format_expires_in_hours_error_full_branches(
+    error: ValidationError,
+    expected: str,
+) -> None:
+    assert services._format_expires_in_hours_error(error) == expected
 
 
 def test_service_validation_error_strips_and_rejects_empty() -> None:
@@ -279,6 +326,71 @@ def test_coordinator_resolver_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     resolver = services._CoordinatorResolver(hass)
     assert resolver.resolve() is coordinator
     assert resolver.resolve() is coordinator
+
+
+def test_coordinator_resolver_invalidate_respects_entry_id() -> None:
+    resolver = services._CoordinatorResolver(SimpleNamespace())
+    resolver._cached_coordinator = SimpleNamespace()  # type: ignore[attr-defined]
+    resolver._cached_entry_id = "entry-1"  # type: ignore[attr-defined]
+
+    resolver.invalidate(entry_id="entry-2")
+    assert resolver._cached_coordinator is not None  # type: ignore[attr-defined]
+
+    resolver.invalidate(entry_id="entry-1")
+    assert resolver._cached_coordinator is None  # type: ignore[attr-defined]
+
+
+def test_coordinator_resolver_get_cached_invalid_states() -> None:
+    wrong_hass = SimpleNamespace()
+    current_hass = SimpleNamespace()
+    coordinator = SimpleNamespace(
+        hass=wrong_hass,
+        config_entry=SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="id"),
+    )
+    resolver = services._CoordinatorResolver(current_hass)
+    resolver._cached_coordinator = coordinator  # type: ignore[attr-defined]
+    resolver._cached_entry_id = "id"  # type: ignore[attr-defined]
+
+    assert resolver._get_cached_coordinator() is None  # type: ignore[attr-defined]
+
+    resolver._cached_coordinator = SimpleNamespace(  # type: ignore[attr-defined]
+        hass=current_hass,
+        config_entry=SimpleNamespace(
+            state=ConfigEntryState.SETUP_IN_PROGRESS,
+            entry_id="id",
+        ),
+    )
+    resolver._cached_entry_id = "id"  # type: ignore[attr-defined]
+    assert resolver._get_cached_coordinator() is None  # type: ignore[attr-defined]
+
+
+def test_extract_service_context_none_and_passthrough_context_name() -> None:
+    call_without_context = SimpleNamespace()
+    context, metadata = services._extract_service_context(call_without_context)
+    assert context is None
+    assert metadata is None
+
+    FakeContext = type("Context", (), {})
+    fake_context = FakeContext()
+    fake_context.id = "ctx-name"
+    fake_context.parent_id = None
+    fake_context.user_id = None
+    call_with_named_context = SimpleNamespace(context=fake_context)
+
+    context, metadata = services._extract_service_context(call_with_named_context)
+    assert context is fake_context
+    assert metadata == {
+        "context_id": "ctx-name",
+        "parent_id": None,
+        "user_id": None,
+    }
+
+
+def test_merge_service_context_metadata_ignores_non_string_keys() -> None:
+    target: dict[str, object] = {}
+    source = cast(dict[str, object], {1: "skip", "context_id": "ctx"})
+    services._merge_service_context_metadata(target, source)
+    assert target == {"context_id": "ctx"}
 
 
 def test_coordinator_resolver_error_messages() -> None:
