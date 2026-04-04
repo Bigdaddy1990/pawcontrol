@@ -9,6 +9,7 @@ from custom_components.pawcontrol.device_automation_helpers import (
 from custom_components.pawcontrol.exceptions import ValidationError
 import custom_components.pawcontrol.flow_steps.gps_helpers as gps_h
 from custom_components.pawcontrol.flow_steps.gps_helpers import (
+    build_dog_gps_placeholders,
     build_gps_source_options,
     validation_error_key,
 )
@@ -35,6 +36,12 @@ def test_build_gps_source_options_with_entries() -> None:
     })
     assert isinstance(result, dict)
     assert "ha_person" in result
+
+
+@pytest.mark.unit
+def test_build_dog_gps_placeholders_sets_dog_name() -> None:
+    result = build_dog_gps_placeholders(dog_name="Rex")
+    assert result["dog_name"] == "Rex"
 
 
 # ─── validation_error_key ─────────────────────────────────────────────────────
