@@ -22,6 +22,7 @@ from custom_components.pawcontrol.feeding_manager import (
     FeedingScheduleType,
     MealSchedule,
     MealType,
+    _normalise_health_override,
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -588,3 +589,48 @@ def test_meal_schedule_get_next_feeding_time_empty_days_of_week() -> None:
     # Should return without hanging
     result = sched.get_next_feeding_time()
     assert result is not None
+
+
+@pytest.mark.unit
+def test_normalise_health_override_filters_invalid_entries() -> None:
+    """Health overrides should coerce numeric strings and drop invalid items."""
+    payload = {
+        "weight": "12.5",
+        "ideal_weight": 10,
+        "age_months": "24",
+        "health_conditions": ["diabetes", 3, None, "allergy"],
+    }
+
+    normalized = _normalise_health_override(payload)
+
+    assert normalized is not None
+    assert normalized["weight"] == 12.5
+    assert normalized["ideal_weight"] == 10.0
+    assert normalized["age_months"] == 24
+    assert normalized["health_conditions"] == ["diabetes", "allergy"]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_get_diet_validation_status_returns_none_without_data(
+    mock_hass,
+) -> None:
+    """Status endpoint should return None until validation data is present."""
+    mgr = await _init_manager(mock_hass)
+    status = await mgr.async_get_diet_validation_status("rex")
+    assert status is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_calculate_health_aware_portion_handles_invalid_meal_type(
+    mock_hass,
+) -> None:
+    """Invalid meal names should return None instead of raising."""
+    mgr = await _init_manager(mock_hass)
+    portion = await mgr.async_calculate_health_aware_portion(
+        "rex",
+        "late_night",
+        {"weight": "20.0", "health_conditions": ["digestive_issues", 1]},
+    )
+    assert portion is None
