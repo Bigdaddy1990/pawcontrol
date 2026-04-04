@@ -529,3 +529,91 @@ def test_normalise_context_identifier_handles_whitespace_stringified_value() -> 
     value = _WhitespaceStr()
 
     assert services._normalise_context_identifier(value) is None
+
+
+def test_format_expires_in_hours_error_supports_one_sided_ranges() -> None:
+    """Range messaging should handle min-only and max-only payloads."""
+    minimum_only = ValidationError(
+        "expires_in_hours",
+        constraint="expires_in_hours_out_of_range",
+        min_value=1.5,
+    )
+    maximum_only = ValidationError(
+        "expires_in_hours",
+        constraint="expires_in_hours_out_of_range",
+        max_value=8.0,
+    )
+
+    assert (
+        services._format_expires_in_hours_error(minimum_only)
+        == "expires_in_hours must be greater than 1.5"
+    )
+    assert (
+        services._format_expires_in_hours_error(maximum_only)
+        == "expires_in_hours must be less than 8"
+    )
+
+
+def test_coordinator_resolver_invalidate_and_stale_cache_paths() -> None:
+    """Resolver should preserve unrelated cache invalidations and drop stale cache."""
+    hass = SimpleNamespace(data={}, config_entries=_FakeConfigEntries([]))
+    resolver = services._CoordinatorResolver(hass)
+
+    active_coordinator = SimpleNamespace(
+        hass=hass,
+        config_entry=SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="entry-1"),
+    )
+    resolver._cache_coordinator(active_coordinator)
+    resolver.invalidate(entry_id="entry-2")
+    assert resolver._get_cached_coordinator() is active_coordinator
+
+    paused_coordinator = SimpleNamespace(
+        hass=hass,
+        config_entry=SimpleNamespace(
+            state=ConfigEntryState.SETUP_IN_PROGRESS,
+            entry_id="entry-1",
+        ),
+    )
+    resolver._cache_coordinator(paused_coordinator)
+    assert resolver._get_cached_coordinator() is None
+
+    foreign_coordinator = SimpleNamespace(
+        hass=SimpleNamespace(),
+        config_entry=SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="entry-1"),
+    )
+    resolver._cache_coordinator(foreign_coordinator)
+    assert resolver._get_cached_coordinator() is None
+
+
+def test_extract_service_context_with_class_named_context_and_empty_metadata() -> None:
+    """Class-name based context objects should still return context instances."""
+
+    ContextLike = type("Context", (), {})
+    context_like = ContextLike()
+    context_like.id = "ctx-9"
+    context_like.parent_id = " "
+    context_like.user_id = None
+    call = SimpleNamespace(context=context_like)
+
+    context, metadata = services._extract_service_context(call)
+    assert context is context_like
+    assert metadata == {"context_id": "ctx-9", "parent_id": None, "user_id": None}
+
+
+def test_record_service_result_replaces_non_list_service_results() -> None:
+    """Legacy non-list result payloads should be replaced with list containers."""
+    runtime_data = SimpleNamespace(performance_stats={"service_results": "invalid"})
+
+    services._record_service_result(
+        runtime_data,
+        service="send_notification",
+        status="success",
+        metadata={"attempt": 1},
+    )
+
+    performance_stats = runtime_data.performance_stats
+    assert isinstance(performance_stats["service_results"], list)
+    assert performance_stats["service_results"][0]["status"] == "success"
+    assert performance_stats["last_service_result"]["diagnostics"]["metadata"] == {
+        "attempt": 1
+    }
