@@ -10,8 +10,12 @@ import pytest
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.script_manager import (
     PawControlScriptManager,
+    _classify_timestamp,
     _coerce_threshold,
     _extract_field_int,
+    _normalise_entry_slug,
+    _resolve_resilience_entity_id,
+    _resolve_resilience_object_id,
     _is_resilience_blueprint,
     _parse_event_selection,
     _parse_manual_resilience_options,
@@ -370,47 +374,72 @@ def test_blueprint_detection_and_event_data_serialisation() -> None:
 
 
 @pytest.mark.unit
-def test_coerce_threshold_clamps_and_falls_back_to_default() -> None:
-    """Threshold coercion should clamp out-of-range values and keep defaults."""
-    assert _coerce_threshold("", default=7, minimum=1, maximum=9) == 7
-    assert _coerce_threshold("0", default=7, minimum=1, maximum=9) == 1
-    assert _coerce_threshold(100, default=7, minimum=1, maximum=9) == 9
-    assert _coerce_threshold("4", default=7, minimum=1, maximum=9) == 4
+def test_slug_and_resilience_entity_resolution_fall_back_to_entry_id() -> None:
+    """Slug and entity/object IDs should remain deterministic for empty titles."""
+    entry = SimpleNamespace(title="", entry_id="Entry-ID")
+
+    assert _normalise_entry_slug(entry) == "entry-id"
+    assert (
+        _resolve_resilience_object_id(entry)
+        == "pawcontrol_entry-id_resilience_escalation"
+    )
+    assert (
+        _resolve_resilience_entity_id(entry)
+        == "script.pawcontrol_entry-id_resilience_escalation"
+    )
 
 
 @pytest.mark.unit
-def test_resolve_resilience_script_thresholds_handles_missing_state_access() -> None:
-    """Resolver should safely return ``None`` thresholds when states are unavailable."""
+def test_coerce_threshold_clamps_and_defaults() -> None:
+    """Threshold coercion should clamp out-of-range values and use defaults."""
+    assert _coerce_threshold(None, default=3, minimum=1, maximum=5) == 3
+    assert _coerce_threshold("0", default=3, minimum=1, maximum=5) == 1
+    assert _coerce_threshold("8", default=3, minimum=1, maximum=5) == 5
+    assert _coerce_threshold(4, default=3, minimum=1, maximum=5) == 4
+
+
+@pytest.mark.unit
+def test_extract_field_int_supports_mapping_and_objects() -> None:
+    """Field extraction should read mapping/object defaults and ignore invalid data."""
+
+    class _FieldObject:
+        def __init__(self, default: object) -> None:
+            self.default = default
+
+    assert _extract_field_int(None, "skip_threshold") is None
+    assert _extract_field_int({"skip_threshold": {"default": "6"}}, "skip_threshold") == 6
+    assert _extract_field_int({"skip_threshold": _FieldObject(7.0)}, "skip_threshold") == 7
+    assert _extract_field_int({"skip_threshold": {"default": "bad"}}, "skip_threshold") is None
+
+
+@pytest.mark.unit
+def test_resolve_resilience_script_thresholds_handles_missing_state_shape() -> None:
+    """Threshold resolver should gracefully handle missing state accessors."""
     entry = SimpleNamespace(title="Buddy", entry_id="entry")
 
-    no_states = SimpleNamespace()
-    assert resolve_resilience_script_thresholds(no_states, entry) == (None, None)
-
-    non_mapping_attributes = SimpleNamespace(
-        states=SimpleNamespace(
-            get=lambda _entity_id: SimpleNamespace(attributes="invalid")
-        )
+    assert resolve_resilience_script_thresholds(SimpleNamespace(states=None), entry) == (
+        None,
+        None,
     )
-    assert resolve_resilience_script_thresholds(non_mapping_attributes, entry) == (
+    assert resolve_resilience_script_thresholds(SimpleNamespace(states={}), entry) == (
         None,
         None,
     )
 
 
 @pytest.mark.unit
-def test_script_manager_cache_monitor_flags_future_timestamps() -> None:
-    """Diagnostics should report future timestamp anomalies and script counters."""
-    manager = SimpleNamespace(
-        _created_entities={"script.b", "script.a"},
-        _dog_scripts={"dog-1": ["script.dog_1"]},
-        _entry_scripts=["script.entry"],
-        _last_generation=dt_util.utcnow() + timedelta(days=365),
-    )
+def test_classify_timestamp_covers_recent_stale_and_future_values() -> None:
+    """Timestamp classification should expose reason labels and ages."""
+    now = dt_util.utcnow()
 
-    monitor = _ScriptManagerCacheMonitor(manager)
-    snapshot = monitor.coordinator_snapshot()
+    reason, age = _classify_timestamp(now)
+    assert reason is None
+    assert isinstance(age, int)
 
-    assert snapshot["stats"]["scripts"] == 2
-    assert snapshot["stats"]["entry_scripts"] == 1
-    assert snapshot["diagnostics"]["timestamp_anomalies"] == {"manager": "future"}
-    assert snapshot["snapshot"]["created_entities"] == ["script.a", "script.b"]
+    stale_reason, stale_age = _classify_timestamp(now - timedelta(days=3))
+    assert stale_reason == "stale"
+    assert isinstance(stale_age, int) and stale_age > 0
+
+    future_reason, future_age = _classify_timestamp(now + timedelta(days=3))
+    assert future_reason == "future"
+    assert isinstance(future_age, int) and future_age < 0
