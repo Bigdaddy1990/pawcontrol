@@ -18,8 +18,8 @@ import pytest
 
 from custom_components.pawcontrol.feeding_manager import (
     FeedingConfig,
-    FeedingScheduleType,
     FeedingManager,
+    FeedingScheduleType,
     MealSchedule,
     MealType,
     _normalise_health_override,
@@ -596,19 +596,17 @@ def test_meal_schedule_get_next_feeding_time_empty_days_of_week() -> None:
 async def test_async_add_feeding_with_medication_combines_notes(mock_hass) -> None:
     """Medication-enabled mode should append medication details to notes."""
     mgr = FeedingManager(mock_hass)
-    await mgr.async_initialize(
-        [
-            {
-                "dog_id": "rex",
-                "weight": 20.0,
-                "feeding_config": {
-                    "meals_per_day": 2,
-                    "daily_food_amount": 400.0,
-                    "medication_with_meals": True,
-                },
-            }
-        ]
-    )
+    await mgr.async_initialize([
+        {
+            "dog_id": "rex",
+            "weight": 20.0,
+            "feeding_config": {
+                "meals_per_day": 2,
+                "daily_food_amount": 400.0,
+                "medication_with_meals": True,
+            },
+        }
+    ])
 
     event = await mgr.async_add_feeding_with_medication(
         dog_id="rex",

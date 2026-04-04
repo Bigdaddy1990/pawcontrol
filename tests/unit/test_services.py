@@ -839,6 +839,8 @@ def test_normalise_context_identifier_handles_non_string_value_errors() -> None:
             raise ValueError("cannot stringify")
 
     assert services._normalise_context_identifier(_BrokenIdentifier()) is None
+
+
 def test_record_delivery_failure_reason_reuses_existing_mapping_bucket(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

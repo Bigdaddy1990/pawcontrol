@@ -1,7 +1,5 @@
 """Focused coordinator coverage tests for guard and fallback branches."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import timedelta
 from types import SimpleNamespace
@@ -180,14 +178,18 @@ async def test_request_selective_refresh_handles_none_and_deduplicates_ids() -> 
 
 
 @pytest.mark.asyncio
-async def test_async_maintenance_delegates_to_runtime_helper(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_async_maintenance_delegates_to_runtime_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     coordinator = _make_coordinator()
     called_with: list[PawControlCoordinator] = []
 
     async def _fake_run_maintenance(instance: PawControlCoordinator) -> None:
         called_with.append(instance)
 
-    monkeypatch.setattr(coordinator_module.coordinator_tasks, "run_maintenance", _fake_run_maintenance)
+    monkeypatch.setattr(
+        coordinator_module.coordinator_tasks, "run_maintenance", _fake_run_maintenance
+    )
 
     await coordinator._async_maintenance()
 

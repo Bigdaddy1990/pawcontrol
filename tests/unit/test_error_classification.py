@@ -23,7 +23,10 @@ def test_classify_error_reason_detects_unreachable_from_exception() -> None:
 
 def test_classify_error_reason_detects_timeout_and_rate_limit() -> None:
     """Timeout and rate-limit errors classify independently."""
-    assert classify_error_reason(None, error="Deadline exceeded waiting for response") == "timeout"
+    assert (
+        classify_error_reason(None, error="Deadline exceeded waiting for response")
+        == "timeout"
+    )
     assert classify_error_reason(None, error="429 too many requests") == "rate_limited"
 
 

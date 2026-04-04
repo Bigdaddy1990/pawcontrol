@@ -699,7 +699,6 @@ def test_coordinator_resolver_invalidate_and_stale_cache_paths() -> None:
 
 def test_extract_service_context_with_class_named_context_and_empty_metadata() -> None:
     """Class-name based context objects should still return context instances."""
-
     ContextLike = type("Context", (), {})
     context_like = ContextLike()
     context_like.id = "ctx-9"
