@@ -2,8 +2,6 @@
 options_flow_door_sensor.py, config_flow_dashboard_extension.py.
 """  # noqa: D205
 
-from __future__ import annotations
-
 import pytest
 
 import custom_components.pawcontrol.config_flow_base as cfb_mod

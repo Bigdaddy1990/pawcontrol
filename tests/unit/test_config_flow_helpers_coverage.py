@@ -1,7 +1,5 @@
 """Coverage tests for config_flow_placeholders.py + config_flow_monitor.py + config_flow_discovery.py."""  # noqa: E501
 
-from __future__ import annotations
-
 import pytest
 
 import custom_components.pawcontrol.config_flow_discovery as cfd_mod

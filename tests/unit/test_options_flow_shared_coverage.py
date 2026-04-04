@@ -1,7 +1,5 @@
 """Coverage tests for options_flow_shared.py + options_flow_import_export.py."""
 
-from __future__ import annotations
-
 import pytest
 
 import custom_components.pawcontrol.options_flow_import_export as ofie_mod

@@ -1,7 +1,5 @@
 """Coverage tests for config_flow_dogs.py + config_flow_modules.py + setup/__init__.py."""  # noqa: E501
 
-from __future__ import annotations
-
 import pytest
 
 import custom_components.pawcontrol.config_flow_dogs as cfd_mod
