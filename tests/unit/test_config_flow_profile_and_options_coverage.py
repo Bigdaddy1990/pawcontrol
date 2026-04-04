@@ -55,7 +55,7 @@ def test_profile_selector_option_as_dict() -> None:
     opt: ProfileSelectorOption = {
         "value": "balanced",
         "label": "Balanced (Recommended)",
-    }  # noqa: E501
+    }
     assert opt["value"] == "balanced"
     assert "label" in opt
 

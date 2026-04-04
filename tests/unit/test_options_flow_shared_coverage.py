@@ -26,7 +26,7 @@ def test_ofs_clamp_float_range_within() -> None:
 def test_ofs_clamp_float_range_below() -> None:
     result = clamp_float_range(
         -1.0, field="w", minimum=0.0, maximum=100.0, default=50.0
-    )  # noqa: E501
+    )
     assert result == pytest.approx(0.0)
 
 
@@ -34,7 +34,7 @@ def test_ofs_clamp_float_range_below() -> None:
 def test_ofs_clamp_float_range_above() -> None:
     result = clamp_float_range(
         999.0, field="w", minimum=0.0, maximum=100.0, default=50.0
-    )  # noqa: E501
+    )
     assert result == pytest.approx(100.0)
 
 
@@ -42,7 +42,7 @@ def test_ofs_clamp_float_range_above() -> None:
 def test_ofs_clamp_float_range_none_default() -> None:
     result = clamp_float_range(
         None, field="w", minimum=0.0, maximum=100.0, default=42.0
-    )  # noqa: E501
+    )
     assert result == pytest.approx(42.0)
 
 
