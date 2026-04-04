@@ -1,7 +1,5 @@
 """Coverage tests for options_flow_feeding.py + options_flow_main.py + config_flow_main.py."""  # noqa: E501
 
-from __future__ import annotations
-
 import pytest
 
 import custom_components.pawcontrol.config_flow_main as cfm_mod
