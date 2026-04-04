@@ -1,5 +1,6 @@
 """Coverage tests for feeding manager helpers and calculations."""
 
+from datetime import time
 from unittest.mock import patch
 
 import pytest
@@ -8,6 +9,9 @@ from custom_components.pawcontrol.feeding_manager import (
     ActivityLevel,
     FeedingConfig,
     FeedingManager,
+    HealthCalculator,
+    MealSchedule,
+    MealType,
     _normalise_health_override,
 )
 
@@ -105,3 +109,83 @@ def test_calculate_daily_calories_weight_goal_paths(
 
     calculate_rer.assert_called_once_with(expected_weight, adjusted=adjusted_flag)
     assert calories == pytest.approx(200.0)
+
+
+def test_calculate_portion_size_falls_back_when_health_aware_errors() -> None:
+    """Portion calculation should fall back to meal multipliers after failures."""
+    config = FeedingConfig(
+        dog_id="buddy",
+        daily_food_amount=600.0,
+        meals_per_day=3,
+        portion_tolerance=0,
+        meal_schedules=[
+            MealSchedule(
+                meal_type=MealType.BREAKFAST,
+                scheduled_time=time(8, 0),
+                portion_size=0.0,
+            ),
+            MealSchedule(
+                meal_type=MealType.LUNCH,
+                scheduled_time=time(12, 0),
+                portion_size=0.0,
+            ),
+            MealSchedule(
+                meal_type=MealType.DINNER,
+                scheduled_time=time(18, 0),
+                portion_size=0.0,
+            ),
+        ],
+    )
+
+    with patch.object(
+        config,
+        "_calculate_health_aware_portion",
+        side_effect=RuntimeError("boom"),
+    ):
+        portion = config.calculate_portion_size(MealType.BREAKFAST)
+
+    assert portion == pytest.approx(220.0)
+
+
+def test_calculate_portion_size_without_meal_type_returns_base() -> None:
+    """Basic fallback should return equal split when meal type is omitted."""
+    config = FeedingConfig(
+        dog_id="nala",
+        daily_food_amount=500.0,
+        meals_per_day=2,
+        health_aware_portions=False,
+    )
+
+    assert config.calculate_portion_size() == pytest.approx(250.0)
+
+
+def test_get_diet_validation_summary_tracks_adjustments_and_urgency() -> None:
+    """Diet summary should expose conflicts, warnings, and compatibility score."""
+    config = FeedingConfig(
+        dog_id="luna",
+        special_diet=["renal", "diabetic", "allergy", "sensitive"],
+        diet_validation={
+            "valid": False,
+            "conflicts": [
+                {"type": "protein_conflict", "diets": ["renal"], "message": "conflict"}
+            ],
+            "warnings": [
+                {"type": "fiber_warning", "diets": ["diabetic"], "message": "warn"}
+            ],
+            "recommended_vet_consultation": False,
+            "total_diets": 4,
+        },
+    )
+
+    with patch.object(
+        HealthCalculator,
+        "calculate_diet_validation_adjustment",
+        return_value=0.85,
+    ):
+        summary = config._get_diet_validation_summary()
+
+    assert summary["has_adjustments"] is True
+    assert summary["consultation_urgency"] == "high"
+    assert summary["compatibility_level"] == "acceptable"
+    assert summary["percentage_adjustment"] == pytest.approx(-15.0)
+    assert summary["vet_consultation_recommended"] is True
