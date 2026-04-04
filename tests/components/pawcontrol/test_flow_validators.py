@@ -127,3 +127,20 @@ def test_flow_validator_wrappers_delegate_to_core_validators(
     assert result == expected
     assert recorded["args"] == args
     assert recorded["kwargs"] == expected_kwargs
+
+
+def test_flow_validators_exports_validation_error_and_public_wrappers() -> None:
+    """Module exports should include all public wrappers and ValidationError."""
+    expected_exports = {
+        "ValidationError",
+        "validate_flow_dog_name",
+        "validate_flow_geofence_radius",
+        "validate_flow_gps_accuracy",
+        "validate_flow_gps_coordinates",
+        "validate_flow_gps_interval",
+        "validate_flow_time_window",
+        "validate_flow_timer_interval",
+    }
+
+    assert set(flow_validators.__all__) == expected_exports
+    assert flow_validators.ValidationError.__name__ == "ValidationError"
