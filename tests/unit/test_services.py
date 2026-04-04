@@ -443,6 +443,16 @@ def test_coordinator_resolver_returns_cached_and_filters_invalidation() -> None:
     assert resolver._cached_coordinator is None
 
 
+def test_coordinator_resolver_invalidate_is_noop_without_cached_instance() -> None:
+    """Invalidation should safely no-op when no coordinator has been cached."""
+    resolver = services._CoordinatorResolver(SimpleNamespace(data={}))  # type: ignore[arg-type]
+
+    resolver.invalidate(entry_id="entry-any")
+
+    assert resolver._cached_coordinator is None
+    assert resolver._cached_entry_id is None
+
+
 def test_coordinator_resolver_resolves_and_caches_loaded_runtime_data(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -754,6 +764,33 @@ def test_record_service_result_accepts_single_guard_object() -> None:
     assert result["details"]["guard"]["reasons"]["integration disabled"] == 1
 
 
+def test_record_service_result_preserves_existing_diagnostics_keys() -> None:
+    """Resilience metrics should merge into pre-populated diagnostics payloads."""
+    resilience_summary: dict[str, object] = {
+        "rejected_call_count": 1,
+        "rejection_breaker_count": 1,
+        "rejection_breakers": ["api"],
+        "rejection_breaker_ids": ["api"],
+    }
+    runtime_data = SimpleNamespace(
+        performance_stats={"resilience_summary": resilience_summary}
+    )
+
+    services._record_service_result(
+        runtime_data,
+        service="notify.test",
+        status="error",
+        diagnostics={"snapshots": {}},
+    )
+
+    diagnostics_payload = runtime_data.performance_stats["last_service_result"][
+        "diagnostics"
+    ]
+    assert diagnostics_payload["cache"] == {"snapshots": {}}
+    assert diagnostics_payload["resilience_summary"]["rejected_call_count"] == 1
+    assert diagnostics_payload["rejection_metrics"]["rejection_breaker_count"] == 1
+
+
 def test_record_delivery_failure_reason_handles_runtime_and_reason_defaults() -> None:
     """Delivery failure reason helper should create buckets and fallback labels."""
     services._record_delivery_failure_reason(None, reason="anything")
@@ -802,6 +839,35 @@ def test_normalise_context_identifier_handles_non_string_value_errors() -> None:
             raise ValueError("cannot stringify")
 
     assert services._normalise_context_identifier(_BrokenIdentifier()) is None
+def test_record_delivery_failure_reason_reuses_existing_mapping_bucket(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Failure reasons should normalize blank classifications and mapping buckets."""
+    runtime_data = SimpleNamespace(
+        performance_stats={"rejection_metrics": {"failure_reasons": "invalid"}}
+    )
+    monkeypatch.setattr(
+        services,
+        "build_error_context",
+        lambda reason, error: SimpleNamespace(classification="  ", message=None),
+    )
+
+    services._record_delivery_failure_reason(runtime_data, reason="ignored")
+
+    metrics = runtime_data.performance_stats["rejection_metrics"]
+    assert metrics["failure_reasons"] == {"unknown": 1}
+    assert metrics["last_failure_reason"] == "unknown"
+
+
+def test_normalise_context_identifier_handles_non_string_inputs() -> None:
+    """Context identifiers should support coercion and gracefully handle bad __str__."""
+
+    class _BrokenString:
+        def __str__(self) -> str:
+            raise RuntimeError("boom")
+
+    assert services._normalise_context_identifier(42) == "42"
+    assert services._normalise_context_identifier(_BrokenString()) is None
 
 
 def test_extract_service_context_handles_mapping_none_and_dynamic_context() -> None:
