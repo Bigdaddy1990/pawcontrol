@@ -506,3 +506,47 @@ def test_cached_decorator_uses_positional_args_and_reuses_cached_result() -> Non
         ]
 
     asyncio.run(_run())
+
+
+def test_cached_decorator_treats_none_as_cache_miss() -> None:
+    """Decorator should recompute when cache returns ``None`` values."""
+
+    class _FakeTwoLevelCache:
+        def __init__(self) -> None:
+            self.storage: dict[str, object | None] = {}
+            self.set_calls: list[tuple[str, object | None, float, float]] = []
+
+        async def get(self, key: str) -> object | None:
+            return self.storage.get(key)
+
+        async def set(
+            self,
+            key: str,
+            value: object | None,
+            *,
+            l1_ttl: float,
+            l2_ttl: float,
+        ) -> None:
+            self.storage[key] = value
+            self.set_calls.append((key, value, l1_ttl, l2_ttl))
+
+    async def _run() -> None:
+        fake_cache = _FakeTwoLevelCache()
+        call_count = 0
+
+        @cache_module.cached(fake_cache, "nullable", ttl=7)
+        async def compute(flag: bool) -> object | None:
+            nonlocal call_count
+            call_count += 1
+            return None if flag else "value"
+
+        assert await compute(True) is None
+        assert await compute(True) is None
+
+        assert call_count == 2
+        assert fake_cache.set_calls == [
+            ("nullable:True", None, 7, 28),
+            ("nullable:True", None, 7, 28),
+        ]
+
+    asyncio.run(_run())
