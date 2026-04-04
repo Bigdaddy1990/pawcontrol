@@ -464,6 +464,44 @@ async def test_async_initialize_all_managers_reraises_task_exceptions(
 
 
 @pytest.mark.asyncio
+async def test_async_initialize_all_managers_prioritizes_auth_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ConfigEntryAuthFailed must be raised ahead of other task failures."""
+
+    async def _raise_mixed_failures(
+        manager_name: str, coro: object, **_: object
+    ) -> None:
+        await coro
+        if manager_name == "data_manager":
+            raise RuntimeError("generic failure")
+        if manager_name == "notification_manager":
+            raise ConfigEntryAuthFailed("auth failure")
+
+    monkeypatch.setattr(
+        manager_init,
+        "_async_initialize_manager_with_timeout",
+        _raise_mixed_failures,
+    )
+
+    core_managers = {
+        "dog_ids": ["buddy"],
+        "data_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "notification_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "feeding_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "walk_manager": SimpleNamespace(async_initialize=AsyncMock()),
+    }
+
+    with pytest.raises(ConfigEntryAuthFailed, match="auth failure"):
+        await manager_init._async_initialize_all_managers(
+            core_managers,
+            {"door_sensor_manager": None},
+            [{"dog_id": "buddy", "dog_name": "Buddy"}],
+            SimpleNamespace(options={}),
+        )
+
+
+@pytest.mark.asyncio
 async def test_async_initialize_geofencing_manager_uses_per_dog_overrides(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
