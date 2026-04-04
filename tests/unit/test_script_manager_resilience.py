@@ -10,9 +10,11 @@ import pytest
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.script_manager import (
     PawControlScriptManager,
+    _coerce_threshold,
     _is_resilience_blueprint,
     _parse_event_selection,
     _parse_manual_resilience_options,
+    _ScriptManagerCacheMonitor,
     _serialise_event_data,
     resolve_resilience_script_thresholds,
 )
@@ -302,3 +304,50 @@ def test_blueprint_detection_and_event_data_serialisation() -> None:
     assert "opaque" in payload["nested"]  # type: ignore[index]
     assert payload["sequence"][0] == 1  # type: ignore[index]
     assert isinstance(payload["sequence"][1], str)  # type: ignore[index]
+
+
+@pytest.mark.unit
+def test_coerce_threshold_clamps_and_falls_back_to_default() -> None:
+    """Threshold coercion should clamp out-of-range values and keep defaults."""
+    assert _coerce_threshold("", default=7, minimum=1, maximum=9) == 7
+    assert _coerce_threshold("0", default=7, minimum=1, maximum=9) == 1
+    assert _coerce_threshold(100, default=7, minimum=1, maximum=9) == 9
+    assert _coerce_threshold("4", default=7, minimum=1, maximum=9) == 4
+
+
+@pytest.mark.unit
+def test_resolve_resilience_script_thresholds_handles_missing_state_access() -> None:
+    """Resolver should safely return ``None`` thresholds when states are unavailable."""
+    entry = SimpleNamespace(title="Buddy", entry_id="entry")
+
+    no_states = SimpleNamespace()
+    assert resolve_resilience_script_thresholds(no_states, entry) == (None, None)
+
+    non_mapping_attributes = SimpleNamespace(
+        states=SimpleNamespace(
+            get=lambda _entity_id: SimpleNamespace(attributes="invalid")
+        )
+    )
+    assert resolve_resilience_script_thresholds(non_mapping_attributes, entry) == (
+        None,
+        None,
+    )
+
+
+@pytest.mark.unit
+def test_script_manager_cache_monitor_flags_future_timestamps() -> None:
+    """Diagnostics should report future timestamp anomalies and script counters."""
+    manager = SimpleNamespace(
+        _created_entities={"script.b", "script.a"},
+        _dog_scripts={"dog-1": ["script.dog_1"]},
+        _entry_scripts=["script.entry"],
+        _last_generation=dt_util.utcnow() + timedelta(days=365),
+    )
+
+    monitor = _ScriptManagerCacheMonitor(manager)
+    snapshot = monitor.coordinator_snapshot()
+
+    assert snapshot["stats"]["scripts"] == 2
+    assert snapshot["stats"]["entry_scripts"] == 1
+    assert snapshot["diagnostics"]["timestamp_anomalies"] == {"manager": "future"}
+    assert snapshot["snapshot"]["created_entities"] == ["script.a", "script.b"]
