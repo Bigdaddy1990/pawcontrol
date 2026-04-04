@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Awaitable, Sequence
 import contextlib
+from datetime import UTC, datetime
 import json
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
@@ -1315,3 +1316,57 @@ async def test_validate_single_dashboard_rehydrates_notifications_view(
     assert notifications_view["card_count"] == 2
     assert notifications_view.get("module") == MODULE_NOTIFICATIONS
     assert notifications_view.get("notifications") is True
+
+
+@pytest.mark.asyncio
+async def test_renderer_main_job_skips_optional_views_when_disabled(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Main jobs should not render statistics/settings when disabled in options."""
+    renderer = DashboardRenderer(hass)
+    overview_view = {"path": "overview", "cards": []}
+    dog_view = {"path": "fido", "cards": []}
+
+    monkeypatch.setattr(
+        renderer,
+        "_render_overview_view",
+        AsyncMock(return_value=overview_view),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "_render_dog_views_batch",
+        AsyncMock(return_value=[dog_view]),
+    )
+    render_statistics_view = AsyncMock(return_value={"path": "statistics", "cards": []})
+    render_settings_view = AsyncMock(return_value={"path": "settings", "cards": []})
+    monkeypatch.setattr(renderer, "_render_statistics_view", render_statistics_view)
+    monkeypatch.setattr(renderer, "_render_settings_view", render_settings_view)
+
+    job = RenderJob(
+        "main-disabled-views",
+        "main_dashboard",
+        {"dogs": [{CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido", "modules": {}}]},
+        {"show_statistics": False, "show_settings": False},
+    )
+
+    result = await renderer._render_main_dashboard_job(job)
+
+    assert result == {"views": [overview_view, dog_view]}
+    render_statistics_view.assert_not_awaited()
+    render_settings_view.assert_not_awaited()
+
+
+def test_renderer_generate_job_id_increments_counter_and_uses_timestamp(hass) -> None:
+    """Job IDs should increment monotonically and embed the UTC timestamp."""
+    renderer = DashboardRenderer(hass)
+    now = datetime(2026, 4, 4, 12, 34, 56, tzinfo=UTC)
+
+    with patch(
+        "custom_components.pawcontrol.dashboard_renderer.dt_util.utcnow",
+        return_value=now,
+    ):
+        first_id = renderer._generate_job_id()
+        second_id = renderer._generate_job_id()
+
+    assert first_id == "render_1_1775306096"
+    assert second_id == "render_2_1775306096"
