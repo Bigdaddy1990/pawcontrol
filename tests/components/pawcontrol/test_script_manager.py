@@ -82,12 +82,10 @@ def test_parse_manual_resilience_options_and_selection() -> None:
         },
     }
 
-    selection = script_manager._parse_event_selection(
-        {
-            "manual_guard_event": "",
-            "manual_breaker_event": " breaker ",
-        }
-    )
+    selection = script_manager._parse_event_selection({
+        "manual_guard_event": "",
+        "manual_breaker_event": " breaker ",
+    })
     assert selection == {
         "manual_guard_event": None,
         "manual_breaker_event": "breaker",

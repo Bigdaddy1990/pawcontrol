@@ -13,12 +13,12 @@ from custom_components.pawcontrol.script_manager import (
     _classify_timestamp,
     _coerce_threshold,
     _extract_field_int,
-    _normalise_entry_slug,
-    _resolve_resilience_entity_id,
-    _resolve_resilience_object_id,
     _is_resilience_blueprint,
+    _normalise_entry_slug,
     _parse_event_selection,
     _parse_manual_resilience_options,
+    _resolve_resilience_entity_id,
+    _resolve_resilience_object_id,
     _ScriptManagerCacheMonitor,
     _serialise_event_data,
     resolve_resilience_script_thresholds,
@@ -317,14 +317,12 @@ def test_coerce_threshold_clamps_and_falls_back_to_default() -> None:
 def test_resilience_blueprint_detection_matches_suffix() -> None:
     """Blueprint matcher should accept known key names and slash variants."""
     assert (
-        _is_resilience_blueprint(
-            {
-                "path": (
-                    "BluePrints\\Automation\\pawcontrol\\"
-                    "resilience_escalation_followup.yaml"
-                )
-            }
-        )
+        _is_resilience_blueprint({
+            "path": (
+                "BluePrints\\Automation\\pawcontrol\\"
+                "resilience_escalation_followup.yaml"
+            )
+        })
         is True
     )
     assert _is_resilience_blueprint({"id": "pawcontrol/other.yaml"}) is False
@@ -407,9 +405,16 @@ def test_extract_field_int_supports_mapping_and_objects() -> None:
             self.default = default
 
     assert _extract_field_int(None, "skip_threshold") is None
-    assert _extract_field_int({"skip_threshold": {"default": "6"}}, "skip_threshold") == 6
-    assert _extract_field_int({"skip_threshold": _FieldObject(7.0)}, "skip_threshold") == 7
-    assert _extract_field_int({"skip_threshold": {"default": "bad"}}, "skip_threshold") is None
+    assert (
+        _extract_field_int({"skip_threshold": {"default": "6"}}, "skip_threshold") == 6
+    )
+    assert (
+        _extract_field_int({"skip_threshold": _FieldObject(7.0)}, "skip_threshold") == 7
+    )
+    assert (
+        _extract_field_int({"skip_threshold": {"default": "bad"}}, "skip_threshold")
+        is None
+    )
 
 
 @pytest.mark.unit
@@ -417,7 +422,9 @@ def test_resolve_resilience_script_thresholds_handles_missing_state_shape() -> N
     """Threshold resolver should gracefully handle missing state accessors."""
     entry = SimpleNamespace(title="Buddy", entry_id="entry")
 
-    assert resolve_resilience_script_thresholds(SimpleNamespace(states=None), entry) == (
+    assert resolve_resilience_script_thresholds(
+        SimpleNamespace(states=None), entry
+    ) == (
         None,
         None,
     )
