@@ -1,22 +1,23 @@
-"""Coverage tests for options_flow_feeding.py + options_flow_main.py + config_flow_main.py."""
+"""Coverage tests for options_flow_feeding.py + options_flow_main.py + config_flow_main.py."""  # noqa: E501
+
 from __future__ import annotations
 
 import pytest
 
-from custom_components.pawcontrol.options_flow_main import (
-    ensure_advanced_options,
-    ensure_json_mapping,
-)
+import custom_components.pawcontrol.config_flow_main as cfm_mod
 from custom_components.pawcontrol.config_flow_main import (
     build_profile_summary_text,
     coerce_dog_modules_config,
 )
 import custom_components.pawcontrol.options_flow_feeding as off_mod
 import custom_components.pawcontrol.options_flow_main as ofm_mod
-import custom_components.pawcontrol.config_flow_main as cfm_mod
-
+from custom_components.pawcontrol.options_flow_main import (
+    ensure_advanced_options,
+    ensure_json_mapping,
+)
 
 # ─── ensure_json_mapping (options_flow_main) ─────────────────────────────────
+
 
 @pytest.mark.unit
 def test_ofm_ensure_json_mapping_none() -> None:
@@ -30,7 +31,9 @@ def test_ofm_ensure_json_mapping_with_data() -> None:
     result = ensure_json_mapping({"key": "value", "num": 42})
     assert result["key"] == "value"
 
+
 # ─── ensure_advanced_options (options_flow_main) ─────────────────────────────
+
 
 @pytest.mark.unit
 def test_ofm_ensure_advanced_options_empty() -> None:
@@ -46,6 +49,7 @@ def test_ofm_ensure_advanced_options_with_defaults() -> None:
 
 # ─── build_profile_summary_text (config_flow_main) ───────────────────────────
 
+
 @pytest.mark.unit
 def test_cfm_build_profile_summary_text_returns_str() -> None:
     result = build_profile_summary_text()
@@ -53,6 +57,7 @@ def test_cfm_build_profile_summary_text_returns_str() -> None:
 
 
 # ─── coerce_dog_modules_config (config_flow_main) ────────────────────────────
+
 
 @pytest.mark.unit
 def test_cfm_coerce_dog_modules_config_none() -> None:
@@ -73,6 +78,7 @@ def test_cfm_coerce_dog_modules_config_with_values() -> None:
 
 
 # ─── module import checks ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_options_flow_feeding_importable() -> None:

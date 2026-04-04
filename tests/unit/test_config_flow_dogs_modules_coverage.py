@@ -1,23 +1,24 @@
-"""Coverage tests for config_flow_dogs.py + config_flow_modules.py + setup/__init__.py."""
+"""Coverage tests for config_flow_dogs.py + config_flow_modules.py + setup/__init__.py."""  # noqa: E501
+
 from __future__ import annotations
 
 import pytest
 
+import custom_components.pawcontrol.config_flow_dogs as cfd_mod
 from custom_components.pawcontrol.config_flow_dogs import (
     coerce_optional_str,
     dog_modules_from_flow_input,
 )
+import custom_components.pawcontrol.config_flow_modules as cfm_mod
 from custom_components.pawcontrol.config_flow_modules import (
     normalize_dashboard_language,
     normalize_language,
     normalize_performance_mode,
 )
-import custom_components.pawcontrol.config_flow_dogs as cfd_mod
-import custom_components.pawcontrol.config_flow_modules as cfm_mod
 import custom_components.pawcontrol.setup as setup_mod
 
-
 # ─── coerce_optional_str ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_coerce_optional_str_none() -> None:
@@ -43,6 +44,7 @@ def test_coerce_optional_str_strips() -> None:
 
 # ─── dog_modules_from_flow_input ──────────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_dog_modules_from_flow_input_empty() -> None:
     result = dog_modules_from_flow_input({})
@@ -56,6 +58,7 @@ def test_dog_modules_from_flow_input_with_values() -> None:
 
 
 # ─── normalize_dashboard_language ────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_normalize_dashboard_language_none() -> None:
@@ -78,6 +81,7 @@ def test_normalize_dashboard_language_unknown() -> None:
 
 # ─── normalize_language (config_flow_modules) ────────────────────────────────
 
+
 @pytest.mark.unit
 def test_cfm_normalize_language_none() -> None:
     result = normalize_language(None)
@@ -92,6 +96,7 @@ def test_cfm_normalize_language_valid() -> None:
 
 # ─── normalize_performance_mode (config_flow_modules) ────────────────────────
 
+
 @pytest.mark.unit
 def test_cfm_normalize_performance_mode_valid() -> None:
     result = normalize_performance_mode("balanced")
@@ -105,6 +110,7 @@ def test_cfm_normalize_performance_mode_invalid() -> None:
 
 
 # ─── module imports ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_config_flow_dogs_has_helpers() -> None:

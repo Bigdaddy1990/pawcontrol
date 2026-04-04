@@ -32,7 +32,7 @@ def test_build_gps_source_options_with_entries() -> None:
     result = build_gps_source_options({
         "ha_person": "HA Person",
         "gps_device": "GPS Device",
-    })  # noqa: E501
+    })
     assert isinstance(result, dict)
     assert "ha_person" in result
 
@@ -68,7 +68,7 @@ def test_validate_int_range_valid() -> None:
 def test_validate_int_range_none_not_required() -> None:
     result = validate_int_range(
         None, field="count", minimum=1, maximum=10, required=False
-    )  # noqa: E501
+    )
     assert result is None
 
 

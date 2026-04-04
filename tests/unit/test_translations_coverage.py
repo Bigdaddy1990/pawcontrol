@@ -124,7 +124,7 @@ def test_weather_alert_translation_as_dict() -> None:
     alert: WeatherAlertTranslation = {
         "title": "Storm warning",
         "message": "Take shelter",
-    }  # noqa: E501
+    }
     assert alert["title"] == "Storm warning"
 
 

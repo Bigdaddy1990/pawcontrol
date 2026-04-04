@@ -1,10 +1,11 @@
 """Coverage tests for options_flow_shared.py + options_flow_import_export.py."""
+
 from __future__ import annotations
 
 import pytest
 
-import custom_components.pawcontrol.options_flow_shared as ofs_mod
 import custom_components.pawcontrol.options_flow_import_export as ofie_mod
+import custom_components.pawcontrol.options_flow_shared as ofs_mod
 from custom_components.pawcontrol.options_flow_shared import (
     clamp_float_range,
     clamp_int_range,
@@ -12,8 +13,8 @@ from custom_components.pawcontrol.options_flow_shared import (
     coerce_int,
 )
 
-
 # ─── clamp_float_range (options_flow_shared) ──────────────────────────────────
+
 
 @pytest.mark.unit
 def test_ofs_clamp_float_range_within() -> None:
@@ -23,23 +24,30 @@ def test_ofs_clamp_float_range_within() -> None:
 
 @pytest.mark.unit
 def test_ofs_clamp_float_range_below() -> None:
-    result = clamp_float_range(-1.0, field="w", minimum=0.0, maximum=100.0, default=50.0)
+    result = clamp_float_range(
+        -1.0, field="w", minimum=0.0, maximum=100.0, default=50.0
+    )  # noqa: E501
     assert result == pytest.approx(0.0)
 
 
 @pytest.mark.unit
 def test_ofs_clamp_float_range_above() -> None:
-    result = clamp_float_range(999.0, field="w", minimum=0.0, maximum=100.0, default=50.0)
+    result = clamp_float_range(
+        999.0, field="w", minimum=0.0, maximum=100.0, default=50.0
+    )  # noqa: E501
     assert result == pytest.approx(100.0)
 
 
 @pytest.mark.unit
 def test_ofs_clamp_float_range_none_default() -> None:
-    result = clamp_float_range(None, field="w", minimum=0.0, maximum=100.0, default=42.0)
+    result = clamp_float_range(
+        None, field="w", minimum=0.0, maximum=100.0, default=42.0
+    )  # noqa: E501
     assert result == pytest.approx(42.0)
 
 
 # ─── clamp_int_range (options_flow_shared) ────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_ofs_clamp_int_range_valid() -> None:
@@ -61,6 +69,7 @@ def test_ofs_clamp_int_range_above() -> None:
 
 # ─── coerce_float / coerce_int (options_flow_shared) ─────────────────────────
 
+
 @pytest.mark.unit
 def test_ofs_coerce_float_string() -> None:
     result = coerce_float("weight", "22.5")
@@ -74,6 +83,7 @@ def test_ofs_coerce_int_string() -> None:
 
 
 # ─── module import checks ────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_options_flow_shared_has_clone_placeholders() -> None:
