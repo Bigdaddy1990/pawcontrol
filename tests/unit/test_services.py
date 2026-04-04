@@ -803,6 +803,42 @@ def test_record_delivery_failure_reason_handles_runtime_and_reason_defaults() ->
     assert metrics["last_failure_reason"] == "unknown"
 
 
+def test_build_error_details_includes_classification_and_notification_id() -> None:
+    """Error details helper should always include classification metadata."""
+    details = services._build_error_details(
+        reason="missing_notify_service",
+        error=RuntimeError("notify.mobile_app not found"),
+        notification_id="abc123",
+    )
+
+    assert details is not None
+    assert details["error_classification"] == "missing_service"
+    assert details["notification_id"] == "abc123"
+    assert "error_message" in details
+
+
+def test_get_runtime_data_for_coordinator_returns_none_on_lookup_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runtime lookup helper should swallow resolver failures defensively."""
+    coordinator = SimpleNamespace(hass=object(), config_entry=object())
+
+    def _raise_runtime_error(*_: object) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(services, "get_runtime_data", _raise_runtime_error)
+
+    assert services._get_runtime_data_for_coordinator(coordinator) is None
+
+
+def test_normalise_context_identifier_handles_non_string_value_errors() -> None:
+    """Context normaliser should return ``None`` when ``str(value)`` fails."""
+
+    class _BrokenIdentifier:
+        def __str__(self) -> str:
+            raise ValueError("cannot stringify")
+
+    assert services._normalise_context_identifier(_BrokenIdentifier()) is None
 def test_record_delivery_failure_reason_reuses_existing_mapping_bucket(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
