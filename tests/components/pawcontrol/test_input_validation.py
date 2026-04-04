@@ -45,6 +45,19 @@ def test_sanitize_url_rejects_invalid_scheme_and_javascript() -> None:
         sanitizer.sanitize_url("https://example.com/javascript:alert(1)")
 
 
+def test_sanitize_url_handles_parse_exceptions(monkeypatch: pytest.MonkeyPatch) -> None:
+    """URL sanitizer should wrap parse errors as validation errors."""
+    sanitizer = InputSanitizer()
+
+    def _raise_parse_error(_: str) -> object:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr("urllib.parse.urlparse", _raise_parse_error)
+
+    with pytest.raises(ValidationError, match="URL could not be parsed"):
+        sanitizer.sanitize_url("https://example.com")
+
+
 def test_sanitize_path_blocks_encoded_traversal_and_normalizes() -> None:
     """Path sanitizer should block traversal and normalize safe input."""
     sanitizer = InputSanitizer()
@@ -54,6 +67,24 @@ def test_sanitize_path_blocks_encoded_traversal_and_normalizes() -> None:
 
     with pytest.raises(ValidationError, match="Path traversal sequences"):
         sanitizer.sanitize_path("..%2fsecret.txt")
+
+    with pytest.raises(ValidationError, match="Path traversal sequences"):
+        sanitizer.sanitize_path("safe/../secret.txt")
+
+
+def test_sanitize_html_and_string_options() -> None:
+    """General sanitizer should escape html and respect optional behaviors."""
+    sanitizer = InputSanitizer()
+
+    assert sanitizer.sanitize_html("<b>Bold</b>") == "&lt;b&gt;Bold&lt;/b&gt;"
+    assert (
+        sanitizer.sanitize_string(
+            "  A-bC_\x01\n",
+            strip_whitespace=False,
+            allowed_chars=r"A-Za-z-",
+        )
+        == "A-bC"
+    )
 
 
 def test_validate_integer_handles_type_and_range_constraints() -> None:
@@ -72,6 +103,32 @@ def test_validate_integer_handles_type_and_range_constraints() -> None:
     in_range = validator.validate_integer("7", min_value=0, max_value=10)
     assert in_range.is_valid is True
     assert in_range.sanitized_value == 7
+
+
+def test_validate_float_and_phone_branches() -> None:
+    """Float and phone validators should enforce conversion and length limits."""
+    validator = InputValidator()
+
+    type_error = validator.validate_float(None)
+    assert type_error.is_valid is False
+    assert "Cannot convert to float" in type_error.errors[0]
+
+    too_low = validator.validate_float("-1.5", min_value=0)
+    assert too_low.is_valid is False
+    assert "minimum 0" in too_low.errors[0]
+
+    too_short = validator.validate_phone("12")
+    assert too_short.is_valid is False
+    assert "Invalid phone number length" in too_short.errors[0]
+
+
+def test_validate_string_min_length_and_pattern() -> None:
+    """String validator should enforce minimum length and regex pattern rules."""
+    validator = InputValidator()
+
+    result = validator.validate_string(" ab ", min_length=5, pattern=r"^[0-9]+$")
+    assert result.is_valid is False
+    assert len(result.errors) == 2
 
 
 def test_validate_dict_collects_errors_and_sanitizes_valid_fields() -> None:
@@ -99,6 +156,21 @@ def test_validate_dict_collects_errors_and_sanitizes_valid_fields() -> None:
     assert result.sanitized_value["misc"] == {"ok": True}
     assert any(error.startswith("age:") for error in result.errors)
     assert any(error.startswith("email:") for error in result.errors)
+
+
+def test_validate_dict_missing_required_field_and_optional_skip() -> None:
+    """Schema validation should report missing required keys and skip absent optionals."""
+    validator = InputValidator()
+    schema = {
+        "name": {"type": "str", "required": True},
+        "nickname": {"type": "str", "required": False},
+    }
+
+    result = validator.validate_dict({}, schema)
+
+    assert result.is_valid is False
+    assert result.sanitized_value == {}
+    assert result.errors == ["Missing required field: name"]
 
 
 def test_validate_and_sanitize_success_and_failure_paths() -> None:
