@@ -2,6 +2,9 @@
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -169,6 +172,31 @@ def test_copy_base_docstring_to_method() -> None:
     assert _MethodDocChild.documented_method.__doc__ == "Method docs."
 
 
+class _ClassmethodDocBase:
+    @classmethod
+    def documented_classmethod(cls) -> str:
+        """Class method docs."""
+        return "ok"
+
+
+class _ClassmethodDocChild(_ClassmethodDocBase):
+    @classmethod
+    def documented_classmethod(cls) -> str:
+        return "ok"
+
+
+def test_copy_base_docstring_to_classmethod() -> None:
+    assert _ClassmethodDocChild.documented_classmethod.__doc__ is None
+
+    sensor._copy_base_docstring(
+        attribute_name="documented_classmethod",
+        cls=_ClassmethodDocChild,
+        attribute=_ClassmethodDocChild.__dict__["documented_classmethod"],
+    )
+
+    assert _ClassmethodDocChild.documented_classmethod.__doc__ == "Class method docs."
+
+
 def test_normalise_attributes_returns_json_serialisable_mapping() -> None:
     attrs = {
         "timestamp": datetime(2026, 1, 1, tzinfo=UTC),
@@ -223,3 +251,394 @@ def test_register_sensor_decorator_adds_mapping_entry() -> None:
 
     assert registered is _RegisteredSensor
     assert sensor.SENSOR_MAPPING[marker] is _RegisteredSensor
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_returns_when_runtime_data_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda _hass, _entry: None)
+
+    calls: list[list[object]] = []
+
+    def add_entities(entities: list[object]) -> None:
+        calls.append(entities)
+
+    await sensor.async_setup_entry(
+        hass=SimpleNamespace(),
+def test_copy_base_docstring_to_classmethod() -> None:
+    class _ClassMethodBase:
+        @classmethod
+        def describe(cls) -> str:
+            """Classmethod docs."""
+            return cls.__name__
+
+    class _ClassMethodChild(_ClassMethodBase):
+        @classmethod
+        def describe(cls) -> str:
+            return cls.__name__
+
+    assert _ClassMethodChild.describe.__doc__ is None
+
+    sensor._copy_base_docstring(
+        attribute_name="describe",
+        cls=_ClassMethodChild,
+        attribute=_ClassMethodChild.__dict__["describe"],
+    )
+
+    assert _ClassMethodChild.describe.__doc__ == "Classmethod docs."
+
+
+def test_inherit_missing_docstrings_copies_docs_for_pawcontrol_subclasses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _DocInheritedSensor(sensor.PawControlSensorBase):
+        @property
+        def native_value(self) -> str:
+            """Synthetic parent docs."""
+            return "ok"
+
+    class _DocInheritedChild(_DocInheritedSensor):
+        @property
+        def native_value(self) -> str:
+            return "ok"
+
+    monkeypatch.setitem(sensor.__dict__, "_DocInheritedChild", _DocInheritedChild)
+
+    assert _DocInheritedChild.native_value.__doc__ is None
+    sensor.inherit_missing_docstrings()
+    assert _DocInheritedChild.native_value.__doc__ == "Synthetic parent docs."
+
+
+@pytest.mark.parametrize(
+    ("budget", "expected"),
+    [
+        (None, None),
+        (SimpleNamespace(remaining=3), 3),
+        (SimpleNamespace(remaining="2"), 2),
+        (SimpleNamespace(remaining="nope"), None),
+        (SimpleNamespace(remaining=5), 5),
+        (SimpleNamespace(remaining="bad"), None),
+    ],
+)
+def test_coerce_budget_remaining(budget: object, expected: int | None) -> None:
+    assert sensor._coerce_budget_remaining(budget) == expected
+
+
+@pytest.mark.parametrize(
+    ("budget", "expected"),
+    [
+        (None, False),
+        (SimpleNamespace(remaining=2), False),
+        (SimpleNamespace(remaining=0), True),
+        (SimpleNamespace(remaining=-1), True),
+    ],
+)
+def test_is_budget_exhausted(budget: object, expected: bool) -> None:
+    assert sensor._is_budget_exhausted(budget) is expected
+
+
+def test_create_module_entities_respects_budget_and_profile_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created: list[str] = []
+
+    class _EntityFactoryStub:
+        def get_budget(self, dog_id: str, profile: str) -> SimpleNamespace:
+            assert dog_id == "dog-1"
+            assert profile == "advanced"
+            return SimpleNamespace(remaining=1)
+
+        def create_entity_config(self, **kwargs: object) -> dict[str, str] | None:
+            created.append(str(kwargs["entity_key"]))
+            return {"entity_key": str(kwargs["entity_key"])}
+
+    def _make_first(*_: object) -> str:
+        return "entity-first"
+
+    def _make_second(*_: object) -> str:
+        return "entity-second"
+
+    monkeypatch.setattr(
+        sensor,
+        "_MODULE_ENTITY_RULES",
+        {
+            "garden": {
+                "standard": [
+                    ("first", _make_first, 1),
+                    ("second", _make_second, 2),
+                ],
+            }
+        },
+    )
+
+    entities = sensor._create_module_entities(
+        coordinator=object(),
+        entity_factory=_EntityFactoryStub(),
+        dog_id="dog-1",
+        dog_name="Luna",
+        modules={"garden": True, "walk": True},
+        profile="advanced",
+    )
+
+    assert entities == ["entity-first", "entity-second"]
+    assert created == ["first", "second"]
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_handles_missing_runtime_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda _hass, _entry: None)
+    add_entities = AsyncMock()
+
+    await sensor.async_setup_entry(
+        hass=object(),
+        entry=SimpleNamespace(entry_id="entry-1"),
+        async_add_entities=add_entities,
+    )
+
+    assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_adds_entities_and_awaits_callback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _EntityFactoryStub:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, int]] = []
+            self.finalized: list[tuple[str, str]] = []
+
+        def begin_budget(self, dog_id: str, profile: str, base_allocation: int) -> None:
+            self.calls.append((dog_id, profile, base_allocation))
+
+        def finalize_budget(self, dog_id: str, profile: str) -> None:
+            self.finalized.append((dog_id, profile))
+
+    entity_factory = _EntityFactoryStub()
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(),
+        dogs=[{sensor.DOG_ID_FIELD: "dog-1", sensor.DOG_NAME_FIELD: "Rex"}],
+        entity_factory=entity_factory,
+        entity_profile="standard",
+    )
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda _hass, _entry: runtime_data)
+
+    monkeypatch.setattr(sensor, "_create_core_entities", lambda *_args: ["core"])
+    monkeypatch.setattr(sensor, "_create_module_entities", lambda *_args: ["module"])
+
+    added: list[list[object]] = []
+
+    async def add_entities(entities: list[object]) -> None:
+        added.append(entities)
+
+    await sensor.async_setup_entry(
+        hass=SimpleNamespace(),
+        entry=SimpleNamespace(entry_id="entry-2"),
+        async_add_entities=add_entities,
+    )
+
+    assert entity_factory.calls == [("dog-1", "standard", 1)]
+    assert entity_factory.finalized == [("dog-1", "standard")]
+    assert added == [["core", "module"]]
+
+
+def test_create_module_entities_respects_enabled_modules_and_budget() -> None:
+    class _BudgetStub:
+        remaining = 0
+
+    class _FactoryStub:
+        def __init__(self) -> None:
+            self.config_calls: list[dict[str, Any]] = []
+
+        def get_budget(self, _dog_id: str, _profile: str) -> _BudgetStub:
+            return _BudgetStub()
+
+        def create_entity_config(self, **kwargs: Any) -> dict[str, object] | None:
+            self.config_calls.append(kwargs)
+            return {"enabled": True}
+
+    def _entity_builder(*_args: Any) -> object:
+        return object()
+
+    factory = _FactoryStub()
+    rules = {
+        "health": {
+            "standard": [("activity", _entity_builder, 1)],
+        },
+    }
+
+    original_rules = sensor._MODULE_ENTITY_RULES
+    try:
+        sensor._MODULE_ENTITY_RULES = rules
+        entities = sensor._create_module_entities(
+            coordinator=SimpleNamespace(),
+            entity_factory=factory,
+            dog_id="dog-1",
+            dog_name="Rex",
+            modules={"health": True, "walk": True},
+            profile="standard",
+        )
+    finally:
+        sensor._MODULE_ENTITY_RULES = original_rules
+
+    assert entities == []
+    assert factory.config_calls == []
+    add_entities.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_finalizes_budget_and_awaits_add_entities(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    begin_calls: list[tuple[str, str, int]] = []
+    finalize_calls: list[tuple[str, str]] = []
+
+    class _EntityFactoryStub:
+        def begin_budget(self, dog_id: str, profile: str, base_allocation: int) -> None:
+            begin_calls.append((dog_id, profile, base_allocation))
+
+        def finalize_budget(self, dog_id: str, profile: str) -> None:
+            finalize_calls.append((dog_id, profile))
+
+    runtime_data = SimpleNamespace(
+        coordinator=object(),
+        dogs=[{sensor.DOG_ID_FIELD: "dog-1", sensor.DOG_NAME_FIELD: "Luna"}],
+        entity_factory=_EntityFactoryStub(),
+        entity_profile="standard",
+    )
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(sensor, "_create_core_entities", lambda *_: ["core-entity"])
+
+    def _raise_during_module_creation(*_: object) -> list[str]:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(sensor, "_create_module_entities", _raise_during_module_creation)
+
+    async_add_entities = AsyncMock(return_value=None)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await sensor.async_setup_entry(
+            hass=object(),
+            entry=SimpleNamespace(entry_id="entry-1"),
+            async_add_entities=async_add_entities,
+        )
+
+    assert begin_calls == [("dog-1", "standard", 1)]
+    assert finalize_calls == [("dog-1", "standard")]
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_adds_entities_from_core_and_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runtime_data = SimpleNamespace(
+        coordinator=object(),
+        dogs=[{sensor.DOG_ID_FIELD: "dog-1", sensor.DOG_NAME_FIELD: "Luna"}],
+        entity_factory=SimpleNamespace(
+            begin_budget=lambda *_args, **_kwargs: None,
+            finalize_budget=lambda *_args, **_kwargs: None,
+        ),
+        entity_profile="standard",
+    )
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(sensor, "_create_core_entities", lambda *_: ["core"])
+    monkeypatch.setattr(sensor, "_create_module_entities", lambda *_: ["module"])
+
+    async_add_entities = AsyncMock(return_value=None)
+
+    await sensor.async_setup_entry(
+        hass=object(),
+        entry=SimpleNamespace(entry_id="entry-1"),
+        async_add_entities=async_add_entities,
+    )
+
+    async_add_entities.assert_awaited_once_with(["core", "module"])
+@pytest.mark.parametrize(
+    ("remaining", "expected"),
+    [
+        (None, None),
+        (4, 4),
+        (4.9, 4),
+        ("7", 7),
+        ("bad", None),
+        (object(), None),
+    ],
+)
+def test_coerce_budget_remaining(remaining: object, expected: int | None) -> None:
+    budget = SimpleNamespace(remaining=remaining)
+
+    assert sensor._coerce_budget_remaining(budget) == expected
+
+
+def test_coerce_budget_remaining_without_remaining_attribute() -> None:
+    assert sensor._coerce_budget_remaining(object()) is None
+
+
+@pytest.mark.parametrize(
+    ("remaining", "expected"),
+    [
+        (None, False),
+        (3, False),
+        (0, True),
+        (-1, True),
+        ("5", False),
+        ("0", True),
+        ("bad", False),
+    ],
+)
+def test_is_budget_exhausted(remaining: object, expected: bool) -> None:
+    budget = SimpleNamespace(remaining=remaining)
+
+    assert sensor._is_budget_exhausted(budget) is expected
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_skips_when_runtime_data_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda hass, entry: None)
+
+    add_entities = pytest.fail
+    await sensor.async_setup_entry(
+        SimpleNamespace(), SimpleNamespace(entry_id="id"), add_entities
+    )  # type: ignore[arg-type]
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_adds_entities_and_awaits_callback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[object]] = []
+
+    class _Factory:
+        def begin_budget(self, dog_id: str, profile: str, base_allocation: int) -> None:
+            return None
+
+        def finalize_budget(self, dog_id: str, profile: str) -> None:
+            return None
+
+    async def _add_entities(entities: list[object]) -> None:
+        calls.append(entities)
+
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(),
+        dogs=[{"dog_id": "dog-1", "dog_name": "Milo", "modules": {"gps": True}}],
+        entity_factory=_Factory(),
+        entity_profile="standard",
+    )
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda hass, entry: runtime_data)
+    monkeypatch.setattr(
+        sensor,
+        "coerce_dog_modules_config",
+        lambda dog: {"gps": True},
+    )
+    monkeypatch.setattr(sensor, "_create_core_entities", lambda *args: ["core"])
+    monkeypatch.setattr(sensor, "_create_module_entities", lambda *args: ["module"])
+
+    await sensor.async_setup_entry(
+        SimpleNamespace(), SimpleNamespace(entry_id="entry-1"), _add_entities
+    )  # type: ignore[arg-type]
+
+    assert calls == [["core", "module"]]
