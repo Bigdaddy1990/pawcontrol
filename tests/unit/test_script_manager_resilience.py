@@ -11,6 +11,7 @@ from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.script_manager import (
     PawControlScriptManager,
     _coerce_threshold,
+    _extract_field_int,
     _is_resilience_blueprint,
     _parse_event_selection,
     _parse_manual_resilience_options,
@@ -280,6 +281,68 @@ def test_resolve_resilience_script_thresholds_reads_entity_fields() -> None:
     skip, breaker = resolve_resilience_script_thresholds(hass, entry)
 
     assert (skip, breaker) == (7, 8)
+
+
+@pytest.mark.unit
+def test_extract_field_int_handles_mapping_and_object_defaults() -> None:
+    """Field extraction should support mapping defaults and object attributes."""
+    field_object = SimpleNamespace(default="9")
+    fields = {
+        "skip_threshold": {"default": "7"},
+        "breaker_threshold": field_object,
+        "missing_default": {"name": "ignored"},
+    }
+
+    assert _extract_field_int(fields, "skip_threshold") == 7
+    assert _extract_field_int(fields, "breaker_threshold") == 9
+    assert _extract_field_int(fields, "missing_default") is None
+    assert _extract_field_int(fields, "unknown") is None
+    assert _extract_field_int(None, "skip_threshold") is None
+
+
+@pytest.mark.unit
+def test_coerce_threshold_clamps_and_falls_back_to_default() -> None:
+    """Threshold coercion should clamp to limits and honour the default."""
+    assert _coerce_threshold(None, default=5, minimum=1, maximum=9) == 5
+    assert _coerce_threshold("0", default=5, minimum=1, maximum=9) == 1
+    assert _coerce_threshold("42", default=5, minimum=1, maximum=9) == 9
+    assert _coerce_threshold("4", default=5, minimum=1, maximum=9) == 4
+
+
+@pytest.mark.unit
+def test_resilience_blueprint_detection_matches_suffix() -> None:
+    """Blueprint matcher should accept known key names and slash variants."""
+    assert (
+        _is_resilience_blueprint(
+            {
+                "path": (
+                    "BluePrints\\Automation\\pawcontrol\\"
+                    "resilience_escalation_followup.yaml"
+                )
+            }
+        )
+        is True
+    )
+    assert _is_resilience_blueprint({"id": "pawcontrol/other.yaml"}) is False
+    assert _is_resilience_blueprint(None) is False
+
+
+@pytest.mark.unit
+def test_serialise_event_data_normalises_nested_values() -> None:
+    """Event serialiser should convert nested non-JSON values into strings."""
+    payload = {
+        1: "ok",
+        "nested": {"enabled": True, "raw": object()},
+        "sequence": ["value", 3, object()],
+    }
+
+    serialised = _serialise_event_data(payload)
+
+    assert serialised["1"] == "ok"
+    assert serialised["nested"]["enabled"] is True
+    assert isinstance(serialised["nested"]["raw"], str)
+    assert serialised["sequence"][0:2] == ["value", 3]
+    assert isinstance(serialised["sequence"][2], str)
 
 
 @pytest.mark.unit
