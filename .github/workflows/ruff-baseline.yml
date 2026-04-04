@@ -23,7 +23,6 @@ jobs:
       - run: |
           ruff check . --fix all || true
           ruff check . --fix --unsafe-fixes || true
-          ruff check . --add-noqa || true
           ruff check . --extend-select RUF100 --fix || true
           ruff check . --output-format=github || true
           ruff format
