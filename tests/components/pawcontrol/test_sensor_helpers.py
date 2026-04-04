@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -171,6 +172,31 @@ def test_copy_base_docstring_to_method() -> None:
     assert _MethodDocChild.documented_method.__doc__ == "Method docs."
 
 
+class _ClassmethodDocBase:
+    @classmethod
+    def documented_classmethod(cls) -> str:
+        """Class method docs."""
+        return "ok"
+
+
+class _ClassmethodDocChild(_ClassmethodDocBase):
+    @classmethod
+    def documented_classmethod(cls) -> str:
+        return "ok"
+
+
+def test_copy_base_docstring_to_classmethod() -> None:
+    assert _ClassmethodDocChild.documented_classmethod.__doc__ is None
+
+    sensor._copy_base_docstring(
+        attribute_name="documented_classmethod",
+        cls=_ClassmethodDocChild,
+        attribute=_ClassmethodDocChild.__dict__["documented_classmethod"],
+    )
+
+    assert _ClassmethodDocChild.documented_classmethod.__doc__ == "Class method docs."
+
+
 def test_normalise_attributes_returns_json_serialisable_mapping() -> None:
     attrs = {
         "timestamp": datetime(2026, 1, 1, tzinfo=UTC),
@@ -227,6 +253,19 @@ def test_register_sensor_decorator_adds_mapping_entry() -> None:
     assert sensor.SENSOR_MAPPING[marker] is _RegisteredSensor
 
 
+@pytest.mark.asyncio
+async def test_async_setup_entry_returns_when_runtime_data_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda _hass, _entry: None)
+
+    calls: list[list[object]] = []
+
+    def add_entities(entities: list[object]) -> None:
+        calls.append(entities)
+
+    await sensor.async_setup_entry(
+        hass=SimpleNamespace(),
 def test_copy_base_docstring_to_classmethod() -> None:
     class _ClassMethodBase:
         @classmethod
@@ -359,6 +398,93 @@ async def test_async_setup_entry_handles_missing_runtime_data(
         async_add_entities=add_entities,
     )
 
+    assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_adds_entities_and_awaits_callback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _EntityFactoryStub:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, int]] = []
+            self.finalized: list[tuple[str, str]] = []
+
+        def begin_budget(self, dog_id: str, profile: str, base_allocation: int) -> None:
+            self.calls.append((dog_id, profile, base_allocation))
+
+        def finalize_budget(self, dog_id: str, profile: str) -> None:
+            self.finalized.append((dog_id, profile))
+
+    entity_factory = _EntityFactoryStub()
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(),
+        dogs=[{sensor.DOG_ID_FIELD: "dog-1", sensor.DOG_NAME_FIELD: "Rex"}],
+        entity_factory=entity_factory,
+        entity_profile="standard",
+    )
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda _hass, _entry: runtime_data)
+
+    monkeypatch.setattr(sensor, "_create_core_entities", lambda *_args: ["core"])
+    monkeypatch.setattr(sensor, "_create_module_entities", lambda *_args: ["module"])
+
+    added: list[list[object]] = []
+
+    async def add_entities(entities: list[object]) -> None:
+        added.append(entities)
+
+    await sensor.async_setup_entry(
+        hass=SimpleNamespace(),
+        entry=SimpleNamespace(entry_id="entry-2"),
+        async_add_entities=add_entities,
+    )
+
+    assert entity_factory.calls == [("dog-1", "standard", 1)]
+    assert entity_factory.finalized == [("dog-1", "standard")]
+    assert added == [["core", "module"]]
+
+
+def test_create_module_entities_respects_enabled_modules_and_budget() -> None:
+    class _BudgetStub:
+        remaining = 0
+
+    class _FactoryStub:
+        def __init__(self) -> None:
+            self.config_calls: list[dict[str, Any]] = []
+
+        def get_budget(self, _dog_id: str, _profile: str) -> _BudgetStub:
+            return _BudgetStub()
+
+        def create_entity_config(self, **kwargs: Any) -> dict[str, object] | None:
+            self.config_calls.append(kwargs)
+            return {"enabled": True}
+
+    def _entity_builder(*_args: Any) -> object:
+        return object()
+
+    factory = _FactoryStub()
+    rules = {
+        "health": {
+            "standard": [("activity", _entity_builder, 1)],
+        },
+    }
+
+    original_rules = sensor._MODULE_ENTITY_RULES
+    try:
+        sensor._MODULE_ENTITY_RULES = rules
+        entities = sensor._create_module_entities(
+            coordinator=SimpleNamespace(),
+            entity_factory=factory,
+            dog_id="dog-1",
+            dog_name="Rex",
+            modules={"health": True, "walk": True},
+            profile="standard",
+        )
+    finally:
+        sensor._MODULE_ENTITY_RULES = original_rules
+
+    assert entities == []
+    assert factory.config_calls == []
     add_entities.assert_not_awaited()
 
 
