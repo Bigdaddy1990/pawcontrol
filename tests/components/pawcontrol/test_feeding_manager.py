@@ -7,8 +7,8 @@ import pytest
 
 from custom_components.pawcontrol.feeding_manager import (
     ActivityLevel,
-    FeedingEvent,
     FeedingConfig,
+    FeedingEvent,
     FeedingManager,
     HealthCalculator,
     MealSchedule,
@@ -119,6 +119,59 @@ def test_calculate_portion_size_falls_back_when_health_aware_errors() -> None:
         daily_food_amount=600.0,
         meals_per_day=3,
         portion_tolerance=0,
+        health_aware_portions=True,
+        meal_schedules=[
+            MealSchedule(
+                meal_type=MealType.BREAKFAST,
+                scheduled_time=time(8, 0),
+                portion_size=0.0,
+            ),
+            MealSchedule(
+                meal_type=MealType.LUNCH,
+                scheduled_time=time(12, 0),
+                portion_size=0.0,
+            ),
+            MealSchedule(
+                meal_type=MealType.DINNER,
+                scheduled_time=time(18, 0),
+                portion_size=0.0,
+            ),
+        ],
+    )
+
+    with patch.object(
+        config,
+        "_calculate_health_aware_portion",
+        side_effect=RuntimeError("upstream-error"),
+    ):
+        portion = config.calculate_portion_size(MealType.BREAKFAST)
+
+    assert portion == pytest.approx(220.0)
+
+
+def test_calculate_portion_size_uses_fallback_weight_when_all_schedules_disabled() -> (
+    None
+):
+    """Portion calculation should avoid divide-by-zero when schedules are disabled."""
+    config = FeedingConfig(
+        dog_id="milo",
+        daily_food_amount=500.0,
+        meals_per_day=2,
+        health_aware_portions=False,
+        portion_tolerance=0,
+        meal_schedules=[
+            MealSchedule(
+                meal_type=MealType.BREAKFAST,
+                scheduled_time=time(8, 0),
+                portion_size=0.0,
+                enabled=False,
+            )
+        ],
+    )
+
+    assert config.calculate_portion_size(MealType.DINNER) == pytest.approx(250.0)
+
+
 def test_feeding_event_to_dict_serializes_optional_fields() -> None:
     """Feeding events should serialize optional metadata predictably."""
     event = FeedingEvent(
@@ -155,7 +208,9 @@ def test_meal_schedule_next_and_reminder_times_respect_weekday_filters() -> None
         reminder_minutes_before=30,
     )
 
-    with patch("custom_components.pawcontrol.feeding_manager.dt_util.now", return_value=now):
+    with patch(
+        "custom_components.pawcontrol.feeding_manager.dt_util.now", return_value=now
+    ):
         assert schedule.is_due_today() is False
         next_time = schedule.get_next_feeding_time()
         reminder_time = schedule.get_reminder_time()
@@ -171,7 +226,9 @@ def test_meal_schedule_next_and_reminder_times_respect_weekday_filters() -> None
         days_of_week=[],
         reminder_enabled=False,
     )
-    with patch("custom_components.pawcontrol.feeding_manager.dt_util.now", return_value=now):
+    with patch(
+        "custom_components.pawcontrol.feeding_manager.dt_util.now", return_value=now
+    ):
         assert disabled.is_due_today() is False
         assert disabled.get_next_feeding_time() == datetime(
             2026,
@@ -217,7 +274,7 @@ def test_feeding_config_calculate_portion_size_fallback_and_distribution() -> No
     ):
         portion = config.calculate_portion_size(MealType.BREAKFAST)
 
-    assert portion == pytest.approx(220.0)
+    assert portion == pytest.approx(242.0)
 
 
 def test_calculate_portion_size_without_meal_type_returns_base() -> None:
@@ -237,6 +294,8 @@ def test_get_diet_validation_summary_tracks_adjustments_and_urgency() -> None:
     config = FeedingConfig(
         dog_id="luna",
         special_diet=["renal", "diabetic", "allergy", "sensitive"],
+        health_aware_portions=False,
+        portion_tolerance=0,
         diet_validation={
             "valid": False,
             "conflicts": [
@@ -262,8 +321,8 @@ def test_get_diet_validation_summary_tracks_adjustments_and_urgency() -> None:
     assert summary["compatibility_level"] == "acceptable"
     assert summary["percentage_adjustment"] == pytest.approx(-15.0)
     assert summary["vet_consultation_recommended"] is True
-    assert config.calculate_portion_size() == pytest.approx(300.0)
-    assert config.calculate_portion_size(MealType.BREAKFAST) == pytest.approx(345.7)
+    assert config.calculate_portion_size() == pytest.approx(250.0)
+    assert config.calculate_portion_size(MealType.BREAKFAST) == pytest.approx(275.0)
 
 
 def test_feeding_config_uses_health_portion_when_available() -> None:
@@ -273,7 +332,9 @@ def test_feeding_config_uses_health_portion_when_available() -> None:
     with patch.object(config, "_calculate_health_aware_portion", return_value=222.2):
         assert config.calculate_portion_size(MealType.DINNER) == pytest.approx(222.2)
 
-    with patch.object(config, "_calculate_health_aware_portion", side_effect=RuntimeError):
+    with patch.object(
+        config, "_calculate_health_aware_portion", side_effect=RuntimeError
+    ):
         assert config.calculate_portion_size(MealType.DINNER) == pytest.approx(165.0)
 
 
