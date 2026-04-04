@@ -18,8 +18,8 @@ import pytest
 
 from custom_components.pawcontrol.feeding_manager import (
     FeedingConfig,
-    FeedingManager,
     FeedingScheduleType,
+    FeedingManager,
     MealSchedule,
     MealType,
 )
@@ -588,3 +588,117 @@ def test_meal_schedule_get_next_feeding_time_empty_days_of_week() -> None:
     # Should return without hanging
     result = sched.get_next_feeding_time()
     assert result is not None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_add_feeding_with_medication_combines_notes(mock_hass) -> None:
+    """Medication-enabled mode should append medication details to notes."""
+    mgr = FeedingManager(mock_hass)
+    await mgr.async_initialize(
+        [
+            {
+                "dog_id": "rex",
+                "weight": 20.0,
+                "feeding_config": {
+                    "meals_per_day": 2,
+                    "daily_food_amount": 400.0,
+                    "medication_with_meals": True,
+                },
+            }
+        ]
+    )
+
+    event = await mgr.async_add_feeding_with_medication(
+        dog_id="rex",
+        amount=120.0,
+        meal_type="dinner",
+        notes="after walk",
+        medication_data={"name": "Rimadyl", "dose": "25mg", "time": "19:00"},
+    )
+
+    assert event.scheduled is True
+    assert event.with_medication is True
+    assert event.notes is not None
+    assert "after walk" in event.notes
+    assert "Medication: Rimadyl (25mg) at 19:00" in event.notes
+
+
+@pytest.mark.unit
+def test_get_active_emergency_returns_copy_not_internal_reference(mock_hass) -> None:
+    """Returned emergency state should be a detached copy."""
+    mgr = FeedingManager(mock_hass)
+    mgr._active_emergencies["rex"] = {
+        "active": True,
+        "status": "active",
+        "emergency_type": "illness",
+        "portion_adjustment": 1.2,
+        "duration_days": 2,
+        "activated_at": "2026-04-04T10:00:00+00:00",
+        "expires_at": None,
+    }
+
+    snapshot = mgr.get_active_emergency("rex")
+    assert snapshot is not None
+    snapshot["status"] = "mutated"
+    assert mgr._active_emergencies["rex"]["status"] == "active"
+
+
+@pytest.mark.unit
+def test_apply_emergency_restoration_restores_settings_and_invalidates_cache(
+    mock_hass,
+) -> None:
+    """Emergency restoration should reset config fields and clear stale cache."""
+    mgr = FeedingManager(mock_hass)
+    cfg = FeedingConfig(
+        dog_id="rex",
+        daily_food_amount=900.0,
+        meals_per_day=6,
+        schedule_type=FeedingScheduleType.STRICT,
+        food_type="wet_food",
+    )
+    mgr._configs["rex"] = cfg
+    mgr._data_cache["rex"] = {"feedings": [], "daily_stats": {}}  # type: ignore[assignment]
+    mgr._cache_time["rex"] = datetime.now()
+
+    mgr._apply_emergency_restoration(
+        cfg,
+        {
+            "daily_food_amount": 400.0,
+            "meals_per_day": 2,
+            "schedule_type": FeedingScheduleType.FLEXIBLE,
+            "food_type": "dry_food",
+        },
+        "rex",
+    )
+
+    assert cfg.daily_food_amount == 400.0
+    assert cfg.meals_per_day == 2
+    assert cfg.schedule_type == FeedingScheduleType.FLEXIBLE
+    assert cfg.food_type == "dry_food"
+    assert "rex" not in mgr._data_cache
+    assert "rex" not in mgr._cache_time
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_create_feeding_config_parses_supported_meal_times(mock_hass) -> None:
+    """Config builder should create schedules only for parseable meal times."""
+    mgr = FeedingManager(mock_hass)
+    config = await mgr._create_feeding_config(
+        "rex",
+        {
+            "feeding_schedule": "strict",
+            "breakfast_time": "08:15",
+            "lunch_time": "invalid",
+            "dinner_time": time(18, 30),
+            "portion_size": 110.0,
+        },
+    )
+
+    assert config.schedule_type == FeedingScheduleType.STRICT
+    assert len(config.meal_schedules) == 2
+    assert {schedule.meal_type for schedule in config.meal_schedules} == {
+        MealType.BREAKFAST,
+        MealType.DINNER,
+    }
