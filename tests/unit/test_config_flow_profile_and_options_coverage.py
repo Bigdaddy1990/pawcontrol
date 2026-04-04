@@ -1,10 +1,12 @@
 """Coverage tests for config_flow_profile.py + options_flow_dogs_management.py
-+ options_flow_profiles.py + config_flow_external.py
-"""
++ options_flow_profiles.py + config_flow_external.py.
+"""  # noqa: D205
+
 from __future__ import annotations
 
 import pytest
 
+import custom_components.pawcontrol.config_flow_external as cfe_mod
 from custom_components.pawcontrol.config_flow_profile import (
     ProfileSelectorOption,
     build_profile_summary_text,
@@ -12,10 +14,9 @@ from custom_components.pawcontrol.config_flow_profile import (
 )
 import custom_components.pawcontrol.options_flow_dogs_management as odm_mod
 import custom_components.pawcontrol.options_flow_profiles as op_mod
-import custom_components.pawcontrol.config_flow_external as cfe_mod
-
 
 # ─── build_profile_summary_text ──────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_build_profile_summary_text_returns_str() -> None:
@@ -25,6 +26,7 @@ def test_build_profile_summary_text_returns_str() -> None:
 
 
 # ─── get_profile_selector_options ────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_get_profile_selector_options_returns_list() -> None:
@@ -47,9 +49,13 @@ def test_get_profile_selector_options_have_value_and_label() -> None:
 
 # ─── ProfileSelectorOption (TypedDict) ────────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_profile_selector_option_as_dict() -> None:
-    opt: ProfileSelectorOption = {"value": "balanced", "label": "Balanced (Recommended)"}
+    opt: ProfileSelectorOption = {
+        "value": "balanced",
+        "label": "Balanced (Recommended)",
+    }  # noqa: E501
     assert opt["value"] == "balanced"
     assert "label" in opt
 
@@ -61,6 +67,7 @@ def test_profile_selector_option_minimal_profile() -> None:
 
 
 # ─── module import checks ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_options_flow_dogs_management_importable() -> None:

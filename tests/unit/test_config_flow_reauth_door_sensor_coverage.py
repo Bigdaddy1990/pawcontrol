@@ -1,24 +1,25 @@
 """Coverage tests for config_flow_base.py, config_flow_reauth.py,
-options_flow_door_sensor.py, config_flow_dashboard_extension.py
-"""
+options_flow_door_sensor.py, config_flow_dashboard_extension.py.
+"""  # noqa: D205
+
 from __future__ import annotations
 
 import pytest
 
-from custom_components.pawcontrol.config_flow_reauth import is_dog_config_payload_valid
-from custom_components.pawcontrol.options_flow_door_sensor import (
-    ensure_door_sensor_settings_config,
-)
+import custom_components.pawcontrol.config_flow_base as cfb_mod
+import custom_components.pawcontrol.config_flow_dashboard_extension as cfde_mod
 from custom_components.pawcontrol.config_flow_dashboard_extension import (
     normalize_dashboard_language,
 )
-import custom_components.pawcontrol.config_flow_base as cfb_mod
 import custom_components.pawcontrol.config_flow_reauth as cfr_mod
+from custom_components.pawcontrol.config_flow_reauth import is_dog_config_payload_valid
 import custom_components.pawcontrol.options_flow_door_sensor as ofds_mod
-import custom_components.pawcontrol.config_flow_dashboard_extension as cfde_mod
-
+from custom_components.pawcontrol.options_flow_door_sensor import (
+    ensure_door_sensor_settings_config,
+)
 
 # ─── is_dog_config_payload_valid (config_flow_reauth) ────────────────────────
+
 
 @pytest.mark.unit
 def test_cfr_is_valid_empty() -> None:
@@ -42,6 +43,7 @@ def test_cfr_is_valid_missing_id() -> None:
 
 # ─── ensure_door_sensor_settings_config ──────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_ensure_door_sensor_empty() -> None:
     result = ensure_door_sensor_settings_config({})
@@ -63,6 +65,7 @@ def test_ensure_door_sensor_with_values() -> None:
 
 # ─── normalize_dashboard_language (dashboard_extension) ──────────────────────
 
+
 @pytest.mark.unit
 def test_cfde_normalize_none() -> None:
     assert normalize_dashboard_language(None) == "en"
@@ -81,6 +84,7 @@ def test_cfde_normalize_unknown() -> None:
 
 
 # ─── module import checks ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_config_flow_base_importable() -> None:

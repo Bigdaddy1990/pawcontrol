@@ -1,30 +1,27 @@
-"""Coverage tests for config_flow_placeholders.py + config_flow_monitor.py + config_flow_discovery.py."""
+"""Coverage tests for config_flow_placeholders.py + config_flow_monitor.py + config_flow_discovery.py."""  # noqa: E501
+
 from __future__ import annotations
 
 import pytest
 
+import custom_components.pawcontrol.config_flow_discovery as cfd_mod
+from custom_components.pawcontrol.config_flow_discovery import ConfigFlowDiscoveryData
+import custom_components.pawcontrol.config_flow_monitor as cfm_mod
+from custom_components.pawcontrol.config_flow_monitor import ConfigFlowPerformanceStats
+import custom_components.pawcontrol.config_flow_placeholders as cfp_mod
 from custom_components.pawcontrol.config_flow_placeholders import (
     clone_placeholders,
     freeze_placeholders,
 )
-from custom_components.pawcontrol.config_flow_monitor import (
-    ConfigFlowPerformanceStats,
-)
-from custom_components.pawcontrol.config_flow_discovery import (
-    ConfigFlowDiscoveryData,
-)
-import custom_components.pawcontrol.config_flow_discovery as cfd_mod
-import custom_components.pawcontrol.config_flow_monitor as cfm_mod
-import custom_components.pawcontrol.config_flow_placeholders as cfp_mod
-
 
 # ─── freeze_placeholders ──────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_freeze_placeholders_empty_dict() -> None:
     result = freeze_placeholders({})
     # Returns a mappingproxy, not a dict
-    assert hasattr(result, '__getitem__')
+    assert hasattr(result, "__getitem__")
     assert len(result) == 0
 
 
@@ -45,6 +42,7 @@ def test_freeze_placeholders_returns_mapping() -> None:
 
 
 # ─── clone_placeholders ───────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_clone_placeholders_empty() -> None:
@@ -70,6 +68,7 @@ def test_clone_is_mutable() -> None:
 
 # ─── ConfigFlowPerformanceStats (TypedDict) ───────────────────────────────────
 
+
 @pytest.mark.unit
 def test_config_flow_performance_stats_as_dict() -> None:
     stats: ConfigFlowPerformanceStats = {"operations": {}, "validations": {}}
@@ -83,6 +82,7 @@ def test_config_flow_performance_stats_empty_ops() -> None:
 
 
 # ─── ConfigFlowDiscoveryData (TypedDict) ─────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_config_flow_discovery_data_as_dict() -> None:
@@ -98,6 +98,7 @@ def test_config_flow_discovery_data_as_dict() -> None:
 
 
 # ─── module import checks ─────────────────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_config_flow_discovery_module_importable() -> None:
