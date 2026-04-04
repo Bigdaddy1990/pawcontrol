@@ -128,3 +128,47 @@ def test_raise_from_error_code_known_code_with_strict_signature() -> None:
     """Known codes currently bubble constructor signature mismatches."""
     with pytest.raises(TypeError, match="unexpected keyword argument 'error_code'"):
         raise_from_error_code("service_unavailable", "api down")
+
+
+def test_internal_serialisation_helpers_handle_nested_payloads() -> None:
+    """Private serialization helpers should normalize mixed nested structures."""
+    from custom_components.pawcontrol.exceptions import (
+        _ensure_error_context,
+        _serialise_json_value,
+    )
+
+    timestamp = datetime(2025, 6, 1, tzinfo=UTC)
+    payload = {
+        "a": 1,
+        "when": timestamp,
+        "nested": {"flag": True, "items": [1, timestamp, {"x": object()}]},
+        "drop_none": None,
+    }
+
+    serialized = _serialise_json_value(payload)
+    assert isinstance(serialized, dict)
+    assert serialized["when"] == timestamp.isoformat()
+    nested = serialized["nested"]
+    assert isinstance(nested, dict)
+    assert nested["items"][1] == timestamp.isoformat()
+    assert isinstance(nested["items"][2]["x"], str)
+
+    context = _ensure_error_context(payload)
+    assert context["when"] == timestamp.isoformat()
+    assert "drop_none" not in context
+
+
+def test_paw_control_error_to_dict_includes_chainable_user_message_override() -> None:
+    """with_user_message should update serialized payload output."""
+    err = PawControlError(
+        "raw backend failure",
+        error_code="backend_failure",
+        context={"dog_id": "milo"},
+    ).with_user_message("Bitte später erneut versuchen")
+
+    payload = err.to_dict()
+
+    assert payload["error_code"] == "backend_failure"
+    assert payload["message"] == "raw backend failure"
+    assert payload["user_message"] == "Bitte später erneut versuchen"
+    assert payload["context"]["dog_id"] == "milo"
