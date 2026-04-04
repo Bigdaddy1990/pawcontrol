@@ -22,6 +22,7 @@ from custom_components.pawcontrol.feeding_manager import (
     FeedingManager,
     MealSchedule,
     MealType,
+    _normalise_health_override,
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
