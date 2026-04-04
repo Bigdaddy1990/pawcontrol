@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import pytest
 
+from custom_components.pawcontrol import coordinator as coordinator_module
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
 
@@ -126,3 +127,124 @@ def test_apply_adaptive_interval_skips_tiny_changes() -> None:
     coordinator._apply_adaptive_interval(60.005)
 
     assert coordinator.update_interval.total_seconds() == 60
+
+
+@pytest.mark.asyncio
+async def test_refresh_subset_merges_data_and_updates_subscribers() -> None:
+    coordinator = _make_coordinator()
+    coordinator._data = {"dog-2": {"health": {"status": "ok"}}}
+    synchronized: list[dict[str, dict[str, dict[str, str]]]] = []
+
+    async def _execute_cycle(
+        _dog_ids: list[str],
+    ) -> tuple[dict[str, dict[str, dict[str, str]]], object]:
+        return {"dog-1": {"gps": {"status": "fresh"}}}, object()
+
+    async def _sync(data: dict[str, dict[str, dict[str, str]]]) -> None:
+        synchronized.append(data)
+
+    coordinator._execute_cycle = _execute_cycle
+    coordinator._synchronize_module_states = _sync
+
+    await coordinator._refresh_subset(["dog-1"])
+
+    assert synchronized == [{"dog-1": {"gps": {"status": "fresh"}}}]
+    assert coordinator._data["dog-1"] == {"gps": {"status": "fresh"}}
+    assert coordinator._last_updated == {
+        "dog-1": {"gps": {"status": "fresh"}},
+        "dog-2": {"health": {"status": "ok"}},
+    }
+
+
+@pytest.mark.asyncio
+async def test_request_selective_refresh_handles_none_and_deduplicates_ids() -> None:
+    coordinator = _make_coordinator()
+    requested_full = False
+    requested_subset: list[list[str]] = []
+
+    async def _request_refresh() -> None:
+        nonlocal requested_full
+        requested_full = True
+
+    async def _refresh_subset(dog_ids: list[str]) -> None:
+        requested_subset.append(dog_ids)
+
+    coordinator.async_request_refresh = _request_refresh
+    coordinator._refresh_subset = _refresh_subset
+
+    await coordinator.async_request_selective_refresh()
+    await coordinator.async_request_selective_refresh(["dog-1", "", "dog-1", "dog-2"])
+
+    assert requested_full is True
+    assert requested_subset == [["dog-1", "dog-2"]]
+
+
+@pytest.mark.asyncio
+async def test_async_maintenance_delegates_to_runtime_helper(monkeypatch: pytest.MonkeyPatch) -> None:
+    coordinator = _make_coordinator()
+    called_with: list[PawControlCoordinator] = []
+
+    async def _fake_run_maintenance(instance: PawControlCoordinator) -> None:
+        called_with.append(instance)
+
+    monkeypatch.setattr(coordinator_module.coordinator_tasks, "run_maintenance", _fake_run_maintenance)
+
+    await coordinator._async_maintenance()
+
+    assert called_with == [coordinator]
+
+
+def test_get_performance_snapshot_uses_default_rejection_metrics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    coordinator = _make_coordinator()
+    coordinator._adaptive_polling = SimpleNamespace(
+        as_diagnostics=lambda: {"state": "healthy"}
+    )
+    coordinator._entity_budget = SimpleNamespace(summary=lambda: {"tracked": 0})
+    coordinator._metrics = {"latency_ms": 12}
+    coordinator.last_update_success = True
+    coordinator.notification_manager = None
+    coordinator._last_cycle = SimpleNamespace(to_dict=lambda: {"duration_ms": 5})
+    coordinator.config_entry = SimpleNamespace(runtime_data=None)
+
+    monkeypatch.setattr(
+        coordinator_module,
+        "collect_resilience_diagnostics",
+        lambda _coordinator: {"summary": {"status": "ok"}},
+    )
+    monkeypatch.setattr(
+        coordinator_module.coordinator_observability,
+        "build_performance_snapshot",
+        lambda **_: {"executed": 1},
+    )
+    monkeypatch.setattr(
+        coordinator_module.coordinator_tasks,
+        "default_rejection_metrics",
+        lambda: {"blocked": 0},
+    )
+    monkeypatch.setattr(
+        coordinator_module,
+        "get_runtime_performance_stats",
+        lambda _runtime_data: {},
+    )
+    monkeypatch.setattr(
+        coordinator_module.coordinator_tasks,
+        "resolve_service_guard_metrics",
+        lambda _payload: {"skipped": 0},
+    )
+    monkeypatch.setattr(
+        coordinator_module.coordinator_tasks,
+        "resolve_entity_factory_guard_metrics",
+        lambda _payload: {"total": 0},
+    )
+
+    snapshot = coordinator.get_performance_snapshot()
+
+    assert snapshot["rejection_metrics"] == {"blocked": 0}
+    assert snapshot["service_execution"] == {
+        "guard_metrics": {"skipped": 0},
+        "entity_factory_guard": {"total": 0},
+        "rejection_metrics": {"blocked": 0},
+    }
+    assert snapshot["last_cycle"] == {"duration_ms": 5}
