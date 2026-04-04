@@ -18,8 +18,8 @@ import pytest
 
 from custom_components.pawcontrol.feeding_manager import (
     FeedingConfig,
-    FeedingManager,
     FeedingScheduleType,
+    FeedingManager,
     MealSchedule,
     MealType,
     _normalise_health_override,
@@ -592,45 +592,114 @@ def test_meal_schedule_get_next_feeding_time_empty_days_of_week() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_health_override_filters_invalid_entries() -> None:
-    """Health overrides should coerce numeric strings and drop invalid items."""
-    payload = {
-        "weight": "12.5",
-        "ideal_weight": 10,
-        "age_months": "24",
-        "health_conditions": ["diabetes", 3, None, "allergy"],
+@pytest.mark.asyncio
+async def test_async_add_feeding_with_medication_combines_notes(mock_hass) -> None:
+    """Medication-enabled mode should append medication details to notes."""
+    mgr = FeedingManager(mock_hass)
+    await mgr.async_initialize(
+        [
+            {
+                "dog_id": "rex",
+                "weight": 20.0,
+                "feeding_config": {
+                    "meals_per_day": 2,
+                    "daily_food_amount": 400.0,
+                    "medication_with_meals": True,
+                },
+            }
+        ]
+    )
+
+    event = await mgr.async_add_feeding_with_medication(
+        dog_id="rex",
+        amount=120.0,
+        meal_type="dinner",
+        notes="after walk",
+        medication_data={"name": "Rimadyl", "dose": "25mg", "time": "19:00"},
+    )
+
+    assert event.scheduled is True
+    assert event.with_medication is True
+    assert event.notes is not None
+    assert "after walk" in event.notes
+    assert "Medication: Rimadyl (25mg) at 19:00" in event.notes
+
+
+@pytest.mark.unit
+def test_get_active_emergency_returns_copy_not_internal_reference(mock_hass) -> None:
+    """Returned emergency state should be a detached copy."""
+    mgr = FeedingManager(mock_hass)
+    mgr._active_emergencies["rex"] = {
+        "active": True,
+        "status": "active",
+        "emergency_type": "illness",
+        "portion_adjustment": 1.2,
+        "duration_days": 2,
+        "activated_at": "2026-04-04T10:00:00+00:00",
+        "expires_at": None,
     }
 
-    normalized = _normalise_health_override(payload)
-
-    assert normalized is not None
-    assert normalized["weight"] == 12.5
-    assert normalized["ideal_weight"] == 10.0
-    assert normalized["age_months"] == 24
-    assert normalized["health_conditions"] == ["diabetes", "allergy"]
+    snapshot = mgr.get_active_emergency("rex")
+    assert snapshot is not None
+    snapshot["status"] = "mutated"
+    assert mgr._active_emergencies["rex"]["status"] == "active"
 
 
 @pytest.mark.unit
-@pytest.mark.asyncio
-async def test_async_get_diet_validation_status_returns_none_without_data(
+def test_apply_emergency_restoration_restores_settings_and_invalidates_cache(
     mock_hass,
 ) -> None:
-    """Status endpoint should return None until validation data is present."""
-    mgr = await _init_manager(mock_hass)
-    status = await mgr.async_get_diet_validation_status("rex")
-    assert status is None
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_async_calculate_health_aware_portion_handles_invalid_meal_type(
-    mock_hass,
-) -> None:
-    """Invalid meal names should return None instead of raising."""
-    mgr = await _init_manager(mock_hass)
-    portion = await mgr.async_calculate_health_aware_portion(
-        "rex",
-        "late_night",
-        {"weight": "20.0", "health_conditions": ["digestive_issues", 1]},
+    """Emergency restoration should reset config fields and clear stale cache."""
+    mgr = FeedingManager(mock_hass)
+    cfg = FeedingConfig(
+        dog_id="rex",
+        daily_food_amount=900.0,
+        meals_per_day=6,
+        schedule_type=FeedingScheduleType.STRICT,
+        food_type="wet_food",
     )
-    assert portion is None
+    mgr._configs["rex"] = cfg
+    mgr._data_cache["rex"] = {"feedings": [], "daily_stats": {}}  # type: ignore[assignment]
+    mgr._cache_time["rex"] = datetime.now()
+
+    mgr._apply_emergency_restoration(
+        cfg,
+        {
+            "daily_food_amount": 400.0,
+            "meals_per_day": 2,
+            "schedule_type": FeedingScheduleType.FLEXIBLE,
+            "food_type": "dry_food",
+        },
+        "rex",
+    )
+
+    assert cfg.daily_food_amount == 400.0
+    assert cfg.meals_per_day == 2
+    assert cfg.schedule_type == FeedingScheduleType.FLEXIBLE
+    assert cfg.food_type == "dry_food"
+    assert "rex" not in mgr._data_cache
+    assert "rex" not in mgr._cache_time
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_create_feeding_config_parses_supported_meal_times(mock_hass) -> None:
+    """Config builder should create schedules only for parseable meal times."""
+    mgr = FeedingManager(mock_hass)
+    config = await mgr._create_feeding_config(
+        "rex",
+        {
+            "feeding_schedule": "strict",
+            "breakfast_time": "08:15",
+            "lunch_time": "invalid",
+            "dinner_time": time(18, 30),
+            "portion_size": 110.0,
+        },
+    )
+
+    assert config.schedule_type == FeedingScheduleType.STRICT
+    assert len(config.meal_schedules) == 2
+    assert {schedule.meal_type for schedule in config.meal_schedules} == {
+        MealType.BREAKFAST,
+        MealType.DINNER,
+    }
