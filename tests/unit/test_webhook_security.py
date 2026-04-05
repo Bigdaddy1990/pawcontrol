@@ -341,3 +341,89 @@ def test_webhook_security_error_and_validator_preserve_scalar_values() -> None:
         "dog_id": "dog-1",
         "attempts": 2,
     }
+
+
+def test_rate_limit_state_add_request_uses_current_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RateLimitState should use ``time.time`` when no explicit timestamp is passed."""
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhook_security.time.time",
+        lambda: 321.0,
+    )
+    state = RateLimitState(source="auto-timestamp")
+
+    state.add_request()
+
+    assert list(state.requests_minute) == [321.0]
+    assert list(state.requests_hour) == [321.0]
+    assert state.total_requests == 1
+
+
+def test_authenticator_generate_signature_uses_current_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Signature generation should fall back to ``time.time`` when timestamp is omitted."""
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhook_security.time.time",
+        lambda: 654.0,
+    )
+    auth = WebhookAuthenticator(secret="secret")
+
+    signature, timestamp = auth.generate_signature(b'{"event":"walk"}')
+
+    assert timestamp == 654.0
+    assert auth.verify_signature(b'{"event":"walk"}', signature, 654.0) is True
+
+
+def test_rate_limiter_logs_warning_when_near_limit(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Limiter should emit a warning when usage passes the 80% threshold."""
+    caplog.set_level("WARNING")
+    limiter = WebhookRateLimiter(
+        RateLimitConfig(
+            requests_per_minute=5,
+            requests_per_hour=999,
+            ban_duration_seconds=30.0,
+        )
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhook_security.time.time",
+        lambda: 1000.0,
+    )
+
+    for _ in range(5):
+        limiter.check_limit("warn-source")
+
+    assert "Source approaching rate limit" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_security_manager_skips_rate_limit_when_source_ip_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Requests without source IP should bypass limiter and still validate."""
+    manager = WebhookSecurityManager(
+        hass=None,  # type: ignore[arg-type]
+        secret="secret",
+        required_fields=["event"],
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.webhook_security.time.time",
+        lambda: 50.0,
+    )
+    payload = b'{"event":"feed"}'
+    signature, timestamp = manager._authenticator.generate_signature(payload, 50.0)
+    request = WebhookRequest(
+        payload=payload,
+        signature=signature,
+        timestamp=50.0,
+        source_ip=None,
+    )
+
+    result = await manager.async_process_webhook(request)
+
+    assert result == {"event": "feed"}
+    assert manager.get_security_stats()["rate_limiter"]["total_sources"] == 0
