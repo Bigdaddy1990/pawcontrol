@@ -69,11 +69,13 @@ def test_translated_grooming_template_with_hass_uses_fallback_default(
 
     captured: dict[str, object] = {}
 
-    def _resolve(translations, fallback, key, default):
+    def _resolve(translations, fallback, key, default) -> str:
         captured["inputs"] = (translations, fallback, key, default)
         return "Template {dog}"
 
-    monkeypatch.setattr(grooming_translations, "resolve_component_translation", _resolve)
+    monkeypatch.setattr(
+        grooming_translations, "resolve_component_translation", _resolve
+    )
 
     result = grooming_translations.translated_grooming_template(
         hass,

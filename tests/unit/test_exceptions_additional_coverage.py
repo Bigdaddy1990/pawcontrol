@@ -78,7 +78,9 @@ def test_notification_error_fallback_changes_severity_and_suggestions() -> None:
 
     assert with_fallback.severity is ErrorSeverity.LOW
     assert without_fallback.severity is ErrorSeverity.MEDIUM
-    assert any("Fallback notification method" in s for s in with_fallback.recovery_suggestions)
+    assert any(
+        "Fallback notification method" in s for s in with_fallback.recovery_suggestions
+    )
 
 
 def test_data_import_error_includes_line_number_when_available() -> None:
