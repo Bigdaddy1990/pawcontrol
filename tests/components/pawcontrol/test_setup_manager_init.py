@@ -103,6 +103,137 @@ async def test_async_create_optional_managers_updates_options_and_gps_bindings(
 
 
 @pytest.mark.asyncio
+async def test_async_create_core_managers_returns_expected_registry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Core manager creation should preserve dog order and wire constructor args."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    created: dict[str, object] = {}
+
+    def _build_data_manager(
+        hass: object,
+        entry_id: str,
+        *,
+        coordinator: object,
+        dogs_config: list[dict[str, object]],
+    ) -> object:
+        instance = SimpleNamespace(
+            hass=hass,
+            entry_id=entry_id,
+            coordinator=coordinator,
+            dogs_config=dogs_config,
+        )
+        created["data_manager"] = instance
+        return instance
+
+    def _build_notification_manager(
+        hass: object,
+        entry_id: str,
+        *,
+        session: object,
+    ) -> object:
+        instance = SimpleNamespace(hass=hass, entry_id=entry_id, session=session)
+        created["notification_manager"] = instance
+        return instance
+
+    monkeypatch.setattr(manager_init, "PawControlDataManager", _build_data_manager)
+    monkeypatch.setattr(
+        manager_init,
+        "PawControlNotificationManager",
+        _build_notification_manager,
+    )
+    monkeypatch.setattr(manager_init, "FeedingManager", lambda hass: ("feeding", hass))
+    monkeypatch.setattr(manager_init, "WalkManager", lambda: "walk-manager")
+    monkeypatch.setattr(
+        manager_init,
+        "EntityFactory",
+        lambda coordinator, prewarm: ("entity-factory", coordinator, prewarm),
+    )
+
+    hass = object()
+    entry = SimpleNamespace(entry_id="entry-1")
+    coordinator = object()
+    session = object()
+    dogs_config = [{"dog_id": "buddy"}, {"dog_id": "max"}]
+
+    managers = await manager_init._async_create_core_managers(
+        hass,
+        entry,
+        coordinator,
+        dogs_config,
+        session,
+    )
+
+    assert managers["dog_ids"] == ["buddy", "max"]
+    assert managers["data_manager"] is created["data_manager"]
+    assert managers["notification_manager"] is created["notification_manager"]
+    assert managers["feeding_manager"] == ("feeding", hass)
+    assert managers["walk_manager"] == "walk-manager"
+    assert managers["entity_factory"] == ("entity-factory", coordinator, True)
+
+
+@pytest.mark.asyncio
+async def test_async_create_optional_managers_skips_gps_managers_when_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GPS/geofencing managers should not be created if all dogs disable GPS."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    script_manager = SimpleNamespace(
+        ensure_resilience_threshold_options=MagicMock(return_value=None),
+    )
+    helper_manager = object()
+    door_sensor_manager = object()
+    garden_manager = object()
+    weather_health_manager = object()
+
+    monkeypatch.setattr(
+        manager_init,
+        "PawControlHelperManager",
+        lambda *_: helper_manager,
+    )
+    monkeypatch.setattr(
+        manager_init,
+        "PawControlScriptManager",
+        lambda *_: script_manager,
+    )
+    monkeypatch.setattr(
+        manager_init,
+        "DoorSensorManager",
+        lambda *_: door_sensor_manager,
+    )
+    monkeypatch.setattr(manager_init, "GardenManager", lambda *_: garden_manager)
+    monkeypatch.setattr(
+        manager_init,
+        "WeatherHealthManager",
+        lambda *_: weather_health_manager,
+    )
+
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_update_entry=MagicMock())
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    managers = await manager_init._async_create_optional_managers(
+        hass,
+        entry,
+        [{"dog_id": "buddy", "modules": {"gps": False}}],
+        {"notification_manager": object()},
+        skip_optional_setup=False,
+    )
+
+    assert managers["helper_manager"] is helper_manager
+    assert managers["script_manager"] is script_manager
+    assert managers["door_sensor_manager"] is door_sensor_manager
+    assert managers["garden_manager"] is garden_manager
+    assert managers["weather_health_manager"] is weather_health_manager
+    assert managers["gps_geofence_manager"] is None
+    assert managers["geofencing_manager"] is None
+    hass.config_entries.async_update_entry.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_async_initialize_geofencing_manager_uses_per_dog_overrides() -> None:
     """Per-dog geofencing options should drive manager initialization payload."""
     from custom_components.pawcontrol.setup import manager_init
