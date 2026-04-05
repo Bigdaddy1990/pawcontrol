@@ -27,6 +27,22 @@ async def test_async_initialize_coordinator_skips_optional_setup() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_initialize_coordinator_runs_prepare_and_refresh() -> None:
+    """Coordinator setup should await both prepare and first refresh callbacks."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(),
+    )
+
+    await manager_init._async_initialize_coordinator(coordinator, False)
+
+    coordinator.async_prepare_entry.assert_awaited_once()
+    coordinator.async_config_entry_first_refresh.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_async_initialize_coordinator_raises_not_ready_on_prepare_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -97,6 +113,27 @@ async def test_async_initialize_coordinator_raises_not_ready_on_refresh_timeout(
         match="Coordinator initialization timeout",
     ):
         await manager_init._async_initialize_coordinator(coordinator, False)
+async def test_async_create_optional_managers_returns_defaults_when_skipped() -> None:
+    """Optional manager setup should return an empty registry when skipped."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    managers = await manager_init._async_create_optional_managers(
+        hass=object(),
+        entry=SimpleNamespace(entry_id="entry-1"),
+        dogs_config=[{"dog_id": "buddy", "modules": {"gps": True}}],
+        core_managers={"notification_manager": object()},
+        skip_optional_setup=True,
+    )
+
+    assert managers == {
+        "helper_manager": None,
+        "script_manager": None,
+        "door_sensor_manager": None,
+        "garden_manager": None,
+        "gps_geofence_manager": None,
+        "geofencing_manager": None,
+        "weather_health_manager": None,
+    }
 
 
 @pytest.mark.asyncio
@@ -354,9 +391,8 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides() -> N
 
 
 @pytest.mark.asyncio
-async def test_async_initialize_geofencing_manager_ignores_invalid_per_dog_payloads() -> (
-    None
-):
+async def test_async_initialize_geofencing_manager_ignores_invalid_per_dog_payloads(
+) -> None:
     """Global geofence options should be used when per-dog payloads are invalid."""
     from custom_components.pawcontrol.setup import manager_init
 
