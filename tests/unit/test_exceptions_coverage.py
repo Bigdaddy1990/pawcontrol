@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 import pytest
 
 from custom_components.pawcontrol.exceptions import (
+    EXCEPTION_MAP,
     AuthenticationError,
     ConfigurationError,
     DogNotFoundError,
@@ -197,13 +198,15 @@ def test_create_error_context_extra_kwargs() -> None:
 
 @pytest.mark.unit
 def test_get_exception_class_known_code() -> None:
-    # get_exception_class raises KeyError for unknown codes
-    # Test that it works with a valid code from the registry
-    try:
-        cls = get_exception_class("AUTH_FAILED")
-        assert issubclass(cls, Exception)
-    except KeyError:
-        pytest.skip("Error code not in registry — implementation-dependent")
+    cls = get_exception_class("authentication_error")
+    assert issubclass(cls, Exception)
+    assert cls is AuthenticationError
+
+
+@pytest.mark.unit
+def test_get_exception_class_for_all_registered_codes() -> None:
+    for error_code, expected_cls in EXCEPTION_MAP.items():
+        assert get_exception_class(error_code) is expected_cls
 
 
 @pytest.mark.unit
