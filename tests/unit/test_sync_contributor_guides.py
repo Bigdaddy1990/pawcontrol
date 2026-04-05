@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import pytest
-
 from scripts import sync_contributor_guides
 
 
