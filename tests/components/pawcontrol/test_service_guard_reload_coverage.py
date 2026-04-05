@@ -1,7 +1,5 @@
 """Import and branch coverage tests for service_guard."""
 
-from __future__ import annotations
-
 from collections.abc import Iterator, MutableMapping
 import importlib.util
 from pathlib import Path
