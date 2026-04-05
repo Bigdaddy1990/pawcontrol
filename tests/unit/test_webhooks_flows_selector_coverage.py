@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+import voluptuous as vol
 
 import custom_components.pawcontrol.flows.garden as garden_mod
 from custom_components.pawcontrol.flows.walk_schemas import (
@@ -100,3 +101,18 @@ def test_garden_module_importable() -> None:
 @pytest.mark.unit
 def test_garden_module_has_mixin() -> None:
     assert hasattr(garden_mod, "GardenModuleSelectorMixin")
+
+
+@pytest.mark.unit
+def test_garden_module_selector_builds_optional_boolean_field() -> None:
+    fields = garden_mod.GardenModuleSelectorMixin._build_garden_module_selector(
+        field="garden_mode_enabled",
+        default=True,
+    )
+
+    assert len(fields) == 1
+    marker, selector_value = next(iter(fields.items()))
+    assert isinstance(marker, vol.Marker)
+    assert marker.schema == "garden_mode_enabled"
+    assert marker.default() is True
+    assert isinstance(selector_value, BooleanSelector)
