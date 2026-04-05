@@ -232,6 +232,16 @@ def test_validate_dog_update_input_removes_age_and_weight_when_null() -> None:
 
     assert CONF_DOG_AGE not in result
     assert CONF_DOG_WEIGHT not in result
+def test_validate_dog_config_payload_keeps_explicit_empty_modules() -> None:
+    payload = {
+        CONF_DOG_ID: "buddy",
+        CONF_DOG_NAME: "Buddy",
+        CONF_MODULES: {},
+    }
+
+    result = validate_dog_config_payload(payload, existing_ids=set())
+
+    assert result[CONF_MODULES] == {}
 
 
 def test_validate_dog_import_input_rejects_unexpected_keys() -> None:
@@ -359,6 +369,24 @@ def test_validate_dog_setup_input_reports_range_and_mismatch_errors() -> None:
     assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_size_mismatch"
     assert err.value.field_errors[CONF_DOG_AGE] == "age_out_of_range"
     assert err.value.field_errors[CONF_DOG_BREED] == "breed_name_too_long"
+
+
+def test_validate_dog_setup_input_defaults_none_size_to_medium() -> None:
+    result = validate_dog_setup_input(
+        {
+            CONF_DOG_ID: "buddy",
+            CONF_DOG_NAME: "Buddy",
+            CONF_DOG_SIZE: None,
+            CONF_DOG_WEIGHT: 20.0,
+            CONF_DOG_AGE: 3,
+        },
+        existing_ids=set(),
+        existing_names=set(),
+        current_dog_count=0,
+        max_dogs=3,
+    )
+
+    assert result[CONF_DOG_SIZE] == "medium"
 
 
 def test_validate_dog_setup_input_reports_weight_out_of_range() -> None:
