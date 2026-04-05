@@ -196,6 +196,62 @@ async def test_async_maintenance_delegates_to_runtime_helper(
     assert called_with == [coordinator]
 
 
+@pytest.mark.asyncio
+async def test_prepare_entry_returns_early_when_setup_completed() -> None:
+    coordinator = _make_coordinator()
+    coordinator._setup_complete = True
+    coordinator._modules = SimpleNamespace(
+        clear_caches=lambda: (_ for _ in ()).throw(AssertionError("should not run"))
+    )
+
+    await coordinator.async_prepare_entry()
+
+    assert coordinator._setup_complete is True
+
+
+@pytest.mark.asyncio
+async def test_fetch_dog_data_delegates_to_runtime_fetcher() -> None:
+    coordinator = _make_coordinator()
+    expected = {"status": {"ok": True}}
+
+    async def _fetch_dog_data(dog_id: str) -> dict[str, dict[str, bool]]:
+        assert dog_id == "dog-1"
+        return expected
+
+    coordinator._runtime = SimpleNamespace(_fetch_dog_data=_fetch_dog_data)
+
+    result = await coordinator._fetch_dog_data("dog-1")
+
+    assert result == expected
+
+
+@pytest.mark.asyncio
+async def test_async_patch_gps_update_updates_gps_and_geofencing_payloads() -> None:
+    coordinator = _make_coordinator()
+    coordinator._setup_complete = True
+    coordinator.last_update_success = True
+    coordinator._data = {"dog-1": {"health": {"status": "ok"}}}
+
+    async def _gps_get_data(dog_id: str) -> dict[str, float]:
+        assert dog_id == "dog-1"
+        return {"lat": 1.0, "lon": 2.0}
+
+    async def _geofencing_get_data(dog_id: str) -> dict[str, str]:
+        assert dog_id == "dog-1"
+        return {"zone": "home"}
+
+    coordinator._modules = SimpleNamespace(
+        gps=SimpleNamespace(async_get_data=_gps_get_data),
+        geofencing=SimpleNamespace(async_get_data=_geofencing_get_data),
+    )
+
+    await coordinator.async_patch_gps_update("dog-1")
+
+    assert coordinator._data["dog-1"]["gps"] == {"lat": 1.0, "lon": 2.0}
+    assert coordinator._data["dog-1"]["geofencing"] == {"zone": "home"}
+    assert coordinator._last_updated["dog-1"]["gps"] == {"lat": 1.0, "lon": 2.0}
+
+
 def test_get_performance_snapshot_uses_default_rejection_metrics(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
