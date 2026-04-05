@@ -23,9 +23,12 @@ def test_paw_control_error_helpers_mutate_payload_and_serialize_context() -> Non
         technical_details="trace",
     )
 
-    returned = error.add_context("payload", {"x": 1}).add_recovery_suggestion(
-        "Retry later"
-    ).with_user_message("Friendly")
+    returned = (
+        error
+        .add_context("payload", {"x": 1})
+        .add_recovery_suggestion("Retry later")
+        .with_user_message("Friendly")
+    )
 
     as_dict = error.to_dict()
 
@@ -72,8 +75,9 @@ def test_get_exception_class_and_raise_from_error_code_variants() -> None:
     assert exc_info.value.context["k"] == "v"
 
 
-def test_handle_exception_gracefully_handles_non_critical_and_unexpected_errors(
-) -> None:
+def test_handle_exception_gracefully_handles_non_critical_and_unexpected_errors() -> (
+    None
+):
     """Decorator should return default values for handled non-critical failures."""
 
     def _raise_non_critical() -> str:

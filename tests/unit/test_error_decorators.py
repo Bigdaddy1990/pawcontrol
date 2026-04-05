@@ -274,7 +274,6 @@ class TestHandleErrors:
 @pytest.mark.asyncio
 async def test_handle_errors_forced_async_wrapper_with_immediate_return() -> None:
     """Force async wrapper for sync callables and cover direct return path."""
-
     with patch(
         "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
         return_value=True,
@@ -586,7 +585,6 @@ def test_map_to_repair_issue_without_hass_only_reraises() -> None:
 @pytest.mark.asyncio
 async def test_map_to_repair_issue_forced_async_wrapper_immediate_return() -> None:
     """Force async wrapper branch for direct non-awaitable return values."""
-
     with patch(
         "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
         return_value=True,
@@ -709,7 +707,6 @@ class TestEdgeCases:
 @pytest.mark.asyncio
 async def test_retry_on_error_forced_async_wrapper_immediate_return() -> None:
     """Force async retry wrapper branch for direct non-awaitable return values."""
-
     with patch(
         "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
         return_value=True,

@@ -1,7 +1,5 @@
 """Unit tests for dashboard renderer helper behavior."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from typing import Any
 

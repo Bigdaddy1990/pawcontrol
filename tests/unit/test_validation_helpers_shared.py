@@ -36,6 +36,14 @@ def test_validate_unique_dog_name_accepts_optional_missing_name() -> None:
     assert validate_unique_dog_name("   ", required=False) is None
 
 
+def test_validate_unique_dog_name_returns_normalized_name() -> None:
+    """Non-duplicate names should be returned after validation."""
+    assert (
+        validate_unique_dog_name("  Luna  ", existing_names={"Milo", "Charlie"})
+        == "Luna"
+    )
+
+
 def test_validate_unique_dog_name_rejects_case_insensitive_duplicates() -> None:
     """Duplicate names should raise the integration validation error."""
     with pytest.raises(ValidationError) as err:
