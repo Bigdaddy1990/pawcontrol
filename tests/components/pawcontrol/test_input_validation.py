@@ -72,6 +72,17 @@ def test_sanitize_path_blocks_encoded_traversal_and_normalizes() -> None:
         sanitizer.sanitize_path("safe/../secret.txt")
 
 
+def test_sanitize_path_catches_segment_traversal_when_regexes_are_bypassed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Path sanitizer should still reject '..' segments beyond regex matching."""
+    sanitizer = InputSanitizer()
+    monkeypatch.setattr(sanitizer, "PATH_TRAVERSAL_PATTERNS", ())
+
+    with pytest.raises(ValidationError, match="Path traversal sequences"):
+        sanitizer.sanitize_path("safe/../secret.txt")
+
+
 def test_sanitize_html_and_string_options() -> None:
     """General sanitizer should escape html and respect optional behaviors."""
     sanitizer = InputSanitizer()
@@ -95,6 +106,10 @@ def test_validate_integer_handles_type_and_range_constraints() -> None:
     assert type_error.is_valid is False
     assert "Cannot convert to integer" in type_error.errors[0]
 
+    value_error = validator.validate_integer("not-a-number")
+    assert value_error.is_valid is False
+    assert "Cannot convert to integer" in value_error.errors[0]
+
     too_high = validator.validate_integer("42", max_value=10)
     assert too_high.is_valid is False
     assert too_high.sanitized_value == 42
@@ -112,6 +127,10 @@ def test_validate_float_and_phone_branches() -> None:
     type_error = validator.validate_float(None)
     assert type_error.is_valid is False
     assert "Cannot convert to float" in type_error.errors[0]
+
+    value_error = validator.validate_float("nan-not-valid")
+    assert value_error.is_valid is False
+    assert "Cannot convert to float" in value_error.errors[0]
 
     too_low = validator.validate_float("-1.5", min_value=0)
     assert too_low.is_valid is False
