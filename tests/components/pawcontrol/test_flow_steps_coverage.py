@@ -193,6 +193,16 @@ def test_notification_mixins_normalise_legacy_and_per_dog_payloads() -> None:
     assert mutable[DOG_OPTIONS_FIELD]["dog-1"]["notifications"]["quiet_hours"] is True
 
 
+def test_notification_normaliser_returns_none_when_notifications_missing() -> None:
+    """Notification normaliser should no-op if notifications key is absent."""
+    flow = _NotificationFlow(options={}, dog_options={})
+    mutable: dict[str, Any] = {DOG_OPTIONS_FIELD: {"dog-1": {"dog_id": "dog-1"}}}
+
+    normalised = flow._normalise_notification_options(mutable)
+
+    assert normalised is None
+
+
 def test_notification_options_mixin_prefers_per_dog_notification_entry() -> None:
     """Per-dog notification payload should override legacy global options."""
     flow = _NotificationFlow(
@@ -231,6 +241,55 @@ async def test_notification_flow_select_dog_with_user_input_routes_to_form() -> 
     result = await flow.async_step_select_dog_for_notifications({"dog_id": "missing"})
 
     assert result == {"type": "init"}
+
+
+@pytest.mark.asyncio
+async def test_notification_flow_select_dog_with_user_input_routes_to_step() -> None:
+    """Selecting a known dog should route into the notifications step."""
+    flow = _NotificationAsyncFlow(options={}, dog_options={})
+
+    result = await flow.async_step_select_dog_for_notifications({"dog_id": "dog-1"})
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "notifications"
+
+
+@pytest.mark.asyncio
+async def test_notification_flow_select_dog_without_input_shows_selector() -> None:
+    """Selector step should show the selector form when no input is given."""
+    flow = _NotificationAsyncFlow(options={}, dog_options={})
+
+    result = await flow.async_step_select_dog_for_notifications()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "select_dog_for_notifications"
+
+
+@pytest.mark.asyncio
+async def test_notification_flow_notifications_step_redirects_without_valid_dog() -> None:
+    """Notifications step should redirect if no valid current dog id exists."""
+    flow = _NotificationAsyncFlow(options={}, dog_options={})
+    flow._current_dog = None
+
+    no_dog = await flow.async_step_notifications()
+    assert no_dog["type"] == "form"
+    assert no_dog["step_id"] == "select_dog_for_notifications"
+
+    flow._current_dog = {"dog_id": 123}
+    invalid_id = await flow.async_step_notifications()
+    assert invalid_id["type"] == "form"
+    assert invalid_id["step_id"] == "select_dog_for_notifications"
+
+
+@pytest.mark.asyncio
+async def test_notification_flow_notifications_step_without_input_shows_form() -> None:
+    """Notifications step should render schema when user input is missing."""
+    flow = _NotificationAsyncFlow(options={}, dog_options={})
+
+    result = await flow.async_step_notifications()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "notifications"
 
 
 @pytest.mark.asyncio
@@ -276,3 +335,21 @@ async def test_notification_flow_notifications_step_handles_success_and_errors()
     failed = await flow.async_step_notifications(valid_input)
     assert failed["type"] == "form"
     assert failed["errors"] == {"base": "update_failed"}
+
+
+def test_notification_flow_build_notification_settings_wrapper() -> None:
+    """Wrapper should delegate to the class-level payload builder."""
+    flow = _NotificationAsyncFlow(options={}, dog_options={})
+    user_input = {
+        "quiet_hours": True,
+        "quiet_start": "21:00",
+        "quiet_end": "07:00",
+        "reminder_repeat_min": 30,
+    }
+    current = flow._current_notification_options("dog-1")
+
+    payload = flow._build_notification_settings(user_input, current)
+
+    assert payload["quiet_hours"] is True
+    assert payload["quiet_start"] == "21:00"
+    assert payload["reminder_repeat_min"] == 30
