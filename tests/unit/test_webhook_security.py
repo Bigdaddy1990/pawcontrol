@@ -363,7 +363,7 @@ def test_rate_limit_state_add_request_uses_current_time(
 def test_authenticator_generate_signature_uses_current_time(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Signature generation should fall back to ``time.time`` when timestamp is omitted."""
+    """Signature generation should use ``time.time`` when timestamp is omitted."""
     monkeypatch.setattr(
         "custom_components.pawcontrol.webhook_security.time.time",
         lambda: 654.0,
