@@ -212,6 +212,28 @@ def test_validate_dog_config_payload_removes_optional_fields_when_null() -> None
     assert CONF_MODULES not in result
 
 
+def test_validate_dog_update_input_removes_age_and_weight_when_null() -> None:
+    """Update validation should drop optional age/weight when explicitly cleared."""
+    current_dog = {
+        CONF_DOG_ID: "buddy",
+        CONF_DOG_NAME: "Buddy",
+        CONF_DOG_AGE: 5,
+        CONF_DOG_WEIGHT: 18.2,
+        CONF_DOG_SIZE: "medium",
+    }
+
+    result = validate_dog_update_input(
+        current_dog,
+        {
+            CONF_DOG_AGE: None,
+            CONF_DOG_WEIGHT: None,
+        },
+    )
+
+    assert CONF_DOG_AGE not in result
+    assert CONF_DOG_WEIGHT not in result
+
+
 def test_validate_dog_import_input_rejects_unexpected_keys() -> None:
     payload = {
         **_valid_dog_input(),
