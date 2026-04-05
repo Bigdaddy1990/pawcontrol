@@ -7,6 +7,8 @@ from unittest.mock import AsyncMock, MagicMock
 from homeassistant.exceptions import ConfigEntryNotReady
 import pytest
 
+from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed
+
 
 @pytest.mark.asyncio
 async def test_async_initialize_coordinator_skips_optional_setup() -> None:
@@ -136,3 +138,86 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides() -> N
         use_home_location=False,
         home_zone_radius=65,
     )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_coordinator_wraps_network_refresh_errors() -> None:
+    """Refresh OSErrors should be surfaced as ConfigEntryNotReady."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(side_effect=OSError("offline")),
+    )
+
+    with pytest.raises(
+        ConfigEntryNotReady,
+        match="Network connectivity issue during coordinator setup",
+    ):
+        await manager_init._async_initialize_coordinator(coordinator, False)
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_all_managers_prioritizes_auth_failures() -> None:
+    """Auth failures should be raised even when earlier managers fail differently."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    auth_failed = ConfigEntryAuthFailed("reauth required")
+    core_managers = {
+        "dog_ids": ["buddy"],
+        "data_manager": SimpleNamespace(
+            async_initialize=AsyncMock(side_effect=RuntimeError("boom"))
+        ),
+        "notification_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "feeding_manager": SimpleNamespace(
+            async_initialize=AsyncMock(side_effect=auth_failed)
+        ),
+        "walk_manager": SimpleNamespace(async_initialize=AsyncMock()),
+    }
+    optional_managers = {
+        "helper_manager": None,
+        "script_manager": None,
+        "door_sensor_manager": None,
+        "garden_manager": None,
+        "gps_geofence_manager": None,
+        "geofencing_manager": None,
+        "weather_health_manager": None,
+    }
+    entry = SimpleNamespace(options={})
+
+    with pytest.raises(ConfigEntryAuthFailed, match="reauth required"):
+        await manager_init._async_initialize_all_managers(
+            core_managers,
+            optional_managers,
+            [{"dog_id": "buddy"}],
+            entry,
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_manager_with_timeout_propagates_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Manager init helper should re-raise timeout errors from wait_for."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    async def _never_called() -> None:
+        return None
+
+    async def _raise_timeout(coro: object, timeout: int) -> None:
+        close = getattr(coro, "close", None)
+        if callable(close):
+            close()
+        raise TimeoutError
+
+    monkeypatch.setattr(
+        manager_init.asyncio,
+        "wait_for",
+        AsyncMock(side_effect=_raise_timeout),
+    )
+
+    with pytest.raises(TimeoutError):
+        await manager_init._async_initialize_manager_with_timeout(
+            "test_manager",
+            _never_called(),
+        )
