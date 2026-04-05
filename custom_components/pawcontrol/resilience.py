@@ -357,9 +357,8 @@ class RetryStrategy:
 
                 await asyncio.sleep(delay)
 
-        # Should never reach here, but satisfy type checker
-        if last_exception:
-            raise last_exception
+        # The retry loop always returns or raises, so this is a defensive
+        # fallback for static analyzers and unexpected runtime behaviour.
         raise RuntimeError("Retry logic failed unexpectedly")
 
     def _calculate_delay(self, attempt: int) -> float:

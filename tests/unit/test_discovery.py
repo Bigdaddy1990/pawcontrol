@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from homeassistant.core import HomeAssistant
 import pytest
 
+from custom_components.pawcontrol import discovery as discovery_module
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.discovery import (
     CATEGORY_CAPABILITIES,
@@ -17,6 +18,8 @@ from custom_components.pawcontrol.discovery import (
     LegacyDiscoveryEntry,
     PawControlDiscovery,
     async_get_discovered_devices,
+    async_get_discovery_manager,
+    async_shutdown_discovery_manager,
 )
 
 
@@ -214,3 +217,112 @@ def test_classify_device_covers_extended_categories(
     assert category == expected_category
     assert capabilities == CATEGORY_CAPABILITIES[expected_category]
     assert 0.5 <= confidence <= 0.95
+
+
+def test_connection_details_collects_known_connection_metadata(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Connection detail extraction should include known IDs and metadata."""
+    device_entry = _StubDeviceEntry(
+        id="device-2",
+        connections=[
+            ("bluetooth", "AA:BB:CC:DD:EE:FF"),
+            ("mac", "11:22:33:44:55:66"),
+            ("usb", "usb-1"),
+        ],
+        configuration_url="https://pawcontrol.local/device-2",
+        via_device_id="bridge-1",
+    )
+    discovery = PawControlDiscovery(hass)
+    monkeypatch.setattr(
+        discovery_module.dr,
+        "CONNECTION_BLUETOOTH",
+        "bluetooth",
+        raising=False,
+    )
+    monkeypatch.setattr(
+        discovery_module.dr,
+        "CONNECTION_NETWORK_MAC",
+        "mac",
+        raising=False,
+    )
+
+    connection_type, connection_info = discovery._connection_details(device_entry)
+
+    assert connection_type == "usb"
+    assert connection_info["address"] == "AA:BB:CC:DD:EE:FF"
+    assert connection_info["mac"] == "11:22:33:44:55:66"
+    assert connection_info["usb"] == "usb-1"
+    assert connection_info["configuration_url"] == "https://pawcontrol.local/device-2"
+    assert connection_info["via_device_id"] == "bridge-1"
+
+
+def test_deduplicate_and_getters_prefer_stronger_confidence(
+    hass: HomeAssistant,
+) -> None:
+    """Deduplication should keep the highest-confidence device per id."""
+    discovery = PawControlDiscovery(hass)
+    low_confidence = DiscoveredDevice(
+        device_id="dup-id",
+        name="Tracker A",
+        category="gps_tracker",
+        manufacturer="PawControl",
+        model="A",
+        connection_type="network",
+        connection_info={},
+        capabilities=["gps"],
+        discovered_at="2026-01-01T00:00:00+00:00",
+        confidence=0.41,
+        metadata={},
+    )
+    high_confidence = DiscoveredDevice(
+        device_id="dup-id",
+        name="Tracker A+",
+        category="gps_tracker",
+        manufacturer="PawControl",
+        model="A+",
+        connection_type="network",
+        connection_info={},
+        capabilities=["gps", "geofence"],
+        discovered_at="2026-01-01T00:00:00+00:00",
+        confidence=0.92,
+        metadata={},
+    )
+
+    deduplicated = discovery._deduplicate_devices([low_confidence, high_confidence])
+
+    assert len(deduplicated) == 1
+    kept_device = deduplicated[0]
+    assert kept_device.name == "Tracker A+"
+    discovery._discovered_devices[kept_device.device_id] = kept_device
+    assert discovery.get_device_by_id("dup-id") == kept_device
+    assert discovery.get_discovered_devices(category="gps_tracker") == [kept_device]
+    assert discovery.is_scanning() is False
+
+
+@pytest.mark.asyncio
+async def test_discovery_manager_singleton_lifecycle(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The global discovery manager should initialize once and reset on shutdown."""
+    initialize_calls = 0
+
+    async def _async_initialize(self: PawControlDiscovery) -> None:
+        nonlocal initialize_calls
+        initialize_calls += 1
+
+    monkeypatch.setattr(PawControlDiscovery, "async_initialize", _async_initialize)
+
+    manager_one = await async_get_discovery_manager(hass)
+    manager_two = await async_get_discovery_manager(hass)
+
+    assert manager_one is manager_two
+    assert initialize_calls == 1
+
+    await async_shutdown_discovery_manager()
+
+    manager_three = await async_get_discovery_manager(hass)
+    assert manager_three is not manager_one
+    assert initialize_calls == 2
+
+    await async_shutdown_discovery_manager()
