@@ -185,6 +185,7 @@ async def test_async_patch_gps_update_merges_latest_module_payloads() -> None:
     coordinator._setup_complete = True
     coordinator.last_update_success = True
     coordinator._data = {"dog-1": {"health": {"status": "ok"}}}
+
     async def _gps_payload(_dog_id: str) -> dict[str, float]:
         return {"lat": 50.0, "lon": 8.0}
 

@@ -1,7 +1,5 @@
 """Tests for error classification helpers."""
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.error_classification import (

@@ -1,11 +1,9 @@
 """Tests for MQTT GPS push transport wiring."""
 
-from __future__ import annotations
-
+import sys
 from types import ModuleType, SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
-import sys
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -73,7 +71,9 @@ async def test_async_register_entry_mqtt_subscribes_and_routes_messages(
     )
 
     process_push = AsyncMock()
-    monkeypatch.setattr("custom_components.pawcontrol.mqtt_push.async_process_gps_push", process_push)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.mqtt_push.async_process_gps_push", process_push
+    )
 
     unsubscribe_called = False
 
@@ -81,7 +81,9 @@ async def test_async_register_entry_mqtt_subscribes_and_routes_messages(
         nonlocal unsubscribe_called
         unsubscribe_called = True
 
-    hass.data.setdefault(DOMAIN, {})[_MQTT_STORE_KEY] = {entry.entry_id: _old_unsubscribe}
+    hass.data.setdefault(DOMAIN, {})[_MQTT_STORE_KEY] = {
+        entry.entry_id: _old_unsubscribe
+    }
 
     captured: dict[str, Any] = {}
 

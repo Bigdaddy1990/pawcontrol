@@ -221,3 +221,162 @@ async def test_async_initialize_manager_with_timeout_propagates_timeout(
             "test_manager",
             _never_called(),
         )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_all_managers_raises_first_non_auth_exception() -> None:
+    """Initialization should raise the first non-auth failure when no auth error exists."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    failure = RuntimeError("manager boom")
+    core_managers = {
+        "dog_ids": ["buddy"],
+        "data_manager": SimpleNamespace(
+            async_initialize=AsyncMock(side_effect=failure)
+        ),
+        "notification_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "feeding_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "walk_manager": SimpleNamespace(async_initialize=AsyncMock()),
+    }
+    optional_managers = {
+        "helper_manager": None,
+        "script_manager": None,
+        "door_sensor_manager": None,
+        "garden_manager": None,
+        "gps_geofence_manager": None,
+        "geofencing_manager": None,
+        "weather_health_manager": None,
+    }
+
+    with pytest.raises(RuntimeError, match="manager boom"):
+        await manager_init._async_initialize_all_managers(
+            core_managers,
+            optional_managers,
+            [{"dog_id": "buddy"}],
+            SimpleNamespace(options={}),
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_all_managers_initializes_optional_variants(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Door, garden, geofencing, and generic optional managers should initialize."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    door_sensor_manager = SimpleNamespace(async_initialize=AsyncMock())
+    garden_manager = SimpleNamespace(async_initialize=AsyncMock())
+    helper_manager = SimpleNamespace(async_initialize=AsyncMock())
+    geofencing_manager = SimpleNamespace(async_initialize=AsyncMock())
+    initialize_geofence = AsyncMock()
+    monkeypatch.setattr(
+        manager_init,
+        "_async_initialize_geofencing_manager",
+        initialize_geofence,
+    )
+
+    core_managers = {
+        "dog_ids": ["buddy"],
+        "data_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "notification_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "feeding_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "walk_manager": SimpleNamespace(async_initialize=AsyncMock()),
+    }
+    optional_managers = {
+        "helper_manager": helper_manager,
+        "script_manager": None,
+        "door_sensor_manager": door_sensor_manager,
+        "garden_manager": garden_manager,
+        "gps_geofence_manager": None,
+        "geofencing_manager": geofencing_manager,
+        "weather_health_manager": None,
+    }
+    dogs_config = [{"dog_id": "buddy"}]
+    entry = SimpleNamespace(options={})
+
+    await manager_init._async_initialize_all_managers(
+        core_managers,
+        optional_managers,
+        dogs_config,
+        entry,
+    )
+
+    door_sensor_manager.async_initialize.assert_awaited_once_with(
+        dogs=dogs_config,
+        walk_manager=core_managers["walk_manager"],
+        notification_manager=core_managers["notification_manager"],
+        data_manager=core_managers["data_manager"],
+    )
+    garden_manager.async_initialize.assert_awaited_once_with(
+        dogs=["buddy"],
+        notification_manager=core_managers["notification_manager"],
+        door_sensor_manager=door_sensor_manager,
+    )
+    helper_manager.async_initialize.assert_awaited_once_with()
+    initialize_geofence.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_runtime_data_creation_and_monitor_registration() -> None:
+    """Runtime helpers should wire managers, telemetry, and monitor registration."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    coordinator = SimpleNamespace(
+        api_client=object(),
+        resilience_manager=object(),
+        attach_runtime_managers=MagicMock(),
+    )
+    script_manager = SimpleNamespace(
+        attach_runtime_manual_history=MagicMock(),
+        sync_manual_event_history=MagicMock(),
+    )
+    data_manager = SimpleNamespace(register_runtime_cache_monitors=MagicMock())
+    notification_manager = SimpleNamespace()
+    weather_health_manager = SimpleNamespace()
+    gps_geofence_manager = SimpleNamespace()
+
+    core_managers = {
+        "data_manager": data_manager,
+        "notification_manager": notification_manager,
+        "feeding_manager": object(),
+        "walk_manager": object(),
+        "entity_factory": object(),
+        "dog_ids": ["buddy"],
+    }
+    optional_managers = {
+        "helper_manager": object(),
+        "script_manager": script_manager,
+        "door_sensor_manager": object(),
+        "garden_manager": object(),
+        "gps_geofence_manager": gps_geofence_manager,
+        "geofencing_manager": object(),
+        "weather_health_manager": weather_health_manager,
+    }
+    entry = SimpleNamespace(
+        data={"token": "abc"},
+        options={"flag": True},
+    )
+
+    manager_init._attach_managers_to_coordinator(
+        coordinator,
+        core_managers,
+        optional_managers,
+    )
+    assert gps_geofence_manager.resilience_manager is coordinator.resilience_manager
+    assert notification_manager.resilience_manager is coordinator.resilience_manager
+    assert weather_health_manager.resilience_manager is coordinator.resilience_manager
+
+    runtime_data = manager_init._create_runtime_data(
+        entry,
+        coordinator,
+        core_managers,
+        optional_managers,
+        [{"dog_id": "buddy"}],
+        "default",
+    )
+
+    script_manager.attach_runtime_manual_history.assert_called_once_with(runtime_data)
+    script_manager.sync_manual_event_history.assert_called_once_with()
+
+    manager_init._register_runtime_monitors(runtime_data)
+    data_manager.register_runtime_cache_monitors.assert_called_once_with(runtime_data)

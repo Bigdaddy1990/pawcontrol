@@ -1,7 +1,5 @@
 """Tests for flow validator wrapper functions."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from custom_components.pawcontrol import flow_validators

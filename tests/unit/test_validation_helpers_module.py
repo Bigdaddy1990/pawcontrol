@@ -2,7 +2,10 @@
 
 import pytest
 
-from custom_components.pawcontrol.exceptions import ServiceValidationError, ValidationError
+from custom_components.pawcontrol.exceptions import (
+    ServiceValidationError,
+    ValidationError,
+)
 from custom_components.pawcontrol.validation_helpers import (
     format_coordinate_validation_error,
     normalise_existing_names,
