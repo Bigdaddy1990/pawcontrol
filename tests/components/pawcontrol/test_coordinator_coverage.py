@@ -178,6 +178,36 @@ async def test_request_selective_refresh_handles_none_and_deduplicates_ids() -> 
 
 
 @pytest.mark.asyncio
+async def test_async_patch_gps_update_merges_latest_module_payloads() -> None:
+    """GPS patch updates existing payload in place and notifies subscribers."""
+    coordinator = _make_coordinator()
+    coordinator.registry = _DummyRegistry(["dog-1"])
+    coordinator._setup_complete = True
+    coordinator.last_update_success = True
+    coordinator._data = {"dog-1": {"health": {"status": "ok"}}}
+    async def _gps_payload(_dog_id: str) -> dict[str, float]:
+        return {"lat": 50.0, "lon": 8.0}
+
+    async def _geofencing_payload(_dog_id: str) -> dict[str, bool]:
+        return {"inside_zone": True}
+
+    coordinator._modules = SimpleNamespace(
+        gps=SimpleNamespace(async_get_data=_gps_payload),
+        geofencing=SimpleNamespace(async_get_data=_geofencing_payload),
+    )
+
+    updates: list[dict[str, Any]] = []
+    coordinator.async_set_updated_data = lambda data: updates.append(data)
+
+    await coordinator.async_patch_gps_update("dog-1")
+
+    assert coordinator._data["dog-1"]["health"] == {"status": "ok"}
+    assert coordinator._data["dog-1"]["gps"] == {"lat": 50.0, "lon": 8.0}
+    assert coordinator._data["dog-1"]["geofencing"] == {"inside_zone": True}
+    assert updates and updates[-1]["dog-1"]["gps"]["lat"] == 50.0
+
+
+@pytest.mark.asyncio
 async def test_async_maintenance_delegates_to_runtime_helper(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
