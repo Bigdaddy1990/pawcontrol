@@ -330,14 +330,10 @@ class RetryStrategy:
         Raises:
             Exception: Last exception if all retries fail
         """
-        last_exception: Exception | None = None
-
         for attempt in range(self._config.max_attempts):
             try:
                 return await func(*args, **kwargs)
             except Exception as e:
-                last_exception = e
-
                 # Check if exception is retryable
                 if not isinstance(e, self._config.retryable_exceptions):
                     raise

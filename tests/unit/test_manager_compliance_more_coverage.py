@@ -1,7 +1,5 @@
 """Additional branch coverage for manager_compliance helpers."""
 
-from __future__ import annotations
-
 from custom_components.pawcontrol import manager_compliance as mc
 
 

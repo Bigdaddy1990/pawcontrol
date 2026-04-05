@@ -232,6 +232,8 @@ def test_validate_dog_update_input_removes_age_and_weight_when_null() -> None:
 
     assert CONF_DOG_AGE not in result
     assert CONF_DOG_WEIGHT not in result
+
+
 def test_validate_dog_config_payload_keeps_explicit_empty_modules() -> None:
     payload = {
         CONF_DOG_ID: "buddy",
