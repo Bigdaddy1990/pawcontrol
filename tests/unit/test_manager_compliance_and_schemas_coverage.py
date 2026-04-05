@@ -1,8 +1,4 @@
-"""Targeted coverage tests for manager_compliance.py + schemas.py — (0% → 28%+).
-
-manager_compliance: ComplianceReport, check_required_methods
-schemas: validate_json_schema_payload, SchemaViolation
-"""
+"""Targeted coverage tests for manager_compliance.py and schemas.py."""
 
 import pytest
 
@@ -15,64 +11,60 @@ from custom_components.pawcontrol.schemas import (
     validate_json_schema_payload,
 )
 
-# ─── ComplianceReport ────────────────────────────────────────────────────────
-
 
 @pytest.mark.unit
-def test_compliance_report_compliant() -> None:
+def test_compliance_report_defaults_and_custom_values() -> None:
+    """ComplianceReport should expose expected defaults and accept overrides."""
     report = ComplianceReport(manager_name="TestManager")
     assert report.is_compliant is True
     assert report.manager_name == "TestManager"
     assert report.score == 100
+    assert report.issues == []
+
+    custom = ComplianceReport(manager_name="BadManager", is_compliant=False, score=50)
+    assert custom.is_compliant is False
+    assert custom.score == 50
 
 
 @pytest.mark.unit
-def test_compliance_report_non_compliant() -> None:
-    report = ComplianceReport(manager_name="BadManager", is_compliant=False, score=50)
-    assert report.is_compliant is False
-    assert report.score == 50
+def test_check_required_methods_records_missing_and_non_callable() -> None:
+    """Required-method validation should detect missing and non-callable methods."""
 
-
-@pytest.mark.unit
-def test_compliance_report_empty_issues() -> None:
-    report = ComplianceReport(manager_name="GoodManager")
-    assert isinstance(report.issues, list)
-    assert len(report.issues) == 0
-
-
-# ─── check_required_methods ──────────────────────────────────────────────────
-
-
-@pytest.mark.unit
-@pytest.mark.xfail(
-    reason="Known bug: check_required_methods calls .add_issue() on list"
-)
-def test_check_required_methods_all_present() -> None:
-    class GoodManager:
-        async def async_initialize(self) -> None:
-            pass
+    class BrokenManager:
+        async_setup = "not callable"
 
         async def async_shutdown(self) -> None:
-            pass
+            """Shutdown."""
 
-    result = check_required_methods(GoodManager, ["async_initialize", "async_shutdown"])
-    assert result is not None
+    report = ComplianceReport(manager_name="BrokenManager")
+
+    check_required_methods(BrokenManager, report)
+
+    messages = {issue.message for issue in report.issues}
+    assert "async_setup is not callable" in messages
+    assert "Missing required method: get_diagnostics" in messages
 
 
 @pytest.mark.unit
-@pytest.mark.xfail(
-    reason="Known bug: check_required_methods calls .add_issue() on list"
-)
-def test_check_required_methods_missing_method() -> None:
-    class BadManager:
-        async def async_initialize(self) -> None:
-            pass
+def test_check_required_methods_accepts_valid_methods() -> None:
+    """Required-method validation should not add issues for valid managers."""
 
-    result = check_required_methods(BadManager, ["async_initialize", "async_shutdown"])
-    assert result is not None
+    class GoodManager:
+        async def async_setup(self) -> None:
+            """Setup."""
 
+        async def async_shutdown(self) -> None:
+            """Shutdown."""
 
-# ─── validate_json_schema_payload ────────────────────────────────────────────
+        def get_diagnostics(self) -> dict[str, bool]:
+            """Diagnostics."""
+            return {"ok": True}
+
+    report = ComplianceReport(manager_name="GoodManager")
+
+    check_required_methods(GoodManager, report)
+
+    assert report.issues == []
 
 
 @pytest.mark.unit
@@ -195,9 +187,6 @@ def test_validate_json_schema_payload_accepts_union_numeric_types() -> None:
     by_field = {(item.field, item.constraint) for item in violations}
     assert ("threshold", "minimum") in by_field
     assert ("count", "minimum") in by_field
-
-
-# ─── SchemaViolation ─────────────────────────────────────────────────────────
 
 
 @pytest.mark.unit

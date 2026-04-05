@@ -694,6 +694,20 @@ async def test_async_initialize_manager_with_timeout_success() -> None:
     )
 
 
+@pytest.mark.asyncio
+async def test_async_initialize_manager_with_timeout_re_raises_errors() -> None:
+    """Manager initialization should log and re-raise non-timeout failures."""
+
+    async def _boom() -> None:
+        raise RuntimeError("broken manager")
+
+    with pytest.raises(RuntimeError, match="broken manager"):
+        await manager_init._async_initialize_manager_with_timeout(
+            "demo",
+            _boom(),
+        )
+
+
 def test_register_runtime_monitors_calls_data_manager_hook_when_available() -> None:
     """Runtime monitor registration should call through when manager exposes the API."""
     register_runtime_cache_monitors = MagicMock()
