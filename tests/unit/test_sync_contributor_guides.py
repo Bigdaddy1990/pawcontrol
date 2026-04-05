@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from scripts import sync_contributor_guides
 
 
@@ -49,6 +51,18 @@ def test_apply_sync_block_replaces_existing_region(tmp_path: Path) -> None:
 
     assert "old" in original
     assert updated == "prefix\n<!-- SYNC:START -->\nnew\n<!-- SYNC:END -->\nsuffix\n"
+
+
+def test_apply_sync_block_requires_markers(tmp_path: Path) -> None:
+    """Applying sync should fail fast when the target has no sync markers."""
+    target = tmp_path / "target.md"
+    _write(target, "prefix\nno markers here\nsuffix\n")
+
+    with pytest.raises(ValueError):
+        sync_contributor_guides._apply_sync_block(
+            target,
+            "<!-- SYNC:START -->\nnew\n<!-- SYNC:END -->",
+        )
 
 
 def test_main_check_mode_reports_out_of_date_file(
