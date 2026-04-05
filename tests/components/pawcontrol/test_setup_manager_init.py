@@ -141,6 +141,44 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides() -> N
 
 
 @pytest.mark.asyncio
+async def test_async_initialize_geofencing_manager_ignores_invalid_per_dog_payloads(
+) -> None:
+    """Global geofence options should be used when per-dog payloads are invalid."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    geofencing_manager = SimpleNamespace(async_initialize=AsyncMock())
+    initialization_tasks: list[asyncio.Task[None]] = []
+    entry = SimpleNamespace(
+        options={
+            "geofence_settings": {
+                "geofencing_enabled": True,
+                "use_home_location": False,
+                "geofence_radius_m": 33,
+            },
+            "dog_options": {
+                "buddy": "invalid-payload",
+                "max": {"geofence_settings": "invalid-payload"},
+            },
+        }
+    )
+
+    await manager_init._async_initialize_geofencing_manager(
+        geofencing_manager,
+        ["buddy", "max"],
+        entry,
+        initialization_tasks,
+    )
+    await asyncio.gather(*initialization_tasks)
+
+    geofencing_manager.async_initialize.assert_awaited_once_with(
+        dogs=["buddy", "max"],
+        enabled=True,
+        use_home_location=False,
+        home_zone_radius=33,
+    )
+
+
+@pytest.mark.asyncio
 async def test_async_initialize_coordinator_wraps_network_refresh_errors() -> None:
     """Refresh OSErrors should be surfaced as ConfigEntryNotReady."""
     from custom_components.pawcontrol.setup import manager_init
@@ -155,6 +193,29 @@ async def test_async_initialize_coordinator_wraps_network_refresh_errors() -> No
         match="Network connectivity issue during coordinator setup",
     ):
         await manager_init._async_initialize_coordinator(coordinator, False)
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_coordinator_reraises_auth_failures() -> None:
+    """Auth failures should not be wrapped by ConfigEntryNotReady."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    prepare_coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(side_effect=ConfigEntryAuthFailed("prepare")),
+        async_config_entry_first_refresh=AsyncMock(),
+    )
+    refresh_coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(
+            side_effect=ConfigEntryAuthFailed("refresh")
+        ),
+    )
+
+    with pytest.raises(ConfigEntryAuthFailed, match="prepare"):
+        await manager_init._async_initialize_coordinator(prepare_coordinator, False)
+
+    with pytest.raises(ConfigEntryAuthFailed, match="refresh"):
+        await manager_init._async_initialize_coordinator(refresh_coordinator, False)
 
 
 @pytest.mark.asyncio
@@ -225,7 +286,7 @@ async def test_async_initialize_manager_with_timeout_propagates_timeout(
 
 @pytest.mark.asyncio
 async def test_async_initialize_all_managers_raises_first_non_auth_exception() -> None:
-    """Initialization should raise the first non-auth failure when no auth error exists."""
+    """Initialization should raise the first non-auth failure with no auth error."""
     from custom_components.pawcontrol.setup import manager_init
 
     failure = RuntimeError("manager boom")
