@@ -115,6 +115,11 @@ def test_validate_integer_handles_type_and_range_constraints() -> None:
     assert too_high.sanitized_value == 42
     assert "maximum 10" in too_high.errors[0]
 
+    too_low = validator.validate_integer("-2", min_value=0)
+    assert too_low.is_valid is False
+    assert too_low.sanitized_value == -2
+    assert "minimum 0" in too_low.errors[0]
+
     in_range = validator.validate_integer("7", min_value=0, max_value=10)
     assert in_range.is_valid is True
     assert in_range.sanitized_value == 7
