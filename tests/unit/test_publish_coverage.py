@@ -386,3 +386,78 @@ def test_prune_expired_runs_returns_empty_when_contents_is_not_a_list(
     publisher = _Publisher("token", "owner/repo", "gh-pages")
 
     assert publisher.prune_expired_runs("coverage", dt.timedelta(days=30)) == []
+
+
+def test_prune_expired_runs_returns_empty_without_ref_sha() -> None:
+    """Pruning should stop gracefully when the ref payload has no commit sha."""
+
+    class _Publisher(publish_coverage.GitHubPagesPublisher):
+        def _request_json(
+            self,
+            method: str,
+            url: str,
+            *,
+            payload: dict[str, object] | None = None,
+        ) -> object:
+            del payload
+            if method == "GET" and url.endswith("/contents/coverage?ref=gh-pages"):
+                return [{"type": "dir", "name": "run-old"}]
+            if method == "GET" and "summary.json" in url:
+                old = dt.datetime.now(dt.UTC) - dt.timedelta(days=60)
+                return {
+                    "encoding": "base64",
+                    "content": base64.b64encode(
+                        json.dumps({"generated_at": old.isoformat()}).encode("utf-8")
+                    ).decode("ascii"),
+                }
+            if method == "GET" and url.endswith("/git/refs/heads/gh-pages"):
+                return {"object": {}}
+            raise AssertionError(f"Unexpected request: {method} {url}")
+
+    publisher = _Publisher("token", "owner/repo", "gh-pages")
+
+    assert publisher.prune_expired_runs("coverage", dt.timedelta(days=30)) == []
+
+
+def test_publish_pages_mode_handles_publish_error(tmp_path, monkeypatch) -> None:
+    """Pages publishing should fall back to artifact mode on PublishError."""
+    coverage_xml = tmp_path / "coverage.xml"
+    coverage_xml.write_text(
+        """<?xml version='1.0' ?><coverage line-rate='0.9020'></coverage>""",
+        encoding="utf-8",
+    )
+    html_root = tmp_path / "generated" / "coverage"
+    html_root.mkdir(parents=True)
+    (html_root / "index.html").write_text("<html></html>", encoding="utf-8")
+    artifact_dir = tmp_path / "artifacts"
+
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+
+    class _DummyPublisher:
+        def __init__(self, *_: object) -> None:
+            pass
+
+        def publish(self, *_: object, **__: object) -> str:
+            raise publish_coverage.PublishError("boom")
+
+    monkeypatch.setattr(publish_coverage, "GitHubPagesPublisher", _DummyPublisher)
+
+    args = publish_coverage.build_cli().parse_args([
+        "--coverage-xml",
+        str(coverage_xml),
+        "--coverage-html-index",
+        str(html_root / "index.html"),
+        "--artifact-directory",
+        str(artifact_dir),
+        "--mode",
+        "pages",
+        "--run-id",
+        "publish-error",
+    ])
+
+    result = publish_coverage.publish(args)
+
+    assert result.published is False
+    assert result.url is None
+    assert result.archive_path.is_file()
