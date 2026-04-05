@@ -663,29 +663,28 @@ async def test_health_options_selection_and_submit_paths() -> None:
     assert selector["type"] == "form"
     assert selector["step_id"] == "select_dog_for_health_settings"
 
-    redirected = await flow.async_step_select_dog_for_health_settings(
-        {"dog_id": "missing"}
-    )
+    redirected = await flow.async_step_select_dog_for_health_settings({
+        "dog_id": "missing"
+    })
     assert redirected == {"type": "init"}
 
     selected = await flow.async_step_select_dog_for_health_settings({"dog_id": "dog-1"})
     assert selected["type"] == "form"
     assert selected["step_id"] == "health_settings"
 
-    result = await flow.async_step_health_settings(
-        {
-            "weight_tracking": False,
-            "medication_reminders": True,
-            "vet_reminders": False,
-            "grooming_reminders": True,
-            "health_alerts": False,
-        }
-    )
+    result = await flow.async_step_health_settings({
+        "weight_tracking": False,
+        "medication_reminders": True,
+        "vet_reminders": False,
+        "grooming_reminders": True,
+        "health_alerts": False,
+    })
     assert result["type"] == "create_entry"
     assert result["data"]["health_settings"]["weight_tracking"] is False
-    assert result["data"][DOG_OPTIONS_FIELD]["dog-1"]["health_settings"][
-        "health_alerts"
-    ] is False
+    assert (
+        result["data"][DOG_OPTIONS_FIELD]["dog-1"]["health_settings"]["health_alerts"]
+        is False
+    )
 
 
 @pytest.mark.asyncio
@@ -711,7 +710,9 @@ async def test_health_options_error_paths_and_current_resolution() -> None:
     flow_with_dog._build_health_settings = lambda *_: (_ for _ in ()).throw(
         FlowValidationError(field_errors={"weight_tracking": "invalid"})
     )
-    validation = await flow_with_dog.async_step_health_settings({"weight_tracking": "x"})
+    validation = await flow_with_dog.async_step_health_settings({
+        "weight_tracking": "x"
+    })
     assert validation["type"] == "form"
     assert validation["errors"] == {"weight_tracking": "invalid"}
 
