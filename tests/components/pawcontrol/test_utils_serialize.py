@@ -107,7 +107,7 @@ def test_serialize_value_supports_tuple_and_primitive_types() -> None:
 
 
 def test_module_reload_syncs_parent_utils_re_exports() -> None:
-    """Reloading the module should refresh ``custom_components.pawcontrol.utils`` exports."""
+    """Reloading should refresh ``custom_components.pawcontrol.utils`` exports."""
     parent = importlib.import_module("custom_components.pawcontrol.utils")
 
     parent.serialize_datetime = None

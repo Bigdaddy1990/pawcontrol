@@ -1,5 +1,6 @@
 """Regression tests for the resilience escalation diagnostics snapshot."""
 
+from dataclasses import dataclass
 from datetime import timedelta
 import json
 from types import MethodType, SimpleNamespace
@@ -400,9 +401,9 @@ def test_coerce_threshold_clamps_and_defaults() -> None:
 def test_extract_field_int_supports_mapping_and_objects() -> None:
     """Field extraction should read mapping/object defaults and ignore invalid data."""
 
+    @dataclass
     class _FieldObject:
-        def __init__(self, default: object) -> None:
-            self.default = default
+        default: object
 
     assert _extract_field_int(None, "skip_threshold") is None
     assert (
