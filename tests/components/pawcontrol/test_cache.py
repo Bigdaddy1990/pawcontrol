@@ -1,7 +1,5 @@
 """Tests for the PawControl cache helpers."""
 
-from __future__ import annotations
-
 import time
 from typing import Any
 from unittest.mock import AsyncMock
@@ -37,6 +35,8 @@ class _FailingStore(_FakeStore):
 
     async def async_save(self, payload: dict[str, dict[str, Any]]) -> None:
         """Raise an error to simulate storage save failure."""
+
+
 class _FailingLoadStore(_FakeStore):
     """Store stub that simulates load failures."""
 
@@ -287,6 +287,8 @@ def test_cache_entry_ttl_remaining_is_never_negative() -> None:
     )
 
     assert entry.ttl_remaining == 0.0
+
+
 @pytest.mark.asyncio
 async def test_persistent_cache_load_failure_marks_cache_loaded(
     monkeypatch: pytest.MonkeyPatch,

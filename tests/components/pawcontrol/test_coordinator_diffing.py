@@ -1,7 +1,5 @@
 """Tests for coordinator diffing helpers."""
 
-from __future__ import annotations
-
 import logging
 
 from custom_components.pawcontrol.coordinator_diffing import (
