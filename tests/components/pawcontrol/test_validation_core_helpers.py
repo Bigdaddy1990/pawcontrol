@@ -8,12 +8,15 @@ import pytest
 from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.validation import (
     InputCoercionError,
+    _coerce_float_with_constraint,
     _is_empty,
     _parse_time_string,
     coerce_float,
     coerce_int,
     normalize_dog_id,
+    validate_name,
     validate_notification_targets,
+    validate_time_window,
 )
 
 
@@ -106,3 +109,34 @@ def test_validate_notification_targets_handles_scalar_and_none() -> None:
     assert validate_notification_targets("push", enum_type=_Target).targets == [
         _Target.PUSH
     ]
+
+
+def test_validate_time_window_uses_defaults_and_required_constraints() -> None:
+    """Time window validation should consume defaults and raise required errors."""
+    assert validate_time_window(
+        "07:00",
+        None,
+        start_field="start",
+        end_field="end",
+        default_end="21:15",
+    ) == ("07:00:00", "21:15:00")
+
+    with pytest.raises(ValidationError, match="start_required"):
+        validate_time_window(
+            None,
+            "09:00",
+            start_field="start",
+            end_field="end",
+            required_start_constraint="start_required",
+        )
+
+
+def test_validate_name_and_float_constraint_helpers() -> None:
+    """Name and float coercion helpers should normalize and map constraints."""
+    assert validate_name("  Buddy  ") == "Buddy"
+
+    with pytest.raises(ValidationError, match="name_invalid_type"):
+        validate_name(5)
+
+    with pytest.raises(ValidationError, match="must_be_numeric"):
+        _coerce_float_with_constraint("weight", "not-a-number", "must_be_numeric")
