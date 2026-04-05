@@ -81,3 +81,43 @@ def test_extract_enabled_modules_ignores_invalid_and_unknown_modules(
     assert enabled == frozenset({"gps"})
     assert "because configuration is not a mapping" in caplog.text
     assert "Ignoring unknown PawControl modules: unknown_mod" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_async_validate_entry_config_returns_normalized_data(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The top-level setup validation helper should normalize each section."""
+    entry = SimpleNamespace(
+        entry_id="entry-validated",
+        data={
+            "dogs": [
+                {
+                    "dog_id": "buddy",
+                    "dog_name": "Buddy",
+                    "modules": {"gps": True, "feeding": False},
+                }
+            ]
+        },
+        options={"entity_profile": "standard"},
+    )
+
+    with caplog.at_level("DEBUG"):
+        dogs, profile, enabled_modules = await validation.async_validate_entry_config(
+            entry
+        )
+
+    assert dogs == entry.data["dogs"]
+    assert profile == "standard"
+    assert enabled_modules == frozenset({"gps"})
+    assert (
+        "Config validation complete: 1 dogs, profile='standard', 1 modules enabled"
+        in caplog.text
+    )
+
+
+def test_extract_enabled_modules_skips_missing_modules_key() -> None:
+    """Dogs without module config should not contribute enabled modules."""
+    dogs_config = [{"dog_id": "buddy", "dog_name": "Buddy"}]
+
+    assert validation._extract_enabled_modules(dogs_config) == frozenset()
