@@ -169,6 +169,60 @@ class _DogHealthFlow(DogHealthFlowMixin):
         return {"type": "form", **kwargs}
 
 
+class _HealthOptionsFlow(HealthOptionsMixin):
+    def __init__(
+        self,
+        *,
+        options: dict[str, Any],
+        dog_options: dict[str, Any],
+        dogs: list[dict[str, Any]],
+    ) -> None:
+        self._options = options
+        self._dog_options = dog_options
+        self._dogs = dogs
+        self._current_dog: dict[str, Any] | None = dogs[0] if dogs else None
+        self.init_calls = 0
+
+    def _current_options(self) -> dict[str, Any]:
+        return self._options
+
+    def _current_dog_options(self) -> dict[str, Any]:
+        return self._dog_options
+
+    def _build_dog_selector_schema(self) -> Any:
+        return object()
+
+    def _select_dog_by_id(self, dog_id: str | None) -> dict[str, Any] | None:
+        self._current_dog = next(
+            (dog for dog in self._dogs if dog.get(DOG_ID_FIELD) == dog_id),
+            None,
+        )
+        return self._current_dog
+
+    def _require_current_dog(self) -> dict[str, Any] | None:
+        return self._current_dog
+
+    @staticmethod
+    def _coerce_bool(value: Any, default: bool) -> bool:
+        return bool(value) if value is not None else default
+
+    def _clone_options(self) -> dict[str, Any]:
+        return dict(self._options)
+
+    def _normalise_options_snapshot(self, options: dict[str, Any]) -> dict[str, Any]:
+        return options
+
+    def async_show_form(self, **kwargs: Any) -> dict[str, Any]:
+        return {"type": "form", **kwargs}
+
+    def async_create_entry(self, *, title: str, data: dict[str, Any]) -> dict[str, Any]:
+        return {"type": "create_entry", "title": title, "data": data}
+
+    async def async_step_init(self) -> dict[str, Any]:
+        self.init_calls += 1
+        return {"type": "init"}
+
+
 def test_flow_steps_exports_are_available() -> None:
     """Package exports should expose flow mixins for import convenience."""
     assert DogGPSFlowMixin is not None
@@ -501,3 +555,76 @@ async def test_dog_health_step_with_input_updates_health_and_feeding() -> None:
     assert feeding_config["health_aware_portions"] is True
     assert feeding_config["age_months"] == 24
     assert feeding_config["medication_with_meals"] is True
+
+
+@pytest.mark.asyncio
+async def test_health_options_selection_and_submit_paths() -> None:
+    """Health options flow should handle selection, validation and persistence."""
+    flow = _HealthOptionsFlow(
+        options={},
+        dog_options={},
+        dogs=[{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Rex"}],
+    )
+
+    selector = await flow.async_step_select_dog_for_health_settings()
+    assert selector["type"] == "form"
+    assert selector["step_id"] == "select_dog_for_health_settings"
+
+    redirected = await flow.async_step_select_dog_for_health_settings(
+        {"dog_id": "missing"}
+    )
+    assert redirected == {"type": "init"}
+
+    selected = await flow.async_step_select_dog_for_health_settings({"dog_id": "dog-1"})
+    assert selected["type"] == "form"
+    assert selected["step_id"] == "health_settings"
+
+    result = await flow.async_step_health_settings(
+        {
+            "weight_tracking": False,
+            "medication_reminders": True,
+            "vet_reminders": False,
+            "grooming_reminders": True,
+            "health_alerts": False,
+        }
+    )
+    assert result["type"] == "create_entry"
+    assert result["data"]["health_settings"]["weight_tracking"] is False
+    assert result["data"][DOG_OPTIONS_FIELD]["dog-1"]["health_settings"][
+        "health_alerts"
+    ] is False
+
+
+@pytest.mark.asyncio
+async def test_health_options_error_paths_and_current_resolution() -> None:
+    """Health options mixin should handle fallback resolution and form errors."""
+    flow = _HealthOptionsFlow(
+        options={"health_settings": {"vet_reminders": False}},
+        dog_options={},
+        dogs=[],
+    )
+
+    assert flow._current_health_options("dog-1") == {"vet_reminders": False}
+    assert await flow.async_step_select_dog_for_health_settings() == {"type": "init"}
+
+    flow_with_dog = _HealthOptionsFlow(
+        options={},
+        dog_options={"dog-1": {"health_settings": {"weight_tracking": False}}},
+        dogs=[{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Rex"}],
+    )
+    assert flow_with_dog._current_health_options("dog-1") == {"weight_tracking": False}
+    assert flow_with_dog._current_health_options("missing") == {}
+
+    flow_with_dog._build_health_settings = lambda *_: (_ for _ in ()).throw(
+        FlowValidationError(field_errors={"weight_tracking": "invalid"})
+    )
+    validation = await flow_with_dog.async_step_health_settings({"weight_tracking": "x"})
+    assert validation["type"] == "form"
+    assert validation["errors"] == {"weight_tracking": "invalid"}
+
+    flow_with_dog._build_health_settings = lambda *_: (_ for _ in ()).throw(
+        RuntimeError("boom")
+    )
+    failed = await flow_with_dog.async_step_health_settings({"weight_tracking": "x"})
+    assert failed["type"] == "form"
+    assert failed["errors"] == {"base": "update_failed"}
