@@ -493,6 +493,29 @@ def test_load_bundled_component_translations_fresh_handles_missing_and_invalid_f
     assert translation_helpers.load_bundled_component_translations_fresh("it") == {}
 
 
+def test_load_bundled_component_translations_fresh_handles_oserror(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fresh translation loading should return empty mapping on read errors."""
+    module_file = tmp_path / "translation_helpers.py"
+    module_file.write_text("# module placeholder", encoding="utf-8")
+    translations_dir = tmp_path / "translations"
+    translations_dir.mkdir()
+    (translations_dir / "de.json").write_text(
+        '{"common": {"action": "Aktion"}}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(translation_helpers, "__file__", str(module_file))
+
+    def _raise_oserror(_self: object, *_args: object, **_kwargs: object) -> str:
+        raise OSError("denied")
+
+    monkeypatch.setattr(translation_helpers.Path, "read_text", _raise_oserror)
+
+    assert translation_helpers.load_bundled_component_translations_fresh("de") == {}
+
+
 def test_get_cached_component_translation_lookup_normalizes_none_language() -> None:
     """None should normalize to English and reuse the same fallback mapping."""
     cached = {"component.pawcontrol.common.en": "English"}
@@ -652,6 +675,18 @@ def test_resolve_translation_accepts_legacy_key_in_fallback() -> None:
         translation_helpers.resolve_translation(
             {},
             {"dashboard_statistics_template_dogs": "Dogs"},
+            "component.pawcontrol.common.dashboard_statistics_template_dogs",
+        )
+        == "Dogs"
+    )
+
+
+def test_resolve_translation_accepts_legacy_key_in_primary_mapping() -> None:
+    """Legacy unscoped keys should resolve through primary dictionaries."""
+    assert (
+        translation_helpers.resolve_translation(
+            {"dashboard_statistics_template_dogs": "Dogs"},
+            {},
             "component.pawcontrol.common.dashboard_statistics_template_dogs",
         )
         == "Dogs"
