@@ -263,6 +263,77 @@ def test_pytest_cov_fail_under_sets_session_failure() -> None:
     assert session.exitstatus == 1
 
 
+def test_pytest_cov_no_cov_on_fail_skips_fail_under_enforcement() -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    option = SimpleNamespace(
+        cov=[],
+        cov_branch=False,
+        cov_report=["term"],
+        cov_fail_under=100.0,
+        no_cov_on_fail=True,
+    )
+    session = _DummySession(option)
+    cov = Mock(spec=coverage.Coverage)
+    cov.report.return_value = 0.0
+    session.config._pawcontrol_cov = cov
+    session.config._pawcontrol_cov_include = None
+
+    pytest_cov_plugin.pytest_sessionfinish(session, 1)
+
+    assert session.exitstatus == 0
+
+
+def test_pytest_cov_sessionstart_returns_when_options_missing() -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+    session = SimpleNamespace(config=SimpleNamespace())
+
+    pytest_cov_plugin.pytest_sessionstart(session)
+
+    assert not hasattr(session.config, "_pawcontrol_cov")
+
+
+def test_pytest_cov_sessionfinish_writes_html_stub_without_controller(
+    tmp_path: Path,
+) -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    option = SimpleNamespace(cov_report=[f"html:{tmp_path / 'htmlcov'}"])
+    session = _DummySession(option)
+
+    pytest_cov_plugin.pytest_sessionfinish(session, 0)
+
+    assert (tmp_path / "htmlcov").is_dir()
+
+
+def test_pytest_cov_sessionfinish_tolerates_missing_data_errors(tmp_path: Path) -> None:
+    pytest_cov_plugin = _reload("pytest_cov.plugin")
+
+    option = SimpleNamespace(
+        cov=[],
+        cov_branch=False,
+        cov_report=[
+            "term-missing",
+            f"xml:{tmp_path / 'cov.xml'}",
+            f"html:{tmp_path / 'htmlcov'}",
+        ],
+        cov_fail_under=0.0,
+        no_cov_on_fail=False,
+    )
+    session = _DummySession(option)
+    cov = Mock(spec=coverage.Coverage)
+    cov.report.side_effect = pytest_cov_plugin.NoDataError("no-data")
+    cov.xml_report.side_effect = pytest_cov_plugin.NoDataError("no-data")
+    cov.html_report.side_effect = pytest_cov_plugin.NoDataError("no-data")
+    session.config._pawcontrol_cov = cov
+    session.config._pawcontrol_cov_include = None
+
+    pytest_cov_plugin.pytest_sessionfinish(session, 0)
+
+    assert (tmp_path / "cov.xml").exists()
+    assert (tmp_path / "htmlcov").is_dir()
+
+
 def test_pytest_homeassistant_shim_registers_marker() -> None:
     plugin = _reload("pytest_homeassistant_custom_component")
 
