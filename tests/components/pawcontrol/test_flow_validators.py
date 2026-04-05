@@ -1,146 +1,186 @@
-"""Tests for flow validator wrapper helpers."""
+"""Tests for flow validator wrapper functions."""
 
-from collections.abc import Callable
+from __future__ import annotations
+
 from typing import Any
-
-import pytest
 
 from custom_components.pawcontrol import flow_validators
 
 
-@pytest.mark.parametrize(
-    ("helper_name", "target_name", "args", "kwargs", "expected", "expected_kwargs"),
-    [
-        (
-            "validate_flow_dog_name",
-            "validate_dog_name",
-            ("Milo",),
-            {},
-            "Milo",
-            {"field": "dog_name", "required": True},
-        ),
-        (
-            "validate_flow_gps_coordinates",
-            "InputValidator.validate_gps_coordinates",
-            (52.5, 13.4),
-            {},
-            (52.5, 13.4),
-            {"latitude_field": "latitude", "longitude_field": "longitude"},
-        ),
-        (
-            "validate_flow_gps_accuracy",
-            "InputValidator.validate_gps_accuracy",
-            (5.0,),
-            {"field": "gps_accuracy", "min_value": 1.0, "max_value": 10.0},
-            5.0,
-            {
-                "field": "gps_accuracy",
-                "min_value": 1.0,
-                "max_value": 10.0,
-                "required": True,
-            },
-        ),
-        (
-            "validate_flow_geofence_radius",
-            "InputValidator.validate_geofence_radius",
-            (25.0,),
-            {"field": "radius", "min_value": 10.0, "max_value": 100.0},
-            25.0,
-            {
-                "field": "radius",
-                "min_value": 10.0,
-                "max_value": 100.0,
-                "required": True,
-            },
-        ),
-        (
-            "validate_flow_gps_interval",
-            "validate_gps_interval",
-            (30,),
-            {"field": "gps_interval", "minimum": 10, "maximum": 60},
-            30,
-            {
-                "field": "gps_interval",
-                "minimum": 10,
-                "maximum": 60,
-                "default": None,
-                "clamp": False,
-                "required": False,
-            },
-        ),
-        (
-            "validate_flow_timer_interval",
-            "validate_interval",
-            (120,),
-            {"field": "interval", "minimum": 60, "maximum": 300},
-            120,
-            {
-                "field": "interval",
-                "minimum": 60,
-                "maximum": 300,
-                "default": None,
-                "clamp": False,
-                "required": False,
-            },
-        ),
-        (
-            "validate_flow_time_window",
-            "validate_time_window",
-            ("08:00", "20:00"),
-            {"start_field": "start", "end_field": "end"},
-            ("08:00", "20:00"),
-            {
-                "start_field": "start",
-                "end_field": "end",
-                "default_start": None,
-                "default_end": None,
-            },
-        ),
-    ],
-)
-def test_flow_validator_wrappers_delegate_to_core_validators(
-    monkeypatch: pytest.MonkeyPatch,
-    helper_name: str,
-    target_name: str,
-    args: tuple[Any, ...],
-    kwargs: dict[str, Any],
-    expected: Any,
-    expected_kwargs: dict[str, Any],
-) -> None:
-    """Each wrapper should forward arguments to the underlying validator."""
-    recorded: dict[str, Any] = {}
+class _Recorder:
+    """Capture call arguments and return a fixed value."""
 
-    def _capture_call(*call_args: Any, **call_kwargs: Any) -> Any:
-        recorded["args"] = call_args
-        recorded["kwargs"] = call_kwargs
-        return expected
+    def __init__(self, return_value: Any) -> None:
+        self.return_value = return_value
+        self.args: tuple[Any, ...] | None = None
+        self.kwargs: dict[str, Any] | None = None
 
-    if target_name.startswith("InputValidator."):
-        attr_name = target_name.rsplit(".", maxsplit=1)[1]
-        monkeypatch.setattr(flow_validators.InputValidator, attr_name, _capture_call)
-    else:
-        monkeypatch.setattr(flow_validators, target_name, _capture_call)
-
-    helper: Callable[..., Any] = getattr(flow_validators, helper_name)
-    result = helper(*args, **kwargs)
-
-    assert result == expected
-    assert recorded["args"] == args
-    assert recorded["kwargs"] == expected_kwargs
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        self.args = args
+        self.kwargs = kwargs
+        return self.return_value
 
 
-def test_flow_validators_exports_validation_error_and_public_wrappers() -> None:
-    """Module exports should include all public wrappers and ValidationError."""
-    expected_exports = {
-        "ValidationError",
-        "validate_flow_dog_name",
-        "validate_flow_geofence_radius",
-        "validate_flow_gps_accuracy",
-        "validate_flow_gps_coordinates",
-        "validate_flow_gps_interval",
-        "validate_flow_time_window",
-        "validate_flow_timer_interval",
+def test_validate_flow_dog_name_delegates_with_defaults(monkeypatch) -> None:
+    """Dog name wrapper should pass default field/required values."""
+    recorder = _Recorder("Luna")
+    monkeypatch.setattr(flow_validators, "validate_dog_name", recorder)
+
+    result = flow_validators.validate_flow_dog_name("Luna")
+
+    assert result == "Luna"
+    assert recorder.args == ("Luna",)
+    assert recorder.kwargs == {"field": "dog_name", "required": True}
+
+
+def test_validate_flow_gps_coordinates_delegates_fields(monkeypatch) -> None:
+    """GPS coordinate wrapper should pass custom field names through."""
+    recorder = _Recorder((12.34, 56.78))
+    monkeypatch.setattr(
+        flow_validators.InputValidator,
+        "validate_gps_coordinates",
+        recorder,
+    )
+
+    result = flow_validators.validate_flow_gps_coordinates(
+        "12.34",
+        "56.78",
+        latitude_field="lat",
+        longitude_field="lon",
+    )
+
+    assert result == (12.34, 56.78)
+    assert recorder.args == ("12.34", "56.78")
+    assert recorder.kwargs == {"latitude_field": "lat", "longitude_field": "lon"}
+
+
+def test_validate_flow_gps_accuracy_delegates(monkeypatch) -> None:
+    """GPS accuracy wrapper should forward the boundary arguments."""
+    recorder = _Recorder(9.5)
+    monkeypatch.setattr(
+        flow_validators.InputValidator, "validate_gps_accuracy", recorder
+    )
+
+    result = flow_validators.validate_flow_gps_accuracy(
+        "9.5",
+        field="accuracy",
+        min_value=1.0,
+        max_value=50.0,
+        required=False,
+    )
+
+    assert result == 9.5
+    assert recorder.args == ("9.5",)
+    assert recorder.kwargs == {
+        "field": "accuracy",
+        "min_value": 1.0,
+        "max_value": 50.0,
+        "required": False,
     }
 
-    assert set(flow_validators.__all__) == expected_exports
+
+def test_validate_flow_geofence_radius_delegates(monkeypatch) -> None:
+    """Geofence radius wrapper should call InputValidator consistently."""
+    recorder = _Recorder(100.0)
+    monkeypatch.setattr(
+        flow_validators.InputValidator,
+        "validate_geofence_radius",
+        recorder,
+    )
+
+    result = flow_validators.validate_flow_geofence_radius(
+        "100",
+        field="radius",
+        min_value=10.0,
+        max_value=1000.0,
+    )
+
+    assert result == 100.0
+    assert recorder.args == ("100",)
+    assert recorder.kwargs == {
+        "field": "radius",
+        "min_value": 10.0,
+        "max_value": 1000.0,
+        "required": True,
+    }
+
+
+def test_validate_flow_gps_interval_delegates(monkeypatch) -> None:
+    """GPS interval wrapper should preserve clamp/default controls."""
+    recorder = _Recorder(60)
+    monkeypatch.setattr(flow_validators, "validate_gps_interval", recorder)
+
+    result = flow_validators.validate_flow_gps_interval(
+        "60",
+        field="gps_interval",
+        minimum=10,
+        maximum=300,
+        default=120,
+        clamp=True,
+        required=True,
+    )
+
+    assert result == 60
+    assert recorder.args == ("60",)
+    assert recorder.kwargs == {
+        "field": "gps_interval",
+        "minimum": 10,
+        "maximum": 300,
+        "default": 120,
+        "clamp": True,
+        "required": True,
+    }
+
+
+def test_validate_flow_timer_interval_delegates(monkeypatch) -> None:
+    """Timer interval wrapper should call validate_interval."""
+    recorder = _Recorder(15)
+    monkeypatch.setattr(flow_validators, "validate_interval", recorder)
+
+    result = flow_validators.validate_flow_timer_interval(
+        "15",
+        field="walk_interval",
+        minimum=5,
+        maximum=60,
+    )
+
+    assert result == 15
+    assert recorder.args == ("15",)
+    assert recorder.kwargs == {
+        "field": "walk_interval",
+        "minimum": 5,
+        "maximum": 60,
+        "default": None,
+        "clamp": False,
+        "required": False,
+    }
+
+
+def test_validate_flow_time_window_delegates(monkeypatch) -> None:
+    """Time window wrapper should proxy default time values."""
+    recorder = _Recorder(("08:00", "18:00"))
+    monkeypatch.setattr(flow_validators, "validate_time_window", recorder)
+
+    result = flow_validators.validate_flow_time_window(
+        "08:00",
+        "18:00",
+        start_field="start",
+        end_field="end",
+        default_start="06:00",
+        default_end="22:00",
+    )
+
+    assert result == ("08:00", "18:00")
+    assert recorder.args == ("08:00", "18:00")
+    assert recorder.kwargs == {
+        "start_field": "start",
+        "end_field": "end",
+        "default_start": "06:00",
+        "default_end": "22:00",
+    }
+
+
+def test_validation_error_reexport_and_all_contract() -> None:
+    """Module should re-export ValidationError in __all__."""
+    assert "ValidationError" in flow_validators.__all__
     assert flow_validators.ValidationError.__name__ == "ValidationError"
