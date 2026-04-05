@@ -25,7 +25,11 @@ from custom_components.pawcontrol.exceptions import (
     RateLimitError,
 )
 from custom_components.pawcontrol.module_adapters import CoordinatorModuleAdapters
-from custom_components.pawcontrol.resilience import ResilienceManager, RetryConfig
+from custom_components.pawcontrol.resilience import (
+    ResilienceManager,
+    RetryConfig,
+    RetryStrategy,
+)
 from custom_components.pawcontrol.types import CoordinatorDogData, CoordinatorModuleTask
 
 
@@ -257,6 +261,23 @@ def test_execute_cycle_logs_low_success_rate_warning(
     assert cycle.success_rate < 0.5
     assert data["buddy"]["status"] == "online"
     assert "Low success rate: 1/3 dogs updated successfully" in caplog.text
+
+
+def test_retry_strategy_raises_runtime_error_when_no_attempts() -> None:
+    """Retry helper should raise a runtime error when no attempts are configured."""
+    retry_config = RetryConfig(
+        max_attempts=0,
+        initial_delay=0.0,
+        max_delay=0.0,
+        jitter=False,
+    )
+    strategy = RetryStrategy(retry_config)
+
+    async def _never_called() -> str:
+        raise AssertionError("no attempts should skip invoking the callback")
+
+    with pytest.raises(RuntimeError, match="Retry logic failed unexpectedly"):
+        asyncio.run(strategy.execute(_never_called))
 
 
 def test_fetch_dog_data_maps_module_exceptions(mock_hass: object) -> None:
