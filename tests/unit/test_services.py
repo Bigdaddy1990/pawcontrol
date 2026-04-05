@@ -1552,6 +1552,97 @@ async def test_async_setup_services_registers_expected_services(
 
 
 @pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_setup_services_replaces_listener_and_invalidates_on_domain_events(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Service setup should replace old listeners and filter config-entry events."""
+
+    class _TrackingResolver:
+        def __init__(self, coordinator: object) -> None:
+            self._coordinator = coordinator
+            self.invalidations: list[str | None] = []
+
+        def invalidate(self, *, entry_id: str | None = None) -> None:
+            self.invalidations.append(entry_id)
+
+        def resolve(self) -> object:
+            return self._coordinator
+
+    coordinator = _CoordinatorStub(SimpleNamespace())
+    runtime_data = SimpleNamespace(performance_stats={})
+    previous_listener_calls: list[str] = []
+
+    def _previous_listener() -> None:
+        previous_listener_calls.append("called")
+
+    hass = SimpleNamespace(
+        services=_ServiceRegistryStub(),
+        data={
+            services.DOMAIN: {
+                "_service_coordinator_listener": _previous_listener,
+            }
+        },
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
+        bus=_BusStub(),
+    )
+    hass.config_entries = SimpleNamespace(async_entries=lambda _domain: [])
+    coordinator.hass = hass
+
+    resolver = _TrackingResolver(coordinator)
+    captured_listener: dict[str, Callable[[object, object], None]] = {}
+    replacement_calls: list[str] = []
+
+    def replacement_remover() -> None:
+        replacement_calls.append("called")
+
+    def _capture_dispatcher_connect(
+        _hass: object,
+        _signal: str,
+        callback: Callable[[object, object], None],
+    ) -> Callable[[], None]:
+        captured_listener["callback"] = callback
+        return replacement_remover
+
+    monkeypatch.setattr(services, "_coordinator_resolver", lambda _hass: resolver)
+    monkeypatch.setattr(
+        services,
+        "async_dispatcher_connect",
+        _capture_dispatcher_connect,
+    )
+    monkeypatch.setattr(
+        services, "async_track_time_change", lambda *args, **kwargs: lambda: None
+    )
+    monkeypatch.setattr(services, "get_runtime_data", lambda *_args: runtime_data)
+
+    await services.async_setup_services(hass)  # type: ignore[arg-type]
+
+    assert previous_listener_calls == ["called"]
+    installed_listener = hass.data[services.DOMAIN]["_service_coordinator_listener"]
+    assert installed_listener is replacement_remover
+
+    callback = captured_listener["callback"]
+    callback(
+        services.ConfigEntryChange.ADDED,
+        SimpleNamespace(domain="other_domain", entry_id="ignored"),
+    )
+    callback(
+        cast(object, "unchanged"),
+        SimpleNamespace(domain=services.DOMAIN, entry_id="ignored"),
+    )
+    callback(
+        services.ConfigEntryChange.UPDATED,
+        SimpleNamespace(domain=services.DOMAIN, entry_id="entry-1"),
+    )
+    callback(
+        services.ConfigEntryChange.REMOVED,
+        SimpleNamespace(domain=services.DOMAIN, entry_id="entry-2"),
+    )
+
+    assert resolver.invalidations == [None, "entry-1", "entry-2"]
+
+
+@pytest.mark.unit
 def test_capture_cache_diagnostics_returns_snapshot() -> None:
     """Helper should normalise diagnostics payloads provided by the data manager."""
     payload = {
