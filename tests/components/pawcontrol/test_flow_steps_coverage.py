@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from custom_components.pawcontrol.const import CONF_NOTIFICATIONS
-from custom_components.pawcontrol.exceptions import ValidationError
+from custom_components.pawcontrol.exceptions import FlowValidationError, ValidationError
 from custom_components.pawcontrol.flow_steps import (
     DogGPSFlowMixin,
     DogHealthFlowMixin,
@@ -51,6 +51,55 @@ class _NotificationFlow(
 
     def _current_dog_options(self) -> dict[str, Any]:
         return self._dog_options
+
+
+class _NotificationAsyncFlow(_NotificationFlow):
+    def __init__(self, *, options: dict[str, Any], dog_options: dict[str, Any]) -> None:
+        super().__init__(options=options, dog_options=dog_options)
+        self._dogs = [{"dog_id": "dog-1", "name": "Rex"}]
+        self._current_dog = self._dogs[0]
+        self.init_calls = 0
+
+    def _build_dog_selector_schema(self) -> Any:
+        return object()
+
+    def _select_dog_by_id(self, dog_id: str | None) -> dict[str, Any] | None:
+        self._current_dog = next(
+            (dog for dog in self._dogs if dog.get("dog_id") == dog_id),
+            None,
+        )
+        return self._current_dog
+
+    def _require_current_dog(self) -> dict[str, Any] | None:
+        return self._current_dog
+
+    @staticmethod
+    def _coerce_bool(value: Any, default: bool) -> bool:
+        return bool(value) if value is not None else default
+
+    @staticmethod
+    def _coerce_int(value: Any, default: int) -> int:
+        return int(value) if value is not None else default
+
+    @staticmethod
+    def _coerce_time_string(value: Any, default: str) -> str:
+        return str(value) if value is not None else default
+
+    def _clone_options(self) -> dict[str, Any]:
+        return dict(self._options)
+
+    def _normalise_options_snapshot(self, options: dict[str, Any]) -> dict[str, Any]:
+        return options
+
+    def async_show_form(self, **kwargs: Any) -> dict[str, Any]:
+        return {"type": "form", **kwargs}
+
+    def async_create_entry(self, *, title: str, data: dict[str, Any]) -> dict[str, Any]:
+        return {"type": "create_entry", "title": title, "data": data}
+
+    async def async_step_init(self) -> dict[str, Any]:
+        self.init_calls += 1
+        return {"type": "init"}
 
 
 def test_flow_steps_exports_are_available() -> None:
@@ -162,3 +211,66 @@ def test_notification_options_mixin_prefers_per_dog_notification_entry() -> None
     current = NotificationOptionsMixinImpl._current_notification_options(flow, "dog-1")
     assert current["quiet_hours"] is True
     assert current["priority_notifications"] is True
+
+
+@pytest.mark.asyncio
+async def test_notification_flow_select_dog_redirects_when_missing_dogs() -> None:
+    flow = _NotificationAsyncFlow(options={}, dog_options={})
+    flow._dogs = []
+
+    result = await flow.async_step_select_dog_for_notifications()
+
+    assert result == {"type": "init"}
+    assert flow.init_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_notification_flow_select_dog_with_user_input_routes_to_form() -> None:
+    flow = _NotificationAsyncFlow(options={}, dog_options={})
+
+    result = await flow.async_step_select_dog_for_notifications({"dog_id": "missing"})
+
+    assert result == {"type": "init"}
+
+
+@pytest.mark.asyncio
+async def test_notification_flow_notifications_step_handles_success_and_errors() -> None:
+    flow = _NotificationAsyncFlow(
+        options={CONF_NOTIFICATIONS: {"quiet_hours": False}},
+        dog_options={},
+    )
+
+    valid_input = {
+        "quiet_hours": True,
+        "quiet_start": "22:00",
+        "quiet_end": "07:00",
+        "reminder_repeat": 30,
+        "priority_notifications": True,
+        "mobile_notifications": True,
+    }
+
+    flow._build_notification_settings = lambda *_: {
+        "quiet_hours": True,
+        "quiet_start": "22:00:00",
+        "quiet_end": "07:00:00",
+        "reminder_repeat": 30,
+        "priority_notifications": True,
+        "mobile_notifications": True,
+    }
+
+    success = await flow.async_step_notifications(valid_input)
+    assert success["type"] == "create_entry"
+
+    flow._build_notification_settings = lambda *_: (_ for _ in ()).throw(
+        FlowValidationError(base_errors=["invalid_notifications"])
+    )
+    validation = await flow.async_step_notifications(valid_input)
+    assert validation["type"] == "form"
+    assert validation["errors"] == {"base": "invalid_notifications"}
+
+    flow._build_notification_settings = lambda *_: (_ for _ in ()).throw(
+        RuntimeError("boom")
+    )
+    failed = await flow.async_step_notifications(valid_input)
+    assert failed["type"] == "form"
+    assert failed["errors"] == {"base": "update_failed"}
