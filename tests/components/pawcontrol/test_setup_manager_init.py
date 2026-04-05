@@ -27,6 +27,22 @@ async def test_async_initialize_coordinator_skips_optional_setup() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_initialize_coordinator_runs_prepare_and_refresh() -> None:
+    """Coordinator setup should await both prepare and first refresh callbacks."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(),
+    )
+
+    await manager_init._async_initialize_coordinator(coordinator, False)
+
+    coordinator.async_prepare_entry.assert_awaited_once()
+    coordinator.async_config_entry_first_refresh.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_async_initialize_coordinator_raises_not_ready_on_prepare_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -45,6 +61,79 @@ async def test_async_initialize_coordinator_raises_not_ready_on_prepare_timeout(
 
     with pytest.raises(ConfigEntryNotReady, match="Coordinator pre-setup timeout"):
         await manager_init._async_initialize_coordinator(coordinator, False)
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_coordinator_runs_prepare_and_refresh() -> None:
+    """Coordinator setup should await prepare and first refresh when available."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(),
+    )
+
+    await manager_init._async_initialize_coordinator(coordinator, False)
+
+    coordinator.async_prepare_entry.assert_awaited_once_with()
+    coordinator.async_config_entry_first_refresh.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_coordinator_raises_not_ready_on_refresh_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Refresh-stage timeout should bubble as ConfigEntryNotReady."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    coordinator = SimpleNamespace(
+        async_prepare_entry=AsyncMock(),
+        async_config_entry_first_refresh=AsyncMock(),
+    )
+
+    async def _wait_for_with_refresh_timeout(
+        awaitable: object,
+        timeout: int,
+    ) -> object:
+        close = getattr(awaitable, "close", None)
+        if callable(close):
+            close()
+        if timeout == manager_init._COORDINATOR_REFRESH_TIMEOUT:
+            raise TimeoutError
+        return None
+
+    monkeypatch.setattr(
+        manager_init.asyncio,
+        "wait_for",
+        AsyncMock(side_effect=_wait_for_with_refresh_timeout),
+    )
+
+    with pytest.raises(
+        ConfigEntryNotReady,
+        match="Coordinator initialization timeout",
+    ):
+        await manager_init._async_initialize_coordinator(coordinator, False)
+async def test_async_create_optional_managers_returns_defaults_when_skipped() -> None:
+    """Optional manager setup should return an empty registry when skipped."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    managers = await manager_init._async_create_optional_managers(
+        hass=object(),
+        entry=SimpleNamespace(entry_id="entry-1"),
+        dogs_config=[{"dog_id": "buddy", "modules": {"gps": True}}],
+        core_managers={"notification_manager": object()},
+        skip_optional_setup=True,
+    )
+
+    assert managers == {
+        "helper_manager": None,
+        "script_manager": None,
+        "door_sensor_manager": None,
+        "garden_manager": None,
+        "gps_geofence_manager": None,
+        "geofencing_manager": None,
+        "weather_health_manager": None,
+    }
 
 
 @pytest.mark.asyncio
@@ -230,6 +319,36 @@ async def test_async_create_optional_managers_skips_gps_managers_when_disabled(
     assert managers["weather_health_manager"] is weather_health_manager
     assert managers["gps_geofence_manager"] is None
     assert managers["geofencing_manager"] is None
+    hass.config_entries.async_update_entry.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_create_optional_managers_skip_optional_returns_defaults() -> None:
+    """Skipping optional setup should return empty optional manager slots."""
+    from custom_components.pawcontrol.setup import manager_init
+
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_update_entry=MagicMock())
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    managers = await manager_init._async_create_optional_managers(
+        hass,
+        entry,
+        [{"dog_id": "buddy", "modules": {"gps": True}}],
+        {"notification_manager": object()},
+        skip_optional_setup=True,
+    )
+
+    assert managers == {
+        "helper_manager": None,
+        "script_manager": None,
+        "door_sensor_manager": None,
+        "garden_manager": None,
+        "gps_geofence_manager": None,
+        "geofencing_manager": None,
+        "weather_health_manager": None,
+    }
     hass.config_entries.async_update_entry.assert_not_called()
 
 
