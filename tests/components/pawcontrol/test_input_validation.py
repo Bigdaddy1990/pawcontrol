@@ -215,3 +215,39 @@ def test_sanitize_user_input_enforces_length_and_removes_controls() -> None:
     """Convenience helper should trim, truncate, and strip disallowed chars."""
     cleaned = sanitize_user_input("  abc\x01\nxyz  ", max_length=5)
     assert cleaned == "abc\n"
+
+
+def test_validate_url_returns_validation_result_on_sanitizer_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """URL validator should convert sanitizer failures into invalid results."""
+    validator = InputValidator()
+
+    def _raise(_: str) -> str:
+        raise ValidationError("invalid-url")
+
+    monkeypatch.setattr(validator._sanitizer, "sanitize_url", _raise)
+
+    result = validator.validate_url("bad")
+
+    assert result.is_valid is False
+    assert result.sanitized_value == "bad"
+    assert len(result.errors) == 1
+    assert "invalid-url" in result.errors[0]
+
+
+def test_validate_dict_handles_float_and_url_rules() -> None:
+    """Schema dict validation should route float and url rules through validators."""
+    validator = InputValidator()
+
+    result = validator.validate_dict(
+        data={"threshold": "10.5", "endpoint": "https://example.com"},
+        schema={
+            "threshold": {"type": "float", "max_value": 5.0},
+            "endpoint": {"type": "url"},
+        },
+    )
+
+    assert result.is_valid is False
+    assert "threshold: Value 10.5 > maximum 5.0" in result.errors
+    assert result.sanitized_value == {"endpoint": "https://example.com"}
