@@ -21,10 +21,20 @@ from custom_components.pawcontrol.flow_steps.gps import (
     _validate_gps_accuracy,
     _validate_gps_update_interval,
 )
+from custom_components.pawcontrol.flow_steps.health import MODULE_MEDICATION
 from custom_components.pawcontrol.flow_steps.notifications import (
     NotificationOptionsMixin as NotificationOptionsMixinImpl,
 )
-from custom_components.pawcontrol.types import DOG_OPTIONS_FIELD
+from custom_components.pawcontrol.types import (
+    DOG_AGE_FIELD,
+    DOG_FEEDING_CONFIG_FIELD,
+    DOG_HEALTH_CONFIG_FIELD,
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DOG_OPTIONS_FIELD,
+    DOG_SIZE_FIELD,
+    DOG_WEIGHT_FIELD,
+)
 
 
 class _GPSDefaultsFlow(GPSModuleDefaultsMixin):
@@ -100,6 +110,63 @@ class _NotificationAsyncFlow(_NotificationFlow):
     async def async_step_init(self) -> dict[str, Any]:
         self.init_calls += 1
         return {"type": "init"}
+
+
+class _DogHealthFlow(DogHealthFlowMixin):
+    def __init__(self, current_dog: dict[str, Any] | None) -> None:
+        self._current_dog_config = current_dog
+        self._dogs: list[dict[str, Any]] = []
+        self.add_calls = 0
+        self.add_another_calls = 0
+
+    def _collect_health_conditions(self, user_input: dict[str, Any]) -> list[str]:
+        return list(user_input.get("health_conditions", []))
+
+    def _collect_special_diet(self, user_input: dict[str, Any]) -> list[str]:
+        return list(user_input.get("special_diet_requirements", []))
+
+    def _build_vaccination_records(self, _user_input: dict[str, Any]) -> dict[str, Any]:
+        return {}
+
+    def _build_medication_entries(
+        self, user_input: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        if user_input.get("with_meals"):
+            return [{"name": "supplement", "with_meals": True}]
+        return []
+
+    def _suggest_activity_level(self, _dog_age: int, _dog_size: str) -> str:
+        return "moderate"
+
+    def _validate_diet_combinations(self, _diet_options: list[str]) -> dict[str, Any]:
+        return {
+            "conflicts": [],
+            "warnings": [],
+            "recommended_vet_consultation": False,
+        }
+
+    async def _async_get_translation_lookup(
+        self,
+    ) -> tuple[dict[str, str], dict[str, str]]:
+        return ({}, {})
+
+    async def _get_diet_compatibility_guidance(
+        self,
+        _dog_age: int,
+        _dog_size: str,
+    ) -> str:
+        return "guidance"
+
+    async def async_step_add_dog(self) -> dict[str, Any]:
+        self.add_calls += 1
+        return {"type": "add_dog"}
+
+    async def async_step_add_another_dog(self) -> dict[str, Any]:
+        self.add_another_calls += 1
+        return {"type": "add_another"}
+
+    def async_show_form(self, **kwargs: Any) -> dict[str, Any]:
+        return {"type": "form", **kwargs}
 
 
 def test_flow_steps_exports_are_available() -> None:
@@ -266,7 +333,9 @@ async def test_notification_flow_select_dog_without_input_shows_selector() -> No
 
 
 @pytest.mark.asyncio
-async def test_notification_flow_notifications_step_redirects_without_valid_dog() -> None:
+async def test_notification_flow_notifications_step_redirects_without_valid_dog() -> (
+    None
+):
     """Notifications step should redirect if no valid current dog id exists."""
     flow = _NotificationAsyncFlow(options={}, dog_options={})
     flow._current_dog = None
@@ -353,3 +422,82 @@ def test_notification_flow_build_notification_settings_wrapper() -> None:
     assert payload["quiet_hours"] is True
     assert payload["quiet_start"] == "21:00"
     assert payload["reminder_repeat_min"] == 30
+
+
+@pytest.mark.asyncio
+async def test_dog_health_step_redirects_when_no_current_dog() -> None:
+    """Health step should restart dog flow if no active dog context is set."""
+    flow = _DogHealthFlow(current_dog=None)
+
+    result = await flow.async_step_dog_health()
+
+    assert result == {"type": "add_dog"}
+    assert flow.add_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_dog_health_step_without_input_renders_form() -> None:
+    """Health step should render the form with placeholders when input is absent."""
+    flow = _DogHealthFlow(
+        current_dog={
+            DOG_NAME_FIELD: "Rex",
+            DOG_AGE_FIELD: 4,
+            DOG_SIZE_FIELD: "large",
+            DOG_WEIGHT_FIELD: 28.5,
+            "modules": {MODULE_MEDICATION: True},
+            "medications": [{"name": "joint support"}],
+        }
+    )
+
+    result = await flow.async_step_dog_health()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "dog_health"
+    placeholders = result["description_placeholders"]
+    assert placeholders["dog_name"] == "Rex"
+    assert placeholders["medication_enabled"] == "yes"
+
+
+@pytest.mark.asyncio
+async def test_dog_health_step_with_input_updates_health_and_feeding() -> None:
+    """Health input should persist health payload and enrich feeding settings."""
+    current_dog = {
+        DOG_NAME_FIELD: "Milo",
+        DOG_ID_FIELD: "dog-1",
+        DOG_AGE_FIELD: 2,
+        DOG_SIZE_FIELD: "medium",
+        DOG_WEIGHT_FIELD: 20.0,
+        "modules": {MODULE_MEDICATION: True},
+        DOG_FEEDING_CONFIG_FIELD: {"existing": True},
+    }
+    flow = _DogHealthFlow(current_dog=current_dog)
+
+    result = await flow.async_step_dog_health({
+        "vet_name": "Dr. Vet",
+        "vet_phone": "555-0100",
+        "weight_tracking": True,
+        "ideal_weight": 19.5,
+        "body_condition_score": 4,
+        "activity_level": "high",
+        "weight_goal": "lose",
+        "spayed_neutered": True,
+        "health_conditions": ["arthritis"],
+        "special_diet_requirements": ["low_fat"],
+        "with_meals": True,
+        "health_aware_portions": True,
+    })
+
+    assert result == {"type": "add_another"}
+    assert flow.add_another_calls == 1
+    assert len(flow._dogs) == 1
+
+    stored_dog = flow._dogs[0]
+    assert DOG_HEALTH_CONFIG_FIELD in stored_dog
+    health_config = stored_dog[DOG_HEALTH_CONFIG_FIELD]
+    assert health_config["vet_name"] == "Dr. Vet"
+    assert health_config["medications"][0]["with_meals"] is True
+
+    feeding_config = stored_dog[DOG_FEEDING_CONFIG_FIELD]
+    assert feeding_config["health_aware_portions"] is True
+    assert feeding_config["age_months"] == 24
+    assert feeding_config["medication_with_meals"] is True
