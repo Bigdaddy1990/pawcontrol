@@ -160,3 +160,41 @@ def test_normalise_guard_history_accepts_result_objects_and_mappings() -> None:
             "reason": "blocked",
         },
     ]
+
+
+@pytest.mark.unit
+def test_service_guard_result_to_mapping_omits_optional_fields() -> None:
+    result = ServiceGuardResult(
+        domain="pawcontrol",
+        service="walk_stop",
+        executed=True,
+    )
+
+    assert result.to_mapping() == {
+        "domain": "pawcontrol",
+        "service": "walk_stop",
+        "executed": True,
+    }
+
+
+@pytest.mark.unit
+def test_service_guard_snapshot_zero_metrics_and_history() -> None:
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult(domain="pawcontrol", service="walk", executed=True)
+    ])
+
+    assert ServiceGuardSnapshot.zero_metrics() == {
+        "executed": 0,
+        "skipped": 0,
+        "reasons": {},
+        "last_results": [],
+    }
+    assert snapshot.history() == [
+        {"domain": "pawcontrol", "service": "walk", "executed": True}
+    ]
+
+
+@pytest.mark.unit
+def test_normalise_guard_history_filters_bytes_sequences() -> None:
+    assert normalise_guard_history(b"binary") == []
+    assert normalise_guard_history(bytearray(b"binary")) == []
