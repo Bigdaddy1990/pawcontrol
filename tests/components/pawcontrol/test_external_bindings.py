@@ -337,3 +337,105 @@ async def test_external_bindings_skip_invalid_events_and_duplicate_dogs(
     await asyncio.sleep(0)
     await asyncio.sleep(0)
     assert len(gps_manager.points) == 1
+
+
+@pytest.mark.asyncio
+async def test_external_bindings_cover_store_and_unload_edge_paths(
+    hass, monkeypatch
+) -> None:
+    """Cover malformed store entries, duplicate dog IDs and pending task unload."""
+    gps_manager = _FakeGPSManager()
+    coordinator = _FakeCoordinator(gps_manager)
+    runtime_data = SimpleNamespace(coordinator=coordinator, gps_geofence_manager=None)
+    entry = SimpleNamespace(
+        entry_id="entry-edge",
+        data={
+            CONF_DOGS: [
+                {"dog_id": "dog-1", "gps_config": {CONF_GPS_SOURCE: "person.one"}},
+                {"dog_id": "dog-1", "gps_config": {CONF_GPS_SOURCE: "person.two"}},
+            ]
+        },
+    )
+    callbacks: list[object] = []
+    unsub_calls: list[str] = []
+
+    def _track_state_change_event(_hass, _ids, callback):
+        callbacks.append(callback)
+
+        def _unsubscribe() -> None:
+            unsub_calls.append("called")
+
+        return _unsubscribe
+
+    monkeypatch.setattr(
+        external_bindings,
+        "require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+    monkeypatch.setattr(
+        external_bindings.event_helper,
+        "async_track_state_change_event",
+        _track_state_change_event,
+    )
+
+    hass.data[external_bindings.DOMAIN] = {
+        external_bindings._STORE_KEY: {entry.entry_id: "not-a-dict"}
+    }
+
+    await external_bindings.async_setup_external_bindings(hass, entry)
+    assert len(callbacks) == 1
+
+    bindings = hass.data[external_bindings.DOMAIN][external_bindings._STORE_KEY][
+        entry.entry_id
+    ]
+    pending = _PendingTask()
+    bindings["dog-1"].task = pending
+
+    await external_bindings.async_unload_external_bindings(hass, entry)
+
+    assert pending.cancelled is True
+    assert unsub_calls == ["called"]
+
+    invalid_dogs_entry = SimpleNamespace(
+        entry_id="entry-invalid-dogs",
+        data={CONF_DOGS: "not-a-list"},
+    )
+    await external_bindings.async_setup_external_bindings(hass, invalid_dogs_entry)
+
+
+@pytest.mark.asyncio
+async def test_external_bindings_ignores_event_without_new_state(
+    hass, monkeypatch
+) -> None:
+    """Events without a new state should be ignored without GPS updates."""
+    gps_manager = _FakeGPSManager()
+    coordinator = _FakeCoordinator(gps_manager)
+    runtime_data = SimpleNamespace(coordinator=coordinator, gps_geofence_manager=None)
+    entry = SimpleNamespace(
+        entry_id="entry-no-state",
+        data={
+            CONF_DOGS: [
+                {"dog_id": "dog-1", "gps_config": {CONF_GPS_SOURCE: "person.owner"}}
+            ]
+        },
+    )
+    callbacks: list[object] = []
+    monkeypatch.setattr(
+        external_bindings,
+        "require_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+    monkeypatch.setattr(
+        external_bindings.event_helper,
+        "async_track_state_change_event",
+        lambda _hass, _ids, callback: callbacks.append(callback) or (lambda: None),
+    )
+    monkeypatch.setattr(external_bindings, "_DEBOUNCE_SECONDS", 0)
+
+    await external_bindings.async_setup_external_bindings(hass, entry)
+    callbacks[0](SimpleNamespace(data={}))
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+
+    assert gps_manager.points == []
+    assert coordinator.patched == []
