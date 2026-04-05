@@ -285,7 +285,7 @@ async def test_circuit_breaker_enter_blocks_when_open_without_reset() -> None:
 
 def test_circuit_breaker_should_attempt_reset_when_no_failure_time() -> None:
     breaker = resilience.CircuitBreaker("fresh")
-    assert breaker._should_attempt_reset() is True  # noqa: SLF001
+    assert breaker._should_attempt_reset() is True
 
 
 @pytest.mark.asyncio
