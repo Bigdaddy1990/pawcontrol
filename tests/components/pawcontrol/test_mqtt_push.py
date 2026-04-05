@@ -177,3 +177,132 @@ async def test_async_unregister_entry_mqtt_awaits_async_unsubscribe(hass: Any) -
 
     assert called is True
     assert entry.entry_id not in hass.data[DOMAIN][_MQTT_STORE_KEY]
+
+
+def test_any_dog_expects_mqtt_returns_false_for_non_list_payload() -> None:
+    """Dog source detection should reject non-list payloads."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: {"gps_config": {CONF_GPS_SOURCE: "mqtt"}}},
+    )
+
+    assert _any_dog_expects_mqtt(entry) is False
+
+
+@pytest.mark.asyncio
+async def test_async_register_entry_mqtt_skips_when_no_mqtt_dogs(hass: Any) -> None:
+    """Registration should no-op when no dog expects MQTT updates."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "mobile_app"}}]},
+        options={CONF_MQTT_ENABLED: True},
+    )
+
+    await async_register_entry_mqtt(hass, entry)
+
+    assert _MQTT_STORE_KEY not in hass.data.get(DOMAIN, {})
+
+
+@pytest.mark.asyncio
+async def test_async_register_entry_mqtt_handles_missing_mqtt_integration(
+    hass: Any,
+) -> None:
+    """Registration should return early when MQTT integration import fails."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "mqtt"}}]},
+        options={CONF_MQTT_ENABLED: True},
+    )
+
+    components_module = ModuleType("homeassistant.components")
+    sys.modules["homeassistant.components"] = components_module
+    sys.modules.pop("homeassistant.components.mqtt", None)
+
+    await async_register_entry_mqtt(hass, entry)
+
+    assert entry.entry_id not in hass.data.get(DOMAIN, {}).get(_MQTT_STORE_KEY, {})
+
+
+@pytest.mark.asyncio
+async def test_async_register_entry_mqtt_resets_invalid_mqtt_store_container(
+    hass: Any,
+) -> None:
+    """Registration should replace non-dict MQTT store containers."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "mqtt"}}]},
+        options={CONF_MQTT_ENABLED: True},
+    )
+    hass.data.setdefault(DOMAIN, {})[_MQTT_STORE_KEY] = []
+
+    async def _fake_subscribe(*_args: Any, **_kwargs: Any) -> Any:
+        return lambda: None
+
+    mqtt_module = ModuleType("homeassistant.components.mqtt")
+    mqtt_module.async_subscribe = _fake_subscribe  # type: ignore[attr-defined]
+    components_module = sys.modules.setdefault(
+        "homeassistant.components",
+        ModuleType("homeassistant.components"),
+    )
+    components_module.mqtt = mqtt_module  # type: ignore[attr-defined]
+    sys.modules["homeassistant.components.mqtt"] = mqtt_module
+
+    await async_register_entry_mqtt(hass, entry)
+
+    assert isinstance(hass.data[DOMAIN][_MQTT_STORE_KEY], dict)
+    assert entry.entry_id in hass.data[DOMAIN][_MQTT_STORE_KEY]
+
+
+@pytest.mark.asyncio
+async def test_async_register_entry_mqtt_callback_handles_unknown_payload_type(
+    hass: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Callback should reject payloads that are not bytes or strings."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{"gps_config": {CONF_GPS_SOURCE: "mqtt"}}]},
+        options={CONF_MQTT_ENABLED: True},
+    )
+
+    process_push = AsyncMock()
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.mqtt_push.async_process_gps_push", process_push
+    )
+
+    captured: dict[str, Any] = {}
+
+    async def _fake_subscribe(
+        _hass: Any,
+        _topic: str,
+        callback: Any,
+        qos: int,
+    ) -> Any:
+        captured["callback"] = callback
+        return lambda: None
+
+    mqtt_module = ModuleType("homeassistant.components.mqtt")
+    mqtt_module.async_subscribe = _fake_subscribe  # type: ignore[attr-defined]
+    components_module = sys.modules.setdefault(
+        "homeassistant.components",
+        ModuleType("homeassistant.components"),
+    )
+    components_module.mqtt = mqtt_module  # type: ignore[attr-defined]
+    sys.modules["homeassistant.components.mqtt"] = mqtt_module
+
+    await async_register_entry_mqtt(hass, entry)
+
+    callback = captured["callback"]
+    await callback(SimpleNamespace(payload=1234))
+
+    process_push.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_unregister_entry_mqtt_ignores_non_dict_store(hass: Any) -> None:
+    """Unregister should no-op when MQTT store is not a dictionary."""
+    entry = MockConfigEntry(domain=DOMAIN)
+    hass.data.setdefault(DOMAIN, {})[_MQTT_STORE_KEY] = []
+
+    await async_unregister_entry_mqtt(hass, entry)
+
+    assert hass.data[DOMAIN][_MQTT_STORE_KEY] == []
