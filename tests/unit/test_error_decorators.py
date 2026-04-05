@@ -271,6 +271,19 @@ class TestHandleErrors:
         assert result == "default"
 
 
+@pytest.mark.asyncio
+async def test_handle_errors_forced_async_wrapper_with_immediate_return() -> None:
+    """Force async wrapper for sync callables and cover direct return path."""
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
+        return_value=True,
+    ):
+        wrapped = handle_errors()(lambda: "direct-result")
+
+    assert await wrapped() == "direct-result"
+
+
 class TestRetryOnError:
     """Test retry_on_error decorator."""
 
@@ -570,6 +583,19 @@ def test_map_to_repair_issue_without_hass_only_reraises() -> None:
     ir.async_create_issue.assert_not_called()
 
 
+@pytest.mark.asyncio
+async def test_map_to_repair_issue_forced_async_wrapper_immediate_return() -> None:
+    """Force async wrapper branch for direct non-awaitable return values."""
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
+        return_value=True,
+    ):
+        wrapped = map_to_repair_issue("network_issue")(lambda: "ok")
+
+    assert await wrapped() == "ok"
+
+
 def test_require_coordinator_decorator_raises_without_instance_args() -> None:
     """Calling the wrapper without ``self`` should raise a decorator error."""
 
@@ -678,6 +704,19 @@ class TestEdgeCases:
         result = await instance.fetch_data()
         assert result == "success"
         assert instance.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_retry_on_error_forced_async_wrapper_immediate_return() -> None:
+    """Force async retry wrapper branch for direct non-awaitable return values."""
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
+        return_value=True,
+    ):
+        wrapped = retry_on_error(max_attempts=1)(lambda: "immediate")
+
+    assert await wrapped() == "immediate"
 
 
 def test_validate_dog_exists_raises_when_called_without_instance() -> None:
