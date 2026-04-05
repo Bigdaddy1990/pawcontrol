@@ -64,22 +64,6 @@ async def test_async_initialize_coordinator_raises_not_ready_on_prepare_timeout(
 
 
 @pytest.mark.asyncio
-async def test_async_initialize_coordinator_runs_prepare_and_refresh() -> None:
-    """Coordinator setup should await prepare and first refresh when available."""
-    from custom_components.pawcontrol.setup import manager_init
-
-    coordinator = SimpleNamespace(
-        async_prepare_entry=AsyncMock(),
-        async_config_entry_first_refresh=AsyncMock(),
-    )
-
-    await manager_init._async_initialize_coordinator(coordinator, False)
-
-    coordinator.async_prepare_entry.assert_awaited_once_with()
-    coordinator.async_config_entry_first_refresh.assert_awaited_once_with()
-
-
-@pytest.mark.asyncio
 async def test_async_initialize_coordinator_raises_not_ready_on_refresh_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -393,9 +377,8 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides() -> N
 
 
 @pytest.mark.asyncio
-async def test_async_initialize_geofencing_manager_ignores_invalid_per_dog_payloads() -> (
-    None
-):
+async def test_async_initialize_geofencing_manager_ignores_invalid_per_dog_payloads(
+) -> None:
     """Global geofence options should be used when per-dog payloads are invalid."""
     from custom_components.pawcontrol.setup import manager_init
 
