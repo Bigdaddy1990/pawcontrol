@@ -32,11 +32,15 @@ class _States:
 
     def async_entity_ids(self, domain: str) -> list[str]:
         prefix = f"{domain}."
-        return [entity_id for entity_id in self._entities if entity_id.startswith(prefix)]
+        return [
+            entity_id for entity_id in self._entities if entity_id.startswith(prefix)
+        ]
 
 
 class _SystemFlow(SystemSettingsOptionsMixin):
-    def __init__(self, options: dict[str, Any], *, entities: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self, options: dict[str, Any], *, entities: dict[str, Any] | None = None
+    ) -> None:
         self._options = options
         self.hass = SimpleNamespace(states=_States(entities or {}))
         self._entry = SimpleNamespace(data={"dogs": []})
@@ -122,24 +126,20 @@ def test_resolve_get_runtime_data_uses_callable_from_options_module(
 @pytest.mark.asyncio
 async def test_async_step_push_settings_normalises_payload_and_clears_secret() -> None:
     """Push settings step should normalise values and remove empty webhook secret."""
-    flow = _SystemFlow(
-        {
-            CONF_WEBHOOK_SECRET: "keep-me",
-            CONF_MQTT_TOPIC: "pawcontrol/old",
-        }
-    )
+    flow = _SystemFlow({
+        CONF_WEBHOOK_SECRET: "keep-me",
+        CONF_MQTT_TOPIC: "pawcontrol/old",
+    })
 
-    result = await flow.async_step_push_settings(
-        {
-            CONF_WEBHOOK_SECRET: "   ",
-            CONF_MQTT_TOPIC: "  pawcontrol/new  ",
-            CONF_PUSH_PAYLOAD_MAX_BYTES: "4096",
-            CONF_PUSH_NONCE_TTL_SECONDS: "180",
-            CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: "12",
-            CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: "22",
-            CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: "32",
-        }
-    )
+    result = await flow.async_step_push_settings({
+        CONF_WEBHOOK_SECRET: "   ",
+        CONF_MQTT_TOPIC: "  pawcontrol/new  ",
+        CONF_PUSH_PAYLOAD_MAX_BYTES: "4096",
+        CONF_PUSH_NONCE_TTL_SECONDS: "180",
+        CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: "12",
+        CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: "22",
+        CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: "32",
+    })
 
     assert result["type"] == "create_entry"
     data = result["data"]
@@ -188,7 +188,9 @@ async def test_async_step_advanced_settings_reports_endpoint_validation_error() 
     """Advanced settings should surface endpoint validation failures."""
     flow = _SystemFlow({})
 
-    result = await flow.async_step_advanced_settings({CONF_API_ENDPOINT: "invalid-endpoint"})
+    result = await flow.async_step_advanced_settings({
+        CONF_API_ENDPOINT: "invalid-endpoint"
+    })
 
     assert result["type"] == "form"
     assert result["errors"] == {CONF_API_ENDPOINT: "invalid_api_endpoint"}
