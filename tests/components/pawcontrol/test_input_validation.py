@@ -211,7 +211,7 @@ def test_validate_dict_url_float_and_unknown_types() -> None:
 
 
 def test_validate_dict_missing_required_field_and_optional_skip() -> None:
-    """Schema validation should report missing required keys and skip absent optionals."""
+    """Schema validation should flag missing required keys and skip optionals."""
     validator = InputValidator()
     schema = {
         "name": {"type": "str", "required": True},

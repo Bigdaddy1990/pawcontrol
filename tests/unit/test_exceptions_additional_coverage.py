@@ -16,7 +16,7 @@ from custom_components.pawcontrol.exceptions import (
 
 
 def test_flow_validation_error_as_form_errors_branching() -> None:
-    """FlowValidationError should prefer field errors, then base errors, then default."""
+    """FlowValidationError should prioritize field, base, then default errors."""
     field_error = FlowValidationError(field_errors={"name": "required"})
     assert field_error.as_form_errors() == {"name": "required"}
 
@@ -72,7 +72,7 @@ def test_network_and_service_unavailable_error_metadata() -> None:
 
 
 def test_notification_error_fallback_changes_severity_and_suggestions() -> None:
-    """Fallback-capable notification errors should be less severe and mention fallback."""
+    """Fallback-capable notifications should lower severity and mention fallback."""
     with_fallback = NotificationError("push", fallback_available=True)
     without_fallback = NotificationError("push", fallback_available=False)
 
