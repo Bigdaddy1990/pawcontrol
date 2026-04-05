@@ -566,14 +566,6 @@ async def test_dog_health_step_persists_optional_dates_and_vaccinations() -> Non
         DOG_AGE_FIELD: 5,
         DOG_SIZE_FIELD: "small",
         DOG_WEIGHT_FIELD: 8.5,
-async def test_dog_health_step_with_optional_dates_and_vaccinations() -> None:
-    """Health input should persist optional visit/checkup and vaccinations."""
-    current_dog = {
-        DOG_NAME_FIELD: "Nala",
-        DOG_ID_FIELD: "dog-2",
-        DOG_AGE_FIELD: 4,
-        DOG_SIZE_FIELD: "large",
-        DOG_WEIGHT_FIELD: 31.0,
         "modules": {MODULE_MEDICATION: False},
         DOG_FEEDING_CONFIG_FIELD: {},
     }
@@ -747,22 +739,5 @@ async def test_health_options_current_resolution_and_redirect_branches() -> None
 
     flow_with_invalid_dog._current_dog = {DOG_ID_FIELD: 123}
     invalid_id = await flow_with_invalid_dog.async_step_health_settings()
-async def test_health_options_missing_current_and_invalid_dog_id_paths() -> None:
-    """Health options should return selector form when no valid current dog exists."""
-    flow = _HealthOptionsFlow(
-        options={"health_settings": "not-a-mapping"},
-        dog_options={"dog-1": {"health_settings": "legacy-string"}},
-        dogs=[{DOG_ID_FIELD: 42, DOG_NAME_FIELD: "Rex"}],
-    )
-
-    assert flow._current_health_options("dog-1") == {}
-
-    flow._current_dog = None
-    no_current = await flow.async_step_health_settings()
-    assert no_current["type"] == "form"
-    assert no_current["step_id"] == "select_dog_for_health_settings"
-
-    flow._current_dog = {DOG_ID_FIELD: 42, DOG_NAME_FIELD: "Rex"}
-    invalid_id = await flow.async_step_health_settings()
     assert invalid_id["type"] == "form"
     assert invalid_id["step_id"] == "select_dog_for_health_settings"
