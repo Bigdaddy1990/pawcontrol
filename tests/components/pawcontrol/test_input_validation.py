@@ -121,6 +121,10 @@ def test_validate_float_and_phone_branches() -> None:
     assert too_short.is_valid is False
     assert "Invalid phone number length" in too_short.errors[0]
 
+    too_high = validator.validate_float("9.5", max_value=1.0)
+    assert too_high.is_valid is False
+    assert "maximum 1.0" in too_high.errors[0]
+
 
 def test_validate_string_min_length_and_pattern() -> None:
     """String validator should enforce minimum length and regex pattern rules."""
@@ -156,6 +160,30 @@ def test_validate_dict_collects_errors_and_sanitizes_valid_fields() -> None:
     assert result.sanitized_value["misc"] == {"ok": True}
     assert any(error.startswith("age:") for error in result.errors)
     assert any(error.startswith("email:") for error in result.errors)
+
+
+def test_validate_dict_url_float_and_unknown_types() -> None:
+    """Dictionary validation should dispatch to url/float and fallback branches."""
+    validator = InputValidator()
+    schema = {
+        "site": {"type": "url"},
+        "weight": {"type": "float", "min_value": 1.0, "max_value": 20.0},
+        "meta": {"type": "unsupported"},
+    }
+
+    result = validator.validate_dict(
+        {
+            "site": "ftp://example.com",
+            "weight": "0.5",
+            "meta": {"track": "collar"},
+        },
+        schema,
+    )
+
+    assert result.is_valid is False
+    assert result.sanitized_value["meta"] == {"track": "collar"}
+    assert any(error.startswith("site:") for error in result.errors)
+    assert any(error.startswith("weight:") for error in result.errors)
 
 
 def test_validate_dict_missing_required_field_and_optional_skip() -> None:
