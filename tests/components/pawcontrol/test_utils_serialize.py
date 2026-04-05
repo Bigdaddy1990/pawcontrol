@@ -1,6 +1,7 @@
 """Tests for JSON serialization helpers in ``utils.serialize``."""
 
 from dataclasses import dataclass
+import importlib
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -103,3 +104,24 @@ def test_serialize_value_supports_tuple_and_primitive_types() -> None:
     assert _serialize_value(("name", 1, True, 2.5)) == ["name", 1, True, 2.5]
     assert _serialize_value("text") == "text"
     assert _serialize_value(7) == 7
+
+
+def test_module_reload_syncs_parent_utils_re_exports() -> None:
+    """Reloading the module should refresh ``custom_components.pawcontrol.utils`` exports."""
+    parent = importlib.import_module("custom_components.pawcontrol.utils")
+
+    parent.serialize_datetime = None
+    parent.serialize_timedelta = None
+    parent.serialize_dataclass = None
+    parent.serialize_entity_attributes = None
+
+    module = importlib.import_module("custom_components.pawcontrol.utils.serialize")
+    reloaded_module = importlib.reload(module)
+
+    assert parent.serialize_datetime is reloaded_module.serialize_datetime
+    assert parent.serialize_timedelta is reloaded_module.serialize_timedelta
+    assert parent.serialize_dataclass is reloaded_module.serialize_dataclass
+    assert (
+        parent.serialize_entity_attributes
+        is reloaded_module.serialize_entity_attributes
+    )
