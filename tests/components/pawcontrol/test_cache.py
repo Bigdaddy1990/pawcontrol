@@ -28,6 +28,15 @@ class _FakeStore:
         self._data = payload
 
 
+class _FailingStore(_FakeStore):
+    """Store stub that raises for load/save to exercise error handling."""
+
+    async def async_load(self) -> dict[str, dict[str, Any]] | None:
+        """Raise an error to simulate storage load failure."""
+        raise RuntimeError("load failed")
+
+    async def async_save(self, payload: dict[str, dict[str, Any]]) -> None:
+        """Raise an error to simulate storage save failure."""
 class _FailingLoadStore(_FakeStore):
     """Store stub that simulates load failures."""
 
@@ -68,6 +77,19 @@ async def test_lru_cache_expires_entries_and_counts_eviction() -> None:
     stats = cache.get_stats()
     assert stats.misses == 1
     assert stats.evictions == 1
+
+
+@pytest.mark.asyncio
+async def test_lru_cache_evicts_oldest_entry_when_capacity_reached() -> None:
+    """A full LRU cache should evict the oldest key before inserting a new one."""
+    cache = cache_module.LRUCache[str](max_size=1, default_ttl=30)
+
+    await cache.set("older", "Milo")
+    await cache.set("newer", "Luna")
+
+    assert await cache.get("older") is None
+    assert await cache.get("newer") == "Luna"
+    assert cache.get_stats().evictions == 1
 
 
 @pytest.mark.asyncio
@@ -177,6 +199,41 @@ async def test_persistent_cache_load_get_and_save_filters_expired(
 
 
 @pytest.mark.asyncio
+async def test_persistent_cache_removes_expired_entry_on_get(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Expired entries should be evicted from L2 when read."""
+    monkeypatch.setattr(cache_module, "Store", _FakeStore)
+    persistent = cache_module.PersistentCache[str](hass=object(), name="paw")
+    persistent._cache["expired"] = cache_module.CacheEntry(
+        value="old",
+        timestamp=time.time() - 120.0,
+        ttl_seconds=1.0,
+    )
+    persistent._loaded = True
+
+    assert await persistent.get("expired") is None
+    assert "expired" not in persistent._cache
+    assert persistent.get_stats().misses == 1
+
+
+@pytest.mark.asyncio
+async def test_persistent_cache_handles_load_and_save_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Persistent cache should swallow storage errors and mark itself loaded."""
+    monkeypatch.setattr(cache_module, "Store", _FailingStore)
+    persistent = cache_module.PersistentCache[str](hass=object(), name="paw")
+
+    await persistent.async_load()
+    await persistent.async_load()
+    await persistent.async_save()
+
+    assert persistent._loaded is True
+    assert persistent._cache == {}
+
+
+@pytest.mark.asyncio
 async def test_two_level_cache_setup_clear_and_stats(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -196,6 +253,19 @@ async def test_two_level_cache_setup_clear_and_stats(
 
 
 @pytest.mark.asyncio
+async def test_two_level_cache_promotes_l2_hit_into_l1(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reads should promote values from L2 into L1 when only L2 contains the key."""
+    monkeypatch.setattr(cache_module, "Store", _FakeStore)
+    cache = cache_module.TwoLevelCache[str](hass=object(), name="paw")
+    await cache._l2.set("dog", "Nova")
+
+    assert await cache.get("dog") == "Nova"
+    assert await cache._l1.get("dog") == "Nova"
+
+
+@pytest.mark.asyncio
 async def test_delete_returns_false_for_unknown_keys(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -208,6 +278,15 @@ async def test_delete_returns_false_for_unknown_keys(
     assert await l2.delete("unknown") is False
 
 
+def test_cache_entry_ttl_remaining_is_never_negative() -> None:
+    """Remaining TTL should floor at zero for expired entries."""
+    entry = cache_module.CacheEntry(
+        value="stale",
+        timestamp=time.time() - 10.0,
+        ttl_seconds=1.0,
+    )
+
+    assert entry.ttl_remaining == 0.0
 @pytest.mark.asyncio
 async def test_persistent_cache_load_failure_marks_cache_loaded(
     monkeypatch: pytest.MonkeyPatch,
