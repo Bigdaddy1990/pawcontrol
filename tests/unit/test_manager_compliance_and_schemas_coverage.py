@@ -113,6 +113,90 @@ def test_validate_json_schema_payload_empty_payload() -> None:
     assert isinstance(violations, list)
 
 
+@pytest.mark.unit
+def test_validate_json_schema_payload_rejects_non_dict_payload() -> None:
+    schema = {"type": "object", "properties": {"name": {"type": "string"}}}
+
+    violations = validate_json_schema_payload(["not", "a", "dict"], schema)
+
+    assert len(violations) == 1
+    assert violations[0].field == "payload"
+    assert violations[0].constraint == "type"
+
+
+@pytest.mark.unit
+def test_validate_json_schema_payload_flags_additional_properties() -> None:
+    schema = {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "additionalProperties": False,
+    }
+
+    violations = validate_json_schema_payload(
+        {"name": "Rex", "unknown": "value"},
+        schema,
+    )
+
+    assert len(violations) == 1
+    assert violations[0].field == "unknown"
+    assert violations[0].constraint == "additional"
+
+
+@pytest.mark.unit
+def test_validate_json_schema_payload_applies_enum_length_and_numeric_constraints() -> (
+    None
+):
+    schema = {
+        "type": "object",
+        "properties": {
+            "mode": {"type": "string", "enum": ["auto", "manual"]},
+            "alias": {"type": "string", "minLength": 3, "maxLength": 4},
+            "radius": {"type": "integer", "minimum": 10, "maximum": 20},
+            "stride": {"type": "integer", "multipleOf": 3},
+            "optional": {"type": ["number", "null"]},
+            "armed": {"type": "boolean"},
+        },
+    }
+
+    violations = validate_json_schema_payload(
+        {
+            "mode": "invalid",
+            "alias": "ab",
+            "radius": 25,
+            "stride": 4,
+            "optional": None,
+            "armed": True,
+        },
+        schema,
+    )
+
+    by_field = {(item.field, item.constraint) for item in violations}
+    assert ("mode", "enum") in by_field
+    assert ("alias", "minLength") in by_field
+    assert ("radius", "maximum") in by_field
+    assert ("stride", "multipleOf") in by_field
+
+
+@pytest.mark.unit
+def test_validate_json_schema_payload_accepts_union_numeric_types() -> None:
+    schema = {
+        "type": "object",
+        "properties": {
+            "threshold": {"type": ["number", "null"], "minimum": 1, "maximum": 3},
+            "count": {"type": "integer", "minimum": 1, "maximum": 3},
+        },
+    }
+
+    violations = validate_json_schema_payload(
+        {"threshold": 0.5, "count": 0},
+        schema,
+    )
+
+    by_field = {(item.field, item.constraint) for item in violations}
+    assert ("threshold", "minimum") in by_field
+    assert ("count", "minimum") in by_field
+
+
 # ─── SchemaViolation ─────────────────────────────────────────────────────────
 
 
