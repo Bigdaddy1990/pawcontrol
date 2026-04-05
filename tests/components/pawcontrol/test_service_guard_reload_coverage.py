@@ -1,14 +1,15 @@
 """Import and branch coverage tests for service_guard."""
 
-from __future__ import annotations
-
 from collections.abc import Iterator, MutableMapping
 import importlib.util
-import sys
 from pathlib import Path
+import sys
 from types import ModuleType
 
-from custom_components.pawcontrol.service_guard import ServiceGuardResult, ServiceGuardSnapshot
+from custom_components.pawcontrol.service_guard import (
+    ServiceGuardResult,
+    ServiceGuardSnapshot,
+)
 
 
 class _FlakyReasonsMetrics(MutableMapping[str, object]):

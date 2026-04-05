@@ -108,7 +108,7 @@ class _SystemFlow(SystemSettingsOptionsMixin):
 def test_resolve_get_runtime_data_uses_callable_from_options_module(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Resolver should prefer callable get_runtime_data exported by options flow support."""
+    """Resolver should prefer the callable exported by options flow support."""
     marker = object()
 
     def patched_runtime_data(_hass: Any, _entry: Any) -> object:
