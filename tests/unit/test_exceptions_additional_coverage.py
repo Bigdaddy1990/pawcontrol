@@ -1,0 +1,102 @@
+"""Additional branch coverage for ``custom_components.pawcontrol.exceptions``."""
+
+from custom_components.pawcontrol.exceptions import (
+    DataImportError,
+    ErrorSeverity,
+    FlowValidationError,
+    NetworkError,
+    NotificationError,
+    RateLimitError,
+    ReauthRequiredError,
+    ReconfigureRequiredError,
+    RepairRequiredError,
+    ServiceUnavailableError,
+    StorageError,
+)
+
+
+def test_flow_validation_error_as_form_errors_branching() -> None:
+    """FlowValidationError should prefer field errors, then base errors, then default."""
+    field_error = FlowValidationError(field_errors={"name": "required"})
+    assert field_error.as_form_errors() == {"name": "required"}
+
+    base_error = FlowValidationError(base_errors=["invalid_combo"])
+    assert base_error.as_form_errors() == {"base": "invalid_combo"}
+
+    default_error = FlowValidationError()
+    assert default_error.as_form_errors() == {"base": "validation_error"}
+
+
+def test_storage_error_retry_toggle_affects_suggestions() -> None:
+    """StorageError should include retry guidance only when retries are possible."""
+    retryable = StorageError("write", retry_possible=True)
+    non_retryable = StorageError("write", retry_possible=False)
+
+    assert "Retry the operation" in retryable.recovery_suggestions
+    assert "Retry the operation" not in non_retryable.recovery_suggestions
+
+
+def test_rate_limit_error_message_branches() -> None:
+    """RateLimitError should tailor messages for limit/retry combinations."""
+    both = RateLimitError("sync", limit="10/min", retry_after=30)
+    only_limit = RateLimitError("sync", limit="10/min")
+    only_retry = RateLimitError("sync", retry_after=15)
+    plain = RateLimitError("sync")
+
+    assert "(10/min). Retry after 30 seconds" in str(both)
+    assert "(10/min)" in str(only_limit)
+    assert "Retry after 15 seconds" in str(only_retry)
+    assert str(plain) == "Rate limit exceeded for sync"
+
+
+def test_network_and_service_unavailable_error_metadata() -> None:
+    """Network-derived errors should expose expected severity/context metadata."""
+    network = NetworkError(
+        "network down",
+        endpoint="https://api.example",
+        operation="fetch",
+        retryable=False,
+    )
+    assert network.severity is ErrorSeverity.HIGH
+    assert network.context["endpoint"] == "https://api.example"
+    assert network.context["operation"] == "fetch"
+
+    unavailable = ServiceUnavailableError(
+        "service offline",
+        service_name="backend",
+        endpoint="https://api.example",
+        operation="fetch",
+    )
+    assert unavailable.error_code == "service_unavailable"
+    assert unavailable.context["service_name"] == "backend"
+
+
+def test_notification_error_fallback_changes_severity_and_suggestions() -> None:
+    """Fallback-capable notification errors should be less severe and mention fallback."""
+    with_fallback = NotificationError("push", fallback_available=True)
+    without_fallback = NotificationError("push", fallback_available=False)
+
+    assert with_fallback.severity is ErrorSeverity.LOW
+    assert without_fallback.severity is ErrorSeverity.MEDIUM
+    assert any("Fallback notification method" in s for s in with_fallback.recovery_suggestions)
+
+
+def test_data_import_error_includes_line_number_when_available() -> None:
+    """DataImportError should annotate the failing line number when provided."""
+    with_line = DataImportError("history", reason="bad format", line_number=27)
+    without_line = DataImportError("history", reason="bad format")
+
+    assert "at line 27" in str(with_line)
+    assert "at line" not in str(without_line)
+
+
+def test_reconfiguration_related_errors_have_expected_codes() -> None:
+    """Recovery flow exceptions should expose stable error codes/user messages."""
+    reauth = ReauthRequiredError("reauth needed", context={"step": "token"})
+    reconfigure = ReconfigureRequiredError("reconfigure needed")
+    repair = RepairRequiredError("repair needed")
+
+    assert reauth.error_code == "reauth_required"
+    assert reauth.context["step"] == "token"
+    assert reconfigure.error_code == "reconfigure_required"
+    assert repair.error_code == "repair_required"
