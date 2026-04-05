@@ -1,8 +1,8 @@
 """Tests for JSON serialization helpers in ``utils.serialize``."""
 
 from dataclasses import dataclass
-import importlib
 from datetime import UTC, datetime, timedelta
+import importlib
 
 import pytest
 

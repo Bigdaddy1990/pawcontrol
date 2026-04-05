@@ -234,7 +234,9 @@ async def test_notification_flow_select_dog_with_user_input_routes_to_form() -> 
 
 
 @pytest.mark.asyncio
-async def test_notification_flow_notifications_step_handles_success_and_errors() -> None:
+async def test_notification_flow_notifications_step_handles_success_and_errors() -> (
+    None
+):
     flow = _NotificationAsyncFlow(
         options={CONF_NOTIFICATIONS: {"quiet_hours": False}},
         dog_options={},
