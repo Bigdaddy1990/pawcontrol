@@ -28,6 +28,20 @@ class _FakeStore:
         self._data = payload
 
 
+class _FailingLoadStore(_FakeStore):
+    """Store stub that simulates load failures."""
+
+    async def async_load(self) -> dict[str, dict[str, Any]] | None:
+        raise RuntimeError("load failed")
+
+
+class _FailingSaveStore(_FakeStore):
+    """Store stub that simulates save failures."""
+
+    async def async_save(self, payload: dict[str, dict[str, Any]]) -> None:
+        raise RuntimeError("save failed")
+
+
 @pytest.mark.asyncio
 async def test_lru_cache_updates_existing_key_without_eviction() -> None:
     """Updating an existing key should not increment eviction stats."""
@@ -192,3 +206,32 @@ async def test_delete_returns_false_for_unknown_keys(
 
     assert await l1.delete("unknown") is False
     assert await l2.delete("unknown") is False
+
+
+@pytest.mark.asyncio
+async def test_persistent_cache_load_failure_marks_cache_loaded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Load failures should not keep retrying forever on every access."""
+    monkeypatch.setattr(cache_module, "Store", _FailingLoadStore)
+    persistent = cache_module.PersistentCache[str](hass=object(), name="paw")
+
+    assert await persistent.get("dog") is None
+
+    assert persistent._loaded is True
+    assert persistent._cache == {}
+    assert persistent.get_stats().misses == 1
+
+
+@pytest.mark.asyncio
+async def test_persistent_cache_save_failure_is_swallowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Save failures should be logged but must not raise to callers."""
+    monkeypatch.setattr(cache_module, "Store", _FailingSaveStore)
+    persistent = cache_module.PersistentCache[str](hass=object(), name="paw")
+
+    await persistent.set("dog", "Milo")
+    await persistent.async_save()
+
+    assert persistent.get_stats().size == 1
