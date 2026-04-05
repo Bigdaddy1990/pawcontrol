@@ -6,7 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.pawcontrol.exceptions import ValidationError
+from custom_components.pawcontrol.exceptions import (
+    InvalidCoordinatesError,
+    ValidationError,
+)
 from custom_components.pawcontrol.validation import (
     InputCoercionError,
     NotificationTargets,
@@ -19,7 +22,9 @@ from custom_components.pawcontrol.validation import (
     validate_dog_name,
     validate_entity_id,
     validate_float_range,
+    validate_gps_coordinates,
     validate_gps_source,
+    validate_gps_update_interval,
     validate_interval,
     validate_name,
     validate_notification_targets,
@@ -459,3 +464,32 @@ def test_validate_interval_rejects_required_invalid_and_out_of_range_values() ->
     with pytest.raises(ValidationError) as too_large:
         validate_interval(12, field="interval", minimum=5, maximum=10)
     assert too_large.value.constraint == "Maximum interval is 10"
+
+
+def test_validate_gps_coordinates_handles_fast_path_and_wraps_validation_errors() -> (
+    None
+):
+    assert validate_gps_coordinates(52, -7) == (52.0, -7.0)
+
+    with pytest.raises(InvalidCoordinatesError):
+        validate_gps_coordinates(True, 10)
+
+
+def test_validate_gps_update_interval_delegates_to_gps_interval_constraints() -> None:
+    assert (
+        validate_gps_update_interval(
+            15,
+            minimum=10,
+            maximum=30,
+        )
+        == 15
+    )
+
+    with pytest.raises(ValidationError) as required:
+        validate_gps_update_interval(
+            None,
+            minimum=10,
+            maximum=30,
+            required=True,
+        )
+    assert required.value.constraint == "gps_update_interval_required"
