@@ -558,6 +558,47 @@ async def test_dog_health_step_with_input_updates_health_and_feeding() -> None:
 
 
 @pytest.mark.asyncio
+async def test_dog_health_step_with_optional_dates_and_vaccinations() -> None:
+    """Health input should persist optional visit/checkup and vaccinations."""
+    current_dog = {
+        DOG_NAME_FIELD: "Nala",
+        DOG_ID_FIELD: "dog-2",
+        DOG_AGE_FIELD: 4,
+        DOG_SIZE_FIELD: "large",
+        DOG_WEIGHT_FIELD: 31.0,
+        "modules": {MODULE_MEDICATION: False},
+        DOG_FEEDING_CONFIG_FIELD: {},
+    }
+    flow = _DogHealthFlow(current_dog=current_dog)
+    flow._build_vaccination_records = lambda _inp: {
+        "rabies": {"date": "2026-01-01", "expires": "2027-01-01"}
+    }
+    flow._validate_diet_combinations = lambda _diet: {
+        "conflicts": ["renal + high_protein"],
+        "warnings": ["monitor hydration"],
+        "recommended_vet_consultation": True,
+    }
+
+    result = await flow.async_step_dog_health({
+        "vet_name": "Dr. Nora",
+        "vet_phone": "555-0222",
+        "last_vet_visit": "2026-02-10",
+        "next_checkup": "2026-08-10",
+        "special_diet_requirements": ["renal"],
+    })
+
+    assert result == {"type": "add_another"}
+
+    stored_health = flow._dogs[0][DOG_HEALTH_CONFIG_FIELD]
+    assert stored_health["last_vet_visit"] == "2026-02-10"
+    assert stored_health["next_checkup"] == "2026-08-10"
+    assert "vaccinations" in stored_health
+
+    feeding_config = flow._dogs[0][DOG_FEEDING_CONFIG_FIELD]
+    assert feeding_config["diet_validation"]["recommended_vet_consultation"] is True
+
+
+@pytest.mark.asyncio
 async def test_health_options_selection_and_submit_paths() -> None:
     """Health options flow should handle selection, validation and persistence."""
     flow = _HealthOptionsFlow(
@@ -628,3 +669,25 @@ async def test_health_options_error_paths_and_current_resolution() -> None:
     failed = await flow_with_dog.async_step_health_settings({"weight_tracking": "x"})
     assert failed["type"] == "form"
     assert failed["errors"] == {"base": "update_failed"}
+
+
+@pytest.mark.asyncio
+async def test_health_options_missing_current_and_invalid_dog_id_paths() -> None:
+    """Health options should return selector form when no valid current dog exists."""
+    flow = _HealthOptionsFlow(
+        options={"health_settings": "not-a-mapping"},
+        dog_options={"dog-1": {"health_settings": "legacy-string"}},
+        dogs=[{DOG_ID_FIELD: 42, DOG_NAME_FIELD: "Rex"}],
+    )
+
+    assert flow._current_health_options("dog-1") == {}
+
+    flow._current_dog = None
+    no_current = await flow.async_step_health_settings()
+    assert no_current["type"] == "form"
+    assert no_current["step_id"] == "select_dog_for_health_settings"
+
+    flow._current_dog = {DOG_ID_FIELD: 42, DOG_NAME_FIELD: "Rex"}
+    invalid_id = await flow.async_step_health_settings()
+    assert invalid_id["type"] == "form"
+    assert invalid_id["step_id"] == "select_dog_for_health_settings"
