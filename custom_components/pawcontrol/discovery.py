@@ -439,11 +439,20 @@ class PawControlDiscovery:
         connection_info: DiscoveryConnectionInfo = {}
         connection_type: DiscoveryConnectionType = "unknown"
 
+        bluetooth_aliases = {
+            getattr(dr, "CONNECTION_BLUETOOTH", "bluetooth"),
+            "bluetooth",
+        }
+        network_mac_aliases = {
+            getattr(dr, "CONNECTION_NETWORK_MAC", "mac"),
+            "mac",
+        }
+
         for conn_type, conn_id in device_entry.connections:
-            if conn_type in (dr.CONNECTION_BLUETOOTH, "bluetooth"):
+            if conn_type in bluetooth_aliases:
                 connection_type = "bluetooth"
                 connection_info.setdefault("address", conn_id)
-            elif conn_type in (dr.CONNECTION_NETWORK_MAC, "mac"):
+            elif conn_type in network_mac_aliases:
                 connection_type = "network"
                 connection_info.setdefault("mac", conn_id)
             elif conn_type == "usb":
