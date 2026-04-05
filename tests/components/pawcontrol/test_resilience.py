@@ -203,3 +203,97 @@ def test_registry_helpers_reuse_breakers() -> None:
     first.reset()
     stats = first.get_stats().to_dict()
     assert stats["state"] == resilience.CircuitState.CLOSED.value
+
+
+@pytest.mark.asyncio
+async def test_circuit_breaker_half_open_failure_reopens() -> None:
+    breaker = resilience.CircuitBreaker(
+        "recover",
+        config=resilience.CircuitBreakerConfig(failure_threshold=1, timeout_seconds=1),
+    )
+
+    async def fail() -> None:
+        raise NetworkError("boom")
+
+    with pytest.raises(NetworkError):
+        await breaker.call(fail)
+
+    breaker.get_stats().last_failure_time = 0.0
+    async with breaker:
+        pass
+
+    assert breaker.is_half_open is True
+    assert breaker.name == "recover"
+    assert breaker.state == resilience.CircuitState.HALF_OPEN
+
+    with pytest.raises(NetworkError):
+        await breaker.call(fail)
+
+    assert breaker.is_open is True
+
+
+def test_reset_all_circuit_breakers_resets_state() -> None:
+    breaker = resilience.get_circuit_breaker("bulk")
+    breaker.get_stats().state = resilience.CircuitState.OPEN
+
+    resilience.reset_all_circuit_breakers()
+
+    assert breaker.state == resilience.CircuitState.CLOSED
+
+
+@pytest.mark.asyncio
+async def test_resilience_decorators_apply_wrappers() -> None:
+    @resilience.with_circuit_breaker("decorator")
+    async def guarded(value: str) -> str:
+        return value
+
+    @resilience.with_retry(resilience.RetryConfig(max_attempts=1))
+    async def retried(value: str) -> str:
+        return value
+
+    @resilience.with_fallback(default_value="default")
+    async def fallback_fail() -> str:
+        raise RuntimeError("nope")
+
+    assert await guarded("ok") == "ok"
+    assert await retried("ok") == "ok"
+    assert await fallback_fail() == "default"
+
+
+@pytest.mark.asyncio
+async def test_retry_strategy_zero_attempts_raises_runtime_error() -> None:
+    strategy = resilience.RetryStrategy(resilience.RetryConfig(max_attempts=0))
+
+    async def should_not_run() -> None:
+        raise AssertionError("should not run")
+
+    with pytest.raises(RuntimeError, match="failed unexpectedly"):
+        await strategy.execute(should_not_run)
+
+
+@pytest.mark.asyncio
+async def test_circuit_breaker_enter_blocks_when_open_without_reset() -> None:
+    breaker = resilience.CircuitBreaker("blocked")
+    stats = breaker.get_stats()
+    stats.state = resilience.CircuitState.OPEN
+    stats.last_failure_time = resilience.time.time()
+
+    with pytest.raises(ServiceUnavailableError, match="OPEN"):
+        async with breaker:
+            pytest.fail("context should not be entered")
+
+
+def test_circuit_breaker_should_attempt_reset_when_no_failure_time() -> None:
+    breaker = resilience.CircuitBreaker("fresh")
+    assert breaker._should_attempt_reset() is True  # noqa: SLF001
+
+
+@pytest.mark.asyncio
+async def test_retry_strategy_raises_on_last_retryable_attempt() -> None:
+    strategy = resilience.RetryStrategy(resilience.RetryConfig(max_attempts=1))
+
+    async def always_fail() -> None:
+        raise NetworkError("still down")
+
+    with pytest.raises(NetworkError, match="still down"):
+        await strategy.execute(always_fail)
