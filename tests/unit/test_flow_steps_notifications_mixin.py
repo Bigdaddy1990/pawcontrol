@@ -250,6 +250,29 @@ def test_normalise_notification_options_returns_none_when_key_missing() -> None:
     assert CONF_NOTIFICATIONS not in mutable
 
 
+def test_build_notification_settings_wrapper_uses_class_payload_builder() -> None:
+    """The instance wrapper should delegate to the class-level payload helper."""
+    host = _NotificationHost()
+    current = host._current_notification_options("buddy")
+
+    updated = host._build_notification_settings(
+        {
+            "quiet_hours": "true",
+            "quiet_start": "22:10:00",
+            "quiet_end": "06:20:00",
+            "reminder_repeat_min": "50",
+            "priority_notifications": "1",
+            "mobile_notifications": "0",
+        },
+        current,
+    )
+
+    assert updated["quiet_hours"] is True
+    assert updated["reminder_repeat_min"] == 50
+    assert updated["priority_notifications"] is True
+    assert updated["mobile_notifications"] is False
+
+
 @pytest.mark.asyncio
 async def test_select_dog_for_notifications_handles_empty_and_invalid_selection() -> (
     None
@@ -280,6 +303,17 @@ async def test_select_dog_for_notifications_routes_to_notifications_when_selecte
 
     assert result["type"] == "form"
     assert result["step_id"] == "notifications"
+
+
+@pytest.mark.asyncio
+async def test_select_dog_for_notifications_shows_selector_form_without_input() -> None:
+    """Without user input, the step should render the dog selector form."""
+    host = _NotificationHost()
+
+    result = await host.async_step_select_dog_for_notifications()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "select_dog_for_notifications"
 
 
 @pytest.mark.asyncio
@@ -359,3 +393,14 @@ async def test_notifications_redirects_when_current_dog_missing_identifier() -> 
 
     assert result["type"] == "form"
     assert result["step_id"] == "select_dog_for_notifications"
+
+
+@pytest.mark.asyncio
+async def test_notifications_without_user_input_shows_notifications_form() -> None:
+    """When a dog is selected, the notifications step should render its form."""
+    host = _NotificationHost()
+
+    result = await host.async_step_notifications()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "notifications"
