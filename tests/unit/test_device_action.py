@@ -41,6 +41,7 @@ async def test_async_get_actions_returns_all_registered_actions(monkeypatch) -> 
     ]
     assert all(action[CONF_DOMAIN] == DOMAIN for action in actions)
     assert all(action[CONF_DEVICE_ID] == "device-2" for action in actions)
+    assert all(action["metadata"]["secondary"] is False for action in actions)
 
 
 @pytest.mark.parametrize(
@@ -160,6 +161,59 @@ async def test_async_call_action_dispatches_to_runtime_managers(monkeypatch) -> 
         "buddy",
         notes="done",
         save_route=False,
+    )
+
+
+async def test_async_call_action_applies_default_optional_values(monkeypatch) -> None:
+    """Action dispatch should use default values when optional inputs are missing."""
+    feeding_manager = SimpleNamespace(async_add_feeding=AsyncMock())
+    walk_manager = SimpleNamespace(
+        async_start_walk=AsyncMock(), async_end_walk=AsyncMock()
+    )
+    runtime_data = SimpleNamespace(
+        feeding_manager=feeding_manager,
+        walk_manager=walk_manager,
+    )
+    monkeypatch.setattr(
+        device_action,
+        "resolve_device_context",
+        lambda _hass, _device_id: SimpleNamespace(
+            dog_id="buddy",
+            runtime_data=runtime_data,
+        ),
+    )
+
+    await device_action.async_call_action(
+        SimpleNamespace(),
+        {
+            CONF_DEVICE_ID: "device-defaults",
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "log_feeding",
+            device_action.CONF_AMOUNT: 80,
+        },
+        {},
+    )
+    await device_action.async_call_action(
+        SimpleNamespace(),
+        {
+            CONF_DEVICE_ID: "device-defaults",
+            CONF_DOMAIN: DOMAIN,
+            CONF_TYPE: "end_walk",
+        },
+        {},
+    )
+
+    feeding_manager.async_add_feeding.assert_awaited_once_with(
+        "buddy",
+        80.0,
+        meal_type=None,
+        notes=None,
+        scheduled=False,
+    )
+    walk_manager.async_end_walk.assert_awaited_once_with(
+        "buddy",
+        notes=None,
+        save_route=True,
     )
 
 
