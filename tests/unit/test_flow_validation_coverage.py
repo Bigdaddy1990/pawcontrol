@@ -6,7 +6,10 @@ Covers: is_dog_config_payload_valid, normalize_dog_id, ensure_json_mapping,
 
 import pytest
 
+from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.flow_validation import (
+    _validate_breed,
+    _validate_dog_id,
     coerce_float,
     coerce_int,
     ensure_dog_modules_config,
@@ -127,3 +130,39 @@ def test_fv_coerce_int_valid() -> None:
 def test_fv_coerce_int_invalid_raises() -> None:
     with pytest.raises((InputCoercionError, Exception)):
         coerce_int("meals", "not_number")
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("raw_id", "existing_ids", "expected_id", "expected_error"),
+    [
+        (42, None, "", "invalid_dog_id_format"),
+        ("x" * 31, None, "x" * 31, "dog_id_too_long"),
+        ("buddy!", None, "buddy!", "invalid_dog_id_format"),
+        ("buddy", {"buddy"}, "buddy", "dog_id_already_exists"),
+    ],
+)
+def test_fv_validate_dog_id_edge_cases(
+    raw_id: object,
+    existing_ids: set[str] | None,
+    expected_id: str,
+    expected_error: str,
+) -> None:
+    dog_id, error = _validate_dog_id(raw_id, existing_ids=existing_ids)
+
+    assert dog_id == expected_id
+    assert error == expected_error
+
+
+@pytest.mark.unit
+def test_fv_validate_breed_normalises_and_rejects_invalid_values() -> None:
+    assert _validate_breed("  border collie  ") == "border collie"
+
+    with pytest.raises(ValidationError):
+        _validate_breed(3.14)
+
+
+@pytest.mark.unit
+def test_fv_validate_breed_empty_and_none_return_none() -> None:
+    assert _validate_breed(None) is None
+    assert _validate_breed("   ") is None
