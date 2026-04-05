@@ -558,6 +558,65 @@ async def test_dog_health_step_with_input_updates_health_and_feeding() -> None:
 
 
 @pytest.mark.asyncio
+async def test_dog_health_step_persists_optional_dates_and_vaccinations() -> None:
+    """Health step should keep optional date fields and vaccination payloads."""
+    current_dog = {
+        DOG_NAME_FIELD: "Luna",
+        DOG_ID_FIELD: "dog-2",
+        DOG_AGE_FIELD: 5,
+        DOG_SIZE_FIELD: "small",
+        DOG_WEIGHT_FIELD: 8.5,
+        "modules": {MODULE_MEDICATION: False},
+        DOG_FEEDING_CONFIG_FIELD: {},
+    }
+    flow = _DogHealthFlow(current_dog=current_dog)
+    flow._build_vaccination_records = lambda _input: {"rabies": {"date": "2025-01-01"}}
+
+    result = await flow.async_step_dog_health({
+        "last_vet_visit": "2024-12-12",
+        "next_checkup": "2025-06-01",
+        "special_diet_requirements": [],
+        "health_conditions": [],
+    })
+
+    assert result == {"type": "add_another"}
+    stored_health = flow._dogs[0][DOG_HEALTH_CONFIG_FIELD]
+    assert stored_health["last_vet_visit"] == "2024-12-12"
+    assert stored_health["next_checkup"] == "2025-06-01"
+    assert stored_health["vaccinations"] == {"rabies": {"date": "2025-01-01"}}
+
+
+@pytest.mark.asyncio
+async def test_dog_health_step_logs_when_diet_requires_vet_consultation(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Diet validation recommendations should emit an informational telemetry log."""
+    current_dog = {
+        DOG_NAME_FIELD: "Buddy",
+        DOG_ID_FIELD: "dog-3",
+        DOG_AGE_FIELD: 3,
+        DOG_SIZE_FIELD: "medium",
+        DOG_WEIGHT_FIELD: 15.0,
+        "modules": {MODULE_MEDICATION: False},
+        DOG_FEEDING_CONFIG_FIELD: {},
+    }
+    flow = _DogHealthFlow(current_dog=current_dog)
+    flow._validate_diet_combinations = lambda _diet_options: {
+        "conflicts": ["renal"],
+        "warnings": ["monitor"],
+        "recommended_vet_consultation": True,
+    }
+
+    with caplog.at_level("INFO"):
+        await flow.async_step_dog_health({
+            "special_diet_requirements": ["renal"],
+            "health_conditions": [],
+        })
+
+    assert "recommends veterinary consultation" in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_health_options_selection_and_submit_paths() -> None:
     """Health options flow should handle selection, validation and persistence."""
     flow = _HealthOptionsFlow(
@@ -628,3 +687,30 @@ async def test_health_options_error_paths_and_current_resolution() -> None:
     failed = await flow_with_dog.async_step_health_settings({"weight_tracking": "x"})
     assert failed["type"] == "form"
     assert failed["errors"] == {"base": "update_failed"}
+
+
+@pytest.mark.asyncio
+async def test_health_options_current_resolution_and_redirect_branches() -> None:
+    """Health options should handle non-mapping fallbacks and invalid dog ids."""
+    flow = _HealthOptionsFlow(
+        options={"health_settings": "invalid"},
+        dog_options={},
+        dogs=[],
+    )
+    assert flow._current_health_options("dog-1") == {}
+
+    flow_with_invalid_dog = _HealthOptionsFlow(
+        options={},
+        dog_options={},
+        dogs=[{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Rex"}],
+    )
+
+    flow_with_invalid_dog._current_dog = None
+    missing_current = await flow_with_invalid_dog.async_step_health_settings()
+    assert missing_current["type"] == "form"
+    assert missing_current["step_id"] == "select_dog_for_health_settings"
+
+    flow_with_invalid_dog._current_dog = {DOG_ID_FIELD: 123}
+    invalid_id = await flow_with_invalid_dog.async_step_health_settings()
+    assert invalid_id["type"] == "form"
+    assert invalid_id["step_id"] == "select_dog_for_health_settings"
