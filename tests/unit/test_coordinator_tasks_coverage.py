@@ -182,6 +182,93 @@ def test_resolve_entity_factory_guard_metrics_none() -> None:
     assert isinstance(result, dict)
 
 
+@pytest.mark.unit
+def test_resolve_entity_factory_guard_metrics_normalises_full_payload() -> None:
+    """resolve_entity_factory_guard_metrics normalises and persists known fields."""
+    payload: dict[str, object] = {
+        "entity_factory_guard_metrics": {
+            "runtime_floor": 0.25,
+            "baseline_floor": 0.20,
+            "max_floor": 0.60,
+            "last_actual_duration": 0.11,
+            "peak_runtime_floor": 0.30,
+            "lowest_runtime_floor": 0.19,
+            "last_floor_change": 0.05,
+            "runtime_floor_delta": 0.03,
+            "last_duration_ratio": 1.5,
+            "last_floor_change_ratio": 0.5,
+            "last_event": "expanded",
+            "last_updated": "2026-04-05T10:00:00+00:00",
+            "samples": 10.9,
+            "stable_samples": 7.2,
+            "expansions": 2.9,
+            "contractions": 1.2,
+            "last_expansion_duration": 0.70,
+            "last_contraction_duration": 0.40,
+            "average_duration": 0.22,
+            "max_duration": 0.35,
+            "min_duration": 0.18,
+            "duration_span": 0.17,
+            "jitter_ratio": 0.42,
+            "recent_average_duration": 0.21,
+            "recent_max_duration": 0.31,
+            "recent_min_duration": 0.17,
+            "recent_duration_span": 0.14,
+            "recent_jitter_ratio": 0.32,
+            "stable_ratio": 0.72,
+            "expansion_ratio": 0.2,
+            "contraction_ratio": 0.1,
+            "consecutive_stable_samples": 4,
+            "longest_stable_run": 6,
+            "volatility_ratio": 0.18,
+            "recent_samples": 5,
+            "recent_events": ["stable", "", 1, "expanded"],
+            "recent_stable_samples": 3,
+            "recent_stable_ratio": 0.6,
+            "stability_trend": "improving",
+            "enforce_min_runtime": True,
+        }
+    }
+
+    result = ct.resolve_entity_factory_guard_metrics(payload)
+
+    assert result["runtime_floor_ms"] == 250.0
+    assert result["baseline_floor_ms"] == 200.0
+    assert result["runtime_floor_delta_ms"] == 30.0
+    assert result["last_event"] == "expanded"
+    assert result["samples"] == 10
+    assert result["stable_samples"] == 7
+    assert result["expansions"] == 2
+    assert result["contractions"] == 1
+    assert result["recent_events"] == ["stable", "expanded"]
+    assert result["stability_trend"] == "improving"
+    assert payload["entity_factory_guard_metrics"] == result
+
+
+@pytest.mark.unit
+def test_resolve_entity_factory_guard_metrics_uses_root_payload_fallback() -> None:
+    """resolve_entity_factory_guard_metrics supports the legacy payload layout."""
+    payload: dict[str, object] = {
+        "runtime_floor": 0.12,
+        "baseline_floor": 0.20,
+        "last_duration_ratio": float("inf"),
+        "recent_jitter_ratio": float("nan"),
+        "recent_events": "stable",
+        "last_event": "",
+        "enforce_min_runtime": False,
+    }
+
+    result = ct.resolve_entity_factory_guard_metrics(payload)
+
+    assert result["runtime_floor_ms"] == 120.0
+    assert result["baseline_floor_ms"] == 200.0
+    assert result["runtime_floor_delta_ms"] == 0.0
+    assert "last_duration_ratio" not in result
+    assert "recent_jitter_ratio" not in result
+    assert "recent_events" not in result
+    assert result["last_event"] == "unknown"
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # shutdown  (lines 1437-1446)
 # ═══════════════════════════════════════════════════════════════════════════════
