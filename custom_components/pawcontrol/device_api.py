@@ -120,6 +120,11 @@ class PawControlDeviceClient:
             raise NetworkError(
                 "Device API returned a non-JSON response. Check the configured endpoint.",  # noqa: E501
             ) from err
+        if payload is not None and not isinstance(payload, Mapping):
+            raise NetworkError(
+                "Device API returned an unexpected response payload."
+                " Expected a JSON object.",
+            )
         return _coerce_json_mutable(payload)
 
     async def async_get_feeding_payload(self, dog_id: str) -> JSONMutableMapping:

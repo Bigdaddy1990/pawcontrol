@@ -18,6 +18,7 @@ from custom_components.pawcontrol.exceptions import (
     NetworkError,
     RateLimitError,
 )
+from custom_components.pawcontrol.resilience import ResilienceManager, RetryConfig
 
 
 def test_coerce_json_mutable_handles_none_and_mapping_inputs() -> None:
@@ -72,6 +73,21 @@ class _FailingSession:
 
     async def request(self, *args: object, **kwargs: object) -> _FakeResponse:
         raise self._error
+
+
+class _SequencedSession:
+    closed = False
+
+    def __init__(self, steps: list[_FakeResponse | Exception]) -> None:
+        self._steps = steps
+        self.call_count = 0
+
+    async def request(self, *args: object, **kwargs: object) -> _FakeResponse:
+        self.call_count += 1
+        step = self._steps[self.call_count - 1]
+        if isinstance(step, Exception):
+            raise step
+        return step
 
 
 class _MappingPayload(Mapping[str, object]):
@@ -294,3 +310,70 @@ async def test_async_get_json_raises_network_error_for_non_json_payload() -> Non
 
     with pytest.raises(NetworkError, match="non-JSON response"):
         await client.async_get_json("/api/status")
+
+
+@pytest.mark.asyncio
+async def test_async_get_json_raises_network_error_for_unexpected_payload_type() -> (
+    None
+):
+    """List payloads should be rejected as unexpected API responses."""
+    session = _FakeSession(_FakeResponse(json_payload=[{"dog": "Milo"}]))
+    client = PawControlDeviceClient(session, endpoint="https://example.test")
+
+    with pytest.raises(NetworkError, match="unexpected response payload"):
+        await client.async_get_json("/api/status")
+
+
+@pytest.mark.asyncio
+async def test_async_get_json_retries_network_errors_with_deterministic_backoff(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Resilience path should retry transient failures using configured delay."""
+    session = _SequencedSession([
+        TimeoutError(),
+        _FakeResponse(json_payload={"ok": True}),
+    ])
+    client = PawControlDeviceClient(
+        session,
+        endpoint="https://example.test",
+        resilience_manager=ResilienceManager(),
+    )
+    client._retry_config = RetryConfig(
+        max_attempts=2,
+        initial_delay=0.25,
+        max_delay=1.0,
+        exponential_base=2.0,
+        jitter=False,
+    )
+    sleeps: list[float] = []
+
+    async def _sleep(delay: float) -> None:
+        sleeps.append(delay)
+
+    monkeypatch.setattr("custom_components.pawcontrol.resilience.asyncio.sleep", _sleep)
+
+    payload = await client.async_get_json("/api/status")
+
+    assert payload == {"ok": True}
+    assert session.call_count == 2
+    assert sleeps == [0.25]
+
+
+@pytest.mark.asyncio
+async def test_async_get_json_does_not_retry_auth_failures() -> None:
+    """Authentication failures are non-retryable and should bubble immediately."""
+    session = _SequencedSession([
+        _FakeResponse(status=401),
+        _FakeResponse(json_payload={"unexpected": "retry"}),
+    ])
+    client = PawControlDeviceClient(
+        session,
+        endpoint="https://example.test",
+        resilience_manager=ResilienceManager(),
+    )
+    client._retry_config = RetryConfig(max_attempts=3, jitter=False)
+
+    with pytest.raises(ConfigEntryAuthFailed):
+        await client.async_get_json("/api/status")
+
+    assert session.call_count == 1
