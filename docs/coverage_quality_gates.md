@@ -34,6 +34,21 @@ must include a reason comment.
 If an exclusion does not match one of these categories, add test coverage instead
 of introducing a new `no cover` path.
 
+## Exception documentation requirements
+
+Any new coverage exclusion must be documented explicitly in the pull request
+description with:
+
+1. **File + line reference** (for example `custom_components/pawcontrol/foo.py:123`)
+2. **Category** (one of the allowed categories above)
+3. **Justification** explaining why deterministic automated tests cannot cover
+   that path safely/reliably
+4. **Mitigation plan** (for example follow-up integration test, observability
+   signal, or runtime guard)
+
+Undocumented exclusions are treated as gate failures during review and must be
+resolved before merge.
+
 ## Contributor workflow
 
 1. Add or update tests for every functional behavior change.

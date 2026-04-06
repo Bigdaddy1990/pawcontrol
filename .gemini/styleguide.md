@@ -268,6 +268,7 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
       Home Assistant tone guidelines.
 - [ ] New documentation includes citations to code/tests proving the behaviour.
 - [ ] New logic includes tests; pull requests without tests for new behavior are not merged.
+- [ ] Any new `# pragma: no cover` usage is explicitly documented in the PR with file/line and a concrete justification.
 - [ ] Device removal (`async_remove_config_entry_device`) and diagnostics remain
       covered by tests when behaviour changes.
 <!-- SYNC:END -->
