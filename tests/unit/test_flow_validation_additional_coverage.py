@@ -4,12 +4,14 @@ import pytest
 
 from custom_components.pawcontrol.const import (
     CONF_DOG_AGE,
+    CONF_DOG_BREED,
     CONF_DOG_ID,
+    CONF_MODULES,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
 )
-from custom_components.pawcontrol.exceptions import FlowValidationError
+from custom_components.pawcontrol.exceptions import FlowValidationError, ValidationError
 
 
 def test_validate_dog_id_reports_invalid_format_when_normalizer_raises(
@@ -84,3 +86,85 @@ def test_validate_dog_config_payload_skips_update_validation_when_id_invalid(
 
     assert err.value.field_errors[CONF_DOG_ID] == "dog_id_too_short"
     assert called is False
+
+
+def test_validate_dog_setup_input_reports_age_and_weight_out_of_range() -> None:
+    """Out-of-range primitives must surface dedicated field errors."""
+    from custom_components.pawcontrol import flow_validation
+
+    with pytest.raises(FlowValidationError) as err:
+        flow_validation.validate_dog_setup_input(
+            {
+                CONF_DOG_ID: "buddy",
+                CONF_DOG_NAME: "Buddy",
+                CONF_DOG_WEIGHT: 0.1,
+                CONF_DOG_SIZE: "medium",
+                CONF_DOG_AGE: 99,
+            },
+            existing_ids=set(),
+            current_dog_count=0,
+            max_dogs=2,
+        )
+
+    assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_out_of_range"
+    assert err.value.field_errors[CONF_DOG_AGE] == "age_out_of_range"
+
+
+def test_validate_dog_update_input_maps_format_and_range_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Update validation should map coercion and range failures predictably."""
+    from custom_components.pawcontrol import flow_validation
+
+    def _breed_too_long(_raw_breed: object) -> str:
+        raise ValidationError(CONF_DOG_BREED, "x" * 101, "Breed name too long")
+
+    monkeypatch.setattr(flow_validation, "_validate_breed", _breed_too_long)
+
+    with pytest.raises(FlowValidationError) as err:
+        flow_validation.validate_dog_update_input(
+            {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"},
+            {
+                CONF_DOG_BREED: "x" * 101,
+                CONF_DOG_AGE: "old",
+                CONF_DOG_WEIGHT: "heavy",
+                CONF_DOG_SIZE: "not-a-size",
+            },
+        )
+
+    assert err.value.field_errors[CONF_DOG_BREED] == "breed_name_too_long"
+    assert err.value.field_errors[CONF_DOG_AGE] == "invalid_age_format"
+    assert err.value.field_errors[CONF_DOG_WEIGHT] == "invalid_weight_format"
+    assert err.value.field_errors[CONF_DOG_SIZE] == "invalid_dog_size"
+
+    with pytest.raises(FlowValidationError) as range_err:
+        flow_validation.validate_dog_update_input(
+            {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"},
+            {
+                CONF_DOG_WEIGHT: 500.0,
+                CONF_DOG_SIZE: None,
+            },
+        )
+
+    assert range_err.value.field_errors[CONF_DOG_WEIGHT] == "weight_out_of_range"
+
+
+def test_validate_dog_import_input_normalizes_none_modules() -> None:
+    """YAML imports may omit module maps by explicitly passing null."""
+    from custom_components.pawcontrol import flow_validation
+
+    validated = flow_validation.validate_dog_import_input(
+        {
+            CONF_DOG_ID: "buddy",
+            CONF_DOG_NAME: "Buddy",
+            CONF_DOG_WEIGHT: 20.0,
+            CONF_DOG_SIZE: "medium",
+            CONF_DOG_AGE: 4,
+            CONF_MODULES: None,
+        },
+        existing_ids=set(),
+        current_dog_count=0,
+        max_dogs=3,
+    )
+
+    assert validated[CONF_MODULES] == {}
