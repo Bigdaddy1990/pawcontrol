@@ -1,7 +1,9 @@
 """Tests for the discovery helpers."""
 
+import asyncio
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 
 from homeassistant.core import HomeAssistant
 import pytest
@@ -326,3 +328,107 @@ async def test_discovery_manager_singleton_lifecycle(
     assert initialize_calls == 2
 
     await async_shutdown_discovery_manager()
+
+
+@pytest.mark.asyncio
+async def test_async_discover_devices_returns_cached_devices_after_timeout(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Timeouts should gracefully fall back to the cache."""
+    discovery = PawControlDiscovery(hass)
+    cached_device = DiscoveredDevice(
+        device_id="cached",
+        name="Cached Tracker",
+        category="gps_tracker",
+        manufacturer="PawControl",
+        model="C-1",
+        connection_type="network",
+        connection_info={},
+        capabilities=["gps"],
+        discovered_at="2026-01-01T00:00:00+00:00",
+        confidence=0.8,
+        metadata={},
+    )
+    discovery._discovered_devices[cached_device.device_id] = cached_device
+
+    async def _slow_discovery(_: list[DiscoveryCategory]) -> list[DiscoveredDevice]:
+        await asyncio.sleep(0.02)
+        return []
+
+    monkeypatch.setattr(discovery_module, "DISCOVERY_TIMEOUT", 0.001)
+    monkeypatch.setattr(discovery, "_discover_registry_devices", _slow_discovery)
+
+    devices = await discovery.async_discover_devices(quick_scan=True)
+
+    assert devices == [cached_device]
+    assert discovery.is_scanning() is False
+
+
+@pytest.mark.asyncio
+async def test_async_discover_devices_handles_method_errors(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per-method failures should be tolerated and return no new devices."""
+    discovery = PawControlDiscovery(hass)
+
+    async def _failing_discovery(_: list[DiscoveryCategory]) -> list[DiscoveredDevice]:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(discovery, "_discover_registry_devices", _failing_discovery)
+
+    devices = await discovery.async_discover_devices()
+
+    assert devices == []
+    assert discovery.is_scanning() is False
+
+
+@pytest.mark.asyncio
+async def test_discover_registry_devices_builds_expected_metadata(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Registry discovery should map core device fields into metadata payloads."""
+    discovery = PawControlDiscovery(hass)
+
+    device_entry = SimpleNamespace(
+        id="device-123",
+        name_by_user="Backyard Tracker",
+        name=None,
+        manufacturer="PawControl",
+        model="Tracker Pro",
+        hw_version="rev-2",
+        sw_version="2026.4",
+        connections={("bluetooth", "AA:BB:CC")},
+        identifiers={("pawcontrol", "device-123")},
+        via_device_id="bridge-7",
+        configuration_url="https://pawcontrol.local/device-123",
+        area_id="garden",
+    )
+    discovery._device_registry = SimpleNamespace(devices={device_entry.id: device_entry})
+    discovery._entity_registry = SimpleNamespace(entities={})
+
+    monkeypatch.setattr(
+        discovery,
+        "_classify_device",
+        lambda _device, _registry: ("gps_tracker", ["gps"], 0.9),
+    )
+    monkeypatch.setattr(
+        discovery,
+        "_connection_details",
+        lambda _device: ("bluetooth", {"address": "AA:BB:CC"}),
+    )
+
+    devices = await discovery._discover_registry_devices(["gps_tracker"])
+
+    assert len(devices) == 1
+    found = devices[0]
+    assert found.device_id == "device-123"
+    assert found.name == "Backyard Tracker"
+    assert found.connection_info == {"address": "AA:BB:CC"}
+    assert found.metadata == {
+        "identifiers": ["pawcontrol:device-123"],
+        "via_device_id": "bridge-7",
+        "sw_version": "2026.4",
+        "hw_version": "rev-2",
+        "configuration_url": "https://pawcontrol.local/device-123",
+        "area_id": "garden",
+    }
