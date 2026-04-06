@@ -9,11 +9,15 @@ import pytest
 
 from custom_components.pawcontrol import coordinator as coordinator_module
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed, UpdateFailed
 
 
 class _DummyRegistry:
     def __init__(self, ids: list[str]) -> None:
         self._ids = ids
+
+    def __len__(self) -> int:
+        return len(self._ids)
 
     def ids(self) -> list[str]:
         return list(self._ids)
@@ -53,6 +57,8 @@ def _make_coordinator() -> PawControlCoordinator:
     coordinator.async_set_updated_data = lambda data: setattr(
         coordinator, "_last_updated", data
     )
+    coordinator._metrics = SimpleNamespace(consecutive_errors=0)
+    coordinator._setup_complete = False
     return coordinator
 
 
@@ -337,3 +343,123 @@ def test_get_performance_snapshot_uses_default_rejection_metrics(
         "rejection_metrics": {"blocked": 0},
     }
     assert snapshot["last_cycle"] == {"duration_ms": 5}
+
+
+@pytest.mark.asyncio
+async def test_async_update_data_handles_empty_registry_without_refresh() -> None:
+    coordinator = _make_coordinator()
+    coordinator.registry = _DummyRegistry([])
+    coordinator.async_prepare_entry = cast(Any, pytest.fail)
+
+    result = await coordinator._async_update_data()
+
+    assert result == {}
+
+
+@pytest.mark.asyncio
+async def test_async_update_data_propagates_auth_failures() -> None:
+    coordinator = _make_coordinator()
+
+    async def _execute_cycle(
+        _dog_ids: list[str],
+    ) -> tuple[dict[str, dict[str, Any]], object]:
+        raise ConfigEntryAuthFailed("token expired")
+
+    async def _prepare_entry() -> None:
+        return None
+
+    coordinator.async_prepare_entry = _prepare_entry
+    coordinator._execute_cycle = _execute_cycle
+
+    with pytest.raises(ConfigEntryAuthFailed, match="token expired"):
+        await coordinator._async_update_data()
+
+
+@pytest.mark.asyncio
+async def test_async_update_data_wraps_timeout_as_update_failed() -> None:
+    coordinator = _make_coordinator()
+
+    async def _execute_cycle(
+        _dog_ids: list[str],
+    ) -> tuple[dict[str, dict[str, Any]], object]:
+        raise TimeoutError("fetch timed out")
+
+    async def _prepare_entry() -> None:
+        return None
+
+    coordinator.async_prepare_entry = _prepare_entry
+    coordinator._execute_cycle = _execute_cycle
+
+    with pytest.raises(
+        UpdateFailed,
+        match="Coordinator update failed: fetch timed out",
+    ):
+        await coordinator._async_update_data()
+
+
+@pytest.mark.asyncio
+async def test_async_update_data_tolerates_inconsistent_payload_shapes() -> None:
+    coordinator = _make_coordinator()
+    coordinator._data = {"dog-1": {"status": {"state": "old"}}}
+
+    async def _execute_cycle(
+        _dog_ids: list[str],
+    ) -> tuple[dict[str, Any], object]:
+        return {"dog-1": cast(Any, "not-a-mapping"), "dog-none": {}}, object()
+
+    synchronized: list[dict[str, Any]] = []
+
+    async def _sync(data: dict[str, Any]) -> None:
+        synchronized.append(data)
+
+    async def _prepare_entry() -> None:
+        return None
+
+    coordinator.async_prepare_entry = _prepare_entry
+    coordinator._execute_cycle = _execute_cycle
+    coordinator._synchronize_module_states = _sync
+
+    result = await coordinator._async_update_data()
+
+    assert synchronized == [{"dog-1": "not-a-mapping", "dog-none": {}}]
+    assert result == {"dog-1": "not-a-mapping", "dog-none": {}}
+
+
+@pytest.mark.asyncio
+async def test_async_update_data_recovery_after_failure_and_success() -> None:
+    coordinator = _make_coordinator()
+    coordinator.last_update_success = False
+    coordinator._metrics.consecutive_errors = 5
+
+    async def _execute_cycle_fail(
+        _dog_ids: list[str],
+    ) -> tuple[dict[str, dict[str, Any]], object]:
+        raise TimeoutError("temporary outage")
+
+    async def _prepare_entry() -> None:
+        return None
+
+    coordinator.async_prepare_entry = _prepare_entry
+    coordinator._execute_cycle = _execute_cycle_fail
+
+    with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()
+    assert coordinator.available is False
+
+    async def _execute_cycle_ok(
+        _dog_ids: list[str],
+    ) -> tuple[dict[str, dict[str, Any]], object]:
+        return {"dog-1": {"health": {"status": "ok"}}}, object()
+
+    async def _sync(_data: dict[str, dict[str, dict[str, str]]]) -> None:
+        return None
+
+    coordinator._execute_cycle = _execute_cycle_ok
+    coordinator._synchronize_module_states = _sync
+    coordinator.last_update_success = True
+    coordinator._metrics.consecutive_errors = 0
+
+    result = await coordinator._async_update_data()
+
+    assert result["dog-1"]["health"]["status"] == "ok"
+    assert coordinator.available is True
