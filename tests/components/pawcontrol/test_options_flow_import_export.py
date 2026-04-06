@@ -180,7 +180,7 @@ async def test_import_step_maps_flow_validation_errors_to_form_errors() -> None:
 
 
 async def test_import_step_persists_valid_payload_and_normalises_dogs() -> None:
-    """Successful imports should normalise options, update entry data, and reset state."""
+    """Successful imports normalise options, update entry data, and reset state."""
     flow = _FakeImportExportFlow()
 
     result = await flow.async_step_import_export_import(

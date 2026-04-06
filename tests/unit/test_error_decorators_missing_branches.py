@@ -17,7 +17,7 @@ from custom_components.pawcontrol.exceptions import PawControlError, ValidationE
 
 @pytest.mark.unit
 def test_validate_dog_exists_requires_instance_for_keyword_only_dog_id() -> None:
-    """Cover the branch where dog_id is present but positional instance args are absent."""
+    """Cover branch where dog_id is present but positional args are absent."""
 
     @validate_dog_exists()
     def _handler(*, dog_id: str) -> str:
@@ -41,7 +41,7 @@ async def test_handle_errors_async_wrapper_reraises_validation_error() -> None:
 
 @pytest.mark.asyncio
 async def test_map_to_repair_issue_async_direct_return_and_coordinator_hass() -> None:
-    """Exercise async direct return and coordinator.hass repair issue lookup branches."""
+    """Exercise async direct return and coordinator.hass issue lookup branches."""
     with patch(
         "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
         return_value=True,
