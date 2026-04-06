@@ -229,6 +229,21 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
   README, and the diagnostics guide; run the docstring and shared-session guard
   scripts if you touch these areas.
 
+### Testing principles (required)
+
+- Keep each test focused on **one behavior**; avoid multi-purpose tests that
+  validate unrelated outcomes at once.
+- Use descriptive test names that communicate intent clearly, preferably in
+  `given_when_then` form or an equivalently explicit purpose statement.
+- Prefer `pytest.mark.parametrize` over copy/paste duplicates when exercising
+  multiple input/output variants of the same behavior.
+- Mock only true integration boundaries (network APIs, file I/O, Home Assistant
+  service edges). Avoid over-mocking internal helpers or implementation details.
+- Assert business outcomes and user-visible behavior, not transient
+  implementation details such as private call ordering.
+- Every bug fix must include a regression test added in the same change so the
+  issue cannot silently return.
+
 ### Logging and diagnostics
 
 - Initialise loggers with `_LOGGER = logging.getLogger(__name__)` and use lazy
