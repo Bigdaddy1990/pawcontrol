@@ -76,4 +76,3 @@ The requested sequence was followed exactly:
 2. Top files list created by missing coverage.
 3. Every gap mapped to **Kritisch / Mittel / Niedrig**.
 4. Report is presented in this same order.
-

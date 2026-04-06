@@ -1,7 +1,5 @@
 """Tests for scripts.enforce_coverage_gates."""
 
-from __future__ import annotations
-
 from decimal import Decimal
 from pathlib import Path
 

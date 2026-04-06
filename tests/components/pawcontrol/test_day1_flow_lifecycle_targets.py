@@ -1,7 +1,5 @@
 """Day-1 branch coverage targets for flow and lifecycle behavior."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 

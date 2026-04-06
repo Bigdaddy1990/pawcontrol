@@ -45,7 +45,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
+          enable-cache: true
 
       - name: Install deps (uv)
         run: |
@@ -65,8 +65,6 @@ jobs:
           ruff format
           python scripts/enforce_docstring_baseline.py --update
           python -m scripts.sync_contributor_guides
-          # --py314-plus is a hook arg declared in .pre-commit-config.yaml, not a
-          # valid CLI flag for `pre-commit run`. Same for --keep-updates.
           pre-commit run --all-files || true
           pre-commit run --hook-stage manual python-typing-update --all-files || true
 

@@ -1,7 +1,5 @@
 """Additional coverage tests for ``error_recovery`` runtime paths."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, patch
 
 from homeassistant.core import HomeAssistant
