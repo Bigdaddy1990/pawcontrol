@@ -10,9 +10,9 @@ import pytest
 
 pawcontrol_init = importlib.import_module("custom_components.pawcontrol")
 
-from homeassistant.exceptions import ConfigEntryNotReady  # noqa: E402
+from homeassistant.exceptions import ConfigEntryNotReady
 
-from custom_components.pawcontrol.exceptions import (  # noqa: E402
+from custom_components.pawcontrol.exceptions import (
     ConfigEntryAuthFailed,
     PawControlSetupError,
 )

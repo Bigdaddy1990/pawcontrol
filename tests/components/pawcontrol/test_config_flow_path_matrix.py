@@ -11,7 +11,11 @@ from custom_components.pawcontrol.config_flow_main import PawControlConfigFlow
 from custom_components.pawcontrol.const import CONF_DOGS, CONF_NAME, DOMAIN
 from custom_components.pawcontrol.exceptions import FlowValidationError, ValidationError
 from custom_components.pawcontrol.options_flow_main import PawControlOptionsFlow
-from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_MODULES_FIELD, DOG_NAME_FIELD
+from custom_components.pawcontrol.types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+)
 
 
 @pytest.mark.asyncio
@@ -19,7 +23,12 @@ from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_MODULES_FIELD, 
     ("user_input", "expected_type", "expected_step", "expected_errors"),
     [
         (None, FlowResultType.FORM, "user", None),
-        ({CONF_NAME: ""}, FlowResultType.FORM, "user", {CONF_NAME: "integration_name_required"}),
+        (
+            {CONF_NAME: ""},
+            FlowResultType.FORM,
+            "user",
+            {CONF_NAME: "integration_name_required"},
+        ),
         ({CONF_NAME: "Family Dogs"}, FlowResultType.FORM, "add_dog", None),
     ],
 )
@@ -46,7 +55,10 @@ async def test_user_step_input_matrix(
 @pytest.mark.parametrize(
     ("error", "expected_errors"),
     [
-        (FlowValidationError(field_errors={"dog_name": "invalid_dog_name"}), {"dog_name": "invalid_dog_name"}),
+        (
+            FlowValidationError(field_errors={"dog_name": "invalid_dog_name"}),
+            {"dog_name": "invalid_dog_name"},
+        ),
         (RuntimeError("boom"), {"base": "unknown_error"}),
     ],
 )
@@ -63,14 +75,12 @@ async def test_add_dog_validation_error_matrix(
 
     monkeypatch.setattr(flow, "_validate_dog_input_cached", _raise_error)
 
-    result = await flow.async_step_add_dog(
-        {
-            DOG_ID_FIELD: "buddy",
-            DOG_NAME_FIELD: "Buddy",
-            "dog_weight": 8,
-            "dog_age": 3,
-        }
-    )
+    result = await flow.async_step_add_dog({
+        DOG_ID_FIELD: "buddy",
+        DOG_NAME_FIELD: "Buddy",
+        "dog_weight": 8,
+        "dog_age": 3,
+    })
 
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "add_dog"
@@ -102,7 +112,9 @@ async def test_duplicate_entry_paths_abort_with_already_configured(hass) -> None
 
 
 @pytest.mark.asyncio
-async def test_reconfigure_paths_and_updates(hass, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_reconfigure_paths_and_updates(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Reconfigure should return forms for invalid data and abort with exact updates."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -143,13 +155,25 @@ async def test_reconfigure_paths_and_updates(hass, monkeypatch: pytest.MonkeyPat
         ),
     )
     monkeypatch.setattr(flow, "_resolve_entry_profile", lambda _entry: "standard")
-    monkeypatch.setattr(flow, "_check_profile_compatibility", lambda *_: {"warnings": []})
-    monkeypatch.setattr(flow, "_check_config_health_enhanced", AsyncMock(return_value={"healthy": True, "issues": []}))
-    monkeypatch.setattr(flow, "_estimate_entities_for_reconfigure", AsyncMock(return_value=7))
+    monkeypatch.setattr(
+        flow, "_check_profile_compatibility", lambda *_: {"warnings": []}
+    )
+    monkeypatch.setattr(
+        flow,
+        "_check_config_health_enhanced",
+        AsyncMock(return_value={"healthy": True, "issues": []}),
+    )
+    monkeypatch.setattr(
+        flow, "_estimate_entities_for_reconfigure", AsyncMock(return_value=7)
+    )
     monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
 
-    update_mock = AsyncMock(return_value={"type": FlowResultType.ABORT, "reason": "reconfigure_successful"})
-    monkeypatch.setattr(flow, "async_update_reload_and_abort", update_mock, raising=False)
+    update_mock = AsyncMock(
+        return_value={"type": FlowResultType.ABORT, "reason": "reconfigure_successful"}
+    )
+    monkeypatch.setattr(
+        flow, "async_update_reload_and_abort", update_mock, raising=False
+    )
 
     invalid = await flow.async_step_reconfigure({"entity_profile": "not-real"})
     assert invalid["type"] == FlowResultType.FORM
@@ -183,7 +207,9 @@ async def test_reconfigure_paths_and_updates(hass, monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.asyncio
-async def test_options_update_profile_applies_exact_options(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_options_update_profile_applies_exact_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Options preview apply should persist exactly the normalized options payload."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -200,9 +226,10 @@ async def test_options_update_profile_applies_exact_options(monkeypatch: pytest.
         lambda options: dict(options),
     )
 
-    result = await flow.async_step_profile_preview(
-        {"profile": "basic", "apply_profile": True}
-    )
+    result = await flow.async_step_profile_preview({
+        "profile": "basic",
+        "apply_profile": True,
+    })
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"] == {
@@ -226,9 +253,9 @@ async def test_import_validation_wraps_unexpected_validator_exception(
         _raise_runtime,
     )
 
-    with pytest.raises(ValidationError, match="Import configuration validation failed: api offline"):
-        await flow._validate_import_config_enhanced(
-            {
-                CONF_DOGS: [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}],
-            }
-        )
+    with pytest.raises(
+        ValidationError, match="Import configuration validation failed: api offline"
+    ):
+        await flow._validate_import_config_enhanced({
+            CONF_DOGS: [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}],
+        })

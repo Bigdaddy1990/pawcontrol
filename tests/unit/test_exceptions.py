@@ -211,7 +211,10 @@ def test_message_builders_with_optional_reason_values() -> None:
         str(notification_error)
         == "Failed to send mobile_app notification: service offline"
     )
-    assert "Fallback notification method will be used" in notification_error.recovery_suggestions
+    assert (
+        "Fallback notification method will be used"
+        in notification_error.recovery_suggestions
+    )
 
 
 def test_raise_from_error_code_with_context_only_branch() -> None:
@@ -226,13 +229,17 @@ def test_raise_from_error_code_with_context_only_branch() -> None:
 def test_raise_from_error_code_with_category_only_branch() -> None:
     """raise_from_error_code should support category-only override paths."""
     with pytest.raises(PawControlError) as exc_info:
-        raise_from_error_code("custom_only_category", "Broken", category=ErrorCategory.NETWORK)
+        raise_from_error_code(
+            "custom_only_category", "Broken", category=ErrorCategory.NETWORK
+        )
 
     assert exc_info.value.error_code == "custom_only_category"
     assert exc_info.value.category is ErrorCategory.NETWORK
 
 
-def test_handle_exception_gracefully_logs_pawcontrol_errors(caplog: pytest.LogCaptureFixture) -> None:
+def test_handle_exception_gracefully_logs_pawcontrol_errors(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Decorator should emit logger error payload for handled PawControl errors."""
     error = PawControlError("boom", severity=ErrorSeverity.LOW)
     wrapped = handle_exception_gracefully(
@@ -245,7 +252,9 @@ def test_handle_exception_gracefully_logs_pawcontrol_errors(caplog: pytest.LogCa
     with caplog.at_level("ERROR"):
         assert wrapped() == "fallback"
 
-    assert any("PawControl error in <lambda>" in record.message for record in caplog.records)
+    assert any(
+        "PawControl error in <lambda>" in record.message for record in caplog.records
+    )
 
 
 def test_handle_exception_gracefully_logs_and_reraises_unexpected_errors(
@@ -261,7 +270,9 @@ def test_handle_exception_gracefully_logs_and_reraises_unexpected_errors(
     with caplog.at_level("ERROR"), pytest.raises(RuntimeError, match="boom"):
         wrapped()
 
-    assert any("Unexpected error in <lambda>" in record.message for record in caplog.records)
+    assert any(
+        "Unexpected error in <lambda>" in record.message for record in caplog.records
+    )
 
 
 def test_authentication_error_sets_service_context() -> None:

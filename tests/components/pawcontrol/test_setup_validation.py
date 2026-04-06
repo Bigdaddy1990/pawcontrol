@@ -14,6 +14,13 @@ from custom_components.pawcontrol.setup.validation import (
     async_validate_entry_config,
 )
 
+_DOG_TEMPLATE = {"dog_id": "dog-1", "dog_name": "Buddy"}
+
+
+def _build_entry_with_dogs(dogs: object) -> MockConfigEntry:
+    """Build a config entry with a dogs payload for validation tests."""
+    return MockConfigEntry(domain=DOMAIN, data={CONF_DOGS: dogs})
+
 
 @pytest.mark.asyncio
 async def test_async_validate_entry_config_normalizes_profile_and_modules(
@@ -49,44 +56,31 @@ async def test_async_validate_entry_config_normalizes_profile_and_modules(
 
 
 @pytest.mark.asyncio
-async def test_async_validate_dogs_config_requires_list_payload() -> None:
-    """Dogs payload must be a list."""
-    entry = MockConfigEntry(domain=DOMAIN, data={CONF_DOGS: {"dog_id": "dog-1"}})
-
-    with pytest.raises(ConfigurationError, match="Dogs configuration must be a list"):
-        await _async_validate_dogs_config(entry)
-
-
-@pytest.mark.asyncio
-async def test_async_validate_dogs_config_requires_mapping_entries() -> None:
-    """Each dog payload must be a mapping."""
-    entry = MockConfigEntry(domain=DOMAIN, data={CONF_DOGS: ["dog-1"]})
-
-    with pytest.raises(
-        ConfigurationError,
-        match="Dog configuration entries must be mappings",
-    ):
-        await _async_validate_dogs_config(entry)
+@pytest.mark.parametrize(
+    ("dogs_payload", "expected_error"),
+    [
+        ({"dog_id": "dog-1"}, "Dogs configuration must be a list"),
+        (["dog-1"], "Dog configuration entries must be mappings"),
+        ([{"dog_id": "dog-1", "dog_name": ""}], "Invalid dog configuration"),
+    ],
+)
+async def test_async_validate_dogs_config_rejects_invalid_payloads(
+    dogs_payload: object,
+    expected_error: str,
+) -> None:
+    """Invalid dogs payloads should raise explicit configuration errors."""
+    with pytest.raises(ConfigurationError, match=expected_error):
+        await _async_validate_dogs_config(_build_entry_with_dogs(dogs_payload))
 
 
 @pytest.mark.asyncio
-async def test_async_validate_dogs_config_rejects_invalid_dog_records() -> None:
-    """Dog records must include a non-empty ID and name."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={CONF_DOGS: [{"dog_id": "dog-1", "dog_name": ""}]},
-    )
-
-    with pytest.raises(ConfigurationError, match="Invalid dog configuration"):
-        await _async_validate_dogs_config(entry)
-
-
-@pytest.mark.asyncio
-async def test_async_validate_dogs_config_accepts_none_payload_and_logs_empty_state(
+@pytest.mark.parametrize("entry_data", [{CONF_DOGS: None}, {}])
+async def test_async_validate_dogs_config_accepts_empty_payloads_and_logs(
+    entry_data: dict[str, object],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A missing dogs payload should normalize to an empty list."""
-    entry = MockConfigEntry(domain=DOMAIN, data={CONF_DOGS: None})
+    """None or missing dogs payload should normalize to an empty validated list."""
+    entry = MockConfigEntry(domain=DOMAIN, data=entry_data)
 
     with caplog.at_level(logging.DEBUG):
         dogs = await _async_validate_dogs_config(entry)
@@ -95,98 +89,88 @@ async def test_async_validate_dogs_config_accepts_none_payload_and_logs_empty_st
     assert "No dogs configured for entry" in caplog.text
 
 
-@pytest.mark.asyncio
-async def test_async_validate_dogs_config_accepts_missing_payload(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Missing dogs key should default to an empty validated list."""
-    entry = MockConfigEntry(domain=DOMAIN, data={})
-
-    with caplog.at_level(logging.DEBUG):
-        dogs = await _async_validate_dogs_config(entry)
-
-    assert dogs == []
-    assert "No dogs configured for entry" in caplog.text
-
-
-def test_validate_profile_defaults_to_standard_for_none_and_unknown(
+@pytest.mark.parametrize(
+    ("raw_profile", "expects_warning"),
+    [(None, False), (123, True), ("unsupported-profile", True)],
+)
+def test_validate_profile_defaults_to_standard_for_invalid_values(
+    raw_profile: object,
+    expects_warning: bool,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Profile helper should handle optional and unknown values safely."""
-    none_entry = MockConfigEntry(
-        domain=DOMAIN, data={}, options={"entity_profile": None}
-    )
-    assert _validate_profile(none_entry) == "standard"
-
-    unknown_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={},
-        options={"entity_profile": 123},
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={}, options={"entity_profile": raw_profile}
     )
     with caplog.at_level(logging.WARNING):
-        assert _validate_profile(unknown_entry) == "standard"
+        assert _validate_profile(entry) == "standard"
+    if expects_warning:
+        assert "Unknown profile" in caplog.text
+    else:
+        assert "Unknown profile" not in caplog.text
 
-    assert "Unknown profile '123'" in caplog.text
 
-
-def test_extract_enabled_modules_ignores_invalid_module_payloads(
+@pytest.mark.parametrize(
+    ("dogs_config", "expected_modules", "expected_log_fragment"),
+    [
+        (
+            [
+                {"dog_id": "dog-1", "dog_name": "Buddy", CONF_MODULES: "bad-payload"},
+                {
+                    "dog_id": "dog-2",
+                    "dog_name": "Luna",
+                    CONF_MODULES: {"gps": True, "unknown": True, "walk": False},
+                },
+            ],
+            frozenset({"gps"}),
+            "configuration is not a mapping",
+        ),
+        (
+            [
+                {
+                    "dog_id": "dog-1",
+                    "dog_name": "Buddy",
+                    CONF_MODULES: {
+                        "zz_unknown": True,
+                        "aa_unknown": True,
+                        "zz_unknown_duplicate": False,
+                        "gps": True,
+                    },
+                },
+                {
+                    "dog_id": "dog-2",
+                    "dog_name": "Luna",
+                    CONF_MODULES: {"aa_unknown": True},
+                },
+            ],
+            frozenset({"gps"}),
+            "Ignoring unknown PawControl modules: aa_unknown, zz_unknown",
+        ),
+        (
+            [
+                _DOG_TEMPLATE,
+                {
+                    "dog_id": "dog-2",
+                    "dog_name": "Luna",
+                    CONF_MODULES: {"gps": True},
+                },
+            ],
+            frozenset({"gps"}),
+            "",
+        ),
+    ],
+)
+def test_extract_enabled_modules_validation_and_mapping(
+    dogs_config: list[dict[str, object]],
+    expected_modules: frozenset[str],
+    expected_log_fragment: str,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Module extraction should ignore invalid and unknown module definitions."""
-    dogs_config = [
-        {"dog_id": "dog-1", "dog_name": "Buddy", CONF_MODULES: "bad-payload"},
-        {
-            "dog_id": "dog-2",
-            "dog_name": "Luna",
-            CONF_MODULES: {"gps": True, "unknown": True, "walk": False},
-        },
-    ]
-
+    """Module extraction should normalize valid modules and validate invalid ones."""
     with caplog.at_level(logging.WARNING):
         modules = _extract_enabled_modules(dogs_config)
-
-    assert modules == frozenset({"gps"})
-    assert "configuration is not a mapping" in caplog.text
-
-
-def test_extract_enabled_modules_ignores_missing_modules_key() -> None:
-    """Dogs without module configuration should be ignored without warnings."""
-    dogs_config = [
-        {"dog_id": "dog-1", "dog_name": "Buddy"},
-        {"dog_id": "dog-2", "dog_name": "Luna", CONF_MODULES: {"gps": True}},
-    ]
-
-    modules = _extract_enabled_modules(dogs_config)
-
-    assert modules == frozenset({"gps"})
-
-
-def test_extract_enabled_modules_warns_once_for_sorted_unknown_modules(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Unknown modules should be deduplicated and logged in sorted order."""
-    dogs_config = [
-        {
-            "dog_id": "dog-1",
-            "dog_name": "Buddy",
-            CONF_MODULES: {
-                "zz_unknown": True,
-                "aa_unknown": True,
-                "zz_unknown_duplicate": False,
-                "gps": True,
-            },
-        },
-        {
-            "dog_id": "dog-2",
-            "dog_name": "Luna",
-            CONF_MODULES: {
-                "aa_unknown": True,
-            },
-        },
-    ]
-
-    with caplog.at_level(logging.WARNING):
-        modules = _extract_enabled_modules(dogs_config)
-
-    assert modules == frozenset({"gps"})
-    assert "Ignoring unknown PawControl modules: aa_unknown, zz_unknown" in caplog.text
+    assert modules == expected_modules
+    if expected_log_fragment:
+        assert expected_log_fragment in caplog.text
+    else:
+        assert caplog.text == ""

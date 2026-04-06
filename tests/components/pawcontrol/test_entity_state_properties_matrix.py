@@ -179,6 +179,7 @@ def test_entity_properties_cover_normal_boundary_and_missing_api_fields(
     normal_payload: Mapping[str, object],
     boundary_payload: Mapping[str, object],
     missing_payload: Mapping[str, object],
+    assert_entity_basics: Callable[[Any], None],
 ) -> None:
     """Each entity class should expose stable core properties across data variants."""
     for payload in (normal_payload, boundary_payload, missing_payload):
@@ -187,14 +188,7 @@ def test_entity_properties_cover_normal_boundary_and_missing_api_fields(
 
         # state/native_value/is_on accessor should never crash
         state_accessor(entity)
-
-        assert isinstance(entity.available, bool)
-        assert isinstance(entity.extra_state_attributes, Mapping)
-
-        device_info = entity.device_info
-        assert device_info is not None
-        assert entity.unique_id is not None
-        assert isinstance(entity.name, str | None)
+        assert_entity_basics(entity)
 
 
 @pytest.mark.parametrize(

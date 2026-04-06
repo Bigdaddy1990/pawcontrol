@@ -9,6 +9,7 @@ packaging>=26.0
 pip>=26.0.1
 pylint
 pytest
+pytest-xdist>=3.8.0
 # NOTE: The repository vendors a local ``pytest_cov`` plugin package.
 # Installing upstream pytest-cov causes a duplicate plugin registration crash.
 pytest-github-actions-annotate-failures>=0.3.0

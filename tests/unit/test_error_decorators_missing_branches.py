@@ -42,7 +42,6 @@ async def test_handle_errors_async_wrapper_reraises_validation_error() -> None:
 @pytest.mark.asyncio
 async def test_map_to_repair_issue_async_direct_return_and_coordinator_hass() -> None:
     """Exercise async direct return and coordinator.hass repair issue lookup branches."""
-
     with patch(
         "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
         return_value=True,
@@ -111,7 +110,6 @@ async def test_retry_on_error_zero_attempts_returns_none() -> None:
 @pytest.mark.asyncio
 async def test_retry_on_error_async_wrapper_direct_non_awaitable_return() -> None:
     """Force async wrapper for a sync callable and hit direct return path."""
-
     with patch(
         "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
         return_value=True,

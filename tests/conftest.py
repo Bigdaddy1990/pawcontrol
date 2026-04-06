@@ -9,7 +9,7 @@ diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 """
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from importlib import import_module
 from importlib.util import find_spec
@@ -178,6 +178,41 @@ def mock_config_entry(mock_dog_config: FeedingManagerDogSetupPayload) -> ConfigE
 
 
 @pytest.fixture
+def config_entry_factory(
+    mock_dog_config: FeedingManagerDogSetupPayload,
+) -> Callable[..., ConfigEntry]:
+    """Return a reusable ConfigEntry factory for tests."""
+
+    def _factory(
+        *,
+        data: Mapping[str, object] | None = None,
+        options: Mapping[str, object] | None = None,
+        title: str = "Test PawControl",
+        entry_id: str = "test-entry-id",
+    ) -> ConfigEntry:
+        entry = ConfigEntry(
+            entry_id=entry_id,
+            domain="pawcontrol",
+            data=dict(data or {"dogs": [typed_deepcopy(mock_dog_config)]}),
+            options=dict(
+                options
+                or {
+                    "entity_profile": "standard",
+                    "external_integrations": False,
+                    "update_interval": 120,
+                }
+            ),
+            title=title,
+        )
+        entry.version = 1
+        entry.minor_version = 0
+        entry.state = "loaded"
+        return entry
+
+    return _factory
+
+
+@pytest.fixture
 def mock_hass() -> Any:
     """Mock Home Assistant instance with proper async support."""
     from homeassistant.core import HomeAssistant
@@ -286,6 +321,73 @@ def mock_session(
 ) -> _MockClientSession:
     """Return a reusable aiohttp session double for HTTP entry points."""
     return session_factory()
+
+
+@pytest.fixture
+def mock_api_client_factory() -> Callable[..., Mock]:
+    """Return a reusable async API client mock factory."""
+
+    def _factory(
+        *,
+        connected: bool = True,
+        dog_data: Mapping[str, object] | None = None,
+    ) -> Mock:
+        client = Mock()
+        client.is_connected = connected
+        client.async_get_dog_data = AsyncMock(return_value=dict(dog_data or {}))
+        client.async_update_dog_data = AsyncMock(return_value=None)
+        client.async_get_system_status = AsyncMock(return_value={"status": "ok"})
+        return client
+
+    return _factory
+
+
+@pytest.fixture
+def mock_api_client(mock_api_client_factory: Callable[..., Mock]) -> Mock:
+    """Return a default API client mock."""
+    return mock_api_client_factory()
+
+
+@pytest.fixture
+def coordinator_payload_factory() -> Callable[..., CoordinatorDogData]:
+    """Return a factory for coordinator dog payloads used across entity tests."""
+
+    def _factory(
+        *,
+        dog_id: str = "test_dog",
+        dog_name: str = "Buddy",
+        status: str = "online",
+        state: str = "resting",
+        zone: str = "home",
+        visitor_mode_active: bool = False,
+    ) -> CoordinatorDogData:
+        payload: CoordinatorDogData = {
+            "dog_info": {"dog_id": dog_id, "dog_name": dog_name},
+            "status": status,
+            "status_snapshot": {"state": state},
+            "visitor_mode_active": visitor_mode_active,
+            "gps": {"zone": zone},
+            "feeding": {},
+            "walk": {},
+            "health": {},
+        }
+        return payload
+
+    return _factory
+
+
+@pytest.fixture
+def assert_entity_basics() -> Callable[[Any], None]:
+    """Return shared assertions for PawControl entity baseline checks."""
+
+    def _assert(entity: Any) -> None:
+        assert isinstance(entity.available, bool)
+        assert entity.unique_id is not None
+        assert isinstance(entity.name, str | None)
+        assert isinstance(entity.extra_state_attributes, Mapping)
+        assert entity.device_info is not None
+
+    return _assert
 
 
 @pytest.fixture
@@ -650,6 +752,7 @@ def pytest_collection_modifyitems(config, items) -> None:
         # Auto-mark integration tests
         if "components" in str(item.fspath):
             item.add_marker(pytest.mark.integration)
+            item.add_marker(pytest.mark.slow)
 
         # Auto-mark unit tests
         if "unit" in str(item.fspath):
