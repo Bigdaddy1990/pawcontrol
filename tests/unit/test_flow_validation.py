@@ -520,6 +520,54 @@ def test_validate_dog_update_input_reports_breed_and_age_range_errors() -> None:
     assert err.value.field_errors[CONF_DOG_AGE] == "age_out_of_range"
 
 
+def test_validate_dog_setup_input_handles_non_string_name_from_validator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Defensive branch: non-string names from validators fall back to empty."""
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.flow_validation.validate_unique_dog_name",
+        lambda *_args, **_kwargs: 123,
+    )
+
+    result = validate_dog_setup_input(
+        {
+            CONF_DOG_ID: "buddy",
+            CONF_DOG_NAME: "Buddy",
+            CONF_DOG_WEIGHT: 20.0,
+            CONF_DOG_SIZE: "medium",
+            CONF_DOG_AGE: 3,
+        },
+        existing_ids=set(),
+        existing_names=set(),
+        current_dog_count=0,
+        max_dogs=3,
+    )
+
+    assert result[CONF_DOG_NAME] == ""
+
+
+def test_validate_dog_update_input_ignores_non_string_name_from_validator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Defensive branch: update keeps existing name if validator returns non-string."""
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.flow_validation.validate_unique_dog_name",
+        lambda *_args, **_kwargs: 123,
+    )
+
+    result = validate_dog_update_input(
+        {
+            CONF_DOG_ID: "buddy",
+            CONF_DOG_NAME: "Buddy",
+            CONF_DOG_WEIGHT: 20.0,
+            CONF_DOG_SIZE: "medium",
+        },
+        {},
+    )
+
+    assert result[CONF_DOG_NAME] == "Buddy"
+
+
 def test_validate_dog_config_payload_surfaces_update_validation_errors() -> None:
     with pytest.raises(FlowValidationError) as err:
         validate_dog_config_payload(
