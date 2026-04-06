@@ -184,18 +184,36 @@ def test_coerce_service_bool_false_values(value: object) -> None:
     assert services._coerce_service_bool(value, field="enabled") is False
 
 
-def test_coerce_service_bool_invalid() -> None:
-    with pytest.raises(ServiceValidationError, match="enabled must be a boolean"):
-        services._coerce_service_bool("maybe", field="enabled")
+@pytest.mark.asyncio
+async def test_coerce_service_bool_invalid(
+    assert_service_error_handling,
+) -> None:
+    await assert_service_error_handling(
+        ServiceValidationError,
+        "enabled must be a boolean",
+        lambda: services._coerce_service_bool("maybe", field="enabled"),
+    )
 
 
-def test_service_validation_error_requires_non_empty_message() -> None:
-    with pytest.raises(AssertionError, match="non-empty message"):
-        services._service_validation_error("   ")
-
-    error = services._service_validation_error("  invalid payload ")
-    assert isinstance(error, ServiceValidationError)
-    assert str(error) == "invalid payload"
+@pytest.mark.parametrize(
+    ("raw_message", "expected_exception", "message_match"),
+    [
+        ("   ", AssertionError, "non-empty message"),
+        ("  invalid payload ", ServiceValidationError, "invalid payload"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_service_validation_error_requires_non_empty_message(
+    raw_message: str,
+    expected_exception: type[Exception],
+    message_match: str,
+    assert_service_error_handling,
+) -> None:
+    await assert_service_error_handling(
+        expected_exception,
+        message_match,
+        lambda: services._service_validation_error(raw_message),
+    )
 
 
 @pytest.mark.parametrize(

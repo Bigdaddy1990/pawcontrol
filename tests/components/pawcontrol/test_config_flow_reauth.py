@@ -311,40 +311,6 @@ async def test_validate_reauth_entry_enhanced_warns_for_invalid_profile(
 
 
 @pytest.mark.asyncio
-async def test_get_health_status_summary_safe_handles_timeout(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Health status summary should degrade gracefully on timeout."""
-    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
-    flow = _Flow(entry)
-
-    async def _raise_timeout(_entry: MockConfigEntry) -> dict[str, object]:
-        raise TimeoutError
-
-    monkeypatch.setattr(flow, "_check_config_health_enhanced", _raise_timeout)
-
-    assert await flow._get_health_status_summary_safe(entry) == "Health check timeout"
-
-
-@pytest.mark.asyncio
-async def test_get_health_status_summary_safe_handles_unexpected_error(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Health status summary should expose unexpected health check failures."""
-    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
-    flow = _Flow(entry)
-
-    async def _raise_runtime_error(_entry: MockConfigEntry) -> dict[str, object]:
-        raise RuntimeError("boom")
-
-    monkeypatch.setattr(flow, "_check_config_health_enhanced", _raise_runtime_error)
-
-    assert (
-        await flow._get_health_status_summary_safe(entry) == "Health check failed: boom"
-    )
-
-
-@pytest.mark.asyncio
 async def test_get_health_status_summary_safe_returns_rendered_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -411,6 +377,7 @@ async def test_async_step_reauth_confirm_warns_when_summary_has_issues(
 @pytest.mark.asyncio
 async def test_async_step_reauth_confirm_uses_timeout_summary_fallback(
     monkeypatch: pytest.MonkeyPatch,
+    assert_flow_abort_reason,
 ) -> None:
     """Timeout during health checks should still allow successful reauth updates."""
     entry = MockConfigEntry(
@@ -427,8 +394,7 @@ async def test_async_step_reauth_confirm_uses_timeout_summary_fallback(
 
     result = await flow.async_step_reauth_confirm({"confirm": True})
 
-    assert result["type"] == "abort"
-    assert result["reason"] == "reauth_successful"
+    assert_flow_abort_reason(result, "reauth_successful")
     assert result["data_updates"]["health_total_dogs"] == 1
     assert result["options_updates"]["reauth_health_issues"] == ["Health check timeout"]
 
@@ -637,6 +603,7 @@ async def test_async_step_reauth_confirm_missing_entry_raises_auth_failed() -> N
 @pytest.mark.asyncio
 async def test_async_step_reauth_confirm_uses_error_summary_fallback(
     monkeypatch: pytest.MonkeyPatch,
+    assert_flow_abort_reason,
 ) -> None:
     """Unexpected health-check failures should still succeed with fallback details."""
     entry = MockConfigEntry(
@@ -653,8 +620,7 @@ async def test_async_step_reauth_confirm_uses_error_summary_fallback(
 
     result = await flow.async_step_reauth_confirm({"confirm": True})
 
-    assert result["type"] == "abort"
-    assert result["reason"] == "reauth_successful"
+    assert_flow_abort_reason(result, "reauth_successful")
     assert result["options_updates"]["reauth_health_issues"] == [
         "Health check error: health boom"
     ]
@@ -706,9 +672,41 @@ async def test_async_step_reauth_confirm_reraises_auth_failures(
         await flow.async_step_reauth_confirm({"confirm": True})
 
 
+@pytest.mark.parametrize(
+    ("error_factory", "expected_summary"),
+    [
+        (
+            lambda: TimeoutError(),
+            "Health check timeout",
+        ),
+        (
+            lambda: RuntimeError("boom"),
+            "Health check failed: boom",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_get_health_status_summary_safe_error_paths(
+    monkeypatch: pytest.MonkeyPatch,
+    error_factory,
+    expected_summary: str,
+) -> None:
+    """Health summary helper should normalize timeout/runtime exceptions."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+
+    async def _raise_error(_entry: MockConfigEntry) -> dict[str, object]:
+        raise error_factory()
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _raise_error)
+
+    assert await flow._get_health_status_summary_safe(entry) == expected_summary
+
+
 @pytest.mark.asyncio
 async def test_async_step_reauth_confirm_builds_default_summary_when_none(
     monkeypatch: pytest.MonkeyPatch,
+    assert_flow_abort_reason,
 ) -> None:
     """A None health payload should fall back to the zero-issue summary."""
     entry = MockConfigEntry(
@@ -725,7 +723,7 @@ async def test_async_step_reauth_confirm_builds_default_summary_when_none(
 
     result = await flow.async_step_reauth_confirm({"confirm": True})
 
-    assert result["type"] == "abort"
+    assert_flow_abort_reason(result, "reauth_successful")
     assert result["data_updates"]["health_total_dogs"] == 1
     assert result["options_updates"]["reauth_health_issues"] == []
 
@@ -864,25 +862,3 @@ async def test_async_step_reauth_confirm_uses_status_check_warning_on_form(
         "Status check failed: display boom"
         in result["description_placeholders"]["health_status"]
     )
-
-
-@pytest.mark.asyncio
-async def test_get_health_status_summary_safe_success_path(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Successful health checks should render the status message."""
-    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
-    flow = _Flow(entry)
-
-    async def _healthy(_entry: MockConfigEntry) -> dict[str, object]:
-        return {
-            "healthy": True,
-            "issues": [],
-            "warnings": [],
-            "validated_dogs": 1,
-            "total_dogs": 1,
-        }
-
-    monkeypatch.setattr(flow, "_check_config_health_enhanced", _healthy)
-
-    assert "Status: healthy" in await flow._get_health_status_summary_safe(entry)
