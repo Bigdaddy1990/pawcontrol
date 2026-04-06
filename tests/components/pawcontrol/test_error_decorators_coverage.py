@@ -271,6 +271,129 @@ async def test_retry_on_error_async_and_sync_paths(
     assert sleep_calls == [0.2]
 
 
+def test_validate_dog_exists_rejects_keyword_only_calls_without_instance() -> None:
+    """Keyword-only invocation should hit the no-instance guard branch."""
+
+    @validate_dog_exists()
+    def _no_instance(dog_id: str) -> str:
+        return dog_id
+
+    with pytest.raises(PawControlError, match="instance method"):
+        _no_instance(dog_id="luna")
+
+
+@pytest.mark.asyncio
+async def test_handle_errors_async_wrapper_direct_return_and_reraise_paths() -> None:
+    """Cover direct return path and re-raise branches in async wrapper."""
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
+        return_value=True,
+    ):
+        direct_wrapper = handle_errors()(lambda: "direct")
+    assert await direct_wrapper() == "direct"
+
+    @handle_errors(default_return="fallback", reraise_validation_errors=True)
+    async def _raises_validation() -> str:
+        raise ValidationError(field="dog_id", constraint="required")
+
+    with pytest.raises(ValidationError):
+        await _raises_validation()
+
+    @handle_errors(default_return="fallback", reraise_critical=True)
+    async def _raises_unexpected() -> str:
+        raise RuntimeError("unexpected")
+
+    with pytest.raises(PawControlError, match="unexpected"):
+        await _raises_unexpected()
+
+
+@pytest.mark.asyncio
+async def test_map_to_repair_issue_coordinator_hass_and_direct_return_paths() -> None:
+    """Exercise coordinator.hass resolution and non-awaitable async return path."""
+
+    @dataclass(slots=True)
+    class _CoordinatorOnly:
+        coordinator: _Coordinator
+
+    coordinator_only = _CoordinatorOnly(
+        coordinator=_Coordinator(data={}, hass=SimpleNamespace()),
+    )
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.issue_registry.async_create_issue"
+    ) as create_issue:
+
+        @map_to_repair_issue("coord_async")
+        async def _async_fail(instance: _CoordinatorOnly) -> None:
+            raise PawControlError("async", error_code="coord_async")
+
+        with pytest.raises(PawControlError):
+            await _async_fail(coordinator_only)
+
+        create_issue.assert_called_once()
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.issue_registry.async_create_issue"
+    ) as create_issue:
+
+        @map_to_repair_issue("coord_sync")
+        def _sync_fail(instance: _CoordinatorOnly) -> None:
+            raise PawControlError("sync", error_code="coord_sync")
+
+        with pytest.raises(PawControlError):
+            _sync_fail(coordinator_only)
+
+        create_issue.assert_called_once()
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
+        return_value=True,
+    ):
+        direct_wrapper = map_to_repair_issue("direct")(lambda: "ok")
+
+    assert await direct_wrapper() == "ok"
+
+
+@pytest.mark.asyncio
+async def test_retry_on_error_direct_async_return_and_sync_exhaustion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cover direct async return branch and sync exhaustion fallback path."""
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
+        return_value=True,
+    ):
+        direct_wrapper = retry_on_error(max_attempts=1)(lambda: "immediate")
+    assert await direct_wrapper() == "immediate"
+
+    monkeypatch.setattr("time.sleep", lambda _: None)
+
+    @retry_on_error(max_attempts=2, delay=0.01, exceptions=(NetworkError,))
+    def _always_fail_sync() -> None:
+        raise NetworkError("offline")
+
+    with pytest.raises(NetworkError):
+        _always_fail_sync()
+
+
+@pytest.mark.asyncio
+async def test_retry_on_error_zero_attempts_returns_none() -> None:
+    """Zero-attempt configuration should short-circuit and return ``None``."""
+
+    @retry_on_error(max_attempts=0)
+    async def _async_never_called() -> str:
+        return "never"
+
+    @retry_on_error(max_attempts=0)
+    def _sync_never_called() -> str:
+        return "never"
+
+    assert await _async_never_called() is None
+    assert _sync_never_called() is None
+
+
 def test_require_coordinator_and_data_guards() -> None:
     """Coordinator guard decorators should enforce runtime coordinator state."""
 
@@ -308,6 +431,22 @@ def test_require_coordinator_and_data_guards() -> None:
         )._allow_partial()
         == "partial-ready"
     )
+
+    with pytest.raises(PawControlError, match="instance method"):
+
+        @require_coordinator_data()
+        def _no_instance() -> str:
+            return "never"
+
+        _no_instance()
+
+    class _NoCoordinator:
+        @require_coordinator_data()
+        def run(self) -> str:
+            return "never"
+
+    with pytest.raises(PawControlError, match="coordinator attribute"):
+        _NoCoordinator().run()
 
 
 def test_validate_and_handle_combines_decorators() -> None:
