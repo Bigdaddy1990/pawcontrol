@@ -25,7 +25,9 @@ from custom_components.pawcontrol.exceptions import PawControlError, ValidationE
 
 
 class _TestDateEntity(PawControlDateBase):
-    def __init__(self, coordinator: object, dog_id: str = "dog-1", dog_name: str = "Dog") -> None:
+    def __init__(
+        self, coordinator: object, dog_id: str = "dog-1", dog_name: str = "Dog"
+    ) -> None:
         super().__init__(coordinator, dog_id, dog_name, "test_date")
 
 
@@ -34,7 +36,9 @@ async def test_add_entities_in_batches_waits_between_batches() -> None:
     add_entities = AsyncMock()
     entities = [MagicMock() for _ in range(5)]
 
-    with patch("custom_components.pawcontrol.date.asyncio.sleep", new=AsyncMock()) as sleep_mock:
+    with patch(
+        "custom_components.pawcontrol.date.asyncio.sleep", new=AsyncMock()
+    ) as sleep_mock:
         await _async_add_entities_in_batches(
             add_entities,
             entities,
@@ -62,13 +66,18 @@ async def test_async_setup_entry_adds_expected_entities() -> None:
     add_entities = AsyncMock()
 
     with (
-        patch("custom_components.pawcontrol.date.get_runtime_data", return_value=runtime_data),
+        patch(
+            "custom_components.pawcontrol.date.get_runtime_data",
+            return_value=runtime_data,
+        ),
         patch(
             "custom_components.pawcontrol.date._async_add_entities_in_batches",
             new=AsyncMock(),
         ) as add_batches,
     ):
-        await async_setup_entry(MagicMock(), MagicMock(entry_id="entry-1"), add_entities)
+        await async_setup_entry(
+            MagicMock(), MagicMock(entry_id="entry-1"), add_entities
+        )
 
     entities_arg = add_batches.await_args.args[1]
     assert len(entities_arg) == 14
@@ -79,7 +88,10 @@ async def test_async_setup_entry_adds_expected_entities() -> None:
 @pytest.mark.asyncio
 async def test_async_setup_entry_raises_pawcontrol_error_on_failure() -> None:
     with (
-        patch("custom_components.pawcontrol.date.get_runtime_data", side_effect=RuntimeError("boom")),
+        patch(
+            "custom_components.pawcontrol.date.get_runtime_data",
+            side_effect=RuntimeError("boom"),
+        ),
         pytest.raises(PawControlError),
     ):
         await async_setup_entry(MagicMock(), MagicMock(entry_id="entry-1"), AsyncMock())
@@ -95,7 +107,9 @@ async def test_async_added_to_hass_restores_valid_date() -> None:
             "custom_components.pawcontrol.entity.PawControlDogEntityBase.async_added_to_hass",
             new=AsyncMock(),
         ),
-        patch.object(date_mod.dt_util, "parse_date", return_value=date(2024, 10, 15), create=True),
+        patch.object(
+            date_mod.dt_util, "parse_date", return_value=date(2024, 10, 15), create=True
+        ),
         patch.object(entity, "async_get_last_state", new=AsyncMock(return_value=state)),
     ):
         await entity.async_added_to_hass()
@@ -114,7 +128,12 @@ async def test_async_added_to_hass_handles_invalid_date() -> None:
             "custom_components.pawcontrol.entity.PawControlDogEntityBase.async_added_to_hass",
             new=AsyncMock(),
         ),
-        patch.object(date_mod.dt_util, "parse_date", side_effect=ValueError("invalid"), create=True),
+        patch.object(
+            date_mod.dt_util,
+            "parse_date",
+            side_effect=ValueError("invalid"),
+            create=True,
+        ),
         patch.object(entity, "async_get_last_state", new=AsyncMock(return_value=state)),
     ):
         await entity.async_added_to_hass()
@@ -136,7 +155,11 @@ async def test_async_set_value_wraps_subclass_error() -> None:
     entity.async_write_ha_state = MagicMock()
 
     with (
-        patch.object(entity, "_async_handle_date_set", new=AsyncMock(side_effect=RuntimeError("broken"))),
+        patch.object(
+            entity,
+            "_async_handle_date_set",
+            new=AsyncMock(side_effect=RuntimeError("broken")),
+        ),
         pytest.raises(ValidationError),
     ):
         await entity.async_set_value(date(2024, 1, 1))
@@ -149,8 +172,12 @@ async def test_handle_coordinator_update_extracts_data() -> None:
     entity = PawControlBirthdateDate(coordinator, "dog-1", "Rex")
 
     with (
-        patch.object(date_mod.dt_util, "parse_date", return_value=date(2020, 1, 1), create=True),
-        patch.object(PawControlDogEntityBase, "_handle_coordinator_update", create=True),
+        patch.object(
+            date_mod.dt_util, "parse_date", return_value=date(2020, 1, 1), create=True
+        ),
+        patch.object(
+            PawControlDogEntityBase, "_handle_coordinator_update", create=True
+        ),
     ):
         entity._handle_coordinator_update()
 
@@ -160,16 +187,36 @@ async def test_handle_coordinator_update_extracts_data() -> None:
 @pytest.mark.parametrize(
     ("entity_cls", "payload", "expected"),
     [
-        (PawControlBirthdateDate, {"profile": {"birthdate": "2021-02-03"}}, date(2021, 2, 3)),
-        (PawControlAdoptionDate, {"profile": {"adoption_date": "2021-02-03"}}, date(2021, 2, 3)),
-        (PawControlLastVetVisitDate, {"health": {"last_vet_visit": "2021-02-03T10:00:00+00:00"}}, date(2021, 2, 3)),
-        (PawControlLastGroomingDate, {"health": {"last_grooming": "2021-02-03"}}, date(2021, 2, 3)),
+        (
+            PawControlBirthdateDate,
+            {"profile": {"birthdate": "2021-02-03"}},
+            date(2021, 2, 3),
+        ),
+        (
+            PawControlAdoptionDate,
+            {"profile": {"adoption_date": "2021-02-03"}},
+            date(2021, 2, 3),
+        ),
+        (
+            PawControlLastVetVisitDate,
+            {"health": {"last_vet_visit": "2021-02-03T10:00:00+00:00"}},
+            date(2021, 2, 3),
+        ),
+        (
+            PawControlLastGroomingDate,
+            {"health": {"last_grooming": "2021-02-03"}},
+            date(2021, 2, 3),
+        ),
     ],
 )
 @pytest.mark.unit
-def test_extract_date_from_payload_variants(entity_cls: type[PawControlDateBase], payload: dict[str, object], expected: date) -> None:
+def test_extract_date_from_payload_variants(
+    entity_cls: type[PawControlDateBase], payload: dict[str, object], expected: date
+) -> None:
     entity = entity_cls(MagicMock(), "dog-1", "Rex")
-    with patch.object(date_mod.dt_util, "parse_date", return_value=expected, create=True):
+    with patch.object(
+        date_mod.dt_util, "parse_date", return_value=expected, create=True
+    ):
         assert entity._extract_date_from_dog_data(payload) == expected
 
 
@@ -186,7 +233,9 @@ async def test_health_service_date_entities_call_hass_service() -> None:
 
 
 @pytest.mark.unit
-def test_extra_state_attributes_today_date_flags(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_extra_state_attributes_today_date_flags(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     entity = PawControlBirthdateDate(MagicMock(), "dog-1", "Rex")
     today = date(2025, 6, 1)
     entity._current_value = today

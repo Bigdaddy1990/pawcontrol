@@ -664,3 +664,210 @@ async def test_gps_module_adapter_reports_unavailable_and_tracking_payload() -> 
     assert payload["status"] == "tracking"
     assert payload["source"] == "gps"
     assert payload["active_route"]["points_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_feeding_adapter_reraises_rate_limit_and_network_errors() -> None:
+    class _RateLimitedClient:
+        async def async_get_feeding_payload(self, _: str) -> dict[str, object]:
+            raise module_adapters.RateLimitError("slow down")
+
+    class _NetworkFailingClient:
+        async def async_get_feeding_payload(self, _: str) -> dict[str, object]:
+            raise module_adapters.NetworkError("offline")
+
+    async with ClientSession() as session:
+        rate_limited = FeedingModuleAdapter(
+            session=session,
+            ttl=timedelta(minutes=5),
+            use_external_api=True,
+            api_client=_RateLimitedClient(),
+        )
+        with pytest.raises(module_adapters.RateLimitError, match="slow down"):
+            await rate_limited.async_get_data("dog-1")
+
+        network_failing = FeedingModuleAdapter(
+            session=session,
+            ttl=timedelta(minutes=5),
+            use_external_api=True,
+            api_client=_NetworkFailingClient(),
+        )
+        with pytest.raises(module_adapters.NetworkError, match="offline"):
+            await network_failing.async_get_data("dog-1")
+
+
+@pytest.mark.asyncio
+async def test_feeding_adapter_external_api_success_sets_ready_and_caches() -> None:
+    class _OkClient:
+        async def async_get_feeding_payload(self, dog_id: str) -> dict[str, object]:
+            return {"dog_id": dog_id}
+
+    async with ClientSession() as session:
+        adapter = FeedingModuleAdapter(
+            session=session,
+            ttl=timedelta(minutes=5),
+            use_external_api=True,
+            api_client=_OkClient(),
+        )
+        payload = await adapter.async_get_data("dog-1")
+        assert payload["status"] == "ready"
+        assert await adapter.async_get_data("dog-1") is payload
+
+
+@pytest.mark.asyncio
+async def test_walk_and_garden_adapters_return_cached_payloads() -> None:
+    walk_adapter = WalkModuleAdapter(ttl=timedelta(minutes=5))
+    walk_adapter.attach(_FakeWalkManager(payload={"status": "ready", "daily_walks": 2}))
+    walk_first = await walk_adapter.async_get_data("dog-cache")
+    walk_second = await walk_adapter.async_get_data("dog-cache")
+    assert walk_second is walk_first
+
+    garden_adapter = GardenModuleAdapter(ttl=timedelta(minutes=5))
+
+    class _GardenManager:
+        def build_garden_snapshot(self, _: str) -> dict[str, object]:
+            return {
+                "status": "ready",
+                "sessions_today": 1,
+                "time_today_minutes": 5.0,
+                "poop_today": 1,
+                "activities_today": 1,
+                "activities_total": 1,
+                "active_session": None,
+                "last_session": None,
+                "hours_since_last_session": 1.0,
+                "stats": {},
+                "pending_confirmations": [],
+                "weather_summary": None,
+            }
+
+    garden_adapter.attach(_GardenManager())
+    garden_first = await garden_adapter.async_get_data("dog-cache")
+    garden_second = await garden_adapter.async_get_data("dog-cache")
+    assert garden_second is garden_first
+
+
+@pytest.mark.asyncio
+async def test_geofencing_adapter_disabled_active_and_cached_paths() -> None:
+    adapter = module_adapters.GeofencingModuleAdapter(ttl=timedelta(minutes=5))
+    disabled = await adapter.async_get_data("dog-1")
+    assert disabled["status"] == "unavailable"
+
+    class _GeoManager:
+        async def async_get_geofence_status(self, _: str) -> dict[str, object]:
+            return {
+                "zones_configured": 2,
+                "zone_status": {"home": "inside"},
+                "current_location": {"lat": 1.0, "lon": 2.0},
+                "safe_zone_breaches": 0,
+                "last_update": "2026-01-01T00:00:00+00:00",
+            }
+
+    adapter.attach(_GeoManager())
+    active = await adapter.async_get_data("dog-2")
+    assert active["status"] == "active"
+    cached = await adapter.async_get_data("dog-2")
+    assert cached is active
+
+
+@pytest.mark.asyncio
+async def test_health_and_weather_adapters_cover_cache_and_optional_branches() -> None:
+    health_adapter = HealthModuleAdapter(ttl=timedelta(minutes=5))
+
+    class _FeedingManager:
+        async def async_get_feeding_data(self, _: str) -> dict[str, object]:
+            return {
+                "health_conditions": ["allergy"],
+                "daily_activity_level": None,
+            }
+
+    class _WalkManager:
+        async def async_get_walk_data(self, _: str) -> dict[str, object]:
+            return {"daily_walks": [1]}
+
+    health_adapter.attach(
+        feeding_manager=_FeedingManager(),
+        data_manager=None,
+        walk_manager=_WalkManager(),
+    )
+    health_payload = await health_adapter.async_get_data("dog-1")
+    assert health_payload["health_conditions"] == ["allergy"]
+    assert health_payload["activity_level"] == "active"
+    assert await health_adapter.async_get_data("dog-1") is health_payload
+
+    weather_adapter = WeatherModuleAdapter(
+        config_entry=SimpleNamespace(data={"dogs": "invalid"}, options={}),
+        ttl=timedelta(minutes=5),
+    )
+    disabled_weather = await weather_adapter.async_get_data("dog-1")
+    assert disabled_weather == {
+        "status": "disabled",
+        "health_score": None,
+        "alerts": [],
+        "recommendations": [],
+    }
+
+    weather_adapter = WeatherModuleAdapter(
+        config_entry=SimpleNamespace(
+            data={"dogs": ["skip", {"dog_id": "dog-1", "dog_age": 7}]},
+            options={},
+        ),
+        ttl=timedelta(minutes=5),
+    )
+
+    class _WeatherManager:
+        def get_active_alerts(self) -> list[SimpleNamespace]:
+            return []
+
+        def get_recommendations_for_dog(
+            self,
+            *,
+            dog_breed: str | None,
+            dog_age_months: int | None,
+            health_conditions: list[str] | None,
+        ) -> list[str]:
+            assert dog_breed is None
+            assert dog_age_months == 7
+            assert health_conditions is None
+            return []
+
+        def get_weather_health_score(self) -> int:
+            return 100
+
+        def get_current_conditions(self) -> None:
+            return None
+
+    weather_adapter.attach(_WeatherManager())
+    ready = await weather_adapter.async_get_data("dog-1")
+    assert ready["status"] == "ready"
+
+    weather_adapter = WeatherModuleAdapter(
+        config_entry=SimpleNamespace(data={"dogs": "invalid"}, options={}),
+        ttl=timedelta(minutes=5),
+    )
+
+    class _WeatherManagerNoDogConfig:
+        def get_active_alerts(self) -> list[SimpleNamespace]:
+            return []
+
+        def get_recommendations_for_dog(
+            self,
+            *,
+            dog_breed: str | None,
+            dog_age_months: int | None,
+            health_conditions: list[str] | None,
+        ) -> list[str]:
+            assert dog_breed is None
+            assert dog_age_months is None
+            assert health_conditions is None
+            return []
+
+        def get_weather_health_score(self) -> int:
+            return 100
+
+        def get_current_conditions(self) -> None:
+            return None
+
+    weather_adapter.attach(_WeatherManagerNoDogConfig())
+    ready_with_invalid_dogs = await weather_adapter.async_get_data("dog-2")
+    assert ready_with_invalid_dogs["status"] == "ready"

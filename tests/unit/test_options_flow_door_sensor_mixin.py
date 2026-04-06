@@ -1,7 +1,5 @@
 """Coverage tests for ``DoorSensorOptionsMixin`` flow branches."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Any, cast
@@ -92,9 +90,9 @@ async def test_select_dog_step_routes_to_manage_when_empty() -> None:
 @pytest.mark.asyncio
 async def test_select_dog_step_returns_manage_when_selected_dog_is_missing() -> None:
     """Unknown dog selections should route back to the manage dogs menu."""
-    host = _DoorSensorHost(
-        [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_DOG_NAME: "Buddy"}]
-    )
+    host = _DoorSensorHost([
+        {DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_DOG_NAME: "Buddy"}
+    ])
 
     result = await host.async_step_select_dog_for_door_sensor({"dog_id": "missing"})
 
@@ -103,7 +101,9 @@ async def test_select_dog_step_returns_manage_when_selected_dog_is_missing() -> 
 
 
 @pytest.mark.asyncio
-async def test_configure_door_sensor_routes_to_manage_without_valid_current_dog() -> None:
+async def test_configure_door_sensor_routes_to_manage_without_valid_current_dog() -> (
+    None
+):
     """Missing current dog payloads should return to the dog-management step."""
     host = _DoorSensorHost([])
     host._current_dog = None
@@ -111,9 +111,9 @@ async def test_configure_door_sensor_routes_to_manage_without_valid_current_dog(
     result = await host.async_step_configure_door_sensor()
     assert result["step_id"] == "manage_dogs"
 
-    host_with_invalid_id = _DoorSensorHost(
-        [{DOG_ID_FIELD: "", DOG_NAME_FIELD: "Buddy", CONF_DOG_NAME: "Buddy"}]
-    )
+    host_with_invalid_id = _DoorSensorHost([
+        {DOG_ID_FIELD: "", DOG_NAME_FIELD: "Buddy", CONF_DOG_NAME: "Buddy"}
+    ])
     host_with_invalid_id._current_dog = {
         DOG_ID_FIELD: "",
         DOG_NAME_FIELD: "Buddy",
@@ -246,12 +246,10 @@ async def test_configure_door_sensor_skips_runtime_persistence_without_data_mana
         lambda: lambda _hass, _entry: SimpleNamespace(data_manager=None),
     )
 
-    result = await host.async_step_configure_door_sensor(
-        {
-            CONF_DOOR_SENSOR: "binary_sensor.side_door",
-            "walk_duration": 25,
-        }
-    )
+    result = await host.async_step_configure_door_sensor({
+        CONF_DOOR_SENSOR: "binary_sensor.side_door",
+        "walk_duration": 25,
+    })
 
     assert result["step_id"] == "configure_door_sensor"
     assert result["errors"]["base"] == "runtime_cache_unavailable"

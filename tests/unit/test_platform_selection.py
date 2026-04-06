@@ -472,6 +472,64 @@ async def test_async_unload_entry_handles_service_manager_shutdown_errors(
     assert expected_log in caplog.text
 
 
+@pytest.mark.asyncio
+async def test_async_unload_entry_uses_runtime_platform_selection(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unload should compute active platforms from runtime dogs/profile data."""
+    dogs = [_build_dog_config({MODULE_GPS: True})]
+    runtime_data = SimpleNamespace(dogs=dogs, entity_profile="gps_focus")
+    entry = ConfigEntry(
+        domain="pawcontrol", data={"dogs": dogs}, title="Unload runtime"
+    )
+    selected_platforms = (Platform.BINARY_SENSOR, Platform.NUMBER)
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unload_external_bindings",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "get_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "get_platforms_for_profile_and_modules",
+        lambda _dogs, _profile: selected_platforms,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_cleanup_runtime_data",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "pop_runtime_data",
+        Mock(),
+    )
+
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+
+    assert await pawcontrol_init.async_unload_entry(hass, entry) is True
+    hass.config_entries.async_unload_platforms.assert_awaited_once_with(
+        entry,
+        selected_platforms,
+    )
+
+
 def test_should_skip_optional_setup_handles_missing_or_mocked_services() -> None:
     """Skip optional setup when service registry is unavailable or mocked."""
     assert pawcontrol_init._should_skip_optional_setup(SimpleNamespace(services=None))
@@ -590,6 +648,35 @@ async def test_async_reload_entry_reraises_generic_errors(
 
     with pytest.raises(RuntimeError, match="setup crashed"):
         await pawcontrol_init.async_reload_entry(hass, entry)
+
+
+@pytest.mark.asyncio
+async def test_async_reload_entry_logs_successful_reload(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Reload should log completion when unload and setup both succeed."""
+    caplog.set_level(logging.INFO, logger="custom_components.pawcontrol")
+    entry = ConfigEntry(domain="pawcontrol", title="Reload success")
+    unload_mock = AsyncMock(return_value=True)
+    setup_mock = AsyncMock(return_value=True)
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_unload_entry",
+        unload_mock,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        setup_mock,
+    )
+
+    await pawcontrol_init.async_reload_entry(hass, entry)
+
+    unload_mock.assert_awaited_once_with(hass, entry)
+    setup_mock.assert_awaited_once_with(hass, entry)
+    assert "PawControl reload completed in" in caplog.text
 
 
 @pytest.mark.asyncio
