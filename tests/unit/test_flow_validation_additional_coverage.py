@@ -1,7 +1,5 @@
 """Additional branch coverage tests for flow validation helpers."""
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.const import (

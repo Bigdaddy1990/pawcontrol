@@ -1,13 +1,13 @@
 """Coverage tests for import/export options flow mixin."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any
 
 from custom_components.pawcontrol.const import CONF_DOGS
 from custom_components.pawcontrol.exceptions import FlowValidationError
-from custom_components.pawcontrol.options_flow_import_export import ImportExportOptionsMixin
+from custom_components.pawcontrol.options_flow_import_export import (
+    ImportExportOptionsMixin,
+)
 
 
 class _FakeConfigEntries:
@@ -101,9 +101,9 @@ def test_import_export_import_schema_persists_default_payload() -> None:
     """The import schema should preserve the pre-filled payload value."""
     flow = _FakeImportExportFlow()
 
-    schema = flow._get_import_export_import_schema("{\"cached\":true}")
+    schema = flow._get_import_export_import_schema('{"cached":true}')
 
-    assert schema({}) == {"payload": "{\"cached\":true}"}
+    assert schema({}) == {"payload": '{"cached":true}'}
 
 
 async def test_import_export_step_handles_initial_state_and_invalid_action() -> None:
@@ -140,7 +140,9 @@ async def test_export_step_shows_payload_and_returns_to_init_after_submit() -> N
     shown = await flow.async_step_import_export_export()
     assert shown["type"] == "form"
     assert shown["step_id"] == "import_export_export"
-    assert shown["description_placeholders"]["generated_at"] == "2026-04-05T00:00:00+00:00"
+    assert (
+        shown["description_placeholders"]["generated_at"] == "2026-04-05T00:00:00+00:00"
+    )
     assert '"version": 1' in shown["description_placeholders"]["export_blob"]
 
     returned = await flow.async_step_import_export_export({"export_blob": "done"})
@@ -214,7 +216,7 @@ async def test_import_step_maps_base_validation_errors_when_no_field_errors() ->
     flow = _FakeImportExportFlow()
     flow.validation_error = FlowValidationError(base_errors=["update_failed"])
 
-    result = await flow.async_step_import_export_import({"payload": "{\"version\": 1}"})
+    result = await flow.async_step_import_export_import({"payload": '{"version": 1}'})
 
     assert result["type"] == "form"
     assert result["errors"] == {"base": "update_failed"}
