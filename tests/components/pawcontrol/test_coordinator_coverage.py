@@ -577,7 +577,9 @@ async def test_async_update_data_refresh_success_payload_keeps_available_true() 
 
 
 @pytest.mark.asyncio
-async def test_async_update_data_timeout_keeps_preexisting_state_and_unavailable() -> None:
+async def test_async_update_data_timeout_keeps_preexisting_state_and_unavailable() -> (
+    None
+):
     """Timeout refresh errors should not mutate cached data and remain unavailable."""
     coordinator = _make_coordinator()
     coordinator._data = {"dog-1": {"health": {"status": "stale"}}}

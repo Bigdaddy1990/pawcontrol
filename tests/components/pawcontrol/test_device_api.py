@@ -401,7 +401,9 @@ async def test_async_get_json_does_not_retry_auth_failures() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_get_json_propagates_rate_limit_error_without_json_parsing() -> None:
+async def test_async_get_json_propagates_rate_limit_error_without_json_parsing() -> (
+    None
+):
     """Guard path should bubble API throttling errors immediately."""
     client = PawControlDeviceClient(
         _FakeSession(_FakeResponse(status=429)),
