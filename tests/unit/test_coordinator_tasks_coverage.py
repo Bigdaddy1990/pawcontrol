@@ -13,7 +13,8 @@ Pure helpers tested directly:
   shutdown, ensure_background_task
 """
 
-from datetime import UTC, timedelta
+from datetime import UTC, date, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -447,3 +448,113 @@ async def test_run_maintenance_resets_consecutive_errors(
     await ct.run_maintenance(coord)
 
     assert coord._metrics.consecutive_errors == 0
+
+
+@pytest.mark.unit
+def test_timestamp_from_datetime_handles_as_timestamp_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """_timestamp_from_datetime returns None when HA converters raise."""
+    moment = datetime(2026, 4, 6, 12, 0, tzinfo=UTC)
+
+    monkeypatch.setattr(
+        ct.dt_util,
+        "as_timestamp",
+        lambda *_: (_ for _ in ()).throw(TypeError),
+        raising=False,
+    )
+    assert ct._timestamp_from_datetime(moment) is None
+
+
+@pytest.mark.unit
+def test_timestamp_from_datetime_fallback_without_as_timestamp(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fallback path uses datetime.timestamp when HA helper is unavailable."""
+    moment = datetime(2026, 4, 6, 12, 0)
+
+    monkeypatch.delattr(ct.dt_util, "as_timestamp", raising=False)
+    monkeypatch.setattr(ct.dt_util, "as_utc", lambda value: value.replace(tzinfo=UTC))
+
+    result = ct._timestamp_from_datetime(moment)
+    assert isinstance(result, float)
+
+
+@pytest.mark.unit
+def test_coerce_float_date_fallback_and_non_finite(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """_coerce_float covers date fallback and NaN/inf string handling."""
+    monkeypatch.setattr(
+        ct.dt_util,
+        "start_of_local_day",
+        lambda *_: (_ for _ in ()).throw(TypeError),
+    )
+
+    value = ct._coerce_float(date(2026, 4, 6))
+    assert isinstance(value, float)
+    assert ct._coerce_float("nan") is None
+    assert ct._coerce_float("inf") is None
+
+
+@pytest.mark.unit
+def test_coerce_float_parse_datetime_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_coerce_float falls back to float conversion when parsing fails."""
+    monkeypatch.setattr(
+        ct.dt_util,
+        "parse_datetime",
+        lambda *_: (_ for _ in ()).throw(ValueError),
+    )
+    assert ct._coerce_float("12.5") == 12.5
+    assert ct._coerce_float("not-a-number") is None
+
+
+@pytest.mark.unit
+def test_store_and_clear_resilience_diagnostics(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Store/clear resilience diagnostics call runtime update helper."""
+    coordinator = SimpleNamespace(
+        hass=object(),
+        config_entry=object(),
+        logger=MagicMock(),
+    )
+    runtime = object()
+    calls: list[object] = []
+
+    monkeypatch.setattr(ct, "get_runtime_data", lambda *_: runtime)
+    monkeypatch.setattr(
+        ct,
+        "update_runtime_resilience_diagnostics",
+        lambda _runtime, payload: calls.append(payload),
+    )
+
+    payload = {"summary": {"total_breakers": 1}}
+    ct._store_resilience_diagnostics(coordinator, payload)
+    ct._clear_resilience_diagnostics(coordinator)
+
+    assert calls == [payload, None]
+
+
+@pytest.mark.unit
+def test_collect_resilience_diagnostics_manager_edge_cases(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """collect_resilience_diagnostics gracefully handles invalid manager payloads."""
+    logger = MagicMock()
+    coordinator = SimpleNamespace(
+        hass=object(),
+        config_entry=object(),
+        logger=logger,
+        resilience_manager=None,
+    )
+
+    cleared: list[bool] = []
+    monkeypatch.setattr(ct, "_clear_resilience_diagnostics", lambda *_: cleared.append(True))
+
+    assert ct.collect_resilience_diagnostics(coordinator) == {}
+    assert cleared
+
+    coordinator.resilience_manager = SimpleNamespace(get_all_circuit_breakers="invalid")
+    assert ct.collect_resilience_diagnostics(coordinator) == {}
+
+    coordinator.resilience_manager = SimpleNamespace(get_all_circuit_breakers=lambda: 123)
+    assert ct.collect_resilience_diagnostics(coordinator) == {}
