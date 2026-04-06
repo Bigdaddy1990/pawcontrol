@@ -7,6 +7,7 @@ _async_add_entities_in_batches, and core switch subclasses.
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
+from homeassistant.exceptions import HomeAssistantError
 import pytest
 
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
@@ -19,8 +20,17 @@ from custom_components.pawcontrol.switch import (
     PawControlVisitorModeSwitch,
     ProfileOptimizedSwitchFactory,
     _async_add_entities_in_batches,
+    _async_reproduce_switch_state,
+    _preprocess_switch_state,
+    async_setup_entry,
 )
-from custom_components.pawcontrol.types import CoordinatorDogData, DogModulesConfig
+from custom_components.pawcontrol.types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    CoordinatorDogData,
+    DogModulesConfig,
+)
 
 # ---------------------------------------------------------------------------
 # Stubs
@@ -201,6 +211,42 @@ class TestOptimizedSwitchBase:
         switch = self._make()
         assert switch._attr_translation_key == "test_switch"
 
+    @pytest.mark.asyncio
+    async def test_async_added_to_hass_restores_last_state(self) -> None:
+        from unittest.mock import patch
+
+        switch = self._make()
+        switch.hass = MagicMock()
+        switch.async_get_last_state = AsyncMock(return_value=MagicMock(state="on"))
+        with patch(
+            "custom_components.pawcontrol.switch.PawControlDogEntityBase.async_added_to_hass",
+            new=AsyncMock(),
+        ):
+            await switch.async_added_to_hass()
+        assert switch._is_on is True
+
+    def test_is_on_uses_hot_cache_before_internal_state(self) -> None:
+        switch = self._make(initial_state=False)
+        switch._state_cache[f"{switch._dog_id}_{switch._switch_type}"] = (
+            True,
+            9_999_999_999.0,
+        )
+        assert switch.is_on is True
+
+    @pytest.mark.asyncio
+    async def test_turn_on_wraps_errors_as_homeassistant_error(self) -> None:
+        switch = self._make()
+        switch._async_set_state = AsyncMock(side_effect=RuntimeError("boom"))  # type: ignore[method-assign]
+        with pytest.raises(HomeAssistantError):
+            await switch.async_turn_on()
+
+    @pytest.mark.asyncio
+    async def test_turn_off_wraps_errors_as_homeassistant_error(self) -> None:
+        switch = self._make(initial_state=True)
+        switch._async_set_state = AsyncMock(side_effect=RuntimeError("boom"))  # type: ignore[method-assign]
+        with pytest.raises(HomeAssistantError):
+            await switch.async_turn_off()
+
 
 # ---------------------------------------------------------------------------
 # PawControlMainPowerSwitch
@@ -221,6 +267,25 @@ class TestPawControlMainPowerSwitch:
     def test_unique_id_format(self) -> None:
         switch = self._make()
         assert switch._attr_unique_id == "pawcontrol_rex_main_power"
+
+    @pytest.mark.asyncio
+    async def test_set_state_skips_when_hass_missing(self) -> None:
+        switch = self._make()
+        switch.hass = None
+        switch.coordinator.async_request_selective_refresh = AsyncMock()
+        await switch._async_set_state(True)
+        switch.coordinator.async_request_selective_refresh.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_set_state_refreshes_when_data_manager_available(self) -> None:
+        switch = self._make()
+        switch.hass = MagicMock()
+        data_manager = AsyncMock()
+        switch._get_data_manager = MagicMock(return_value=data_manager)  # type: ignore[method-assign]
+        switch.coordinator.async_request_selective_refresh = AsyncMock()
+        await switch._async_set_state(True)
+        data_manager.async_set_dog_power_state.assert_awaited_once_with("rex", True)
+        switch.coordinator.async_request_selective_refresh.assert_awaited_once()
 
 
 # ---------------------------------------------------------------------------
@@ -273,6 +338,23 @@ class TestPawControlFeatureSwitch:
         switch.hass = MagicMock()
         attrs = switch.extra_state_attributes
         assert attrs.get("parent_module") == "gps"
+
+    @pytest.mark.asyncio
+    async def test_set_state_dispatches_to_gps_handler(self) -> None:
+        switch = self._make()
+        switch.hass = MagicMock()
+        switch._set_gps_tracking = AsyncMock()  # type: ignore[method-assign]
+        await switch._async_set_state(True)
+        switch._set_gps_tracking.assert_awaited_once_with(True)
+
+    @pytest.mark.asyncio
+    async def test_set_notifications_calls_expected_service(self) -> None:
+        switch = self._make(feature_id="notifications", module="notifications")
+        switch._async_call_hass_service = AsyncMock(return_value=True)  # type: ignore[method-assign]
+        await switch._set_notifications(False)
+        switch._async_call_hass_service.assert_awaited_once()
+        args = switch._async_call_hass_service.await_args.args
+        assert args[1] == "configure_alerts"
 
 
 # ---------------------------------------------------------------------------
@@ -342,3 +424,153 @@ class TestAsyncAddEntitiesInBatches:
             )
 
         assert batches_added == [15, 5]
+
+
+class TestSwitchSetupAndReproduction:
+    """Coverage for setup and reproduce-state helper flows."""
+
+    @pytest.mark.asyncio
+    async def test_async_setup_entry_returns_when_runtime_data_missing(self) -> None:
+        from unittest.mock import patch
+
+        hass = MagicMock()
+        entry = MagicMock()
+
+        with (
+            patch(
+                "custom_components.pawcontrol.switch.get_runtime_data",
+                return_value=None,
+            ),
+            patch(
+                "custom_components.pawcontrol.switch._async_add_entities_in_batches",
+                new=AsyncMock(),
+            ) as mock_add,
+        ):
+            await async_setup_entry(hass, entry, AsyncMock())
+
+        mock_add.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_async_setup_entry_builds_entities_and_batches(self) -> None:
+        from unittest.mock import patch
+
+        coordinator = _make_coordinator()
+        runtime_data = MagicMock()
+        runtime_data.coordinator = coordinator
+        runtime_data.dogs = [
+            {
+                DOG_ID_FIELD: "rex",
+                DOG_NAME_FIELD: "Rex",
+                DOG_MODULES_FIELD: _full_modules(
+                    walk=False,
+                    gps=False,
+                    health=False,
+                    notifications=False,
+                    grooming=False,
+                    medication=False,
+                    training=False,
+                    visitor=False,
+                ),
+            }
+        ]
+
+        with (
+            patch(
+                "custom_components.pawcontrol.switch.get_runtime_data",
+                return_value=runtime_data,
+            ),
+            patch(
+                "custom_components.pawcontrol.switch._async_add_entities_in_batches",
+                new=AsyncMock(),
+            ) as mock_add,
+        ):
+            await async_setup_entry(MagicMock(), MagicMock(), AsyncMock())
+
+        assert mock_add.await_count == 1
+        entities = mock_add.await_args.args[1]
+        assert len(entities) == 8
+
+    def test_preprocess_switch_state_rejects_invalid(self) -> None:
+        invalid_state = MagicMock(state="invalid", entity_id="switch.test")
+        assert _preprocess_switch_state(invalid_state) is None
+
+    def test_preprocess_switch_state_accepts_on_off(self) -> None:
+        on_state = MagicMock(state="on")
+        off_state = MagicMock(state="off")
+        assert _preprocess_switch_state(on_state) == "on"
+        assert _preprocess_switch_state(off_state) == "off"
+
+    @pytest.mark.asyncio
+    async def test_async_reproduce_switch_state_skips_when_no_change(self) -> None:
+        hass = MagicMock()
+        hass.services.async_call = AsyncMock()
+        current = MagicMock(state="on")
+        target = MagicMock(entity_id="switch.test")
+
+        await _async_reproduce_switch_state(
+            hass,
+            target,
+            current,
+            "on",
+            None,
+        )
+
+        hass.services.async_call.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_async_reproduce_switch_state_calls_turn_off_service(self) -> None:
+        hass = MagicMock()
+        hass.services.async_call = AsyncMock()
+        current = MagicMock(state="on")
+        target = MagicMock(entity_id="switch.test")
+        context = object()
+
+        await _async_reproduce_switch_state(
+            hass,
+            target,
+            current,
+            "off",
+            context,
+        )
+
+        hass.services.async_call.assert_awaited_once()
+        called_service = hass.services.async_call.await_args.args[1]
+        assert called_service == "turn_off"
+
+
+class TestModuleSwitchUpdates:
+    """Coverage for module switch config mutation branch."""
+
+    @pytest.mark.asyncio
+    async def test_module_switch_updates_dog_modules_in_config_entry(self) -> None:
+        coordinator = _make_coordinator()
+        coordinator.config_entry = MagicMock()
+        coordinator.config_entry.data = {
+            "dogs": [
+                {
+                    DOG_ID_FIELD: "rex",
+                    DOG_NAME_FIELD: "Rex",
+                    DOG_MODULES_FIELD: {"feeding": False, "walk": True},
+                }
+            ]
+        }
+        coordinator.async_request_selective_refresh = AsyncMock()
+        hass = MagicMock()
+        hass.config_entries.async_update_entry = MagicMock()
+
+        switch = PawControlModuleSwitch(
+            coordinator,
+            "rex",
+            "Rex",
+            "feeding",
+            "Feeding Tracking",
+            "mdi:food-drumstick",
+            False,
+        )
+        switch.hass = hass
+        await switch._async_set_state(True)
+
+        hass.config_entries.async_update_entry.assert_called_once()
+        new_data = hass.config_entries.async_update_entry.call_args.kwargs["data"]
+        updated_modules = new_data["dogs"][0][DOG_MODULES_FIELD]
+        assert updated_modules["feeding"] is True
