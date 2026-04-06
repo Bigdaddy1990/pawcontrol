@@ -720,7 +720,9 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
             },
             blocking=False,
         ):
-            return
+            raise HomeAssistantError(
+                "Failed to update visitor mode via Home Assistant service call",
+            )
 
 
 # Module switch (only for enabled modules)
