@@ -5,11 +5,15 @@ from datetime import UTC, datetime
 import pytest
 
 from custom_components.pawcontrol.exceptions import (
+    AuthenticationError,
     ErrorCategory,
     ErrorSeverity,
     GPSError,
+    GPSUnavailableError,
+    NotificationError,
     PawControlError,
     ServiceUnavailableError,
+    StorageError,
     create_error_context,
     get_exception_class,
     handle_exception_gracefully,
@@ -172,3 +176,96 @@ def test_paw_control_error_to_dict_includes_chainable_user_message_override() ->
     assert payload["message"] == "raw backend failure"
     assert payload["user_message"] == "Bitte später erneut versuchen"
     assert payload["context"]["dog_id"] == "milo"
+
+
+def test_message_builders_without_optional_reason_values() -> None:
+    """Exception messages should use the fallback branch without optional reasons."""
+    gps_unavailable = GPSUnavailableError("milo")
+    storage_error = StorageError("write", retry_possible=False)
+    notification_error = NotificationError("mobile_app")
+
+    assert str(gps_unavailable) == "GPS data is not available for dog 'milo'"
+    assert str(storage_error) == "Storage write failed"
+    assert str(notification_error) == "Failed to send mobile_app notification"
+    assert storage_error.recovery_suggestions == [
+        "Check available disk space",
+        "Verify file permissions",
+        "Ensure storage directory exists",
+    ]
+
+
+def test_message_builders_with_optional_reason_values() -> None:
+    """Exception messages should include optional reason/flag branches."""
+    gps_unavailable = GPSUnavailableError("milo", reason="no signal")
+    storage_error = StorageError("write", reason="readonly", retry_possible=True)
+    notification_error = NotificationError(
+        "mobile_app",
+        reason="service offline",
+        fallback_available=True,
+    )
+
+    assert str(gps_unavailable) == "GPS data is not available for dog 'milo': no signal"
+    assert str(storage_error) == "Storage write failed: readonly"
+    assert "Retry the operation" in storage_error.recovery_suggestions
+    assert (
+        str(notification_error)
+        == "Failed to send mobile_app notification: service offline"
+    )
+    assert "Fallback notification method will be used" in notification_error.recovery_suggestions
+
+
+def test_raise_from_error_code_with_context_only_branch() -> None:
+    """raise_from_error_code should support context-only override paths."""
+    with pytest.raises(PawControlError) as exc_info:
+        raise_from_error_code("custom_only_context", "Broken", context={"step": "sync"})
+
+    assert exc_info.value.error_code == "custom_only_context"
+    assert exc_info.value.context["step"] == "sync"
+
+
+def test_raise_from_error_code_with_category_only_branch() -> None:
+    """raise_from_error_code should support category-only override paths."""
+    with pytest.raises(PawControlError) as exc_info:
+        raise_from_error_code("custom_only_category", "Broken", category=ErrorCategory.NETWORK)
+
+    assert exc_info.value.error_code == "custom_only_category"
+    assert exc_info.value.category is ErrorCategory.NETWORK
+
+
+def test_handle_exception_gracefully_logs_pawcontrol_errors(caplog: pytest.LogCaptureFixture) -> None:
+    """Decorator should emit logger error payload for handled PawControl errors."""
+    error = PawControlError("boom", severity=ErrorSeverity.LOW)
+    wrapped = handle_exception_gracefully(
+        lambda: (_ for _ in ()).throw(error),
+        default_return="fallback",
+        log_errors=True,
+        reraise_critical=False,
+    )
+
+    with caplog.at_level("ERROR"):
+        assert wrapped() == "fallback"
+
+    assert any("PawControl error in <lambda>" in record.message for record in caplog.records)
+
+
+def test_handle_exception_gracefully_logs_and_reraises_unexpected_errors(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Unexpected exceptions should be logged then reraised when configured."""
+    wrapped = handle_exception_gracefully(
+        lambda: (_ for _ in ()).throw(RuntimeError("boom")),
+        log_errors=True,
+        reraise_critical=True,
+    )
+
+    with caplog.at_level("ERROR"), pytest.raises(RuntimeError, match="boom"):
+        wrapped()
+
+    assert any("Unexpected error in <lambda>" in record.message for record in caplog.records)
+
+
+def test_authentication_error_sets_service_context() -> None:
+    """AuthenticationError should keep optional service context value."""
+    error = AuthenticationError("auth failed", service="webhook")
+
+    assert error.context["service"] == "webhook"
