@@ -71,3 +71,46 @@ async def test_visitor_mode_switch_service_failure_keeps_state_consistent() -> N
         await entity.async_turn_on()
 
     assert entity._is_on is False
+
+
+@pytest.mark.asyncio
+async def test_visitor_mode_switch_turn_off_calls_service_with_expected_payload() -> (
+    None
+):
+    coordinator = _DummyCoordinator()
+    entity = PawControlVisitorModeSwitch(coordinator, "dog-1", "Buddy")
+    entity._attr_hass = SimpleNamespace()
+    entity.async_write_ha_state = Mock()
+    entity._is_on = True
+    entity._async_call_hass_service = AsyncMock(return_value=True)
+
+    await entity.async_turn_off()
+
+    entity._async_call_hass_service.assert_awaited_once_with(
+        "pawcontrol",
+        "set_visitor_mode",
+        {
+            "dog_id": "dog-1",
+            "enabled": False,
+            "visitor_name": None,
+            "reduced_alerts": False,
+        },
+        blocking=False,
+    )
+    assert entity.is_on is False
+
+
+@pytest.mark.asyncio
+async def test_visitor_mode_switch_command_exception_keeps_state_consistent() -> None:
+    """Exceptions from command call should be wrapped and not flip state."""
+    coordinator = _DummyCoordinator()
+    entity = PawControlVisitorModeSwitch(coordinator, "dog-1", "Buddy")
+    entity._attr_hass = SimpleNamespace()
+    entity.async_write_ha_state = Mock()
+    entity._is_on = False
+    entity._async_call_hass_service = AsyncMock(side_effect=TimeoutError("timeout"))
+
+    with pytest.raises(HomeAssistantError, match="Failed to turn on visitor_mode"):
+        await entity.async_turn_on()
+
+    assert entity._is_on is False

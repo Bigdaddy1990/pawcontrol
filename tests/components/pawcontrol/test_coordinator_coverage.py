@@ -542,3 +542,61 @@ async def test_async_update_data_recovery_after_failure_and_success() -> None:
 
     assert result["dog-1"]["health"]["status"] == "ok"
     assert coordinator.available is True
+
+
+@pytest.mark.asyncio
+async def test_async_update_data_refresh_success_payload_keeps_available_true() -> None:
+    """Successful refresh payloads should update cache without degrading health."""
+    coordinator = _make_coordinator()
+    coordinator.last_update_success = True
+    coordinator._metrics.consecutive_errors = 0
+
+    async def _execute_cycle(
+        _dog_ids: list[str],
+    ) -> tuple[dict[str, dict[str, dict[str, str]]], object]:
+        return {
+            "dog-1": {"health": {"status": "ok"}},
+            "dog-none": {"status": {"state": "idle"}},
+        }, object()
+
+    async def _prepare_entry() -> None:
+        return None
+
+    async def _sync(_data: dict[str, dict[str, dict[str, str]]]) -> None:
+        return None
+
+    coordinator.async_prepare_entry = _prepare_entry
+    coordinator._execute_cycle = _execute_cycle
+    coordinator._synchronize_module_states = _sync
+
+    refreshed = await coordinator._async_update_data()
+
+    assert refreshed["dog-1"]["health"]["status"] == "ok"
+    assert refreshed["dog-none"]["status"]["state"] == "idle"
+    assert coordinator.available is True
+
+
+@pytest.mark.asyncio
+async def test_async_update_data_timeout_keeps_preexisting_state_and_unavailable() -> None:
+    """Timeout refresh errors should not mutate cached data and remain unavailable."""
+    coordinator = _make_coordinator()
+    coordinator._data = {"dog-1": {"health": {"status": "stale"}}}
+    coordinator.last_update_success = False
+    coordinator._metrics.consecutive_errors = 7
+
+    async def _execute_cycle(
+        _dog_ids: list[str],
+    ) -> tuple[dict[str, dict[str, Any]], object]:
+        raise TimeoutError("refresh timed out")
+
+    async def _prepare_entry() -> None:
+        return None
+
+    coordinator.async_prepare_entry = _prepare_entry
+    coordinator._execute_cycle = _execute_cycle
+
+    with pytest.raises(UpdateFailed, match="refresh timed out"):
+        await coordinator._async_update_data()
+
+    assert coordinator._data == {"dog-1": {"health": {"status": "stale"}}}
+    assert coordinator.available is False
