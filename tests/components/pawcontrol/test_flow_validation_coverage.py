@@ -1,7 +1,5 @@
 """Coverage-focused tests for flow validation helpers."""
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.const import (
@@ -259,7 +257,9 @@ def test_validate_dog_update_input_reports_format_and_size_errors() -> None:
     assert err.value.field_errors[CONF_DOG_SIZE] == "invalid_dog_size"
 
 
-def test_validate_dog_update_input_reports_breed_length_and_weight_range_errors() -> None:
+def test_validate_dog_update_input_reports_breed_length_and_weight_range_errors() -> (
+    None
+):
     """Update validation should reject oversized breed names and out-of-range weight."""
     with pytest.raises(FlowValidationError) as err:
         validate_dog_update_input(
@@ -342,3 +342,45 @@ def test_validate_dog_import_input_treats_none_modules_as_empty_mapping() -> Non
     )
 
     assert imported[CONF_MODULES] == {}
+
+
+def test_validate_dog_update_input_rejects_duplicate_name_when_names_are_provided() -> (
+    None
+):
+    """Update validation should reject duplicate names from existing profile set."""
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_update_input(
+            {
+                CONF_DOG_ID: "luna",
+                CONF_DOG_NAME: "Luna",
+                CONF_DOG_AGE: 4,
+                CONF_DOG_WEIGHT: 20,
+                CONF_DOG_SIZE: "medium",
+            },
+            {
+                CONF_DOG_NAME: "Milo",
+            },
+            existing_names={"milo"},
+        )
+
+    assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"
+
+
+def test_validate_dog_update_input_keeps_existing_optional_values() -> None:
+    """Update validation should preserve optional values when they are omitted."""
+    updated = validate_dog_update_input(
+        {
+            CONF_DOG_ID: "luna",
+            CONF_DOG_NAME: "Luna",
+            CONF_DOG_BREED: "Beagle",
+            CONF_DOG_AGE: 5,
+            CONF_DOG_WEIGHT: 20,
+            CONF_DOG_SIZE: "medium",
+        },
+        {},
+    )
+
+    assert updated[CONF_DOG_BREED] == "Beagle"
+    assert updated[CONF_DOG_AGE] == 5
+    assert updated[CONF_DOG_WEIGHT] == 20.0
+    assert updated[CONF_DOG_SIZE] == "medium"
