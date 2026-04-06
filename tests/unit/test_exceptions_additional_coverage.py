@@ -1,3 +1,5 @@
+import pytest
+
 """Additional branch coverage for ``custom_components.pawcontrol.exceptions``."""
 
 from custom_components.pawcontrol.exceptions import (
@@ -6,12 +8,15 @@ from custom_components.pawcontrol.exceptions import (
     FlowValidationError,
     NetworkError,
     NotificationError,
+    PawControlError,
     RateLimitError,
     ReauthRequiredError,
     ReconfigureRequiredError,
     RepairRequiredError,
     ServiceUnavailableError,
     StorageError,
+    handle_exception_gracefully,
+    raise_from_error_code,
 )
 
 
@@ -102,3 +107,79 @@ def test_reconfiguration_related_errors_have_expected_codes() -> None:
     assert reauth.context["step"] == "token"
     assert reconfigure.error_code == "reconfigure_required"
     assert repair.error_code == "repair_required"
+
+
+def test_gps_error_variants_cover_missing_message_branches() -> None:
+    """GPS-related exceptions should expose fallback messages and details branches."""
+    from custom_components.pawcontrol.exceptions import (
+        GPSUnavailableError,
+        InvalidCoordinatesError,
+    )
+
+    without_coordinates = InvalidCoordinatesError()
+    assert str(without_coordinates) == "Invalid GPS coordinates provided"
+    assert (
+        without_coordinates.technical_details
+        == "GPS coordinates are missing or malformed"
+    )
+
+    without_reason = GPSUnavailableError("dog-123")
+    assert str(without_reason) == "GPS data is not available for dog 'dog-123'"
+
+
+def test_storage_and_notification_error_reasonless_message_branches() -> None:
+    """Storage/notification errors should use default messages without a reason."""
+    no_reason_storage = StorageError("archive")
+    no_reason_notification = NotificationError("email")
+
+    assert str(no_reason_storage) == "Storage archive failed"
+    assert str(no_reason_notification) == "Failed to send email notification"
+
+
+def test_raise_from_error_code_with_context_only_path() -> None:
+    """raise_from_error_code should support the context-only constructor branch."""
+    with pytest.raises(PawControlError) as exc_info:
+        raise_from_error_code(
+            "custom_error",
+            "context branch",
+            context={"source": "test"},
+        )
+
+    assert exc_info.value.context["source"] == "test"
+
+
+def test_handle_exception_gracefully_logs_and_reraises_unexpected() -> None:
+    """Unexpected exceptions should be logged and reraised when configured."""
+
+    def _raise_unexpected() -> None:
+        raise RuntimeError("boom")
+
+    wrapped = handle_exception_gracefully(
+        _raise_unexpected,
+        log_errors=True,
+        reraise_critical=True,
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
+        wrapped()
+
+
+def test_handle_exception_gracefully_logs_non_critical_errors(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Handled PawControlError instances should still be logged when requested."""
+
+    def _raise_non_critical() -> None:
+        raise PawControlError("recoverable")
+
+    wrapped = handle_exception_gracefully(
+        _raise_non_critical,
+        default_return="fallback",
+        log_errors=True,
+    )
+
+    with caplog.at_level("ERROR"):
+        result = wrapped()
+
+    assert result == "fallback"
+    assert "PawControl error in _raise_non_critical" in caplog.text
