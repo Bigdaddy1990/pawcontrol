@@ -32,6 +32,14 @@ class _ConfigEntriesStub:
         return [object() for _ in range(self.loaded_entries)]
 
 
+class _MockApiNotReadyError(Exception):
+    """Test-only API exception mapped to ConfigEntryNotReady."""
+
+
+class _MockApiAuthError(Exception):
+    """Test-only API exception mapped to ConfigEntryAuthFailed."""
+
+
 @pytest.mark.asyncio
 async def test_async_setup_entry_success_forwards_platform_setup(
     monkeypatch: pytest.MonkeyPatch,
@@ -116,6 +124,62 @@ async def test_async_setup_entry_propagates_known_failures(
         await pawcontrol_init.async_setup_entry(
             SimpleNamespace(), SimpleNamespace(entry_id="id", options={})
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("api_error", "mapped_error"),
+    [
+        (_MockApiNotReadyError("api offline"), ConfigEntryNotReady),
+        (_MockApiAuthError("invalid token"), ConfigEntryAuthFailed),
+    ],
+)
+async def test_async_setup_entry_propagates_mock_api_mapped_exceptions(
+    monkeypatch: pytest.MonkeyPatch,
+    api_error: Exception,
+    mapped_error: type[Exception],
+) -> None:
+    """Setup should preserve mapped setup exceptions from API bootstrap layers."""
+    entry = SimpleNamespace(entry_id="entry-id", options={}, data={})
+    hass = SimpleNamespace()
+    runtime_data = SimpleNamespace()
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        AsyncMock(return_value=([{"id": "dog-1"}], "standard", [])),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_should_skip_optional_setup",
+        lambda _hass: True,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_initialize_managers",
+        AsyncMock(side_effect=api_error),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "store_runtime_data",
+        lambda *_: runtime_data,
+    )
+
+    if mapped_error is ConfigEntryNotReady:
+        monkeypatch.setitem(
+            pawcontrol_init.async_setup_entry.__globals__,
+            "async_initialize_managers",
+            AsyncMock(side_effect=ConfigEntryNotReady(str(api_error))),
+        )
+    else:
+        monkeypatch.setitem(
+            pawcontrol_init.async_setup_entry.__globals__,
+            "async_initialize_managers",
+            AsyncMock(side_effect=ConfigEntryAuthFailed(str(api_error))),
+        )
+
+    with pytest.raises(mapped_error):
+        await pawcontrol_init.async_setup_entry(hass, entry)
 
 
 @pytest.mark.asyncio
@@ -247,6 +311,62 @@ async def test_async_unload_entry_cleans_runtime_resources(
 
 
 @pytest.mark.asyncio
+async def test_async_unload_entry_runs_platform_cleanup_and_manager_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unload must clean listeners/coordinator resources and remove entities."""
+    async_unload_platforms = AsyncMock(return_value=True)
+    runtime_data = SimpleNamespace(
+        dogs=[{"modules": {"gps": True, "health": True}}],
+        entity_profile="standard",
+    )
+    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(
+            async_unload_platforms=async_unload_platforms,
+            async_loaded_entries=lambda _domain: [object(), object()],
+        ),
+        data={"pawcontrol": {}},
+    )
+
+    cleanup_runtime = AsyncMock()
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unload_external_bindings",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "get_runtime_data",
+        lambda *_: runtime_data,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_cleanup_runtime_data",
+        cleanup_runtime,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "pop_runtime_data",
+        lambda *_: None,
+    )
+
+    assert await pawcontrol_init.async_unload_entry(hass, entry) is True
+    assert async_unload_platforms.await_count == 1
+    cleanup_runtime.assert_awaited_once_with(runtime_data)
+
+
+@pytest.mark.asyncio
 async def test_async_reload_entry_is_idempotent_when_repeated(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -266,3 +386,22 @@ async def test_async_reload_entry_is_idempotent_when_repeated(
     assert await pawcontrol_init.async_reload_entry(hass, entry) is None
     assert unload.await_count == 2
     assert setup.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_options_update_listener_wrapper_is_idempotent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Repeated options-update callbacks should always trigger safe reload."""
+    from custom_components.pawcontrol.setup.cleanup import _async_reload_entry_wrapper
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry-id")
+    reload_entry = AsyncMock(return_value=None)
+    monkeypatch.setattr("custom_components.pawcontrol.async_reload_entry", reload_entry)
+
+    update_listener = _async_reload_entry_wrapper(hass)
+    await update_listener(hass, entry)
+    await update_listener(hass, entry)
+
+    assert reload_entry.await_count == 2
