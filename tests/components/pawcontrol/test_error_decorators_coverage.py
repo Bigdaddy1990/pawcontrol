@@ -1,6 +1,7 @@
 """Coverage-focused tests for error and validation decorators."""
 
 from dataclasses import dataclass
+import inspect
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -357,3 +358,129 @@ async def test_repair_issue_helpers_cover_mappings() -> None:
         assert kwargs["is_fixable"] is False
         assert kwargs["translation_placeholders"]["details"] == "trace"
         assert "retry" in kwargs["translation_placeholders"]["suggestions"]
+
+
+def test_validate_dog_exists_without_instance_args_raises() -> None:
+    """Calling with keyword dog_id and no instance should fail with instance error."""
+
+    @validate_dog_exists()
+    def _no_instance(dog_id: str) -> str:
+        return dog_id
+
+    with pytest.raises(PawControlError, match="instance method"):
+        _no_instance(dog_id="luna")
+
+
+@pytest.mark.asyncio
+async def test_async_wrappers_handle_non_awaitable_marked_coroutines() -> None:
+    """Marked coroutine functions returning plain values should use direct return path."""
+
+    @inspect.markcoroutinefunction
+    def _plain_handle() -> str:
+        return "ok"
+
+    @inspect.markcoroutinefunction
+    def _plain_repair() -> str:
+        return "mapped"
+
+    @inspect.markcoroutinefunction
+    def _plain_retry() -> str:
+        return "retry-ok"
+
+    assert await handle_errors()(_plain_handle)() == "ok"
+    assert await map_to_repair_issue("plain_issue")(_plain_repair)() == "mapped"
+    assert await retry_on_error()(_plain_retry)() == "retry-ok"
+
+
+@pytest.mark.asyncio
+async def test_handle_errors_async_reraise_paths() -> None:
+    """Async handler should reraise validation and wrapped critical errors when enabled."""
+
+    @handle_errors(default_return="fallback")
+    async def _raise_validation() -> str:
+        raise ValidationError(field="age", constraint="invalid")
+
+    with pytest.raises(ValidationError):
+        await _raise_validation()
+
+    @handle_errors(default_return="fallback", reraise_critical=True)
+    async def _raise_runtime() -> str:
+        raise RuntimeError("boom")
+
+    with pytest.raises(PawControlError, match="boom"):
+        await _raise_runtime()
+
+
+@pytest.mark.asyncio
+async def test_map_to_repair_issue_uses_coordinator_hass_fallback() -> None:
+    """When ``hass`` is absent, decorator should read hass from ``coordinator``."""
+
+    service = SimpleNamespace(coordinator=_Coordinator(data={}, hass=SimpleNamespace()))
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.issue_registry.async_create_issue"
+    ) as create_issue:
+
+        @map_to_repair_issue("coord_only")
+        async def _async_fail(instance: Any) -> None:
+            raise PawControlError("async failed", error_code="async_code")
+
+        with pytest.raises(PawControlError):
+            await _async_fail(service)
+
+        create_issue.assert_called_once()
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators.issue_registry.async_create_issue"
+    ) as create_issue:
+
+        @map_to_repair_issue("coord_only_sync")
+        def _sync_fail(instance: Any) -> None:
+            raise PawControlError("sync failed", error_code="sync_code")
+
+        with pytest.raises(PawControlError):
+            _sync_fail(service)
+
+        create_issue.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_retry_on_error_zero_attempts_returns_none_and_sync_error_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Retry wrapper should return None for zero attempts and re-raise final sync errors."""
+
+    @retry_on_error(max_attempts=0)
+    async def _never_called_async() -> str:
+        raise AssertionError("should not execute")
+
+    assert await _never_called_async() is None
+
+    @retry_on_error(max_attempts=0)
+    def _never_called_sync() -> str:
+        raise AssertionError("should not execute")
+
+    assert _never_called_sync() is None
+
+    monkeypatch.setattr("time.sleep", lambda _: None)
+
+    @retry_on_error(max_attempts=1, delay=0.01)
+    def _always_fail_sync() -> None:
+        raise NetworkError("final")
+
+    with pytest.raises(NetworkError):
+        _always_fail_sync()
+
+
+def test_require_coordinator_data_instance_guards() -> None:
+    """Decorator should reject missing instance args and missing coordinator attribute."""
+
+    @require_coordinator_data()
+    def _guarded(service: Any) -> str:
+        return "ok"
+
+    with pytest.raises(PawControlError, match="instance method"):
+        _guarded()  # type: ignore[call-arg]
+
+    with pytest.raises(PawControlError, match="coordinator attribute"):
+        _guarded(SimpleNamespace())
