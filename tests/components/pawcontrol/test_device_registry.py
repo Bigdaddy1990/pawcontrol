@@ -176,6 +176,42 @@ async def test_remove_config_entry_device_uses_mapping_payloads(
 
 
 @pytest.mark.asyncio
+async def test_remove_config_entry_device_handles_non_mapping_and_unsanitizable_ids(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Malformed map entries and invalid IDs should be skipped cleanly."""
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.sanitize_dog_id",
+        lambda _dog_id: "",
+    )
+
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: {
+                "bad-entry": "not-a-mapping",
+                "!!!": {DOG_NAME_FIELD: 123},
+            }
+        },
+        options={
+            CONF_DOGS: [
+                {
+                    DOG_ID_FIELD: "!!!",
+                    DOG_NAME_FIELD: 123,
+                }
+            ]
+        },
+    )
+    device_entry = DeviceEntry(
+        id="invalid-id-device",
+        identifiers={(DOMAIN, sanitize_dog_id("No Match"))},
+    )
+
+    assert await async_remove_config_entry_device(hass, entry, device_entry) is True
+
+
+@pytest.mark.asyncio
 async def test_remove_config_entry_device_uses_runtime_data_and_skips_invalid_payloads(
     hass: HomeAssistant,
 ) -> None:
