@@ -108,6 +108,30 @@ def test_validate_dog_setup_input_raises_combined_flow_errors() -> None:
     assert err.value.field_errors[CONF_DOG_BREED] == "breed_name_too_long"
 
 
+def test_validate_dog_setup_input_maps_out_of_range_and_invalid_breed_errors() -> None:
+    """Setup validation should map range errors and generic breed failures."""
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_setup_input(
+            {
+                CONF_DOG_ID: "   ",
+                CONF_DOG_NAME: "Rex",
+                CONF_DOG_WEIGHT: 999,
+                CONF_DOG_AGE: 99,
+                CONF_DOG_SIZE: "medium",
+                CONF_DOG_BREED: "Breed###",
+            },
+            existing_ids=set(),
+            existing_names=set(),
+            current_dog_count=0,
+            max_dogs=10,
+        )
+
+    assert err.value.field_errors[CONF_DOG_ID] == "invalid_dog_id_format"
+    assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_out_of_range"
+    assert err.value.field_errors[CONF_DOG_AGE] == "age_out_of_range"
+    assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
+
+
 def test_validate_dog_setup_input_success_includes_optional_breed() -> None:
     """Successful setup validation should return normalized payload."""
     validated = validate_dog_setup_input(
@@ -168,6 +192,32 @@ def test_validate_dog_config_payload_normalizes_optional_fields_and_modules() ->
     assert validated[CONF_MODULES] == {"gps": True, "feeding": False}
 
 
+def test_validate_dog_config_payload_propagates_update_errors_and_drops_modules() -> (
+    None
+):
+    """Config payload should keep update errors and drop absent modules."""
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_config_payload(
+            {
+                CONF_DOG_ID: "luna_three",
+                CONF_DOG_NAME: "Luna",
+                CONF_DOG_WEIGHT: "bad",
+            },
+            existing_ids=None,
+            existing_names={"luna"},
+        )
+    assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"
+    assert err.value.field_errors[CONF_DOG_WEIGHT] == "invalid_weight_format"
+
+    validated = validate_dog_config_payload(
+        {
+            CONF_DOG_ID: "luna_four",
+            CONF_DOG_NAME: "Luna Four",
+        },
+    )
+    assert CONF_MODULES not in validated
+
+
 def test_validate_dog_update_input_removes_nullable_fields_and_validates_ranges() -> (
     None
 ):
@@ -208,6 +258,42 @@ def test_validate_dog_update_input_removes_nullable_fields_and_validates_ranges(
     assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_size_mismatch"
 
 
+def test_validate_dog_update_input_covers_remaining_error_paths() -> None:
+    """Update validation should map parsing, size, range, and cleanup branches."""
+    current = {
+        CONF_DOG_ID: "luna",
+        CONF_DOG_NAME: "Luna",
+        CONF_DOG_BREED: "Lab",
+        CONF_DOG_AGE: 5,
+        CONF_DOG_WEIGHT: 12,
+        CONF_DOG_SIZE: "small",
+    }
+
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_update_input(
+            current,
+            {
+                CONF_DOG_NAME: "Luna",
+                CONF_DOG_BREED: "###",
+                CONF_DOG_AGE: "bad-age",
+                CONF_DOG_WEIGHT: "bad-weight",
+                CONF_DOG_SIZE: "__bad_size__",
+            },
+            existing_names={"luna"},
+        )
+    assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"
+    assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
+    assert err.value.field_errors[CONF_DOG_AGE] == "invalid_age_format"
+    assert err.value.field_errors[CONF_DOG_WEIGHT] == "invalid_weight_format"
+    assert err.value.field_errors[CONF_DOG_SIZE] == "invalid_dog_size"
+
+    current_without_size = dict(current)
+    current_without_size.pop(CONF_DOG_SIZE, None)
+    with pytest.raises(FlowValidationError) as weight_error:
+        validate_dog_update_input(current_without_size, {CONF_DOG_WEIGHT: 999})
+    assert weight_error.value.field_errors[CONF_DOG_WEIGHT] == "weight_out_of_range"
+
+
 def test_validate_dog_import_input_rejects_unexpected_and_invalid_modules() -> None:
     """Import validation should reject unknown keys and non-mapping modules."""
     with pytest.raises(ValidationError, match="Unexpected keys"):
@@ -233,6 +319,22 @@ def test_validate_dog_import_input_rejects_unexpected_and_invalid_modules() -> N
             current_dog_count=0,
             max_dogs=2,
         )
+
+
+def test_validate_dog_import_input_accepts_none_modules() -> None:
+    """Import validation should normalize ``None`` modules to an empty mapping."""
+    imported = validate_dog_import_input(
+        {
+            **_valid_dog_input(),
+            CONF_MODULES: None,
+        },
+        existing_ids=set(),
+        existing_names=set(),
+        current_dog_count=0,
+        max_dogs=2,
+    )
+
+    assert imported[CONF_MODULES] == {}
 
 
 def test_validate_dog_import_input_success_and_payload_validity_helper() -> None:
