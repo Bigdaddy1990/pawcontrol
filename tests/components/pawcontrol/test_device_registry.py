@@ -299,6 +299,9 @@ async def test_remove_config_entry_device_sequence_source_falls_back_to_dog_id_n
     )
 
     assert await async_remove_config_entry_device(hass, entry, active_device) is False
+
+
+@pytest.mark.asyncio
 async def test_remove_config_entry_device_skips_invalid_mapping_and_falls_back_to_id(
     hass: HomeAssistant,
 ) -> None:
@@ -331,18 +334,6 @@ async def test_remove_config_entry_device_skips_invalid_mapping_and_falls_back_t
 
     assert await async_remove_config_entry_device(hass, entry, mapping_device) is True
     assert await async_remove_config_entry_device(hass, entry, sequence_device) is False
-                "SkipMe": "not-a-mapping",
-                "Nameless-42": {DOG_NAME_FIELD: 1234},
-            },
-        },
-        options={},
-    )
-    active_device = DeviceEntry(
-        id="name-fallback-device",
-        identifiers={(DOMAIN, sanitize_dog_id("Nameless-42"))},
-    )
-
-    assert await async_remove_config_entry_device(hass, entry, active_device) is False
 
 
 @pytest.mark.asyncio
