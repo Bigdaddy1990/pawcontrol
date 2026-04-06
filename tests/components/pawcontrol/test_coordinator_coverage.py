@@ -527,8 +527,8 @@ async def test_async_update_data_recovery_after_failure_and_success() -> None:
 
     async def _execute_cycle_ok(
         _dog_ids: list[str],
-    ) -> tuple[dict[str, dict[str, Any]], object]:
-        return {"dog-1": {"health": {"status": "ok"}}}, object()
+    ) -> tuple[dict[str, dict[str, Any]], Any]:
+        return {"dog-1": {"health": {"status": "ok"}}}, None
 
     async def _sync(_data: dict[str, dict[str, dict[str, str]]]) -> None:
         return None
@@ -553,11 +553,11 @@ async def test_async_update_data_refresh_success_payload_keeps_available_true() 
 
     async def _execute_cycle(
         _dog_ids: list[str],
-    ) -> tuple[dict[str, dict[str, dict[str, str]]], object]:
+    ) -> tuple[dict[str, dict[str, dict[str, str]]], Any]:
         return {
             "dog-1": {"health": {"status": "ok"}},
             "dog-none": {"status": {"state": "idle"}},
-        }, object()
+        }, None
 
     async def _prepare_entry() -> None:
         return None
@@ -588,7 +588,7 @@ async def test_async_update_data_timeout_keeps_preexisting_state_and_unavailable
 
     async def _execute_cycle(
         _dog_ids: list[str],
-    ) -> tuple[dict[str, dict[str, Any]], object]:
+    ) -> tuple[dict[str, dict[str, Any]], Any]:
         raise TimeoutError("refresh timed out")
 
     async def _prepare_entry() -> None:
