@@ -19,6 +19,7 @@ from custom_components.pawcontrol.exceptions import (
     ConfigurationError,
     GPSUnavailableError,
     NetworkError,
+    RateLimitError,
 )
 
 
@@ -213,6 +214,103 @@ async def test_create_repair_issue_uses_fallback_severity_for_unknown_levels(
         )
 
     assert issue.call_args.kwargs["severity"] is ir.IssueSeverity.ERROR
+
+
+@pytest.mark.parametrize(
+    ("severity", "expected"),
+    [
+        ("low", ir.IssueSeverity.WARNING),
+        ("medium", ir.IssueSeverity.WARNING),
+        ("high", ir.IssueSeverity.ERROR),
+        ("critical", ir.IssueSeverity.CRITICAL),
+    ],
+)
+@pytest.mark.asyncio
+async def test_create_repair_issue_maps_known_severity_levels(
+    hass: HomeAssistant,
+    severity: str,
+    expected: ir.IssueSeverity,
+) -> None:
+    """Repair issue severity should follow the module severity map."""
+    coordinator = ErrorRecoveryCoordinator(hass)
+    pattern = ErrorPattern(
+        exception_type=NetworkError,
+        create_repair_issue=True,
+        severity=severity,
+    )
+
+    with patch(
+        "custom_components.pawcontrol.error_recovery.ir.async_create_issue"
+    ) as issue:
+        await coordinator._create_repair_issue(
+            NetworkError("offline"),
+            pattern,
+            {"dog_id": "alpha"},
+        )
+
+    kwargs = issue.call_args.kwargs
+    assert kwargs["severity"] is expected
+    assert kwargs["translation_key"] == "networkerror"
+    assert kwargs["translation_placeholders"] == {
+        "error": "offline",
+        "error_type": "NetworkError",
+    }
+
+
+@pytest.mark.asyncio
+async def test_summary_recovery_rate_and_most_common_ordering(
+    hass: HomeAssistant,
+) -> None:
+    """Summary should compute rates and sort most common error types."""
+    coordinator = ErrorRecoveryCoordinator(hass)
+
+    coordinator.register_pattern(
+        ErrorPattern(
+            exception_type=RateLimitError,
+            recovery_action=AsyncMock(return_value={"retry_after": 10}),
+        )
+    )
+
+    await coordinator.handle_error(RateLimitError("too many requests"))
+    await coordinator.handle_error(NetworkError("offline"))
+    await coordinator.handle_error(NetworkError("still offline"))
+
+    summary = coordinator.get_recovery_summary()
+
+    assert summary["total_errors"] == 3
+    assert summary["total_recovered"] == 1
+    assert summary["total_unrecovered"] == 2
+    assert summary["recovery_rate"] == pytest.approx(1 / 3)
+    assert summary["most_common"][0].exception_type == "NetworkError"
+    assert summary["most_common"][0].total_count == 2
+
+
+@pytest.mark.asyncio
+async def test_handle_error_repair_issue_without_recovery_action(
+    hass: HomeAssistant,
+) -> None:
+    """Repair issue can be created even when no recovery action exists."""
+    coordinator = ErrorRecoveryCoordinator(hass)
+    coordinator.register_pattern(
+        ErrorPattern(
+            exception_type=AuthenticationError,
+            create_repair_issue=True,
+            recovery_action=None,
+        )
+    )
+
+    with patch(
+        "custom_components.pawcontrol.error_recovery.ir.async_create_issue"
+    ) as issue:
+        result = await coordinator.handle_error(AuthenticationError("expired"))
+
+    assert result["repair_issue_created"] is True
+    assert result["recovered"] is False
+    issue.assert_called_once()
+
+    stats = coordinator.get_stats()["AuthenticationError"]
+    assert stats.repair_issues_created == 1
+    assert stats.unrecovered_count == 1
 
 
 def test_reset_stats_clears_collected_metrics(hass: HomeAssistant) -> None:
