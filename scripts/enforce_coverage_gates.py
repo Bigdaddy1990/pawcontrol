@@ -1,7 +1,5 @@
 """Fail CI when coverage gates for PawControl are not met."""
 
-from __future__ import annotations
-
 import argparse
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
