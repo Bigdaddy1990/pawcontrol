@@ -184,6 +184,29 @@ async def test_request_selective_refresh_handles_none_and_deduplicates_ids() -> 
 
 
 @pytest.mark.asyncio
+async def test_request_selective_refresh_returns_early_for_blank_ids() -> None:
+    """Blank selective refresh payloads should not trigger update calls."""
+    coordinator = _make_coordinator()
+    requested_full = False
+    requested_subset: list[list[str]] = []
+
+    async def _request_refresh() -> None:
+        nonlocal requested_full
+        requested_full = True
+
+    async def _refresh_subset(dog_ids: list[str]) -> None:
+        requested_subset.append(dog_ids)
+
+    coordinator.async_request_refresh = _request_refresh
+    coordinator._refresh_subset = _refresh_subset
+
+    await coordinator.async_request_selective_refresh(["", " ", ""])
+
+    assert requested_full is False
+    assert requested_subset == []
+
+
+@pytest.mark.asyncio
 async def test_async_patch_gps_update_merges_latest_module_payloads() -> None:
     """GPS patch updates existing payload in place and notifies subscribers."""
     coordinator = _make_coordinator()
@@ -212,6 +235,36 @@ async def test_async_patch_gps_update_merges_latest_module_payloads() -> None:
     assert coordinator._data["dog-1"]["gps"] == {"lat": 50.0, "lon": 8.0}
     assert coordinator._data["dog-1"]["geofencing"] == {"inside_zone": True}
     assert updates and updates[-1]["dog-1"]["gps"]["lat"] == 50.0
+
+
+@pytest.mark.asyncio
+async def test_async_patch_gps_update_requests_refresh_when_state_not_ready() -> None:
+    """GPS patch should early-return through refresh guard if cache is unready."""
+    coordinator = _make_coordinator()
+    coordinator.registry = _DummyRegistry(["dog-1"])
+    coordinator._setup_complete = False
+    coordinator.last_update_success = True
+    coordinator._data = {}
+    refresh_requests: list[bool] = []
+
+    async def _refresh() -> None:
+        refresh_requests.append(True)
+
+    coordinator.async_request_refresh = _refresh
+    coordinator._modules = SimpleNamespace(
+        gps=SimpleNamespace(
+            async_get_data=lambda _dog_id: pytest.fail("gps getter should not run")
+        ),
+        geofencing=SimpleNamespace(
+            async_get_data=lambda _dog_id: pytest.fail(
+                "geofencing getter should not run"
+            )
+        ),
+    )
+
+    await coordinator.async_patch_gps_update("dog-1")
+
+    assert refresh_requests == [True]
 
 
 @pytest.mark.asyncio
@@ -423,6 +476,32 @@ async def test_async_update_data_tolerates_inconsistent_payload_shapes() -> None
 
     assert synchronized == [{"dog-1": "not-a-mapping", "dog-none": {}}]
     assert result == {"dog-1": "not-a-mapping", "dog-none": {}}
+
+
+@pytest.mark.asyncio
+async def test_async_update_data_keeps_state_update_when_sync_raises() -> None:
+    """State payload should still return when module synchronization fails."""
+    coordinator = _make_coordinator()
+
+    async def _execute_cycle(
+        _dog_ids: list[str],
+    ) -> tuple[dict[str, dict[str, dict[str, str]]], object]:
+        return {"dog-1": {"health": {"status": "ok"}}}, object()
+
+    async def _prepare_entry() -> None:
+        return None
+
+    async def _sync(_data: dict[str, dict[str, dict[str, str]]]) -> None:
+        raise RuntimeError("sync failure")
+
+    coordinator.async_prepare_entry = _prepare_entry
+    coordinator._execute_cycle = _execute_cycle
+    coordinator._synchronize_module_states = _sync
+
+    result = await coordinator._async_update_data()
+
+    assert result["dog-1"]["health"]["status"] == "ok"
+    assert coordinator._data["dog-1"]["health"]["status"] == "ok"
 
 
 @pytest.mark.asyncio

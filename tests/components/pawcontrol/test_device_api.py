@@ -202,6 +202,10 @@ async def test_async_get_json_uses_resilience_manager_when_available() -> None:
         "GET",
         "/api/dogs/1/feeding",
     )
+    assert manager.execute_with_resilience.call_args.kwargs == {
+        "circuit_breaker_name": "device_api_request",
+        "retry_config": client._retry_config,
+    }
 
 
 @pytest.mark.asyncio
@@ -229,6 +233,23 @@ async def test_async_get_feeding_payload_uses_expected_resource_path() -> None:
 
     assert payload == {"scheduled": True}
     client.async_get_json.assert_awaited_once_with("/api/dogs/dog-42/feeding")
+
+
+@pytest.mark.asyncio
+async def test_async_get_json_passes_timeout_configuration_to_session() -> None:
+    """Raw request path should forward custom timeout values unchanged."""
+    timeout = ClientTimeout(total=42.0)
+    session = _FakeSession(_FakeResponse(json_payload={"ok": True}))
+    client = PawControlDeviceClient(
+        session,
+        endpoint="https://example.test",
+        timeout=timeout,
+    )
+
+    await client.async_get_json("/api/status")
+
+    _, kwargs = session.calls[0]
+    assert kwargs["timeout"] is timeout
 
 
 @pytest.mark.asyncio
@@ -377,3 +398,15 @@ async def test_async_get_json_does_not_retry_auth_failures() -> None:
         await client.async_get_json("/api/status")
 
     assert session.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_async_get_json_propagates_rate_limit_error_without_json_parsing() -> None:
+    """Guard path should bubble API throttling errors immediately."""
+    client = PawControlDeviceClient(
+        _FakeSession(_FakeResponse(status=429)),
+        endpoint="https://example.test",
+    )
+
+    with pytest.raises(RateLimitError):
+        await client.async_get_json("/api/status")
