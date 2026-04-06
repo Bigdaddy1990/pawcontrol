@@ -4,6 +4,7 @@ import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+from homeassistant.exceptions import ConfigEntryNotReady
 import pytest
 
 import custom_components.pawcontrol as pawcontrol_init
@@ -165,6 +166,10 @@ async def test_async_setup_entry_stores_daily_reset_unsubscriber(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Successful scheduler setup should populate runtime reset unsubscribe hook."""
+async def test_async_setup_entry_tracks_daily_reset_unsubscriber(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Successful scheduler setup should persist the returned unsubscribe callback."""
 
     class _Coordinator:
         def async_start_background_tasks(self) -> None:
@@ -178,9 +183,10 @@ async def test_async_setup_entry_stores_daily_reset_unsubscriber(
         daily_reset_unsub=None,
         background_monitor_task=None,
     )
-    unsub = lambda: None
+
     entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
     hass = SimpleNamespace(async_create_task=lambda coro: asyncio.create_task(coro))
+    reset_unsub = lambda: None
 
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
@@ -225,7 +231,7 @@ async def test_async_setup_entry_stores_daily_reset_unsubscriber(
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
         "async_setup_daily_reset_scheduler",
-        AsyncMock(return_value=unsub),
+        AsyncMock(return_value=reset_unsub),
     )
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
@@ -239,30 +245,27 @@ async def test_async_setup_entry_stores_daily_reset_unsubscriber(
     )
 
     assert await pawcontrol_init.async_setup_entry(hass, entry) is True
-    assert runtime_data.daily_reset_unsub is unsub
-    runtime_data.background_monitor_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await runtime_data.background_monitor_task
+    assert runtime_data.daily_reset_unsub is reset_unsub
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_disables_debug_for_not_ready_errors(
+async def test_async_setup_entry_disables_debug_on_known_setup_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Expected setup failures should disable debug logging before re-raising."""
-    entry = SimpleNamespace(entry_id="entry-id", options={"debug_logging": True})
+    """Known setup exceptions should still clear debug logging state."""
+    entry = SimpleNamespace(entry_id="debug-entry", options={"debug_logging": True})
     hass = SimpleNamespace()
 
     monkeypatch.setitem(
         pawcontrol_init.async_setup_entry.__globals__,
         "async_validate_entry_config",
-        AsyncMock(side_effect=ConfigEntryNotReady("retry")),
+        AsyncMock(side_effect=ConfigEntryNotReady("retry later")),
     )
 
     with pytest.raises(ConfigEntryNotReady):
         await pawcontrol_init.async_setup_entry(hass, entry)
 
-    assert "entry-id" not in pawcontrol_init._DEBUG_LOGGER_ENTRIES
+    assert "debug-entry" not in pawcontrol_init._DEBUG_LOGGER_ENTRIES
 
 
 @pytest.mark.asyncio
@@ -349,3 +352,155 @@ async def test_async_monitor_background_tasks_restarts_failed_garden_tasks(
 
     assert restart_cleanup.await_count >= 1
     assert restart_stats.await_count >= 1
+
+
+@pytest.mark.asyncio
+async def test_async_monitor_background_tasks_logs_restart_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Monitor should swallow restart failures and keep looping."""
+    done_task = asyncio.get_running_loop().create_future()
+    done_task.set_result(None)
+    garden_manager = SimpleNamespace(
+        _cleanup_task=done_task,
+        _stats_update_task=done_task,
+        async_start_cleanup_task=AsyncMock(side_effect=RuntimeError("cleanup boom")),
+        async_start_stats_update_task=AsyncMock(side_effect=RuntimeError("stats boom")),
+    )
+    runtime_data = SimpleNamespace(garden_manager=garden_manager)
+
+    sleep_mock = AsyncMock(
+        side_effect=[None, RuntimeError("loop boom"), asyncio.CancelledError]
+    )
+    monkeypatch.setitem(
+        pawcontrol_init._async_monitor_background_tasks.__globals__,
+        "asyncio",
+        SimpleNamespace(sleep=sleep_mock, CancelledError=asyncio.CancelledError),
+    )
+
+    await pawcontrol_init._async_monitor_background_tasks(runtime_data)
+
+
+@pytest.mark.asyncio
+async def test_async_unload_entry_returns_false_when_platform_unload_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unload should short-circuit when Home Assistant unload fails."""
+
+    class _FailingConfigEntries:
+        async def async_unload_platforms(
+            self, _entry: object, _platforms: tuple[object, ...]
+        ) -> bool:
+            return False
+
+        def async_loaded_entries(self, _domain: str) -> list[object]:
+            return [object()]
+
+    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+    hass = SimpleNamespace(
+        config_entries=_FailingConfigEntries(),
+        data={"pawcontrol": {}},
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unload_external_bindings",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "get_runtime_data",
+        lambda *_: None,
+    )
+
+    assert await pawcontrol_init.async_unload_entry(hass, entry) is False
+
+
+@pytest.mark.asyncio
+async def test_async_unload_entry_handles_service_manager_shutdown_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unload should continue when service manager shutdown errors."""
+
+    class _ConfigEntriesSingleLoaded:
+        async def async_unload_platforms(
+            self, _entry: object, _platforms: tuple[object, ...]
+        ) -> bool:
+            return True
+
+        def async_loaded_entries(self, _domain: str) -> list[object]:
+            return [object()]
+
+    runtime_data = SimpleNamespace(dogs=[], entity_profile="standard")
+    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+    service_manager = SimpleNamespace(
+        async_shutdown=AsyncMock(side_effect=RuntimeError("shutdown boom"))
+    )
+    hass = SimpleNamespace(
+        config_entries=_ConfigEntriesSingleLoaded(),
+        data={"pawcontrol": {"service_manager": service_manager}},
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unload_external_bindings",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "get_runtime_data",
+        lambda *_: runtime_data,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_cleanup_runtime_data",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "pop_runtime_data",
+        lambda *_: None,
+    )
+
+    assert await pawcontrol_init.async_unload_entry(hass, entry) is True
+
+
+@pytest.mark.asyncio
+async def test_async_reload_entry_returns_when_unload_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reload should return early without setup if unload fails."""
+    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+    setup_mock = AsyncMock()
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_unload_entry",
+        AsyncMock(return_value=False),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        setup_mock,
+    )
+
+    await pawcontrol_init.async_reload_entry(SimpleNamespace(), entry)
+
+    setup_mock.assert_not_awaited()

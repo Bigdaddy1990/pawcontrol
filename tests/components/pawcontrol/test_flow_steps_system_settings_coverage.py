@@ -7,6 +7,8 @@ import pytest
 
 from custom_components.pawcontrol.const import (
     CONF_API_ENDPOINT,
+    CONF_DOG_BREED,
+    CONF_DOGS,
     CONF_MQTT_TOPIC,
     CONF_PUSH_NONCE_TTL_SECONDS,
     CONF_PUSH_PAYLOAD_MAX_BYTES,
@@ -123,6 +125,33 @@ def test_resolve_get_runtime_data_uses_callable_from_options_module(
     assert resolved(object(), object()) is marker
 
 
+def test_resolve_get_runtime_data_falls_back_when_import_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Resolver should return the runtime-data fallback when import fails."""
+    monkeypatch.setattr(
+        system_settings,
+        "import_module",
+        lambda _name: (_ for _ in ()).throw(ImportError("missing module")),
+    )
+
+    resolved = _resolve_get_runtime_data()
+
+    assert resolved is system_settings._get_runtime_data
+
+
+@pytest.mark.asyncio
+async def test_async_step_push_settings_displays_form_for_initial_render() -> None:
+    """Push settings step should render a form when no input is provided."""
+    flow = _SystemFlow({})
+
+    result = await flow.async_step_push_settings()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "push_settings"
+    assert "data_schema" in result
+
+
 @pytest.mark.asyncio
 async def test_async_step_push_settings_normalises_payload_and_clears_secret() -> None:
     """Push settings step should normalise values and remove empty webhook secret."""
@@ -164,6 +193,22 @@ async def test_async_step_weather_settings_rejects_missing_weather_entity() -> N
 
 
 @pytest.mark.asyncio
+async def test_async_step_weather_settings_rejects_non_weather_entity_domain() -> None:
+    """Weather settings should reject entities that are not in the weather domain."""
+    flow = _SystemFlow(
+        {},
+        entities={"sensor.outdoor_temp": SimpleNamespace(state="22", attributes={})},
+    )
+
+    result = await flow.async_step_weather_settings({
+        "weather_entity": "sensor.outdoor_temp"
+    })
+
+    assert result["type"] == "form"
+    assert result["errors"] == {"weather_entity": "invalid_weather_entity"}
+
+
+@pytest.mark.asyncio
 async def test_async_step_weather_settings_persists_valid_selection() -> None:
     """Weather settings should persist selected weather entity for valid state."""
     flow = _SystemFlow(
@@ -181,6 +226,63 @@ async def test_async_step_weather_settings_persists_valid_selection() -> None:
     assert result["type"] == "create_entry"
     assert result["data"][CONF_WEATHER_ENTITY] == "weather.home"
     assert result["data"]["weather_settings"]["weather_entity"] == "weather.home"
+
+
+@pytest.mark.asyncio
+async def test_async_step_weather_settings_returns_base_error_on_unexpected_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Weather settings should surface a base error if update handling crashes."""
+    flow = _SystemFlow({})
+
+    def _boom(
+        _user_input: dict[str, Any], _current_weather: dict[str, Any]
+    ) -> dict[str, Any]:
+        raise RuntimeError("unexpected failure")
+
+    monkeypatch.setattr(flow, "_build_weather_settings", _boom)
+
+    result = await flow.async_step_weather_settings({"weather_entity": "none"})
+
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "weather_update_failed"}
+
+
+def test_weather_description_placeholders_report_missing_weather_entity() -> None:
+    """Description placeholders should report unavailable entities and dog stats."""
+    flow = _SystemFlow(
+        {
+            "weather_settings": {
+                CONF_WEATHER_ENTITY: "weather.missing",
+                "wind_alerts": True,
+                "weather_update_interval": 30,
+                "notification_threshold": "high",
+            }
+        },
+        entities={"weather.present": SimpleNamespace(state="sunny", attributes={})},
+    )
+    flow._entry = SimpleNamespace(
+        data={
+            CONF_DOGS: [
+                {
+                    "name": "Milo",
+                    "health_conditions": ["arthritis"],
+                    CONF_DOG_BREED: "Beagle",
+                },
+                {"name": "Luna", CONF_DOG_BREED: "Mixed Breed"},
+                "invalid",
+            ]
+        }
+    )
+
+    placeholders = flow._get_weather_description_placeholders()
+
+    assert placeholders["weather_entity_status"] == "Entity not found"
+    assert placeholders["dogs_with_health_conditions"] == "0"
+    assert placeholders["dogs_with_breeds"] == "0"
+    assert placeholders["alerts_enabled"] == "Temperature, UV, Humidity, Storms, Wind"
+    assert placeholders["update_interval"] == "30"
+    assert placeholders["notification_threshold"] == "High"
 
 
 @pytest.mark.asyncio
