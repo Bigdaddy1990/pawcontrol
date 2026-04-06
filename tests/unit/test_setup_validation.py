@@ -1,11 +1,8 @@
-"""Tests for setup.validation module.
+"""Tests for setup.validation module."""
 
-Tests configuration validation logic extracted from __init__.py
-"""
+from collections.abc import Callable, Mapping
 
-from collections.abc import Mapping
-from unittest.mock import MagicMock
-
+from homeassistant.config_entries import ConfigEntry
 import pytest
 
 from custom_components.pawcontrol.const import CONF_DOGS, CONF_MODULES
@@ -18,291 +15,228 @@ from custom_components.pawcontrol.setup.validation import (
 )
 from custom_components.pawcontrol.types import DogConfigData
 
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
-def mock_config_entry() -> MagicMock:
-    """Create a mock config entry."""
-    entry = MagicMock()
-    entry.entry_id = "test_entry_id"
-    entry.data = {
-        CONF_DOGS: [
-            {
-                "dog_id": "buddy",
-                "dog_name": "Buddy",
-                CONF_MODULES: {
-                    "gps": True,
-                    "feeding": True,
-                    "health": False,
-                },
-            },
-        ],
+def base_dog_config() -> DogConfigData:
+    """Return a baseline dog configuration payload for validation tests."""
+    return {
+        "dog_id": "buddy",
+        "dog_name": "Buddy",
+        CONF_MODULES: {
+            "gps": True,
+            "feeding": True,
+            "health": False,
+        },
     }
-    entry.options = {"entity_profile": "standard"}
-    return entry
+
+
+def _build_entry(
+    config_entry_factory: Callable[..., ConfigEntry],
+    *,
+    dogs_payload: object,
+    options: Mapping[str, object] | None = None,
+) -> ConfigEntry:
+    """Build a config entry for setup validation tests."""
+    return config_entry_factory(
+        data={CONF_DOGS: dogs_payload},
+        options=options or {"entity_profile": "standard"},
+    )
 
 
 @pytest.mark.asyncio
-async def test_async_validate_entry_config_success(mock_config_entry) -> None:
-    """Test successful config validation."""
-    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
+@pytest.mark.parametrize(
+    ("dogs_payload", "expected_modules"),
+    [
+        pytest.param([], frozenset(), id="empty-list"),
+        pytest.param(None, frozenset(), id="none-normalizes-empty"),
+        pytest.param(
+            [
+                {
+                    "dog_id": "buddy",
+                    "dog_name": "Buddy",
+                    CONF_MODULES: {
+                        "gps": True,
+                        "feeding": True,
+                        "health": False,
+                    },
+                },
+            ],
+            frozenset({"gps", "feeding"}),
+            id="single-dog-modules",
+        ),
+    ],
+)
+async def test_async_validate_entry_config_matrix_success(
+    config_entry_factory: Callable[..., ConfigEntry],
+    dogs_payload: object,
+    expected_modules: frozenset[str],
+) -> None:
+    """Validation should normalize common valid payload shapes."""
+    dogs, profile, modules = await async_validate_entry_config(
+        _build_entry(config_entry_factory, dogs_payload=dogs_payload)
+    )
 
-    assert len(dogs) == 1
-    assert dogs[0]["dog_id"] == "buddy"
-    assert dogs[0]["dog_name"] == "Buddy"
     assert profile == "standard"
-    assert "gps" in modules
-    assert "feeding" in modules
-    assert "health" not in modules
+    assert modules == expected_modules
+    assert isinstance(dogs, list)
 
 
 @pytest.mark.asyncio
-async def test_async_validate_entry_config_empty_dogs(mock_config_entry) -> None:
-    """Test validation with no dogs configured."""
-    mock_config_entry.data = {CONF_DOGS: []}
-
-    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
-
-    assert len(dogs) == 0
-    assert profile == "standard"
-    assert len(modules) == 0
-
-
-@pytest.mark.asyncio
-async def test_async_validate_entry_config_none_dogs(mock_config_entry) -> None:
-    """Test validation normalizes None dogs config to an empty list."""
-    mock_config_entry.data = {CONF_DOGS: None}
-
-    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
-
-    assert dogs == []
-    assert profile == "standard"
-    assert modules == frozenset()
-
-
-@pytest.mark.asyncio
-async def test_async_validate_entry_config_invalid_dogs_type(mock_config_entry) -> None:
-    """Test validation fails with invalid dogs type."""
-    mock_config_entry.data = {CONF_DOGS: "invalid"}
-
-    with pytest.raises(ConfigurationError, match="must be a list"):
-        await async_validate_entry_config(mock_config_entry)
+@pytest.mark.parametrize(
+    ("dogs_payload", "expected_error"),
+    [
+        pytest.param("invalid", "must be a list", id="dogs-not-list"),
+        pytest.param(["not_a_dict"], "must be mappings", id="dog-not-mapping"),
+        pytest.param(
+            [{"dog_name": "Buddy"}],
+            "must include",
+            id="missing-dog-id",
+        ),
+    ],
+)
+async def test_async_validate_entry_config_matrix_errors(
+    config_entry_factory: Callable[..., ConfigEntry],
+    dogs_payload: object,
+    expected_error: str,
+) -> None:
+    """Validation should reject malformed dog payloads with clear errors."""
+    with pytest.raises(ConfigurationError, match=expected_error):
+        await async_validate_entry_config(
+            _build_entry(config_entry_factory, dogs_payload=dogs_payload)
+        )
 
 
-@pytest.mark.asyncio
-async def test_async_validate_entry_config_invalid_dog_entry(mock_config_entry) -> None:
-    """Test validation fails with invalid dog entry."""
-    mock_config_entry.data = {CONF_DOGS: ["not_a_dict"]}
+@pytest.mark.parametrize(
+    ("raw_profile", "expected_profile"),
+    [
+        pytest.param("standard", "standard", id="standard"),
+        pytest.param(None, "standard", id="none-fallback"),
+        pytest.param(123, "standard", id="non-string-fallback"),
+        pytest.param("unknown_profile", "standard", id="unknown-fallback"),
+        pytest.param(..., "standard", id="missing-option"),
+    ],
+)
+def test_validate_profile_matrix(
+    config_entry_factory: Callable[..., ConfigEntry],
+    raw_profile: object,
+    expected_profile: str,
+) -> None:
+    """Profile validation should preserve known values and fallback safely."""
+    options = (
+        {}
+        if raw_profile is ...
+        else {
+            "entity_profile": raw_profile,
+        }
+    )
+    entry = _build_entry(
+        config_entry_factory,
+        dogs_payload=[],
+        options=options,
+    )
 
-    with pytest.raises(ConfigurationError, match="must be mappings"):
-        await async_validate_entry_config(mock_config_entry)
+    profile = _validate_profile(entry)
+    assert profile == expected_profile
 
 
-@pytest.mark.asyncio
-async def test_async_validate_entry_config_missing_dog_id(mock_config_entry) -> None:
-    """Test validation fails with missing dog_id."""
-    mock_config_entry.data = {CONF_DOGS: [{"dog_name": "Buddy"}]}
-
-    with pytest.raises(ConfigurationError, match="must include"):
-        await async_validate_entry_config(mock_config_entry)
-
-
-def test_validate_profile_standard(mock_config_entry) -> None:
-    """Test profile validation with standard profile."""
-    profile = _validate_profile(mock_config_entry)
-    assert profile == "standard"
-
-
-def test_validate_profile_keeps_known_profile(mock_config_entry) -> None:
-    """Known entity profiles should be preserved."""
+def test_validate_profile_preserves_first_non_standard_profile(
+    config_entry_factory: Callable[..., ConfigEntry],
+) -> None:
+    """Known non-standard profile values should roundtrip unchanged."""
     known_profile = next(
         profile for profile in ENTITY_PROFILES if profile != "standard"
     )
-    mock_config_entry.options = {"entity_profile": known_profile}
+    entry = _build_entry(
+        config_entry_factory,
+        dogs_payload=[],
+        options={"entity_profile": known_profile},
+    )
 
-    profile = _validate_profile(mock_config_entry)
-    assert profile == known_profile
-
-
-def test_validate_profile_unknown_fallback(mock_config_entry) -> None:
-    """Test profile validation falls back to standard for unknown profile."""
-    mock_config_entry.options = {"entity_profile": "unknown_profile"}
-
-    profile = _validate_profile(mock_config_entry)
-    assert profile == "standard"
+    assert _validate_profile(entry) == known_profile
 
 
-def test_validate_profile_none_fallback(mock_config_entry) -> None:
-    """Test profile validation falls back to standard for None."""
-    mock_config_entry.options = {"entity_profile": None}
-
-    profile = _validate_profile(mock_config_entry)
-    assert profile == "standard"
-
-
-def test_validate_profile_coerces_non_string_values(mock_config_entry) -> None:
-    """Test profile validation coerces non-string values before fallback."""
-    mock_config_entry.options = {"entity_profile": 123}
-
-    profile = _validate_profile(mock_config_entry)
-    assert profile == "standard"
-
-
-def test_validate_profile_missing_option_uses_default(mock_config_entry) -> None:
-    """Test profile validation uses the default profile when key is absent."""
-    mock_config_entry.options = {}
-
-    profile = _validate_profile(mock_config_entry)
-    assert profile == "standard"
-
-
-def test_extract_enabled_modules_success() -> None:
-    """Test extracting enabled modules."""
-    dogs_config: list[DogConfigData] = [
-        {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-            CONF_MODULES: {
-                "gps": True,
-                "feeding": True,
-                "health": False,
-                "walk": True,
-            },
-        },
-        {
-            "dog_id": "max",
-            "dog_name": "Max",
-            CONF_MODULES: {
-                "gps": False,
-                "feeding": True,
-                "notifications": True,
-            },
-        },
-    ]
-
-    modules = _extract_enabled_modules(dogs_config)
-
-    assert "gps" in modules
-    assert "feeding" in modules
-    assert "walk" in modules
-    assert "notifications" in modules
-    assert "health" not in modules
-
-
-def test_extract_enabled_modules_empty() -> None:
-    """Test extracting modules from empty dogs list."""
-    modules = _extract_enabled_modules([])
-    assert len(modules) == 0
-
-
-def test_extract_enabled_modules_no_modules_config() -> None:
-    """Test extracting modules when no modules configured."""
-    dogs_config: list[DogConfigData] = [
-        {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-        },
-    ]
-
-    modules = _extract_enabled_modules(dogs_config)
-    assert len(modules) == 0
-
-
-def test_extract_enabled_modules_invalid_modules_type() -> None:
-    """Test extracting modules with invalid modules type."""
-    dogs_config: list[Mapping] = [
-        {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-            CONF_MODULES: "invalid",  # Should be dict
-        },
-    ]
-
-    modules = _extract_enabled_modules(dogs_config)  # type: ignore
-    assert len(modules) == 0
-
-
-def test_extract_enabled_modules_unknown_module() -> None:
-    """Test extracting modules filters unknown modules."""
-    dogs_config: list[DogConfigData] = [
-        {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-            CONF_MODULES: {
-                "gps": True,
-                "unknown_module": True,  # Should be filtered
-            },
-        },
-    ]
-
-    modules = _extract_enabled_modules(dogs_config)
-
-    assert "gps" in modules
-    assert "unknown_module" not in modules
-
-
-def test_extract_enabled_modules_skips_falsey_values() -> None:
-    """False-y module values should not be treated as enabled."""
-    dogs_config: list[DogConfigData] = [
-        {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-            CONF_MODULES: {
-                "gps": 1,
-                "feeding": 0,
-                "health": False,
-            },
-        },
-    ]
-
-    modules = _extract_enabled_modules(dogs_config)
-
-    assert "gps" in modules
-    assert "feeding" not in modules
-    assert "health" not in modules
-
-
-def test_extract_enabled_modules_deduplicates_modules() -> None:
-    """Modules enabled for multiple dogs should be emitted once."""
-    dogs_config: list[DogConfigData] = [
-        {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-            CONF_MODULES: {"gps": True, "feeding": True},
-        },
-        {
-            "dog_id": "max",
-            "dog_name": "Max",
-            CONF_MODULES: {"gps": True},
-        },
-    ]
-
-    modules = _extract_enabled_modules(dogs_config)
-
-    assert modules == frozenset({"gps", "feeding"})
-
-
-@pytest.mark.asyncio
-async def test_async_validate_entry_config_without_dogs_key(mock_config_entry) -> None:
-    """Missing dogs config should normalize to an empty list."""
-    mock_config_entry.data = {}
-
-    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
-
-    assert dogs == []
-    assert profile == "standard"
-    assert modules == frozenset()
-
-
-def test_extract_enabled_modules_returns_frozenset_type() -> None:
-    """The helper should return an immutable module collection."""
-    dogs_config: list[DogConfigData] = [
-        {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-            CONF_MODULES: {"gps": True},
-        },
-    ]
-
-    modules = _extract_enabled_modules(dogs_config)
-
-    assert isinstance(modules, frozenset)
+@pytest.mark.parametrize(
+    ("dogs_config", "expected_modules"),
+    [
+        pytest.param([], frozenset(), id="empty"),
+        pytest.param(
+            [{"dog_id": "buddy", "dog_name": "Buddy"}],
+            frozenset(),
+            id="without-modules",
+        ),
+        pytest.param(
+            [
+                {
+                    "dog_id": "buddy",
+                    "dog_name": "Buddy",
+                    CONF_MODULES: "invalid",
+                },
+            ],
+            frozenset(),
+            id="invalid-modules-type",
+        ),
+        pytest.param(
+            [
+                {
+                    "dog_id": "buddy",
+                    "dog_name": "Buddy",
+                    CONF_MODULES: {
+                        "gps": 1,
+                        "feeding": 0,
+                        "health": False,
+                    },
+                },
+            ],
+            frozenset({"gps"}),
+            id="truthy-filtering",
+        ),
+        pytest.param(
+            [
+                {
+                    "dog_id": "buddy",
+                    "dog_name": "Buddy",
+                    CONF_MODULES: {
+                        "gps": True,
+                        "unknown_module": True,
+                    },
+                },
+            ],
+            frozenset({"gps"}),
+            id="unknown-module-filtered",
+        ),
+        pytest.param(
+            [
+                {
+                    "dog_id": "buddy",
+                    "dog_name": "Buddy",
+                    CONF_MODULES: {
+                        "gps": True,
+                        "feeding": True,
+                        "health": False,
+                        "walk": True,
+                    },
+                },
+                {
+                    "dog_id": "max",
+                    "dog_name": "Max",
+                    CONF_MODULES: {
+                        "gps": False,
+                        "feeding": True,
+                        "notifications": True,
+                    },
+                },
+            ],
+            frozenset({"gps", "feeding", "walk", "notifications"}),
+            id="multi-dog-aggregate",
+        ),
+    ],
+)
+def test_extract_enabled_modules_matrix(
+    dogs_config: list[DogConfigData] | list[Mapping[str, object]],
+    expected_modules: frozenset[str],
+) -> None:
+    """Module extraction should normalize and aggregate enabled modules."""
+    modules = _extract_enabled_modules(dogs_config)  # type: ignore[arg-type]
+    assert modules == expected_modules

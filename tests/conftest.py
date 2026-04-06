@@ -46,6 +46,11 @@ from custom_components.pawcontrol.types import (
     JSONMutableMapping,
 )
 from tests.helpers import typed_deepcopy
+from tests.helpers.factories import (
+    build_api_client_mock,
+    build_coordinator_payload,
+    build_coordinator_payload_variant,
+)
 
 if TYPE_CHECKING:
     from custom_components.pawcontrol.feeding_manager import (
@@ -332,12 +337,7 @@ def mock_api_client_factory() -> Callable[..., Mock]:
         connected: bool = True,
         dog_data: Mapping[str, object] | None = None,
     ) -> Mock:
-        client = Mock()
-        client.is_connected = connected
-        client.async_get_dog_data = AsyncMock(return_value=dict(dog_data or {}))
-        client.async_update_dog_data = AsyncMock(return_value=None)
-        client.async_get_system_status = AsyncMock(return_value={"status": "ok"})
-        return client
+        return build_api_client_mock(connected=connected, dog_data=dog_data)
 
     return _factory
 
@@ -361,19 +361,25 @@ def coordinator_payload_factory() -> Callable[..., CoordinatorDogData]:
         zone: str = "home",
         visitor_mode_active: bool = False,
     ) -> CoordinatorDogData:
-        payload: CoordinatorDogData = {
-            "dog_info": {"dog_id": dog_id, "dog_name": dog_name},
-            "status": status,
-            "status_snapshot": {"state": state},
-            "visitor_mode_active": visitor_mode_active,
-            "gps": {"zone": zone},
-            "feeding": {},
-            "walk": {},
-            "health": {},
-        }
-        return payload
+        return build_coordinator_payload(
+            dog_id=dog_id,
+            dog_name=dog_name,
+            status=status,
+            state=state,
+            zone=zone,
+            visitor_mode_active=visitor_mode_active,
+        )
 
     return _factory
+
+
+@pytest.fixture
+def coordinator_payload_variants() -> Mapping[str, CoordinatorDogData]:
+    """Return standard coordinator payload variants for parameterized tests."""
+    return {
+        variant: build_coordinator_payload_variant(variant)
+        for variant in ("online_home", "offline", "visitor_mode", "outside_home")
+    }
 
 
 @pytest.fixture
