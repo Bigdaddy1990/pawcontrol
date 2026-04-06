@@ -4,7 +4,11 @@ This package keeps ``custom_components.pawcontrol.utils`` backward compatible
 while exposing focused utility submodules such as ``serialize``.
 """
 
-from . import _legacy as _legacy_utils, serialize as _serialize_module
+from types import ModuleType
+
+_existing_serialize_module = globals().get("serialize")
+
+from . import _legacy as _legacy_utils, serialize as _imported_serialize_module
 from ._legacy import (
     DateTimeConvertible,
     ErrorContext,
@@ -33,6 +37,13 @@ from .serialize import (
     serialize_entity_attributes,
     serialize_timedelta,
 )
+
+_serialize_module = (
+    _existing_serialize_module
+    if isinstance(_existing_serialize_module, ModuleType)
+    else _imported_serialize_module
+)
+serialize = _serialize_module
 
 _SERIALIZE_SYMBOLS = (
     serialize_datetime,
@@ -96,5 +107,5 @@ for _serialize_name in _SERIALIZE_EXPORTS:
 def __getattr__(name: str) -> object:
     """Resolve serialize helpers lazily to stay aligned with module reloads."""
     if name in _SERIALIZE_EXPORTS:
-        return getattr(_serialize_module, name)
+        return getattr(serialize, name)
     raise AttributeError(name)
