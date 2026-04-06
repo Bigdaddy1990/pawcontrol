@@ -1,7 +1,5 @@
 """Additional branch coverage tests for ``custom_components.pawcontrol.compat``."""
 
-from __future__ import annotations
-
 from enum import Enum
 import inspect
 import sys
@@ -62,7 +60,9 @@ def test_notify_exception_callbacks_ignores_broken_callbacks() -> None:
             compat._EXCEPTION_REBIND_CALLBACKS.remove(_broken_callback)
 
 
-def test_resolve_binding_module_validates_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_binding_module_validates_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Module resolver should raise clear errors for unresolved modules/frames."""
     with pytest.raises(RuntimeError, match="could not locate module"):
         compat._resolve_binding_module("does.not.exist")
@@ -113,22 +113,20 @@ def test_bind_exception_alias_requires_named_module() -> None:
 
 def test_build_subentries_handles_non_mapping_data() -> None:
     """Subentry helper should normalize IDs, payloads and unique IDs."""
-    result = compat._build_subentries(
-        [
-            {
-                "title": "First",
-                "subentry_type": "dog",
-                "data": ["not", "a", "mapping"],
-                "unique_id": 123,
-            },
-            {
-                "subentry_id": "known",
-                "title": "Second",
-                "subentry_type": "yard",
-                "data": {"enabled": True},
-            },
-        ]
-    )
+    result = compat._build_subentries([
+        {
+            "title": "First",
+            "subentry_type": "dog",
+            "data": ["not", "a", "mapping"],
+            "unique_id": 123,
+        },
+        {
+            "subentry_id": "known",
+            "title": "Second",
+            "subentry_type": "yard",
+            "data": {"enabled": True},
+        },
+    ])
 
     assert "subentry_1" in result
     assert result["subentry_1"].data == {}
@@ -138,7 +136,9 @@ def test_build_subentries_handles_non_mapping_data() -> None:
     assert result["known"].unique_id is None
 
 
-def test_should_use_module_entry_handles_typeerror(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_should_use_module_entry_handles_typeerror(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Signature inspection TypeError should produce a False decision."""
 
     class Entry:

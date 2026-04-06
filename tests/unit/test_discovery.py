@@ -403,7 +403,9 @@ async def test_discover_registry_devices_builds_expected_metadata(
         configuration_url="https://pawcontrol.local/device-123",
         area_id="garden",
     )
-    discovery._device_registry = SimpleNamespace(devices={device_entry.id: device_entry})
+    discovery._device_registry = SimpleNamespace(
+        devices={device_entry.id: device_entry}
+    )
     discovery._entity_registry = SimpleNamespace(entities={})
 
     monkeypatch.setattr(

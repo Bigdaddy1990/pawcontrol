@@ -383,10 +383,6 @@ def validate_dog_update_input(
     if field_errors:
         raise FlowValidationError(field_errors=field_errors)
 
-    if dog_age is None and DOG_AGE_FIELD in candidate:
-        candidate.pop(DOG_AGE_FIELD, None)
-    if dog_weight is None and DOG_WEIGHT_FIELD in candidate:
-        candidate.pop(DOG_WEIGHT_FIELD, None)
     return candidate
 
 
