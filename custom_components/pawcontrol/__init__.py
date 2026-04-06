@@ -264,6 +264,11 @@ async def async_setup_entry(
     setup_start_time = time.monotonic()
     _LOGGER.debug("Setting up PawControl integration entry: %s", entry.entry_id)
     debug_logging_tracked = _enable_debug_logging(entry)
+    runtime_data: PawControlRuntimeData | None = None
+    runtime_data_stored = False
+    webhook_registered = False
+    mqtt_registered = False
+
     try:
         # Validate configuration
         dogs_config, profile, enabled_modules = await async_validate_entry_config(entry)
@@ -282,10 +287,13 @@ async def async_setup_entry(
 
         # Store runtime data
         store_runtime_data(hass, entry, runtime_data)
+        runtime_data_stored = True
 
         # Register webhook and MQTT
         await async_register_entry_webhook(hass, entry)
+        webhook_registered = True
         await async_register_entry_mqtt(hass, entry)
+        mqtt_registered = True
 
         # Set up platforms
         await async_setup_platforms(hass, entry, runtime_data)
@@ -349,13 +357,31 @@ async def async_setup_entry(
         ConfigEntryNotReady,
         ConfigEntryAuthFailed,
         PawControlSetupError,
-    ):
+    ) as err:
+        await _async_rollback_failed_setup(
+            hass,
+            entry,
+            runtime_data,
+            runtime_data_stored=runtime_data_stored,
+            webhook_registered=webhook_registered,
+            mqtt_registered=mqtt_registered,
+            reason=err,
+        )
         if debug_logging_tracked:
             _disable_debug_logging(entry)
         raise
 
     except Exception as err:
         setup_duration = time.monotonic() - setup_start_time
+        await _async_rollback_failed_setup(
+            hass,
+            entry,
+            runtime_data,
+            runtime_data_stored=runtime_data_stored,
+            webhook_registered=webhook_registered,
+            mqtt_registered=mqtt_registered,
+            reason=err,
+        )
         if debug_logging_tracked:
             _disable_debug_logging(entry)
         _LOGGER.exception("Unexpected setup error after %.2f seconds", setup_duration)
@@ -363,6 +389,51 @@ async def async_setup_entry(
             f"Unexpected setup failure after {setup_duration:.2f}s "
             f"({err.__class__.__name__}): {err}",
         ) from err
+
+
+async def _async_rollback_failed_setup(
+    hass: HomeAssistant,
+    entry: PawControlConfigEntry,
+    runtime_data: PawControlRuntimeData | None,
+    *,
+    runtime_data_stored: bool,
+    webhook_registered: bool,
+    mqtt_registered: bool,
+    reason: Exception,
+) -> None:
+    """Best-effort rollback for partial setup failures."""
+    if mqtt_registered:
+        try:
+            await async_unregister_entry_mqtt(hass, entry)
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.warning(
+                "Failed to rollback MQTT registration for entry %s after %s: %s",
+                entry.entry_id,
+                reason.__class__.__name__,
+                err,
+            )
+    if webhook_registered:
+        try:
+            await async_unregister_entry_webhook(hass, entry)
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.warning(
+                "Failed to rollback webhook registration for entry %s after %s: %s",
+                entry.entry_id,
+                reason.__class__.__name__,
+                err,
+            )
+    if runtime_data is not None:
+        try:
+            await async_cleanup_runtime_data(runtime_data)
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.warning(
+                "Failed to cleanup runtime data for entry %s after %s: %s",
+                entry.entry_id,
+                reason.__class__.__name__,
+                err,
+            )
+    if runtime_data_stored:
+        pop_runtime_data(hass, entry)
 
 
 def _should_skip_optional_setup(hass: HomeAssistant) -> bool:
