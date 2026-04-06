@@ -1,7 +1,7 @@
 # .github/workflows/ruff-baseline.yml
 name: Ruff baseline (web only)
-on: { workflow_dispatch: {} }
-#on: [ push, pull_request ]
+#on: { workflow_dispatch: {} }
+on: [ push, pull_request ]
 permissions: { contents: write, pull-requests: write, actions: write, checks: write }
 env:
   PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.14' }}
@@ -37,6 +37,6 @@ jobs:
       - uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/ruff-baseline
-          title: "chore: ruff baseline (format+fix+noqa)"
-          commit-message: "chore: ruff baseline (format+fix+noqa)"
+          title: "chore: ruff baseline (format+fix)"
+          commit-message: "chore: ruff baseline (format+fix)"
           body: "Automated ruff baseline via GitHub Actions."
