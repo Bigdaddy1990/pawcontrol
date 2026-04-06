@@ -254,3 +254,145 @@ def test_validate_dog_import_input_success_and_payload_validity_helper() -> None
 
     assert is_dog_config_payload_valid(imported) is True
     assert is_dog_config_payload_valid({CONF_DOG_ID: "?"}) is False
+
+
+def test_validate_dog_setup_input_reports_range_and_hint_errors() -> None:
+    """Setup validation should report range, mismatch, and invalid breed hint errors."""
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_setup_input(
+            {
+                CONF_DOG_ID: "   ",
+                CONF_DOG_NAME: "Nova",
+                CONF_DOG_WEIGHT: 5_000,
+                CONF_DOG_SIZE: "small",
+                CONF_DOG_AGE: 100,
+                CONF_DOG_BREED: "@@@",
+            },
+            existing_ids=set(),
+            existing_names=set(),
+            current_dog_count=0,
+            max_dogs=10,
+        )
+
+    assert err.value.field_errors[CONF_DOG_ID] == "invalid_dog_id_format"
+    assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_out_of_range"
+    assert err.value.field_errors[CONF_DOG_AGE] == "age_out_of_range"
+    assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
+
+    with pytest.raises(FlowValidationError) as mismatch_err:
+        validate_dog_setup_input(
+            {
+                CONF_DOG_ID: "nova_1",
+                CONF_DOG_NAME: "Nova",
+                CONF_DOG_WEIGHT: 45,
+                CONF_DOG_SIZE: "small",
+                CONF_DOG_AGE: 4,
+            },
+            existing_ids=set(),
+            existing_names=set(),
+            current_dog_count=0,
+            max_dogs=10,
+        )
+
+    assert mismatch_err.value.field_errors[CONF_DOG_WEIGHT] == "weight_size_mismatch"
+
+
+def test_validate_dog_config_payload_propagates_update_errors_and_removes_modules() -> None:
+    """Config payload validation should merge update errors and prune absent modules."""
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_config_payload(
+            {
+                CONF_DOG_ID: "nova_1",
+                CONF_DOG_NAME: " ",
+                CONF_DOG_AGE: "oops",
+            },
+        )
+
+    assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_required"
+    assert err.value.field_errors[CONF_DOG_AGE] == "invalid_age_format"
+
+    validated = validate_dog_config_payload(
+        {
+            CONF_DOG_ID: "nova_1",
+            CONF_DOG_NAME: "Nova",
+        },
+    )
+
+    assert CONF_MODULES not in validated
+
+
+def test_validate_dog_update_input_covers_all_field_error_paths() -> None:
+    """Update validation should emit explicit field errors for invalid updates."""
+    current = {
+        CONF_DOG_ID: "luna",
+        CONF_DOG_NAME: "Luna",
+        CONF_DOG_BREED: "Lab",
+        CONF_DOG_AGE: 5,
+        CONF_DOG_WEIGHT: 15,
+        CONF_DOG_SIZE: "medium",
+    }
+
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_update_input(
+            current,
+            {
+                CONF_DOG_NAME: " ",
+                CONF_DOG_BREED: "@",
+                CONF_DOG_AGE: "abc",
+                CONF_DOG_WEIGHT: "abc",
+                CONF_DOG_SIZE: "tiny",
+            },
+        )
+
+    assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_required"
+    assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
+    assert err.value.field_errors[CONF_DOG_AGE] == "invalid_age_format"
+    assert err.value.field_errors[CONF_DOG_WEIGHT] == "invalid_weight_format"
+    assert err.value.field_errors[CONF_DOG_SIZE] == "invalid_dog_size"
+
+    cleaned = validate_dog_update_input(
+        current,
+        {
+            CONF_DOG_AGE: 3,
+            CONF_DOG_WEIGHT: 20,
+        },
+    )
+    assert cleaned[CONF_DOG_AGE] == 3
+    assert cleaned[CONF_DOG_WEIGHT] == 20
+
+    with pytest.raises(FlowValidationError) as range_err:
+        validate_dog_update_input(
+            current,
+            {
+                CONF_DOG_AGE: 4,
+                CONF_DOG_WEIGHT: 5_000,
+                CONF_DOG_SIZE: None,
+            },
+        )
+
+    assert range_err.value.field_errors[CONF_DOG_WEIGHT] == "weight_out_of_range"
+
+    with pytest.raises(FlowValidationError) as breed_err:
+        validate_dog_update_input(
+            current,
+            {
+                CONF_DOG_BREED: "x" * 101,
+            },
+        )
+    assert breed_err.value.field_errors[CONF_DOG_BREED] == "breed_name_too_long"
+
+
+def test_validate_dog_import_input_allows_none_modules_mapping() -> None:
+    """Import validation should treat null modules payloads as an empty mapping."""
+    imported = validate_dog_import_input(
+        {
+            **_valid_dog_input(),
+            CONF_MODULES: None,
+        },
+        existing_ids=set(),
+        existing_names=set(),
+        current_dog_count=0,
+        max_dogs=2,
+    )
+
+    assert imported[CONF_MODULES] == {}
