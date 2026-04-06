@@ -96,20 +96,18 @@ def test_person_entity_info_to_from_dict_and_state_normalization() -> None:
 
 def test_person_entity_manager_build_config_from_input_normalizes_types() -> None:
     """Config coercion should clamp ranges and filter invalid containers."""
-    config = pem.PersonEntityManager._build_config_from_input(
-        {
-            "enabled": 1,
-            "auto_discovery": 0,
-            "discovery_interval": 9,
-            "cache_ttl": -2,
-            "include_away_persons": "yes",
-            "fallback_to_static": "",
-            "static_notification_targets": ["notify.a", 7, "notify.b"],
-            "excluded_entities": ["person.a", None],
-            "notification_mapping": {"person.a": "notify.a", 2: "bad", "x": 9},
-            "priority_persons": ["person.vip", 3],
-        }
-    )
+    config = pem.PersonEntityManager._build_config_from_input({
+        "enabled": 1,
+        "auto_discovery": 0,
+        "discovery_interval": 9,
+        "cache_ttl": -2,
+        "include_away_persons": "yes",
+        "fallback_to_static": "",
+        "static_notification_targets": ["notify.a", 7, "notify.b"],
+        "excluded_entities": ["person.a", None],
+        "notification_mapping": {"person.a": "notify.a", 2: "bad", "x": 9},
+        "priority_persons": ["person.vip", 3],
+    })
 
     assert config.enabled is True
     assert config.auto_discovery is False
