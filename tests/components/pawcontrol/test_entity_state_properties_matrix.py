@@ -70,11 +70,15 @@ _DOG_NAME = "Buddy"
 
 def _coordinator_from_payload(
     payload: Mapping[str, object] | None,
+    *,
+    available: bool = True,
 ) -> _CoordinatorDouble:
     data: dict[str, CoordinatorDogData] = {}
     if payload is not None:
         data[_DOG_ID] = cast(CoordinatorDogData, dict(payload))
-    return _CoordinatorDouble(data=data)
+    coordinator = _CoordinatorDouble(data=data)
+    coordinator.available = available
+    return coordinator
 
 
 @pytest.mark.parametrize(
@@ -360,3 +364,187 @@ def test_state_changes_reflect_after_coordinator_data_updates() -> None:
     assert visitor_switch.is_on is True
     assert tracker.state == "park"
     assert online_sensor.is_on is False
+
+
+@pytest.mark.parametrize(
+    ("factory", "payload", "coordinator_available", "expected_available"),
+    [
+        (
+            lambda coordinator: PawControlDogStatusSensor(
+                cast(Any, coordinator),
+                _DOG_ID,
+                _DOG_NAME,
+            ),
+            {"dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME}},
+            True,
+            True,
+        ),
+        (
+            lambda coordinator: PawControlDogStatusSensor(
+                cast(Any, coordinator),
+                _DOG_ID,
+                _DOG_NAME,
+            ),
+            None,
+            True,
+            False,
+        ),
+        (
+            lambda coordinator: PawControlOnlineBinarySensor(
+                cast(Any, coordinator),
+                _DOG_ID,
+                _DOG_NAME,
+            ),
+            {"dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME}},
+            True,
+            True,
+        ),
+        (
+            lambda coordinator: PawControlVisitorModeSwitch(
+                cast(Any, coordinator),
+                _DOG_ID,
+                _DOG_NAME,
+            ),
+            {
+                "dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME},
+            },
+            False,
+            False,
+        ),
+        (
+            lambda coordinator: PawControlHealthStatusSelect(
+                cast(Any, coordinator),
+                _DOG_ID,
+                _DOG_NAME,
+            ),
+            None,
+            True,
+            False,
+        ),
+        (
+            lambda coordinator: PawControlGPSTracker(
+                cast(Any, coordinator),
+                _DOG_ID,
+                _DOG_NAME,
+            ),
+            {"gps": {"zone": "home"}},
+            True,
+            True,
+        ),
+        (
+            lambda coordinator: PawControlGPSTracker(
+                cast(Any, coordinator),
+                _DOG_ID,
+                _DOG_NAME,
+            ),
+            {"dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME}},
+            True,
+            False,
+        ),
+    ],
+)
+def test_entity_available_matrix(
+    factory: Callable[[_CoordinatorDouble], Any],
+    payload: Mapping[str, object] | None,
+    coordinator_available: bool,
+    expected_available: bool,
+) -> None:
+    """Entities should expose availability from coordinator and required data."""
+    coordinator = _coordinator_from_payload(payload, available=coordinator_available)
+    entity = factory(coordinator)
+
+    assert entity.available is expected_available
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        ({"last_update": dt_util.utcnow().isoformat()}, True),
+        (
+            {"last_update": (dt_util.utcnow() - timedelta(minutes=11)).isoformat()},
+            False,
+        ),
+        ({"last_update": None}, False),
+        ({}, False),
+    ],
+)
+def test_online_sensor_api_to_is_on_mapping(
+    payload: Mapping[str, object],
+    expected: bool,
+) -> None:
+    """Online binary sensor should map API timestamp payloads to is_on state."""
+    coordinator = _coordinator_from_payload(payload)
+    entity = PawControlOnlineBinarySensor(cast(Any, coordinator), _DOG_ID, _DOG_NAME)
+
+    assert entity.is_on is expected
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        (True, True),
+        (False, False),
+        ("yes", True),
+        ("", False),
+        (None, False),
+    ],
+)
+def test_visitor_mode_switch_api_to_is_on_mapping(
+    raw_value: object,
+    expected: bool,
+) -> None:
+    """Visitor switch should coerce API values to deterministic bool states."""
+    coordinator = _coordinator_from_payload({"visitor_mode_active": raw_value})
+    entity = PawControlVisitorModeSwitch(cast(Any, coordinator), _DOG_ID, _DOG_NAME)
+
+    assert entity.is_on is expected
+
+
+@pytest.mark.parametrize(
+    ("health_status", "expected"),
+    [
+        ("excellent", "excellent"),
+        ("", ""),
+        (None, "good"),
+        (123, "good"),
+    ],
+)
+def test_health_select_api_to_state_mapping(
+    health_status: object,
+    expected: str,
+) -> None:
+    """Health select should accept strings and fallback for invalid API values."""
+    coordinator = _coordinator_from_payload(
+        {"health": {"health_status": health_status}},
+    )
+    entity = PawControlHealthStatusSelect(cast(Any, coordinator), _DOG_ID, _DOG_NAME)
+
+    assert entity.current_option == expected
+
+
+def test_entity_metadata_and_attributes_include_core_identity_fields() -> None:
+    """Entities should expose stable identity and attribute metadata."""
+    coordinator = _coordinator_from_payload(
+        {
+            "status_snapshot": {"state": "resting"},
+            "last_update": dt_util.utcnow().isoformat(),
+            "dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME},
+        },
+    )
+
+    entities = [
+        PawControlDogStatusSensor(cast(Any, coordinator), _DOG_ID, _DOG_NAME),
+        PawControlOnlineBinarySensor(cast(Any, coordinator), _DOG_ID, _DOG_NAME),
+        PawControlVisitorModeSwitch(cast(Any, coordinator), _DOG_ID, _DOG_NAME),
+        PawControlHealthStatusSelect(cast(Any, coordinator), _DOG_ID, _DOG_NAME),
+        PawControlGPSTracker(cast(Any, coordinator), _DOG_ID, _DOG_NAME),
+    ]
+
+    for entity in entities:
+        assert isinstance(entity.unique_id, str)
+        assert entity.unique_id
+        assert isinstance(entity.name, str | None)
+        assert entity.device_info is not None
+        assert entity.extra_state_attributes.get("dog_id") == _DOG_ID
+        assert entity.extra_state_attributes.get("dog_name") == _DOG_NAME
+        assert "last_updated" in entity.extra_state_attributes
