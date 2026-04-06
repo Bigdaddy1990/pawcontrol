@@ -129,7 +129,8 @@ async def test_remove_config_entry_device_uses_mapping_payloads(
             CONF_DOGS: {
                 "Delta-9": {
                     DOG_NAME_FIELD: "Delta",
-                }
+                },
+                "Ignored-Malformed": "not-a-mapping",
             },
             CONF_DOG_OPTIONS: [
                 {DOG_ID_FIELD: "Ghost 55"},
@@ -231,6 +232,33 @@ async def test_remove_config_entry_device_uses_runtime_data_and_skips_invalid_pa
     )
 
     assert await async_remove_config_entry_device(hass, entry, runtime_device) is False
+    assert await async_remove_config_entry_device(hass, entry, orphan_device) is True
+
+
+@pytest.mark.asyncio
+async def test_remove_config_entry_device_sequence_source_falls_back_to_dog_id_name(
+    hass: HomeAssistant,
+) -> None:
+    """Sequence dog payloads without names should fall back to their dog id."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: [
+                "ignored-non-mapping",
+                {DOG_ID_FIELD: "Sequence-77"},
+            ],
+        },
+    )
+    active_device = DeviceEntry(
+        id="sequence-device",
+        identifiers={(DOMAIN, sanitize_dog_id("Sequence-77"))},
+    )
+    orphan_device = DeviceEntry(
+        id="sequence-orphan",
+        identifiers={(DOMAIN, sanitize_dog_id("No-Sequence-Match"))},
+    )
+
+    assert await async_remove_config_entry_device(hass, entry, active_device) is False
     assert await async_remove_config_entry_device(hass, entry, orphan_device) is True
 
 
