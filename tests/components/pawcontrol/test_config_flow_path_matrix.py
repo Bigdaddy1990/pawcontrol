@@ -112,8 +112,20 @@ async def test_duplicate_entry_paths_abort_with_already_configured(hass) -> None
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("profile_input", "expected_type", "expected_error"),
+    [
+        ("not-real", FlowResultType.FORM, {"base": "invalid_profile"}),
+        ("standard", FlowResultType.FORM, {"base": "profile_unchanged"}),
+        ("basic", FlowResultType.ABORT, None),
+    ],
+)
 async def test_reconfigure_paths_and_updates(
-    hass, monkeypatch: pytest.MonkeyPatch
+    hass,
+    monkeypatch: pytest.MonkeyPatch,
+    profile_input: str,
+    expected_type: FlowResultType,
+    expected_error: Mapping[str, str] | None,
 ) -> None:
     """Reconfigure should return forms for invalid data and abort with exact updates."""
     entry = MockConfigEntry(
@@ -175,27 +187,23 @@ async def test_reconfigure_paths_and_updates(
         flow, "async_update_reload_and_abort", update_mock, raising=False
     )
 
-    invalid = await flow.async_step_reconfigure({"entity_profile": "not-real"})
-    assert invalid["type"] == FlowResultType.FORM
-    assert invalid["step_id"] == "reconfigure"
-    assert invalid["errors"] == {"base": "invalid_profile"}
+    result = await flow.async_step_reconfigure({"entity_profile": profile_input})
+    assert result["type"] == expected_type
 
-    unchanged = await flow.async_step_reconfigure({"entity_profile": "standard"})
-    assert unchanged["type"] == FlowResultType.FORM
-    assert unchanged["step_id"] == "reconfigure"
-    assert unchanged["errors"] == {"base": "profile_unchanged"}
+    if expected_type == FlowResultType.FORM:
+        assert result["step_id"] == "reconfigure"
+        assert result["errors"] == expected_error
+        update_mock.assert_not_awaited()
+        return
 
-    success = await flow.async_step_reconfigure({"entity_profile": "basic"})
-    assert success["type"] == FlowResultType.ABORT
-    assert success["reason"] == "reconfigure_successful"
-
+    assert result["reason"] == "reconfigure_successful"
     update_call = update_mock.await_args.kwargs
     assert update_call["reason"] == "reconfigure_successful"
-    assert update_call["data_updates"]["entity_profile"] == "basic"
-    assert update_call["options_updates"]["entity_profile"] == "basic"
+    assert update_call["data_updates"]["entity_profile"] == profile_input
+    assert update_call["options_updates"]["entity_profile"] == profile_input
     assert update_call["options_updates"]["previous_profile"] == "standard"
     assert update_call["options_updates"]["reconfigure_telemetry"] == {
-        "requested_profile": "basic",
+        "requested_profile": profile_input,
         "previous_profile": "standard",
         "dogs_count": 1,
         "estimated_entities": 7,
@@ -207,8 +215,29 @@ async def test_reconfigure_paths_and_updates(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("profile_input", "expected_data"),
+    [
+        (
+            "basic",
+            {
+                "entity_profile": "basic",
+                "enable_analytics": True,
+            },
+        ),
+        (
+            "advanced",
+            {
+                "entity_profile": "advanced",
+                "enable_analytics": True,
+            },
+        ),
+    ],
+)
 async def test_options_update_profile_applies_exact_options(
     monkeypatch: pytest.MonkeyPatch,
+    profile_input: str,
+    expected_data: Mapping[str, object],
 ) -> None:
     """Options preview apply should persist exactly the normalized options payload."""
     entry = MockConfigEntry(
@@ -227,15 +256,104 @@ async def test_options_update_profile_applies_exact_options(
     )
 
     result = await flow.async_step_profile_preview({
-        "profile": "basic",
+        "profile": profile_input,
         "apply_profile": True,
     })
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"] == {
-        "entity_profile": "basic",
-        "enable_analytics": True,
+    assert result["data"] == expected_data
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("user_input", "expected_type", "expected_reason", "expected_errors"),
+    [
+        (
+            {"confirm": False},
+            FlowResultType.FORM,
+            None,
+            {"base": "reauth_unsuccessful"},
+        ),
+        (
+            {"confirm": True},
+            FlowResultType.ABORT,
+            "reauth_successful",
+            None,
+        ),
+    ],
+)
+async def test_reauth_confirm_path_matrix_and_exact_update_payloads(
+    monkeypatch: pytest.MonkeyPatch,
+    user_input: Mapping[str, bool],
+    expected_type: FlowResultType,
+    expected_reason: str | None,
+    expected_errors: Mapping[str, str] | None,
+) -> None:
+    """Reauth confirm should cover form/abort branches and persist exact updates."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}]},
+        options={"entity_profile": "standard"},
+        unique_id=DOMAIN,
+    )
+    flow = PawControlConfigFlow()
+    flow.reauth_entry = entry
+
+    monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
+    monkeypatch.setattr(flow, "_abort_if_unique_id_mismatch", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        flow,
+        "_check_config_health_enhanced",
+        AsyncMock(
+            return_value={
+                "healthy": True,
+                "issues": [],
+                "warnings": [],
+                "validated_dogs": 1,
+                "total_dogs": 1,
+            }
+        ),
+    )
+
+    expected_data_updates = {
+        "reauth_timestamp": "2026-04-06T00:00:00+00:00",
+        "reauth_version": flow.VERSION,
+        "health_status": True,
+        "health_validated_dogs": 1,
+        "health_total_dogs": 1,
     }
+    expected_options_updates = {
+        "last_reauth": "2026-04-06T00:00:00+00:00",
+        "reauth_health_issues": [],
+        "reauth_health_warnings": [],
+        "last_reauth_summary": "Status: healthy; Validated dogs: 1/1",
+    }
+    monkeypatch.setattr(
+        flow,
+        "_build_reauth_updates",
+        lambda _summary: (expected_data_updates, expected_options_updates),
+    )
+
+    update_mock = AsyncMock(
+        return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"}
+    )
+    monkeypatch.setattr(
+        flow, "async_update_reload_and_abort", update_mock, raising=False
+    )
+
+    result = await flow.async_step_reauth_confirm(dict(user_input))
+    assert result["type"] == expected_type
+
+    if expected_type == FlowResultType.FORM:
+        assert result["step_id"] == "reauth_confirm"
+        assert result["errors"] == expected_errors
+        update_mock.assert_not_awaited()
+        return
+
+    assert result["reason"] == expected_reason
+    update_call = update_mock.await_args.kwargs
+    assert update_call["data_updates"] == expected_data_updates
+    assert update_call["options_updates"] == expected_options_updates
 
 
 @pytest.mark.asyncio
