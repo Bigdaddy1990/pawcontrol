@@ -361,6 +361,117 @@ async def test_async_unload_entry_clears_platform_cache(
     assert pawcontrol_init._PLATFORM_CACHE == {}
 
 
+@pytest.mark.asyncio
+async def test_async_unload_entry_returns_false_when_platform_unload_fails(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unload should abort early when a platform refuses to unload."""
+    entry = ConfigEntry(domain="pawcontrol", title="Unload fail")
+    runtime_data = SimpleNamespace(dogs=[], entity_profile="standard")
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unload_external_bindings",
+        AsyncMock(),
+    )
+    cleanup_runtime = AsyncMock()
+    pop_runtime = Mock()
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_cleanup_runtime_data",
+        cleanup_runtime,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "pop_runtime_data",
+        pop_runtime,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "get_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=False)
+
+    assert await pawcontrol_init.async_unload_entry(hass, entry) is False
+
+    cleanup_runtime.assert_not_awaited()
+    pop_runtime.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("shutdown_side_effect", "expected_log"),
+    [
+        (TimeoutError(), "Service manager shutdown timed out"),
+        (RuntimeError("boom"), "Error shutting down service manager: boom"),
+    ],
+)
+async def test_async_unload_entry_handles_service_manager_shutdown_errors(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    shutdown_side_effect: Exception,
+    expected_log: str,
+) -> None:
+    """Service manager shutdown failures should be logged but not fail unload."""
+    entry = ConfigEntry(domain="pawcontrol", title="Unload with service manager")
+    service_manager = SimpleNamespace(
+        async_shutdown=AsyncMock(side_effect=shutdown_side_effect)
+    )
+    runtime_data = SimpleNamespace(dogs=[], entity_profile="standard")
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unload_external_bindings",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "get_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_cleanup_runtime_data",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "pop_runtime_data",
+        Mock(),
+    )
+
+    hass.data[pawcontrol_init.DOMAIN] = {"service_manager": service_manager}
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+    hass.config_entries.async_loaded_entries = Mock(return_value=[entry])
+
+    assert await pawcontrol_init.async_unload_entry(hass, entry) is True
+    assert expected_log in caplog.text
+
+
 def test_should_skip_optional_setup_handles_missing_or_mocked_services() -> None:
     """Skip optional setup when service registry is unavailable or mocked."""
     assert pawcontrol_init._should_skip_optional_setup(SimpleNamespace(services=None))
@@ -434,6 +545,50 @@ async def test_async_reload_entry_reraises_not_ready(
     )
 
     with pytest.raises(ConfigEntryNotReady):
+        await pawcontrol_init.async_reload_entry(hass, entry)
+
+
+@pytest.mark.asyncio
+async def test_async_reload_entry_reraises_auth_failures(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reload should re-raise authentication failures from setup."""
+    entry = ConfigEntry(domain="pawcontrol", title="Reload")
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_unload_entry",
+        AsyncMock(return_value=True),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        AsyncMock(side_effect=ConfigEntryAuthFailed("auth boom")),
+    )
+
+    with pytest.raises(ConfigEntryAuthFailed, match="auth boom"):
+        await pawcontrol_init.async_reload_entry(hass, entry)
+
+
+@pytest.mark.asyncio
+async def test_async_reload_entry_reraises_generic_errors(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reload should re-raise unexpected errors from setup."""
+    entry = ConfigEntry(domain="pawcontrol", title="Reload")
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_unload_entry",
+        AsyncMock(return_value=True),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        AsyncMock(side_effect=RuntimeError("setup crashed")),
+    )
+
+    with pytest.raises(RuntimeError, match="setup crashed"):
         await pawcontrol_init.async_reload_entry(hass, entry)
 
 
