@@ -16,6 +16,8 @@ from custom_components.pawcontrol.setup.validation import (
 
 _DOG_TEMPLATE = {"dog_id": "dog-1", "dog_name": "Buddy"}
 
+pytestmark = pytest.mark.integration
+
 
 def _build_entry_with_dogs(dogs: object) -> MockConfigEntry:
     """Build a config entry with a dogs payload for validation tests."""
