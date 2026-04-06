@@ -510,7 +510,7 @@ def test_validate_dog_exists_without_instance_args_raises() -> None:
 
 @pytest.mark.asyncio
 async def test_async_wrappers_handle_non_awaitable_marked_coroutines() -> None:
-    """Marked coroutine functions returning plain values should use direct return path."""
+    """Marked coroutine functions returning plain values use direct return."""
 
     @inspect.markcoroutinefunction
     def _plain_handle() -> str:
@@ -531,7 +531,7 @@ async def test_async_wrappers_handle_non_awaitable_marked_coroutines() -> None:
 
 @pytest.mark.asyncio
 async def test_handle_errors_async_reraise_paths() -> None:
-    """Async handler should reraise validation and wrapped critical errors when enabled."""
+    """Async handler reraises validation and critical wrapped errors."""
 
     @handle_errors(default_return="fallback")
     async def _raise_validation() -> str:
@@ -584,7 +584,7 @@ async def test_map_to_repair_issue_uses_coordinator_hass_fallback() -> None:
 async def test_retry_on_error_zero_attempts_returns_none_and_sync_error_path(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Retry wrapper should return None for zero attempts and re-raise final sync errors."""
+    """Retry wrapper returns None for zero attempts and reraises sync errors."""
 
     @retry_on_error(max_attempts=0)
     async def _never_called_async() -> str:
@@ -609,7 +609,7 @@ async def test_retry_on_error_zero_attempts_returns_none_and_sync_error_path(
 
 
 def test_require_coordinator_data_instance_guards() -> None:
-    """Decorator should reject missing instance args and missing coordinator attribute."""
+    """Decorator rejects missing instance args and coordinator attribute."""
 
     @require_coordinator_data()
     def _guarded(service: Any) -> str:
