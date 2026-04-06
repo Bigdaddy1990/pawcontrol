@@ -1,7 +1,5 @@
 """Coverage-focused tests for flow validation helpers."""
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.const import (
@@ -259,7 +257,9 @@ def test_validate_dog_update_input_reports_format_and_size_errors() -> None:
     assert err.value.field_errors[CONF_DOG_SIZE] == "invalid_dog_size"
 
 
-def test_validate_dog_update_input_reports_breed_length_and_weight_range_errors() -> None:
+def test_validate_dog_update_input_reports_breed_length_and_weight_range_errors() -> (
+    None
+):
     """Update validation should reject oversized breed names and out-of-range weight."""
     with pytest.raises(FlowValidationError) as err:
         validate_dog_update_input(
