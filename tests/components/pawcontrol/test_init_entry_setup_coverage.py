@@ -9,6 +9,7 @@ import pytest
 
 import custom_components.pawcontrol as pawcontrol_init
 from custom_components.pawcontrol.exceptions import PawControlSetupError
+from homeassistant.exceptions import ConfigEntryNotReady
 
 
 class _ConfigEntriesStub:
@@ -161,6 +162,10 @@ async def test_async_setup_entry_ignores_daily_reset_scheduler_failure(
 
 
 @pytest.mark.asyncio
+async def test_async_setup_entry_stores_daily_reset_unsubscriber(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Successful scheduler setup should populate runtime reset unsubscribe hook."""
 async def test_async_setup_entry_tracks_daily_reset_unsubscriber(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
