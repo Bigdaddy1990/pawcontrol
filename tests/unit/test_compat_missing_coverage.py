@@ -1,5 +1,6 @@
 """Additional branch coverage tests for ``custom_components.pawcontrol.compat``."""
 
+from dataclasses import dataclass
 from enum import Enum
 import inspect
 import sys
@@ -141,10 +142,10 @@ def test_should_use_module_entry_handles_typeerror(
 ) -> None:
     """Signature inspection TypeError should produce a False decision."""
 
+    @dataclass
     class Entry:
-        def __init__(self, domain: str, entry_id: str) -> None:
-            self.domain = domain
-            self.entry_id = entry_id
+        domain: str
+        entry_id: str
 
     monkeypatch.setattr(
         inspect,
