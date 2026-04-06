@@ -3,6 +3,7 @@
 import argparse
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
+import json
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -12,16 +13,26 @@ class ModuleGate:
     """Coverage requirement for a critical module."""
 
     path: str
-    minimum_percent: Decimal
 
 
-TOTAL_MINIMUM_PERCENT = Decimal("75")
+@dataclass(frozen=True, slots=True)
+class BranchCoverageException:
+    """Documented exception for critical module branch coverage."""
+
+    path: str
+    minimum_branch_percent: Decimal
+    rationale: str
+
+
+TOTAL_MINIMUM_PERCENT = Decimal("85")
 CRITICAL_MODULE_GATES: tuple[ModuleGate, ...] = (
-    ModuleGate("custom_components/pawcontrol/coordinator.py", Decimal("80")),
-    ModuleGate("custom_components/pawcontrol/config_flow.py", Decimal("80")),
-    ModuleGate("custom_components/pawcontrol/services.py", Decimal("75")),
-    ModuleGate("custom_components/pawcontrol/data_manager.py", Decimal("75")),
+    ModuleGate("custom_components/pawcontrol/coordinator.py"),
+    ModuleGate("custom_components/pawcontrol/config_flow.py"),
+    ModuleGate("custom_components/pawcontrol/services.py"),
+    ModuleGate("custom_components/pawcontrol/data_manager.py"),
 )
+CRITICAL_BRANCH_TARGET_PERCENT = Decimal("100")
+DEFAULT_EXCEPTION_FILE = Path("docs/coverage_critical_module_exceptions.json")
 
 ALLOWED_NO_COVER_CATEGORIES: tuple[tuple[str, str], ...] = (
     (
@@ -76,9 +87,64 @@ def _module_coverage_percent(root: ET.Element, module_path: str) -> Decimal:
     )
 
 
-def _evaluate_gates(coverage_xml: Path) -> tuple[Decimal, list[str]]:
+def _module_branch_percent(root: ET.Element, module_path: str) -> Decimal:
+    for class_node in root.findall(".//class"):
+        if class_node.attrib.get("filename") != module_path:
+            continue
+        branch_rate = class_node.attrib.get("branch-rate")
+        if branch_rate is None:
+            raise SystemExit(
+                f"coverage.xml class entry for {module_path!r} is missing branch-rate"
+            )
+        return (_parse_percent(branch_rate) * Decimal("100")).quantize(Decimal("0.01"))
+    raise SystemExit(
+        "coverage.xml does not include coverage data for critical module: "
+        f"{module_path}"
+    )
+
+
+def _load_branch_exceptions(
+    exceptions_file: Path,
+) -> dict[str, BranchCoverageException]:
+    if not exceptions_file.is_file():
+        return {}
+
+    raw_payload = json.loads(exceptions_file.read_text(encoding="utf-8"))
+    if not isinstance(raw_payload, list):
+        raise SystemExit("coverage exception file must contain a JSON list")
+
+    exceptions: dict[str, BranchCoverageException] = {}
+    for item in raw_payload:
+        if not isinstance(item, dict):
+            raise SystemExit("coverage exception entries must be JSON objects")
+        path = item.get("path")
+        minimum_branch_percent = item.get("minimum_branch_percent")
+        rationale = item.get("rationale")
+        if (
+            not isinstance(path, str)
+            or not isinstance(minimum_branch_percent, str)
+            or not isinstance(rationale, str)
+            or not rationale.strip()
+        ):
+            raise SystemExit(
+                "each coverage exception must define string values for "
+                "path, minimum_branch_percent, and rationale"
+            )
+        exceptions[path] = BranchCoverageException(
+            path=path,
+            minimum_branch_percent=_parse_percent(minimum_branch_percent),
+            rationale=rationale.strip(),
+        )
+    return exceptions
+
+
+def _evaluate_gates(
+    coverage_xml: Path, exceptions_file: Path
+) -> tuple[Decimal, list[str], list[str]]:
     root = _coverage_root(coverage_xml)
+    branch_exceptions = _load_branch_exceptions(exceptions_file)
     failures: list[str] = []
+    notices: list[str] = []
 
     overall_percent = _overall_coverage_percent(root)
     if overall_percent < TOTAL_MINIMUM_PERCENT:
@@ -88,14 +154,36 @@ def _evaluate_gates(coverage_xml: Path) -> tuple[Decimal, list[str]]:
         )
 
     for gate in CRITICAL_MODULE_GATES:
-        module_percent = _module_coverage_percent(root, gate.path)
-        if module_percent < gate.minimum_percent:
-            failures.append(
-                "critical module coverage gate failed: "
-                f"{gate.path} = {module_percent}% < {gate.minimum_percent}%"
-            )
+        _module_coverage_percent(root, gate.path)
+        branch_percent = _module_branch_percent(root, gate.path)
+        if branch_percent >= CRITICAL_BRANCH_TARGET_PERCENT:
+            continue
 
-    return overall_percent, failures
+        branch_exception = branch_exceptions.get(gate.path)
+        if branch_exception is None:
+            failures.append(
+                "critical module branch coverage gate failed without documented "
+                f"exception: {gate.path} = {branch_percent}% < "
+                f"{CRITICAL_BRANCH_TARGET_PERCENT}%"
+            )
+            continue
+
+        if branch_percent < branch_exception.minimum_branch_percent:
+            failures.append(
+                "critical module branch coverage exception floor failed: "
+                f"{gate.path} = {branch_percent}% < "
+                f"{branch_exception.minimum_branch_percent}%"
+            )
+            continue
+
+        notices.append(
+            "critical module branch coverage exception applied: "
+            f"{gate.path} ({branch_percent}% < "
+            f"{CRITICAL_BRANCH_TARGET_PERCENT}%) because "
+            f"{branch_exception.rationale}"
+        )
+
+    return overall_percent, failures, notices
 
 
 def main() -> int:
@@ -106,17 +194,37 @@ def main() -> int:
         type=Path,
         help="path to the coverage.xml report",
     )
+    parser.add_argument(
+        "--exceptions-file",
+        default=DEFAULT_EXCEPTION_FILE,
+        type=Path,
+        help=("JSON file that documents critical-module branch coverage exceptions"),
+    )
     args = parser.parse_args()
 
-    overall_percent, failures = _evaluate_gates(args.coverage_xml)
+    overall_percent, failures, notices = _evaluate_gates(
+        args.coverage_xml, args.exceptions_file
+    )
     print(f"Overall coverage: {overall_percent}% (minimum {TOTAL_MINIMUM_PERCENT}%)")
 
     for gate in CRITICAL_MODULE_GATES:
-        print(f"Critical module gate: {gate.path} >= {gate.minimum_percent}%")
+        print(
+            "Critical module branch gate: "
+            f"{gate.path} >= {CRITICAL_BRANCH_TARGET_PERCENT}% "
+            "(or documented exception)"
+        )
+
+    if args.exceptions_file.is_file():
+        print(f"Branch coverage exceptions file: {args.exceptions_file}")
+    else:
+        print(f"Branch coverage exceptions file not found: {args.exceptions_file}")
 
     print("Allowed no-cover categories (must include a reason comment):")
     for name, reason in ALLOWED_NO_COVER_CATEGORIES:
         print(f"- {name}: {reason}")
+
+    for notice in notices:
+        print(f"NOTICE: {notice}")
 
     if failures:
         for failure in failures:

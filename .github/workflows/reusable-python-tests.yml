@@ -166,7 +166,34 @@ jobs:
       - name: Enforce test requirements and localization flags
         run: |
           python -m scripts.enforce_test_requirements
+          python -m scripts.enforce_test_todo_policy
           python -m scripts.sync_localization_flags
+
+      - name: Enforce PR checklist test coverage gate
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import os
+          import re
+
+          pr_body = os.environ.get("PR_BODY", "")
+          marker = re.compile(
+              r"- \[(?:x|X)\] Tests added/updated "
+              r"\(new logic without tests is not merged\)",
+          )
+          if marker.search(pr_body):
+              print("PR checklist coverage gate passed.")
+              raise SystemExit(0)
+          raise SystemExit(
+              "Pull request checklist gate failed: mark "
+              "'Tests added/updated (new logic without tests is not merged)' "
+              "as completed, or add the missing tests."
+          )
+          PY
 
       - run: |
           ruff check . --fix || true

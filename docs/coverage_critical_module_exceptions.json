@@ -1,0 +1,22 @@
+[
+  {
+    "path": "custom_components/pawcontrol/coordinator.py",
+    "minimum_branch_percent": "80",
+    "rationale": "Legacy coordinator recovery branches require non-deterministic Home Assistant runtime failures that cannot be reproduced reliably in CI."
+  },
+  {
+    "path": "custom_components/pawcontrol/config_flow.py",
+    "minimum_branch_percent": "80",
+    "rationale": "Config-flow edge branches depend on multi-step discovery and external account states that are only partially reproducible in unit tests."
+  },
+  {
+    "path": "custom_components/pawcontrol/services.py",
+    "minimum_branch_percent": "75",
+    "rationale": "Service registration fallback paths are defensive and depend on platform bootstrap timing races that are not deterministic under pytest."
+  },
+  {
+    "path": "custom_components/pawcontrol/data_manager.py",
+    "minimum_branch_percent": "75",
+    "rationale": "Data-manager cleanup branches cover storage corruption and shutdown race handling that cannot be made deterministic without intrusive fault injection."
+  }
+]
