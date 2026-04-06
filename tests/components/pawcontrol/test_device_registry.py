@@ -272,6 +272,10 @@ async def test_remove_config_entry_device_uses_runtime_data_and_skips_invalid_pa
 
 
 @pytest.mark.asyncio
+async def test_remove_config_entry_device_normalizes_sequence_and_mapping_names(
+    hass: HomeAssistant,
+) -> None:
+    """Dog ids should be preserved even when payload names are malformed."""
 async def test_remove_config_entry_device_sequence_source_falls_back_to_dog_id_name(
     hass: HomeAssistant,
 ) -> None:
@@ -303,6 +307,30 @@ async def test_remove_config_entry_device_skips_invalid_mapping_and_falls_back_t
         domain=DOMAIN,
         data={
             CONF_DOGS: {
+                "Map Dog": "invalid-payload",
+            },
+        },
+        options={
+            CONF_DOGS: [
+                {
+                    DOG_ID_FIELD: "Seq Dog",
+                    DOG_NAME_FIELD: 123,
+                }
+            ]
+        },
+    )
+
+    mapping_device = DeviceEntry(
+        id="mapping-device",
+        identifiers={(DOMAIN, sanitize_dog_id("Map Dog"))},
+    )
+    sequence_device = DeviceEntry(
+        id="sequence-device",
+        identifiers={(DOMAIN, sanitize_dog_id("Seq Dog"))},
+    )
+
+    assert await async_remove_config_entry_device(hass, entry, mapping_device) is True
+    assert await async_remove_config_entry_device(hass, entry, sequence_device) is False
                 "SkipMe": "not-a-mapping",
                 "Nameless-42": {DOG_NAME_FIELD: 1234},
             },
