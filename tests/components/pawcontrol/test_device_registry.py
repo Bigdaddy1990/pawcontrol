@@ -8,6 +8,7 @@ import pytest
 
 from custom_components.pawcontrol import async_remove_config_entry_device
 from custom_components.pawcontrol.const import CONF_DOG_OPTIONS, CONF_DOGS, DOMAIN
+from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
 from custom_components.pawcontrol.utils import (
     async_get_or_create_dog_device_entry,
@@ -172,6 +173,65 @@ async def test_remove_config_entry_device_uses_mapping_payloads(
         assert result is expected, (
             f"Expected {description} to return {expected} during removal check"
         )
+
+
+@pytest.mark.asyncio
+async def test_remove_config_entry_device_uses_runtime_data_and_skips_invalid_payloads(
+    hass: HomeAssistant,
+) -> None:
+    """Runtime dogs should block removal while malformed payloads are ignored."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        entry_id="runtime-entry",
+        data={
+            CONF_DOGS: [
+                "not-a-mapping",
+                {DOG_NAME_FIELD: "Missing dog id"},
+            ],
+            CONF_DOG_OPTIONS: [
+                "invalid",
+                {DOG_NAME_FIELD: "Still missing id"},
+            ],
+        },
+        options={
+            CONF_DOG_OPTIONS: {
+                "": {DOG_ID_FIELD: ""},
+                "Valid Key": "not-a-mapping",
+            },
+        },
+    )
+    store_runtime_data(
+        hass,
+        entry,
+        runtime_data=type(
+            "RuntimeData",
+            (),
+            {
+                "dogs": [
+                    {
+                        DOG_ID_FIELD: "Runtime Dog",
+                        DOG_NAME_FIELD: "Runtime Dog",
+                    }
+                ]
+            },
+        )(),
+    )
+
+    runtime_device = DeviceEntry(
+        id="runtime-device",
+        identifiers={
+            (DOMAIN, sanitize_dog_id("Runtime Dog")),
+            ("other", "ignored"),
+            (DOMAIN, "invalid", "identifier"),
+        },
+    )
+    orphan_device = DeviceEntry(
+        id="orphan-device",
+        identifiers={(DOMAIN, sanitize_dog_id("No Match"))},
+    )
+
+    assert await async_remove_config_entry_device(hass, entry, runtime_device) is False
+    assert await async_remove_config_entry_device(hass, entry, orphan_device) is True
 
 
 @pytest.mark.asyncio
