@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-from aiohttp import ClientError
+from aiohttp import ClientError, ClientTimeout
 from aiohttp.client_exceptions import ContentTypeError
 import pytest
 
