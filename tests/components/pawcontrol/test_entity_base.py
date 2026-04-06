@@ -85,6 +85,13 @@ def test_entity_name_device_class_and_icon_properties() -> None:
     assert entity.name is None
 
 
+def test_entity_basics_contract(assert_entity_basics) -> None:
+    """Shared entity baseline helper should validate required attributes."""
+    entity = _make_entity()
+    entity._attr_unique_id = "dog-1-status"
+    assert_entity_basics(entity)
+
+
 def test_entity_extra_state_attributes_include_last_exception_details() -> None:
     """Entity attributes should include coordinator exception context."""
     entity = _make_entity()
@@ -352,10 +359,9 @@ def test_append_dog_info_attributes_ignores_non_mapping_dog_data() -> None:
     assert attrs == {}
 
 
-def test_get_module_data_rejects_invalid_module_identifiers() -> None:
+@pytest.mark.parametrize("module_name", ["", "   ", cast(Any, 123)])
+def test_get_module_data_rejects_invalid_module_identifiers(module_name: Any) -> None:
     """Module lookup should short-circuit for invalid or empty module names."""
     entity = _make_entity()
 
-    assert entity._get_module_data("") == {}
-    assert entity._get_module_data("   ") == {}
-    assert entity._get_module_data(cast(Any, 123)) == {}
+    assert entity._get_module_data(module_name) == {}
