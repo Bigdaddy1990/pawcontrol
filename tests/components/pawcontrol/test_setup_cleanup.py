@@ -266,3 +266,33 @@ async def test_async_run_manager_method_handles_non_awaitable_result(
     )
 
     wait_for.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_register_cleanup_listener_reloads_on_options_change(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Registered update listener should reload the entry when options change."""
+    captured_listener = None
+
+    def _add_update_listener(listener):
+        nonlocal captured_listener
+        captured_listener = listener
+        return Mock()
+
+    entry = Mock()
+    entry.entry_id = "entry-id"
+    entry.add_update_listener = Mock(side_effect=_add_update_listener)
+    entry.async_on_unload = Mock()
+    runtime_data = SimpleNamespace(reload_unsub=None)
+    reload_entry = AsyncMock()
+
+    monkeypatch.setattr("custom_components.pawcontrol.async_reload_entry", reload_entry)
+
+    hass = SimpleNamespace()
+    await cleanup.async_register_cleanup(hass, entry, runtime_data)
+
+    assert callable(captured_listener)
+    await captured_listener(hass, entry)
+
+    reload_entry.assert_awaited_once_with(hass, entry)
