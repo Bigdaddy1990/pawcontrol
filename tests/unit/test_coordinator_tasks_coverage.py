@@ -13,7 +13,7 @@ Pure helpers tested directly:
   shutdown, ensure_background_task
 """
 
-from datetime import UTC, timedelta
+from datetime import UTC, date, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -447,3 +447,194 @@ async def test_run_maintenance_resets_consecutive_errors(
     await ct.run_maintenance(coord)
 
     assert coord._metrics.consecutive_errors == 0
+
+
+@pytest.mark.unit
+def test_stringify_breaker_name_ultimate_fallback_id_path() -> None:
+    class _WeirdName:
+        def __str__(self) -> str:
+            return "   "
+
+        def __repr__(self) -> str:
+            return "   "
+
+    value = _WeirdName()
+    result = ct._stringify_breaker_name(value)
+    assert result.startswith("breaker_")
+
+
+@pytest.mark.unit
+def test_coerce_int_handles_valueerror_then_typeerror() -> None:
+    class _ValueErrorIntTypeErrorFloat:
+        def __int__(self) -> int:
+            raise ValueError("bad int")
+
+        def __float__(self) -> float:
+            raise TypeError("bad float")
+
+    assert ct._coerce_int(_ValueErrorIntTypeErrorFloat()) == 0
+
+
+@pytest.mark.unit
+def test_coerce_int_handles_typeerror_then_valueerror() -> None:
+    class _TypeErrorIntValueErrorFloat:
+        def __int__(self) -> int:
+            raise TypeError("bad int")
+
+        def __float__(self) -> float:
+            raise ValueError("bad float")
+
+    assert ct._coerce_int(_TypeErrorIntValueErrorFloat()) == 0
+
+
+@pytest.mark.unit
+def test_normalise_string_list_non_sequence_scalar() -> None:
+    assert ct._normalise_string_list(123) == ["123"]
+
+
+@pytest.mark.unit
+def test_timestamp_from_datetime_handles_as_timestamp_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    moment = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
+
+    monkeypatch.setattr(
+        ct.dt_util,
+        "as_timestamp",
+        lambda _: (_ for _ in ()).throw(TypeError),
+        raising=False,
+    )
+    assert ct._timestamp_from_datetime(moment) is None
+
+    monkeypatch.setattr(
+        ct.dt_util,
+        "as_timestamp",
+        lambda _: (_ for _ in ()).throw(ValueError),
+        raising=False,
+    )
+    assert ct._timestamp_from_datetime(moment) is None
+
+    monkeypatch.setattr(
+        ct.dt_util,
+        "as_timestamp",
+        lambda _: (_ for _ in ()).throw(OverflowError),
+        raising=False,
+    )
+    assert ct._timestamp_from_datetime(moment) is None
+
+
+@pytest.mark.unit
+def test_timestamp_from_datetime_fallback_handles_naive_and_oserror(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _BrokenDateTime(datetime):
+        def timestamp(self) -> float:  # type: ignore[override]
+            raise OSError("unsupported")
+
+    broken = _BrokenDateTime(2026, 1, 2, 3, 4, 5)
+    monkeypatch.setattr(ct.dt_util, "as_timestamp", None, raising=False)
+    monkeypatch.setattr(ct.dt_util, "as_utc", lambda value: value)
+    assert ct._timestamp_from_datetime(broken) is None
+
+
+@pytest.mark.unit
+def test_coerce_float_date_fallback_start_of_local_day_exceptions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    day = date(2026, 2, 3)
+
+    monkeypatch.setattr(
+        ct.dt_util,
+        "start_of_local_day",
+        lambda _: (_ for _ in ()).throw(TypeError),
+    )
+    assert ct._coerce_float(day) is not None
+
+    monkeypatch.setattr(
+        ct.dt_util,
+        "start_of_local_day",
+        lambda _: (_ for _ in ()).throw(ValueError),
+    )
+    assert ct._coerce_float(day) is not None
+
+    monkeypatch.setattr(
+        ct.dt_util,
+        "start_of_local_day",
+        lambda _: (_ for _ in ()).throw(AttributeError),
+    )
+    assert ct._coerce_float(day) is not None
+
+
+@pytest.mark.unit
+def test_coerce_float_string_parse_exceptions_and_typeerror() -> None:
+    class _TypeErrorFloat:
+        def __float__(self) -> float:
+            raise TypeError("bad")
+
+    with patch.object(ct.dt_util, "parse_datetime", side_effect=ValueError):
+        assert ct._coerce_float("2026-01-01") is None
+
+    with patch.object(ct.dt_util, "parse_datetime", side_effect=TypeError):
+        assert ct._coerce_float("2026-01-01") is None
+
+    assert ct._coerce_float(_TypeErrorFloat()) is None
+    assert ct._coerce_float(True) == 1.0
+
+
+@pytest.mark.unit
+def test_store_resilience_diagnostics_returns_without_runtime(
+    mock_hass, mock_config_entry, mock_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from custom_components.pawcontrol.coordinator import PawControlCoordinator
+
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    monkeypatch.setattr(ct, "get_runtime_data", lambda *_: None)
+    mocked_update = MagicMock()
+    monkeypatch.setattr(ct, "update_runtime_resilience_diagnostics", mocked_update)
+
+    ct._store_resilience_diagnostics(coordinator, {})
+
+    mocked_update.assert_not_called()
+
+
+@pytest.mark.unit
+def test_collect_resilience_diagnostics_with_missing_manager_and_iterable_payload(
+    mock_hass, mock_config_entry, mock_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from custom_components.pawcontrol.coordinator import PawControlCoordinator
+
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+
+    # manager missing -> early clear path
+    coordinator.resilience_manager = None
+    cleared_payloads: list[object] = []
+    monkeypatch.setattr(ct, "get_runtime_data", lambda *_: {})
+    monkeypatch.setattr(
+        ct,
+        "update_runtime_resilience_diagnostics",
+        lambda _runtime, payload: cleared_payloads.append(payload),
+    )
+
+    assert ct.collect_resilience_diagnostics(coordinator) == {}
+    assert cleared_payloads[-1] is None
+
+    # iterable payload path with tuple item + scalar item and non-string state
+    class _Manager:
+        @staticmethod
+        def get_all_circuit_breakers() -> list[object]:
+            return [
+                (
+                    "dog_feeding",
+                    {
+                        "state": 3,
+                        "failure_count": 1,
+                        "success_count": 2,
+                    },
+                ),
+                "legacy-breaker",
+            ]
+
+    coordinator.resilience_manager = _Manager()
+    payload = ct.collect_resilience_diagnostics(coordinator)
+    assert "breakers" in payload
+    assert payload["breakers"]["dog_feeding"]["state"] == "3"
