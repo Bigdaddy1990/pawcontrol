@@ -423,6 +423,8 @@ def assert_service_error_handling() -> Callable[
             outcome = action()
             if asyncio.iscoroutine(outcome):
                 await outcome
+            elif isinstance(outcome, Exception):
+                raise outcome
 
     return _assert
 

@@ -704,7 +704,8 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
     def is_on(self) -> bool:
         """Check visitor mode state from data."""
         if dog_data := self._get_coordinator_dog_data():
-            return bool(dog_data.get("visitor_mode_active", False))
+            if "visitor_mode_active" in dog_data:
+                return bool(dog_data["visitor_mode_active"])
         return self._is_on
 
     async def _async_set_state(self, state: bool) -> None:

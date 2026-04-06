@@ -18,10 +18,13 @@ _TRANSLATION_CACHE_KEY = "translations"
 
 
 @lru_cache(maxsize=8)
-def _load_bundled_component_translations(language: str) -> dict[str, str]:
+def _load_bundled_component_translations_cached(
+    language: str,
+    base_path: str,
+) -> dict[str, str]:
     """Load bundled translations from ``translations/<language>.json``."""
-    base_path = Path(__file__).resolve().parent
-    translations_path = base_path / "translations" / f"{language}.json"
+    root = Path(base_path)
+    translations_path = root / "translations" / f"{language}.json"
     if not translations_path.exists():
         return {}
 
@@ -44,6 +47,17 @@ def _load_bundled_component_translations(language: str) -> dict[str, str]:
         if isinstance(key, str) and isinstance(value, str):
             resolved[component_translation_key(key)] = value
     return resolved
+
+
+def _load_bundled_component_translations(language: str) -> dict[str, str]:
+    """Load bundled translations from ``translations/<language>.json``."""
+    base_path = str(Path(__file__).resolve().parent)
+    return _load_bundled_component_translations_cached(language, base_path)
+
+
+_load_bundled_component_translations.cache_clear = (  # type: ignore[attr-defined]
+    _load_bundled_component_translations_cached.cache_clear
+)
 
 
 def load_bundled_component_translations_fresh(language: str) -> dict[str, str]:
