@@ -44,9 +44,9 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
-      - uses: astral-sh/ruff-action@v3 || true
+      - uses: astral-sh/ruff-action@v3
       - run: ruff check --fix || true
       - run: ruff format || true
-      - uses: pre-commit/action@v3.0.1 || true
+      - uses: pre-commit/action@v3.0.1
       - uses: pre-commit-ci/lite-action@v1.1.0
         if: always()
