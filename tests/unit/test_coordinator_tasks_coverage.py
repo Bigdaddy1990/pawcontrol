@@ -510,7 +510,9 @@ def test_coerce_float_parse_datetime_failures(monkeypatch: pytest.MonkeyPatch) -
 
 
 @pytest.mark.unit
-def test_store_and_clear_resilience_diagnostics(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_store_and_clear_resilience_diagnostics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Store/clear resilience diagnostics call runtime update helper."""
     coordinator = SimpleNamespace(
         hass=object(),
@@ -548,7 +550,9 @@ def test_collect_resilience_diagnostics_manager_edge_cases(
     )
 
     cleared: list[bool] = []
-    monkeypatch.setattr(ct, "_clear_resilience_diagnostics", lambda *_: cleared.append(True))
+    monkeypatch.setattr(
+        ct, "_clear_resilience_diagnostics", lambda *_: cleared.append(True)
+    )
 
     assert ct.collect_resilience_diagnostics(coordinator) == {}
     assert cleared
@@ -556,5 +560,7 @@ def test_collect_resilience_diagnostics_manager_edge_cases(
     coordinator.resilience_manager = SimpleNamespace(get_all_circuit_breakers="invalid")
     assert ct.collect_resilience_diagnostics(coordinator) == {}
 
-    coordinator.resilience_manager = SimpleNamespace(get_all_circuit_breakers=lambda: 123)
+    coordinator.resilience_manager = SimpleNamespace(
+        get_all_circuit_breakers=lambda: 123
+    )
     assert ct.collect_resilience_diagnostics(coordinator) == {}

@@ -6,10 +6,10 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_AGE,
     CONF_DOG_BREED,
     CONF_DOG_ID,
-    CONF_MODULES,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
+    CONF_MODULES,
 )
 from custom_components.pawcontrol.exceptions import FlowValidationError, ValidationError
 
