@@ -9,7 +9,7 @@ diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 """
 
 import asyncio
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from importlib import import_module
 from importlib.util import find_spec
@@ -397,6 +397,39 @@ def assert_entity_basics() -> Callable[[Any], None]:
 
 
 @pytest.fixture
+def assert_flow_abort_reason() -> Callable[[Mapping[str, object], str], None]:
+    """Return shared assertions for config-flow abort payloads."""
+
+    def _assert(result: Mapping[str, object], expected_reason: str) -> None:
+        assert result.get("type") == "abort"
+        assert result.get("reason") == expected_reason
+
+    return _assert
+
+
+@pytest.fixture
+def assert_service_error_handling() -> Callable[
+    [type[Exception], str, Callable[[], object] | Callable[[], Awaitable[object]]],
+    Awaitable[None],
+]:
+    """Return helper asserting sync/async callables raise expected service errors."""
+
+    async def _assert(
+        expected_exception: type[Exception],
+        message_match: str,
+        action: Callable[[], object] | Callable[[], Awaitable[object]],
+    ) -> None:
+        with pytest.raises(expected_exception, match=message_match):
+            outcome = action()
+            if asyncio.iscoroutine(outcome):
+                await outcome
+            elif isinstance(outcome, Exception):
+                raise outcome
+
+    return _assert
+
+
+@pytest.fixture
 def mock_resilience_manager(mock_hass):
     """Mock ResilienceManager for testing without actual resilience logic.
 
@@ -467,6 +500,14 @@ def mock_coordinator(
     coordinator.last_update_success = True
 
     yield coordinator
+
+
+@pytest.fixture
+def entity_factory(mock_coordinator: Any) -> Any:
+    """Return an EntityFactory bound to the shared coordinator fixture."""
+    from custom_components.pawcontrol.entity_factory import EntityFactory
+
+    return EntityFactory(mock_coordinator)
 
 
 @pytest.fixture
