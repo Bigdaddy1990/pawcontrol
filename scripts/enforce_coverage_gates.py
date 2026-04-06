@@ -71,9 +71,7 @@ def _module_coverage_percent(root: ET.Element, module_path: str) -> Decimal:
             raise SystemExit(
                 f"coverage.xml class entry for {module_path!r} is missing line-rate"
             )
-        return (_parse_percent(line_rate) * Decimal("100")).quantize(
-            Decimal("0.01")
-        )
+        return (_parse_percent(line_rate) * Decimal("100")).quantize(Decimal("0.01"))
     raise SystemExit(
         "coverage.xml does not include coverage data for critical module: "
         f"{module_path}"
