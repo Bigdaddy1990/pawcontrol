@@ -90,6 +90,41 @@ async def test_select_dog_step_routes_to_manage_when_empty() -> None:
 
 
 @pytest.mark.asyncio
+async def test_select_dog_step_returns_manage_when_selected_dog_is_missing() -> None:
+    """Unknown dog selections should route back to the manage dogs menu."""
+    host = _DoorSensorHost(
+        [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_DOG_NAME: "Buddy"}]
+    )
+
+    result = await host.async_step_select_dog_for_door_sensor({"dog_id": "missing"})
+
+    assert result["step_id"] == "manage_dogs"
+    assert host.manage_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_configure_door_sensor_routes_to_manage_without_valid_current_dog() -> None:
+    """Missing current dog payloads should return to the dog-management step."""
+    host = _DoorSensorHost([])
+    host._current_dog = None
+
+    result = await host.async_step_configure_door_sensor()
+    assert result["step_id"] == "manage_dogs"
+
+    host_with_invalid_id = _DoorSensorHost(
+        [{DOG_ID_FIELD: "", DOG_NAME_FIELD: "Buddy", CONF_DOG_NAME: "Buddy"}]
+    )
+    host_with_invalid_id._current_dog = {
+        DOG_ID_FIELD: "",
+        DOG_NAME_FIELD: "Buddy",
+        CONF_DOG_NAME: "Buddy",
+    }
+
+    invalid_result = await host_with_invalid_id.async_step_configure_door_sensor()
+    assert invalid_result["step_id"] == "manage_dogs"
+
+
+@pytest.mark.asyncio
 async def test_configure_door_sensor_returns_field_error_for_invalid_sensor(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -183,3 +218,41 @@ async def test_configure_door_sensor_sets_runtime_error_when_runtime_unavailable
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "runtime_cache_unavailable"
+
+
+@pytest.mark.asyncio
+async def test_configure_door_sensor_skips_runtime_persistence_without_data_manager(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing runtime data manager should return the runtime-cache error form."""
+    host = _DoorSensorHost([
+        {
+            DOG_ID_FIELD: "buddy",
+            DOG_NAME_FIELD: "Buddy",
+            CONF_DOG_NAME: "Buddy",
+            CONF_DOOR_SENSOR: "binary_sensor.front_door",
+        }
+    ])
+
+    monkeypatch.setattr(module, "ensure_dog_config_data", lambda payload: payload)
+    monkeypatch.setattr(
+        module,
+        "validate_sensor_entity_id",
+        lambda _hass, entity_id, **_kwargs: entity_id,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resolve_require_runtime_data",
+        lambda: lambda _hass, _entry: SimpleNamespace(data_manager=None),
+    )
+
+    result = await host.async_step_configure_door_sensor(
+        {
+            CONF_DOOR_SENSOR: "binary_sensor.side_door",
+            "walk_duration": 25,
+        }
+    )
+
+    assert result["step_id"] == "configure_door_sensor"
+    assert result["errors"]["base"] == "runtime_cache_unavailable"
+    assert host.updated_entry_data is None
