@@ -5,6 +5,7 @@ import logging
 from custom_components.pawcontrol.coordinator_diffing import (
     CoordinatorDataDiff,
     DataDiff,
+    DogDataDiff,
     SmartDiffTracker,
     compute_coordinator_diff,
     compute_data_diff,
@@ -163,3 +164,48 @@ def test_get_changed_fields_and_log_diff_summary(caplog) -> None:
     assert "added" in caplog.text
     assert "removed" in caplog.text
     assert "gps" in caplog.text
+
+
+def test_diff_to_dict_and_none_inputs_are_serialized_consistently() -> None:
+    """Serialization helpers should include expected keys for nested diffs."""
+    module_diff = DataDiff(modified_keys=frozenset({"lat"}))
+    dog_diff = DogDataDiff(
+        dog_id="buddy",
+        module_diffs={"gps": module_diff},
+        overall_diff=DataDiff(modified_keys=frozenset({"gps"})),
+    )
+    coordinator_diff = CoordinatorDataDiff(
+        dog_diffs={"buddy": dog_diff},
+        added_dogs=frozenset({"newdog"}),
+        removed_dogs=frozenset({"olddog"}),
+    )
+
+    dog_dict = dog_diff.to_dict()
+    assert dog_dict["dog_id"] == "buddy"
+    assert dog_dict["changed_modules"] == ["gps"]
+    assert dog_dict["module_diffs"]["gps"]["modified"] == ["lat"]
+
+    coordinator_dict = coordinator_diff.to_dict()
+    assert coordinator_dict["has_changes"] is True
+    assert coordinator_dict["added_dogs"] == ["newdog"]
+    assert coordinator_dict["removed_dogs"] == ["olddog"]
+    assert "buddy" in coordinator_dict["changed_dogs"]
+
+    none_diff = compute_coordinator_diff(None, None)
+    assert none_diff.has_changes is False
+    assert none_diff.changed_dogs == frozenset()
+
+
+def test_compute_coordinator_diff_skips_unchanged_and_unknown_dog_requests() -> None:
+    """Unchanged dog payloads should be skipped and unknown dog IDs ignored."""
+    diff = compute_coordinator_diff(
+        {"buddy": {"gps": {"lat": 1.0}}, "max": {"walk": {"active": False}}},
+        {"buddy": {"gps": {"lat": 1.0}}, "max": {"walk": {"active": True}}},
+    )
+
+    assert "buddy" not in diff.dog_diffs
+    assert "max" in diff.dog_diffs
+
+    tracker = SmartDiffTracker()
+    changed = tracker.get_changed_entities(diff, dog_id="ghost")
+    assert changed == frozenset()

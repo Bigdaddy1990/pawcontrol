@@ -129,7 +129,8 @@ async def test_remove_config_entry_device_uses_mapping_payloads(
             CONF_DOGS: {
                 "Delta-9": {
                     DOG_NAME_FIELD: "Delta",
-                }
+                },
+                "Ignored-Malformed": "not-a-mapping",
             },
             CONF_DOG_OPTIONS: [
                 {DOG_ID_FIELD: "Ghost 55"},
@@ -173,6 +174,42 @@ async def test_remove_config_entry_device_uses_mapping_payloads(
         assert result is expected, (
             f"Expected {description} to return {expected} during removal check"
         )
+
+
+@pytest.mark.asyncio
+async def test_remove_config_entry_device_handles_non_mapping_and_unsanitizable_ids(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Malformed map entries and invalid IDs should be skipped cleanly."""
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.sanitize_dog_id",
+        lambda _dog_id: "",
+    )
+
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: {
+                "bad-entry": "not-a-mapping",
+                "!!!": {DOG_NAME_FIELD: 123},
+            }
+        },
+        options={
+            CONF_DOGS: [
+                {
+                    DOG_ID_FIELD: "!!!",
+                    DOG_NAME_FIELD: 123,
+                }
+            ]
+        },
+    )
+    device_entry = DeviceEntry(
+        id="invalid-id-device",
+        identifiers={(DOMAIN, sanitize_dog_id("No Match"))},
+    )
+
+    assert await async_remove_config_entry_device(hass, entry, device_entry) is True
 
 
 @pytest.mark.asyncio
@@ -231,6 +268,102 @@ async def test_remove_config_entry_device_uses_runtime_data_and_skips_invalid_pa
     )
 
     assert await async_remove_config_entry_device(hass, entry, runtime_device) is False
+    assert await async_remove_config_entry_device(hass, entry, orphan_device) is True
+
+
+@pytest.mark.asyncio
+async def test_remove_config_entry_device_normalizes_sequence_and_mapping_names(
+    hass: HomeAssistant,
+) -> None:
+    """Dog ids should be preserved even when payload names are malformed."""
+async def test_remove_config_entry_device_sequence_source_falls_back_to_dog_id_name(
+    hass: HomeAssistant,
+) -> None:
+    """Sequence dog payloads without names should fall back to their dog id."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: [
+                "ignored-non-mapping",
+                {DOG_ID_FIELD: "Sequence-77"},
+            ],
+        },
+    )
+    active_device = DeviceEntry(
+        id="sequence-device",
+        identifiers={(DOMAIN, sanitize_dog_id("Sequence-77"))},
+    )
+    orphan_device = DeviceEntry(
+        id="sequence-orphan",
+        identifiers={(DOMAIN, sanitize_dog_id("No-Sequence-Match"))},
+    )
+
+    assert await async_remove_config_entry_device(hass, entry, active_device) is False
+async def test_remove_config_entry_device_skips_invalid_mapping_and_falls_back_to_id(
+    hass: HomeAssistant,
+) -> None:
+    """Mapping payloads should ignore non-mappings and coerce missing dog names."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: {
+                "Map Dog": "invalid-payload",
+            },
+        },
+        options={
+            CONF_DOGS: [
+                {
+                    DOG_ID_FIELD: "Seq Dog",
+                    DOG_NAME_FIELD: 123,
+                }
+            ]
+        },
+    )
+
+    mapping_device = DeviceEntry(
+        id="mapping-device",
+        identifiers={(DOMAIN, sanitize_dog_id("Map Dog"))},
+    )
+    sequence_device = DeviceEntry(
+        id="sequence-device",
+        identifiers={(DOMAIN, sanitize_dog_id("Seq Dog"))},
+    )
+
+    assert await async_remove_config_entry_device(hass, entry, mapping_device) is True
+    assert await async_remove_config_entry_device(hass, entry, sequence_device) is False
+                "SkipMe": "not-a-mapping",
+                "Nameless-42": {DOG_NAME_FIELD: 1234},
+            },
+        },
+        options={},
+    )
+    active_device = DeviceEntry(
+        id="name-fallback-device",
+        identifiers={(DOMAIN, sanitize_dog_id("Nameless-42"))},
+    )
+
+    assert await async_remove_config_entry_device(hass, entry, active_device) is False
+
+
+@pytest.mark.asyncio
+async def test_remove_config_entry_device_sequence_payload_handles_invalid_ids(
+    hass: HomeAssistant,
+) -> None:
+    """Sequence payloads should coerce names and ignore unsanitizable dog ids."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: [
+                {DOG_ID_FIELD: "!!!", DOG_NAME_FIELD: 100},
+            ],
+        },
+        options={},
+    )
+    orphan_device = DeviceEntry(
+        id="sequence-invalid-id",
+        identifiers={(DOMAIN, sanitize_dog_id("Other Dog"))},
+    )
+
     assert await async_remove_config_entry_device(hass, entry, orphan_device) is True
 
 
