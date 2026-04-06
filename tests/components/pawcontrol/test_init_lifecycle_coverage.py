@@ -283,3 +283,133 @@ async def test_async_reload_entry_logs_and_raises_unexpected_setup_error(
 
     with pytest.raises(RuntimeError, match="boom"):
         await pawcontrol_init.async_reload_entry(hass, entry)
+
+
+@pytest.mark.asyncio
+async def test_async_unload_entry_handles_service_manager_shutdown_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Shutdown exceptions should be logged and not abort unload."""
+
+    class _FailingServiceManager:
+        async def async_shutdown(self) -> None:
+            msg = "shutdown failed"
+            raise RuntimeError(msg)
+
+    hass = SimpleNamespace(
+        config_entries=_ConfigEntriesStub(unload_ok=True, loaded_entries=[object()]),
+        data={"pawcontrol": {"service_manager": _FailingServiceManager()}},
+    )
+    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.async_unload_external_bindings",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.get_runtime_data", lambda *_: None
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.pop_runtime_data", lambda *_: None
+    )
+
+    assert await pawcontrol_init.async_unload_entry(hass, entry) is True
+
+
+@pytest.mark.asyncio
+async def test_async_reload_entry_returns_early_when_unload_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reload should stop when unload fails and skip setup."""
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry-id")
+    unload_entry = AsyncMock(return_value=False)
+    setup_entry = AsyncMock()
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_unload_entry",
+        unload_entry,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        setup_entry,
+    )
+
+    assert await pawcontrol_init.async_reload_entry(hass, entry) is None
+    unload_entry.assert_awaited_once_with(hass, entry)
+    setup_entry.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_reload_entry_completes_after_successful_setup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reload should complete when unload and setup both succeed."""
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry-id")
+    unload_entry = AsyncMock(return_value=True)
+    setup_entry = AsyncMock(return_value=True)
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_unload_entry",
+        unload_entry,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        setup_entry,
+    )
+
+    assert await pawcontrol_init.async_reload_entry(hass, entry) is None
+    unload_entry.assert_awaited_once_with(hass, entry)
+    setup_entry.assert_awaited_once_with(hass, entry)
+
+
+@pytest.mark.asyncio
+async def test_async_monitor_background_tasks_handles_restart_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Restart errors should be swallowed by background monitor safeguards."""
+
+    async def _restart_cleanup() -> None:
+        msg = "cleanup restart error"
+        raise RuntimeError(msg)
+
+    async def _restart_stats() -> None:
+        msg = "stats restart error"
+        raise RuntimeError(msg)
+
+    class _DoneTask:
+        def done(self) -> bool:
+            return True
+
+    garden_manager = SimpleNamespace(
+        _cleanup_task=_DoneTask(),
+        _stats_update_task=_DoneTask(),
+        async_start_cleanup_task=_restart_cleanup,
+        async_start_stats_update_task=_restart_stats,
+    )
+    runtime_data = SimpleNamespace(garden_manager=garden_manager)
+
+    sleep_calls = 0
+
+    async def _cancel_sleep(_: int) -> None:
+        nonlocal sleep_calls
+        sleep_calls += 1
+        if sleep_calls > 1:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr("custom_components.pawcontrol.asyncio.sleep", _cancel_sleep)
+
+    await pawcontrol_init._async_monitor_background_tasks(runtime_data)
