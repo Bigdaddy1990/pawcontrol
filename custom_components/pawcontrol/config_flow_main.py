@@ -194,6 +194,18 @@ class PawControlConfigFlow(
         self._external_entities: ExternalEntityConfig = {}
         self._discovery_info: ConfigFlowDiscoveryData = {}
 
+    def _abort_if_unique_id_mismatch(self, *, reason: str) -> None:
+        """Abort reauth when the current unique ID does not match the entry."""
+        entry_unique_id = (
+            self.reauth_entry.unique_id if self.reauth_entry is not None else None
+        )
+        if (
+            isinstance(entry_unique_id, str)
+            and isinstance(self.unique_id, str)
+            and entry_unique_id != self.unique_id
+        ):
+            raise ConfigEntryNotReady(reason)
+
     async def async_step_user(
         self,
         user_input: ConfigFlowUserInput | None = None,
