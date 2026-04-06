@@ -285,7 +285,6 @@ def test_validate_dog_exists_rejects_keyword_only_calls_without_instance() -> No
 @pytest.mark.asyncio
 async def test_handle_errors_async_wrapper_direct_return_and_reraise_paths() -> None:
     """Cover direct return path and re-raise branches in async wrapper."""
-
     with patch(
         "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
         return_value=True,
@@ -360,7 +359,6 @@ async def test_retry_on_error_direct_async_return_and_sync_exhaustion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Cover direct async return branch and sync exhaustion fallback path."""
-
     with patch(
         "custom_components.pawcontrol.error_decorators.inspect.iscoroutinefunction",
         return_value=True,
@@ -553,7 +551,6 @@ async def test_handle_errors_async_reraise_paths() -> None:
 @pytest.mark.asyncio
 async def test_map_to_repair_issue_uses_coordinator_hass_fallback() -> None:
     """When ``hass`` is absent, decorator should read hass from ``coordinator``."""
-
     service = SimpleNamespace(coordinator=_Coordinator(data={}, hass=SimpleNamespace()))
 
     with patch(
