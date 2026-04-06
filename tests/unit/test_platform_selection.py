@@ -774,6 +774,137 @@ async def test_async_setup_entry_wraps_unexpected_setup_errors(
 
 
 @pytest.mark.asyncio
+async def test_async_setup_entry_reraises_not_ready_and_setup_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Expected setup errors should bubble up and still disable debug logging."""
+    disable_logging = Mock()
+    entry = SimpleNamespace(
+        entry_id="entry-expected-error", options={"debug_logging": True}
+    )
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_enable_debug_logging",
+        lambda _entry: True,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_disable_debug_logging",
+        disable_logging,
+    )
+
+    for side_effect in (
+        ConfigEntryNotReady("try later"),
+        PawControlSetupError("known setup error"),
+    ):
+        monkeypatch.setitem(
+            pawcontrol_init.async_setup_entry.__globals__,
+            "async_validate_entry_config",
+            AsyncMock(side_effect=side_effect),
+        )
+
+        with pytest.raises(type(side_effect), match=str(side_effect)):
+            await pawcontrol_init.async_setup_entry(SimpleNamespace(), entry)
+
+    assert disable_logging.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_continues_when_daily_reset_scheduler_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Daily reset scheduler failures are non-critical and should not abort setup."""
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(async_start_background_tasks=Mock()),
+        helper_manager=None,
+        door_sensor_manager=None,
+        geofencing_manager=None,
+        daily_reset_unsub=None,
+        background_monitor_task=None,
+    )
+    dogs_config = [_build_dog_config({MODULE_GPS: True})]
+    entry = SimpleNamespace(entry_id="entry-daily-reset-warning", options={})
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        AsyncMock(return_value=(dogs_config, "standard", frozenset())),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_should_skip_optional_setup",
+        lambda _hass: False,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_initialize_managers",
+        AsyncMock(return_value=runtime_data),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "store_runtime_data",
+        Mock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_platforms",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_cleanup",
+        AsyncMock(),
+    )
+    setup_daily_reset = AsyncMock(side_effect=RuntimeError("daily reset unavailable"))
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_daily_reset_scheduler",
+        setup_daily_reset,
+    )
+    check_issues = AsyncMock()
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_check_for_issues",
+        check_issues,
+    )
+
+    monitor_marker = object()
+
+    async def _monitor_stub(_runtime_data: object) -> None:
+        return None
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_async_monitor_background_tasks",
+        _monitor_stub,
+    )
+
+    def _create_task(coro: object) -> object:
+        coro.close()
+        return monitor_marker
+
+    hass = SimpleNamespace(async_create_task=_create_task)
+    assert await pawcontrol_init.async_setup_entry(hass, entry) is True
+
+    setup_daily_reset.assert_awaited_once_with(hass, entry)
+    check_issues.assert_awaited_once_with(hass, entry)
+    runtime_data.coordinator.async_start_background_tasks.assert_called_once_with()
+    assert runtime_data.background_monitor_task is monitor_marker
+    assert runtime_data.daily_reset_unsub is None
+
+
+@pytest.mark.asyncio
 async def test_async_setup_registers_service_manager_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -916,3 +1047,29 @@ async def test_async_setup_entry_propagates_auth_failure_and_disables_debug(
         await pawcontrol_init.async_setup_entry(SimpleNamespace(), entry)
 
     disable_logging.assert_called_once_with(entry)
+
+
+@pytest.mark.asyncio
+async def test_async_monitor_background_tasks_logs_restart_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Failed restart attempts should be logged without crashing the monitor loop."""
+    sleep_mock = AsyncMock(side_effect=[None, asyncio.CancelledError()])
+    monkeypatch.setattr(pawcontrol_init.asyncio, "sleep", sleep_mock)
+
+    cleanup_restart = AsyncMock(side_effect=RuntimeError("cleanup failed"))
+    stats_restart = AsyncMock(side_effect=RuntimeError("stats failed"))
+    garden_manager = SimpleNamespace(
+        _cleanup_task=SimpleNamespace(done=lambda: True),
+        _stats_update_task=SimpleNamespace(done=lambda: True),
+        async_start_cleanup_task=cleanup_restart,
+        async_start_stats_update_task=stats_restart,
+    )
+
+    await pawcontrol_init._async_monitor_background_tasks(
+        SimpleNamespace(garden_manager=garden_manager),
+    )
+
+    assert "Failed to restart garden cleanup task: cleanup failed" in caplog.text
+    assert "Failed to restart garden stats task: stats failed" in caplog.text
