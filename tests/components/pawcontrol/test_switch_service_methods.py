@@ -79,7 +79,7 @@ async def test_visitor_mode_switch_turn_off_calls_service_with_expected_payload(
 ):
     coordinator = _DummyCoordinator()
     entity = PawControlVisitorModeSwitch(coordinator, "dog-1", "Buddy")
-    entity._attr_hass = SimpleNamespace()
+    entity.hass = SimpleNamespace()
     entity.async_write_ha_state = Mock()
     entity._is_on = True
     entity._async_call_hass_service = AsyncMock(return_value=True)
