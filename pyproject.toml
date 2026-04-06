@@ -221,7 +221,7 @@ omit = ["tests/*", "*/__pycache__/*"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 75
+fail_under = 85
 skip_covered = false
 precision = 2
 ignore_errors = false
