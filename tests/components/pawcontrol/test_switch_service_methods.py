@@ -29,14 +29,21 @@ class _DummyCoordinator:
         return {"dog_info": {"dog_id": dog_id, "dog_name": "Buddy"}}
 
 
-@pytest.mark.asyncio
-async def test_visitor_mode_switch_turn_on_calls_service_with_expected_payload() -> (
-    None
-):
+@pytest.fixture(name="visitor_mode_switch_entity")
+def visitor_mode_switch_entity_fixture() -> PawControlVisitorModeSwitch:
+    """Create a visitor mode switch entity configured for service tests."""
     coordinator = _DummyCoordinator()
     entity = PawControlVisitorModeSwitch(coordinator, "dog-1", "Buddy")
     entity.hass = SimpleNamespace()
     entity.async_write_ha_state = Mock()
+    return entity
+
+
+@pytest.mark.asyncio
+async def test_visitor_mode_switch_turn_on_calls_service_with_expected_payload(
+    visitor_mode_switch_entity: PawControlVisitorModeSwitch,
+) -> None:
+    entity = visitor_mode_switch_entity
     entity._async_call_hass_service = AsyncMock(return_value=True)
 
     await entity.async_turn_on()
@@ -56,11 +63,10 @@ async def test_visitor_mode_switch_turn_on_calls_service_with_expected_payload()
 
 
 @pytest.mark.asyncio
-async def test_visitor_mode_switch_service_failure_keeps_state_consistent() -> None:
-    coordinator = _DummyCoordinator()
-    entity = PawControlVisitorModeSwitch(coordinator, "dog-1", "Buddy")
-    entity.hass = SimpleNamespace()
-    entity.async_write_ha_state = Mock()
+async def test_visitor_mode_switch_service_failure_keeps_state_consistent(
+    visitor_mode_switch_entity: PawControlVisitorModeSwitch,
+) -> None:
+    entity = visitor_mode_switch_entity
     entity._is_on = False
     entity._async_call_hass_service = AsyncMock(return_value=False)
 

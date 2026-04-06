@@ -709,7 +709,7 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
 
     async def _async_set_state(self, state: bool) -> None:
         """Set visitor mode with service call."""
-        if not await self._async_call_hass_service(
+        service_called = await self._async_call_hass_service(
             DOMAIN,
             "set_visitor_mode",
             {
@@ -719,7 +719,10 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
                 "reduced_alerts": state,
             },
             blocking=False,
-        ):
+        )
+        if not service_called:
+            if self.hass is None:
+                return
             raise HomeAssistantError(
                 "Failed to update visitor mode via Home Assistant service call",
             )
