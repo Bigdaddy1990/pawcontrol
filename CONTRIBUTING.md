@@ -27,8 +27,11 @@ Thank you for your interest in improving the PawControl integration. This guide 
 - Write asynchronous, fully typed code and prefer modern Python features such as pattern matching, dataclasses, and `ConfigEntry.runtime_data`.
 - Reuse shared helpers under `custom_components/pawcontrol/` and constants from `homeassistant.const` instead of hardcoding values.
 - Keep all user-facing text in American English, use sentence case for headings, and speak to the user in second-person voice.
-- Update or add tests under `tests/` for every behavior change so coverage stays above the threshold defined in `pyproject.toml`.
+- Update or add tests under `tests/` for every behavior change so coverage stays above the quality gates in `pyproject.toml` and `docs/coverage_quality_gates.md`.
 - Revise documentation, release notes, and translations (for example files in `docs/`, `README.md`, and `custom_components/pawcontrol/translations/`) whenever behavior or options change.
+
+- Enforce module-level coverage for critical runtime files (`coordinator.py`, `config_flow.py`, `services.py`, and `data_manager.py`) by running `python -m scripts.enforce_coverage_gates --coverage-xml coverage.xml` before opening a PR.
+- Do not merge pull requests that add new logic without accompanying tests.
 
 ### Required Home Assistant references
 PawControl contributions must align with the official Home Assistant developer documentation and policy updates. Review the following sources before you begin and use them as the authoritative reference when implementing or reviewing changes:
@@ -87,6 +90,7 @@ python -m scripts.enforce_test_requirements
 python -m scripts.sync_localization_flags
 mypy custom_components/pawcontrol
 pytest --cov=custom_components/pawcontrol tests
+python -m scripts.enforce_coverage_gates --coverage-xml coverage.xml
 pre-commit run --all-files
 python -m hassfest  # Available via the Home Assistant hassfest tool or the hassfest PyPI package
 ```
