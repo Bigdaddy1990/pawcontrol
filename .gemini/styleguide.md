@@ -39,6 +39,7 @@ ruff format                          # Apply repository formatting rules
 ruff check                           # Run Ruff lint (includes docstring gates)
 pytest -q                            # Execute the async pytest suite with coverage
 python -m scripts.enforce_test_requirements  # Confirm tests declare third-party deps
+python -m scripts.enforce_coverage_gates --coverage-xml coverage.xml  # Enforce total + critical module coverage
 mypy custom_components/pawcontrol    # Ensure static typing stays strict
 python -m scripts.hassfest \
   --integration-path custom_components/pawcontrol  # Validate manifest & strings
@@ -146,6 +147,9 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 * `python -m scripts.enforce_test_requirements` ensures new tests add their
   third-party dependencies to `requirements_test.txt` so CI never regresses on
   missing packages.
+
+* `python -m scripts.enforce_coverage_gates --coverage-xml coverage.xml` is the mandatory module-level coverage gate for critical runtime files (`coordinator.py`, `config_flow.py`, `services.py`, and `data_manager.py`).
+* Coverage exclusions (`# pragma: no cover`) are allowed only for import/version fallbacks, defensive logging/cleanup paths, and `TYPE_CHECKING` branches—and every exclusion must include an inline reason.
 
 ## Integration architecture
 
@@ -263,6 +267,7 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 - [ ] All user-facing strings live in `strings.json`/`translations/` and follow
       Home Assistant tone guidelines.
 - [ ] New documentation includes citations to code/tests proving the behaviour.
+- [ ] New logic includes tests; pull requests without tests for new behavior are not merged.
 - [ ] Device removal (`async_remove_config_entry_device`) and diagnostics remain
       covered by tests when behaviour changes.
 <!-- SYNC:END -->

@@ -9,7 +9,7 @@
 - [ ] Docs/CI only
 
 ## Checklist
-- [ ] Tests added/updated
+- [ ] Tests added/updated (new logic without tests is not merged)
 - [ ] Docs updated (README / `docs/`)
 - [ ] CI green
 - [ ] Linked issue
