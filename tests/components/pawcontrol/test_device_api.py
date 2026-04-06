@@ -150,6 +150,76 @@ async def test_async_request_raises_auth_failed_on_401() -> None:
 
 
 @pytest.mark.asyncio
+async def test_service_success_calls_api_with_expected_payload() -> None:
+    """Service request should call the API once and return the JSON payload."""
+    session = _FakeSession(_FakeResponse(json_payload={"status": "ok"}))
+    client = PawControlDeviceClient(session, endpoint="https://example.test")
+
+    payload = await client.async_get_json("/api/status")
+
+    assert payload == {"status": "ok"}
+    args, kwargs = session.calls[0]
+    assert args[:2] == ("GET", client.base_url.joinpath("api/status"))
+    assert kwargs["headers"] is None
+
+
+@pytest.mark.asyncio
+async def test_service_timeout_raises_or_handles_cleanly() -> None:
+    """Timeout errors should be normalized into a predictable network error."""
+    client = PawControlDeviceClient(
+        _FailingSession(TimeoutError()),
+        endpoint="https://example.test",
+    )
+
+    with pytest.raises(NetworkError, match="Timed out while contacting"):
+        await client._async_request("GET", "/api/status")
+
+
+@pytest.mark.asyncio
+async def test_service_auth_error_behavior() -> None:
+    """Authentication failures should raise ConfigEntryAuthFailed."""
+    session = _FakeSession(_FakeResponse(status=401))
+    client = PawControlDeviceClient(session, endpoint="https://example.test")
+
+    with pytest.raises(ConfigEntryAuthFailed):
+        await client._async_request("GET", "/api/status")
+
+
+def test_service_validation_error_behavior() -> None:
+    """Invalid service endpoint input should raise a validation ValueError."""
+    with pytest.raises(ValueError, match="endpoint must use http or https"):
+        validate_device_endpoint("ftp://example.test")
+
+
+@pytest.mark.asyncio
+async def test_service_unknown_error_fallback() -> None:
+    """Unexpected payload shapes should fall back to a normalized network error."""
+    session = _FakeSession(_FakeResponse(json_payload=[{"unexpected": True}]))
+    client = PawControlDeviceClient(session, endpoint="https://example.test")
+
+    with pytest.raises(NetworkError, match="unexpected response payload"):
+        await client.async_get_json("/api/status")
+
+
+@pytest.mark.asyncio
+async def test_service_does_not_leave_inconsistent_state() -> None:
+    """A failed request should not poison subsequent successful requests."""
+    session = _SequencedSession([
+        TimeoutError(),
+        _FakeResponse(json_payload={"ok": True}),
+    ])
+    client = PawControlDeviceClient(session, endpoint="https://example.test")
+
+    with pytest.raises(NetworkError, match="Timed out while contacting"):
+        await client.async_get_json("/api/status")
+
+    payload = await client.async_get_json("/api/status")
+
+    assert payload == {"ok": True}
+    assert session.call_count == 2
+
+
+@pytest.mark.asyncio
 async def test_async_request_raises_rate_limit_with_retry_after_header() -> None:
     """HTTP 429 should include retry-after duration when provided."""
     session = _FakeSession(_FakeResponse(status=429, headers={"Retry-After": "12"}))
