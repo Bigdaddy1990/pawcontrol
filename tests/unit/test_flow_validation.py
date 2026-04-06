@@ -520,6 +520,29 @@ def test_validate_dog_update_input_reports_breed_and_age_range_errors() -> None:
     assert err.value.field_errors[CONF_DOG_AGE] == "age_out_of_range"
 
 
+def test_validate_dog_update_input_clears_legacy_age_weight_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Defensive path: clear compatibility keys when canonical keys are absent."""
+    from custom_components.pawcontrol import flow_validation as flow_validation_module
+
+    monkeypatch.setattr(flow_validation_module, "DOG_AGE_FIELD", "age")
+    monkeypatch.setattr(flow_validation_module, "DOG_WEIGHT_FIELD", "weight")
+
+    current_dog = {
+        CONF_DOG_ID: "buddy",
+        CONF_DOG_NAME: "Buddy",
+        "age": 7,
+        "weight": 21.5,
+        CONF_DOG_SIZE: "medium",
+    }
+
+    result = validate_dog_update_input(current_dog, {})
+
+    assert "age" not in result
+    assert "weight" not in result
+
+
 def test_validate_dog_setup_input_handles_non_string_name_from_validator(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
