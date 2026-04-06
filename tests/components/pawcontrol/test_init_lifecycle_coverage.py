@@ -1,5 +1,6 @@
 """Additional lifecycle branch coverage for integration entry orchestration."""
 
+import asyncio
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
@@ -185,4 +186,100 @@ async def test_async_reload_entry_propagates_not_ready_and_auth_failures(
         AsyncMock(side_effect=ConfigEntryAuthFailed("auth")),
     )
     with pytest.raises(ConfigEntryAuthFailed):
+        await pawcontrol_init.async_reload_entry(hass, entry)
+
+
+def test_should_skip_optional_setup_returns_false_for_real_services() -> None:
+    """Non-mock services should keep optional setup enabled."""
+
+    class _Services:
+        __module__ = "homeassistant.core"
+
+        async def async_call(self, *_: Any, **__: Any) -> None:
+            return None
+
+    hass = SimpleNamespace(services=_Services())
+
+    assert _should_skip_optional_setup(hass) is False
+
+
+@pytest.mark.asyncio
+async def test_async_monitor_background_tasks_restarts_dead_tasks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Background task monitor should restart dead garden tasks once."""
+    restart_calls: list[str] = []
+
+    async def _restart_cleanup() -> None:
+        restart_calls.append("cleanup")
+
+    async def _restart_stats() -> None:
+        restart_calls.append("stats")
+
+    class _DoneTask:
+        def done(self) -> bool:
+            return True
+
+    garden_manager = SimpleNamespace(
+        _cleanup_task=_DoneTask(),
+        _stats_update_task=_DoneTask(),
+        async_start_cleanup_task=_restart_cleanup,
+        async_start_stats_update_task=_restart_stats,
+    )
+    runtime_data = SimpleNamespace(garden_manager=garden_manager)
+
+    sleep_calls = 0
+
+    async def _cancel_sleep(_: int) -> None:
+        nonlocal sleep_calls
+        sleep_calls += 1
+        if sleep_calls > 1:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.asyncio.sleep",
+        _cancel_sleep,
+    )
+
+    await pawcontrol_init._async_monitor_background_tasks(runtime_data)
+
+    assert restart_calls == ["cleanup", "stats"]
+
+
+@pytest.mark.asyncio
+async def test_async_reload_entry_logs_and_raises_unexpected_setup_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected setup errors should bubble up unchanged during reload."""
+    hass = SimpleNamespace(
+        config_entries=_ConfigEntriesStub(unload_ok=True, loaded_entries=[object()]),
+        data={"pawcontrol": {}},
+    )
+    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.async_unload_external_bindings",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.get_runtime_data", lambda *_: None
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.pop_runtime_data", lambda *_: None
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        AsyncMock(side_effect=RuntimeError("boom")),
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
         await pawcontrol_init.async_reload_entry(hass, entry)
