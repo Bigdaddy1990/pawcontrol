@@ -148,6 +148,20 @@ def test_raise_from_error_code_with_context_only_path() -> None:
     assert exc_info.value.context["source"] == "test"
 
 
+def test_raise_from_error_code_with_category_only_path() -> None:
+    """raise_from_error_code should support the category-only constructor branch."""
+    from custom_components.pawcontrol.exceptions import ErrorCategory
+
+    with pytest.raises(PawControlError) as exc_info:
+        raise_from_error_code(
+            "custom_error",
+            "category branch",
+            category=ErrorCategory.NETWORK,
+        )
+
+    assert exc_info.value.category is ErrorCategory.NETWORK
+
+
 def test_handle_exception_gracefully_logs_and_reraises_unexpected() -> None:
     """Unexpected exceptions should be logged and reraised when configured."""
 
@@ -162,6 +176,22 @@ def test_handle_exception_gracefully_logs_and_reraises_unexpected() -> None:
 
     with pytest.raises(RuntimeError, match="boom"):
         wrapped()
+
+
+def test_handle_exception_gracefully_unexpected_without_reraise_and_logging() -> None:
+    """Unexpected errors can be swallowed when reraising/logging are disabled."""
+
+    def _raise_unexpected() -> None:
+        raise RuntimeError("silent boom")
+
+    wrapped = handle_exception_gracefully(
+        _raise_unexpected,
+        default_return="fallback",
+        log_errors=False,
+        reraise_critical=False,
+    )
+
+    assert wrapped() == "fallback"
 
 
 def test_handle_exception_gracefully_logs_non_critical_errors(
