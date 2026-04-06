@@ -440,7 +440,11 @@ class PawControlCoordinator(
         if dog_ids is None:
             await self.async_request_refresh()
             return
-        unique_ids = [dog_id for dog_id in dict.fromkeys(dog_ids) if dog_id]
+        unique_ids = [
+            dog_id.strip()
+            for dog_id in dict.fromkeys(dog_ids)
+            if isinstance(dog_id, str) and dog_id.strip()
+        ]
         if not unique_ids:
             return
         await self._refresh_subset(unique_ids)
