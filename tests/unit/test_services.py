@@ -259,6 +259,65 @@ def test_coerce_service_bool_rejects_numeric_non_boolean_values() -> None:
         services._coerce_service_bool(2, field="enabled")
 
 
+@pytest.mark.parametrize(
+    ("schema", "payload"),
+    [
+        (
+            services.SERVICE_SEND_NOTIFICATION_SCHEMA,
+            {"message": "missing title"},
+        ),
+        (
+            services.SERVICE_START_GROOMING_SCHEMA,
+            {"dog_id": "buddy"},
+        ),
+    ],
+)
+def test_service_schema_rejects_missing_required_fields(
+    schema: object,
+    payload: dict[str, object],
+) -> None:
+    """Service schemas should fail fast when required handler fields are missing."""
+    with pytest.raises(services.vol.Invalid):
+        schema(payload)
+
+
+@pytest.mark.parametrize(
+    ("schema", "payload"),
+    [
+        (
+            services.SERVICE_SEND_NOTIFICATION_SCHEMA,
+            {"title": "Hi", "message": "Body", "channels": [123]},
+        ),
+        (
+            services.SERVICE_START_GROOMING_SCHEMA,
+            {
+                "dog_id": "buddy",
+                "grooming_type": "bath",
+                "estimated_duration_minutes": "soon",
+            },
+        ),
+    ],
+)
+def test_service_schema_rejects_invalid_field_types(
+    schema: object,
+    payload: dict[str, object],
+) -> None:
+    """Invalid field types should be rejected before service handlers execute."""
+    with pytest.raises(services.vol.Invalid):
+        schema(payload)
+
+
+def test_service_schema_accepts_valid_start_grooming_payload() -> None:
+    """A valid grooming payload should pass schema validation for handler execution."""
+    validated = services.SERVICE_START_GROOMING_SCHEMA(
+        {"dog_id": "buddy", "grooming_type": "bath", "estimated_duration_minutes": 30}
+    )
+
+    assert validated["dog_id"] == "buddy"
+    assert validated["grooming_type"] == "bath"
+    assert validated["estimated_duration_minutes"] == 30
+
+
 def test_format_numeric_value_collapses_integer_floats() -> None:
     """Numeric formatter should avoid decimal suffixes for integer-like floats."""
     assert services._format_numeric_value(4.0) == "4"
