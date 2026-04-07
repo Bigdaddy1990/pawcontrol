@@ -3,6 +3,8 @@
 from collections.abc import Mapping
 from typing import Any
 
+import pytest
+
 from custom_components.pawcontrol.const import CONF_DOGS
 from custom_components.pawcontrol.exceptions import FlowValidationError
 from custom_components.pawcontrol.options_flow_import_export import (
@@ -160,6 +162,31 @@ async def test_import_step_reports_payload_and_json_errors() -> None:
     invalid_json = await flow.async_step_import_export_import({"payload": "{"})
     assert invalid_json["type"] == "form"
     assert invalid_json["errors"] == {"payload": "invalid_json"}
+
+
+@pytest.mark.parametrize(
+    ("field_errors", "base_errors", "expected_errors"),
+    [
+        ({"payload": "invalid_payload"}, [], {"payload": "invalid_payload"}),
+        ({}, ["update_failed"], {"base": "update_failed"}),
+    ],
+)
+async def test_import_step_maps_validation_error_reasons_to_form_errors(
+    field_errors: dict[str, str],
+    base_errors: list[str],
+    expected_errors: dict[str, str],
+) -> None:
+    """Validation error reasons should map deterministically to form errors."""
+    flow = _FakeImportExportFlow()
+    flow.validation_error = FlowValidationError(
+        field_errors=field_errors,
+        base_errors=base_errors,
+    )
+
+    result = await flow.async_step_import_export_import({"payload": '{"version": 1}'})
+
+    assert result["type"] == "form"
+    assert result["errors"] == expected_errors
 
 
 async def test_import_step_maps_flow_validation_errors_to_form_errors() -> None:
