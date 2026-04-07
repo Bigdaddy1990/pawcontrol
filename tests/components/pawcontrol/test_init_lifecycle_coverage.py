@@ -413,3 +413,181 @@ async def test_async_monitor_background_tasks_handles_restart_failures(
     monkeypatch.setattr("custom_components.pawcontrol.asyncio.sleep", _cancel_sleep)
 
     await pawcontrol_init._async_monitor_background_tasks(runtime_data)
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_auth_failure_rolls_back_all_resources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Auth failures after partial setup should rollback mqtt/webhook/runtime state."""
+    runtime_data = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+    hass = SimpleNamespace()
+    pop_calls: list[tuple[object, object]] = []
+    unregister_webhook = AsyncMock()
+    unregister_mqtt = AsyncMock()
+    cleanup_runtime = AsyncMock()
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        AsyncMock(return_value=([{"id": "dog-1"}], "standard", [])),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_should_skip_optional_setup",
+        lambda _hass: True,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_initialize_managers",
+        AsyncMock(return_value=runtime_data),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "store_runtime_data",
+        lambda *_: None,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_platforms",
+        AsyncMock(side_effect=ConfigEntryAuthFailed("auth-failure")),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_unregister_entry_webhook",
+        unregister_webhook,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_unregister_entry_mqtt",
+        unregister_mqtt,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_cleanup_runtime_data",
+        cleanup_runtime,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "pop_runtime_data",
+        lambda *args: pop_calls.append(args),
+    )
+
+    with pytest.raises(ConfigEntryAuthFailed):
+        await pawcontrol_init.async_setup_entry(hass, entry)
+
+    unregister_webhook.assert_awaited_once_with(hass, entry)
+    unregister_mqtt.assert_awaited_once_with(hass, entry)
+    cleanup_runtime.assert_awaited_once_with(runtime_data)
+    assert pop_calls == [(hass, entry)]
+
+
+@pytest.mark.asyncio
+async def test_async_unload_entry_failed_platform_unload_skips_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unload failure should not cleanup runtime state or pop stored runtime data."""
+    runtime_data = SimpleNamespace(
+        dogs=[{"modules": {"gps": True}}],
+        entity_profile="standard",
+    )
+    hass = SimpleNamespace(
+        config_entries=_ConfigEntriesStub(unload_ok=False, loaded_entries=[object()]),
+        data={"pawcontrol": {}},
+    )
+    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+    cleanup_runtime = AsyncMock()
+    pop_runtime_data = AsyncMock()
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.async_unload_external_bindings",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.get_runtime_data",
+        lambda *_: runtime_data,
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.async_cleanup_runtime_data",
+        cleanup_runtime,
+    )
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.pop_runtime_data",
+        pop_runtime_data,
+    )
+
+    assert await pawcontrol_init.async_unload_entry(hass, entry) is False
+    cleanup_runtime.assert_not_awaited()
+    pop_runtime_data.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_unload_entry_last_loaded_entry_shuts_down_service_manager(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unload success should cleanup runtime and stop service manager for last entry."""
+    runtime_data = SimpleNamespace(
+        dogs=[{"modules": {"gps": True, "health": True}}],
+        entity_profile="standard",
+    )
+    service_manager = SimpleNamespace(async_shutdown=AsyncMock())
+    hass = SimpleNamespace(
+        config_entries=_ConfigEntriesStub(unload_ok=True, loaded_entries=[object()]),
+        data={"pawcontrol": {"service_manager": service_manager}},
+    )
+    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+    pop_calls: list[tuple[object, object]] = []
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unregister_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_unload_external_bindings",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "get_runtime_data",
+        lambda *_: runtime_data,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "async_cleanup_runtime_data",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_unload_entry.__globals__,
+        "pop_runtime_data",
+        lambda *args: pop_calls.append(args),
+    )
+
+    assert await pawcontrol_init.async_unload_entry(hass, entry) is True
+    service_manager.async_shutdown.assert_awaited_once()
+    assert pop_calls == [(hass, entry)]
