@@ -40,6 +40,70 @@ from custom_components.pawcontrol.types import (
 )
 
 
+def test_settings_for_persistence_idempotent_default_payload() -> None:
+    """Default settings with no existing payload should not be persisted."""
+    result = DoorSensorManager._settings_for_persistence(
+        raw_settings=None,
+        normalised=DEFAULT_DOOR_SENSOR_SETTINGS,
+    )
+
+    assert not isinstance(result, DoorSensorSettingsConfig)
+
+
+def test_settings_for_persistence_with_changed_mapping_payload() -> None:
+    """Changed payloads should return normalized config for persistence."""
+    normalised = DoorSensorSettingsConfig(minimum_walk_duration=420)
+    result = DoorSensorManager._settings_for_persistence(
+        raw_settings={"minimum_walk_duration": 120},
+        normalised=normalised,
+    )
+
+    assert result == normalised
+
+
+@pytest.mark.asyncio
+async def test_async_persist_door_sensor_skips_without_changes() -> None:
+    """Persist helper should be idempotent when nothing changed."""
+    manager = DoorSensorManager(Mock(), "entry")
+    manager._data_manager = AsyncMock()
+
+    await manager._async_persist_door_sensor("dog-1")
+
+    manager._data_manager.async_update_dog_data.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_persist_door_sensor_handles_update_failures() -> None:
+    """Persist helper should swallow backend errors defensively."""
+    manager = DoorSensorManager(Mock(), "entry")
+    manager._data_manager = AsyncMock()
+    manager._data_manager.async_update_dog_data.side_effect = RuntimeError("boom")
+
+    await manager._async_persist_door_sensor(
+        "dog-1",
+        sensor="binary_sensor.front_door",
+        settings=DoorSensorSettingsConfig(minimum_walk_duration=300),
+    )
+
+    manager._data_manager.async_update_dog_data.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_async_persist_door_sensor_uses_none_for_default_settings() -> None:
+    """Default settings should persist as ``None`` under settings key."""
+    manager = DoorSensorManager(Mock(), "entry")
+    manager._data_manager = AsyncMock()
+
+    await manager._async_persist_door_sensor(
+        "dog-1",
+        settings=DEFAULT_DOOR_SENSOR_SETTINGS,
+    )
+
+    _, updates_raw = manager._data_manager.async_update_dog_data.await_args[0]
+    updates = cast(DoorSensorConfigUpdate, updates_raw)
+    assert updates[CONF_DOOR_SENSOR_SETTINGS] is None
+
+
 @pytest.mark.parametrize(
     "overrides,expected",
     [
@@ -319,6 +383,55 @@ async def test_update_without_changes_does_not_restart(
     monkeypatch.setattr(manager, "_start_sensor_monitoring", AsyncMock())
 
     assert await manager.async_update_dog_configuration("dog-1", None, {})
+    manager._stop_sensor_monitoring.assert_not_called()  # type: ignore[attr-defined]
+    manager._start_sensor_monitoring.assert_not_called()  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
+async def test_update_rejects_invalid_sensor_entity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid sensor IDs should fail update and avoid side effects."""
+    manager = DoorSensorManager(Mock(), "entry")
+    manager._sensor_configs["dog-1"] = DoorSensorConfig(
+        entity_id="binary_sensor.front_door",
+        dog_id="dog-1",
+        dog_name="Buddy",
+    )
+    monkeypatch.setattr(
+        manager,
+        "_validate_sensor_entity",
+        AsyncMock(return_value=False),
+    )
+    persist_mock = AsyncMock()
+    monkeypatch.setattr(manager, "_async_persist_door_sensor", persist_mock)
+
+    result = await manager.async_update_dog_configuration(
+        "dog-1",
+        "binary_sensor.invalid",
+        None,
+    )
+
+    assert result is False
+    persist_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_returns_false_for_unknown_dog(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Updating unknown dogs should fail without restart calls."""
+    manager = DoorSensorManager(Mock(), "entry")
+    monkeypatch.setattr(manager, "_stop_sensor_monitoring", AsyncMock())
+    monkeypatch.setattr(manager, "_start_sensor_monitoring", AsyncMock())
+
+    result = await manager.async_update_dog_configuration(
+        "dog-404",
+        "binary_sensor.front_door",
+        {},
+    )
+
+    assert result is False
     manager._stop_sensor_monitoring.assert_not_called()  # type: ignore[attr-defined]
     manager._start_sensor_monitoring.assert_not_called()  # type: ignore[attr-defined]
 
