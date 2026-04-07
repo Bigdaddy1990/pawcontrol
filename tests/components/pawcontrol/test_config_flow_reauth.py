@@ -557,6 +557,50 @@ async def test_async_step_reauth_wraps_validation_error(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("validation_error", "expected_fragment"),
+    [
+        (
+            ValidationError("entry_dogs", constraint="invalid modules"),
+            (
+                "Entry validation failed: Validation failed for entry_dogs: "
+                "invalid modules"
+            ),
+        ),
+        (
+            ValidationError("entry_dogs", constraint="missing id"),
+            (
+                "Entry validation failed: Validation failed for entry_dogs: "
+                "missing id"
+            ),
+        ),
+    ],
+)
+async def test_async_step_reauth_wraps_validation_errors_with_reason_details(
+    monkeypatch: pytest.MonkeyPatch,
+    validation_error: ValidationError,
+    expected_fragment: str,
+) -> None:
+    """Validation reasons should be preserved in the auth failure message."""
+    entry = MockConfigEntry(domain="pawcontrol", entry_id="abc", data={}, options={})
+    flow = _Flow(entry)
+    flow.context["entry_id"] = "abc"
+    flow.hass.config_entries = SimpleNamespace(async_get_entry=lambda _: entry)
+
+    async def _raise_validation_error(_entry: MockConfigEntry) -> None:
+        raise validation_error
+
+    monkeypatch.setattr(
+        flow,
+        "_validate_reauth_entry_enhanced",
+        _raise_validation_error,
+    )
+
+    with pytest.raises(ConfigEntryAuthFailed, match=expected_fragment):
+        await flow.async_step_reauth({})
+
+
+@pytest.mark.asyncio
 async def test_async_step_reauth_wraps_unexpected_errors() -> None:
     """Unexpected errors should bubble as authentication failures."""
     entry = MockConfigEntry(domain="pawcontrol", entry_id="abc", data={}, options={})
