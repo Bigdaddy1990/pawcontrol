@@ -447,6 +447,71 @@ async def test_async_update_data_wraps_generic_exception(
         await coord._async_update_data()
 
 
+@pytest.mark.unit
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("error", "expected_match"),
+    [
+        (TimeoutError("refresh timeout"), "Coordinator update failed"),
+        (ConfigEntryAuthFailed("token expired"), "token expired"),
+        (UpdateFailed("HTTP 503"), "HTTP 503"),
+        (RuntimeError("unexpected"), "Coordinator update failed"),
+    ],
+)
+async def test_async_update_data_error_paths_keep_cached_state_stable(
+    mock_hass,
+    mock_config_entry,
+    mock_session,
+    error: Exception,
+    expected_match: str,
+) -> None:
+    """Refresh errors should not mutate cached state before a recovery run."""
+    coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    original_payload = {"test_dog": {"status": "cached", "last_update": "before"}}
+    coord._data = original_payload.copy()  # type: ignore[assignment]
+    coord._execute_cycle = AsyncMock(side_effect=error)  # type: ignore[method-assign]
+
+    if isinstance(error, ConfigEntryAuthFailed):
+        with pytest.raises(ConfigEntryAuthFailed, match=expected_match):
+            await coord._async_update_data()
+    else:
+        with pytest.raises(UpdateFailed, match=expected_match):
+            await coord._async_update_data()
+
+    assert coord._data == original_payload
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_update_data_recovers_after_failure_and_applies_fresh_payload(
+    mock_hass, mock_config_entry, mock_session
+) -> None:
+    """A successful retry after a failed refresh should replace stale cache state."""
+    coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coord._data = {"test_dog": {"status": "stale"}}  # type: ignore[assignment]
+    refreshed_payload = {"test_dog": {"status": "online", "last_update": "now"}}
+    runtime_cycle = RuntimeCycleInfo(
+        dog_count=1,
+        errors=0,
+        success_rate=1.0,
+        duration=0.1,
+        new_interval=120.0,
+        error_ratio=0.0,
+        success=True,
+    )
+    coord._execute_cycle = AsyncMock(  # type: ignore[method-assign]
+        side_effect=[UpdateFailed("HTTP 502"), (refreshed_payload, runtime_cycle)]
+    )
+
+    with pytest.raises(UpdateFailed, match="HTTP 502"):
+        await coord._async_update_data()
+    assert coord._data == {"test_dog": {"status": "stale"}}
+
+    result = await coord._async_update_data()
+    assert result == refreshed_payload
+    assert coord._data == refreshed_payload
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # get_enabled_modules / is_module_enabled / get_dog_data / get_dog_config
 # (lines 454, 458, 476-480, 482-486, 493)

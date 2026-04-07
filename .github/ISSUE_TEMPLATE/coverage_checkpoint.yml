@@ -1,0 +1,53 @@
+name: Coverage Checkpoint
+about: 10-Minuten Tages-Checkpoint für Coverage-Top-Gaps
+title: "coverage-checkpoint: YYYY-MM-DD"
+labels: ["coverage", "checkpoint"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Täglicher 10-Minuten-Checkpoint.
+        Fokus: **Blocker** und **Next Top Gap** aus `docs/coverage_hotspot_backlog.md`.
+
+  - type: textarea
+    id: done_today
+    attributes:
+      label: Done today
+      description: Welche Coverage-Lücke wurde heute geschlossen?
+      placeholder: "Ticket COV-0X abgeschlossen, +NN lines covered"
+    validations:
+      required: true
+
+  - type: textarea
+    id: blockers
+    attributes:
+      label: Blocker
+      description: Was blockiert die nächsten 24h?
+      placeholder: "Keine / ..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: next_top_gap
+    attributes:
+      label: Next Top Gap
+      description: Nächstes Arbeitspaket für den kommenden Slot
+      options:
+        - "COV-01 services.py"
+        - "COV-02 data_manager.py"
+        - "COV-03 feeding_manager.py"
+        - "COV-04 sensor.py"
+        - "COV-05 script_manager.py"
+        - "COV-06 helpers.py"
+        - "COV-07 notifications.py"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: dod
+    attributes:
+      label: DoD-Status für abgeschlossenes Ticket
+      options:
+        - label: Branch geschlossen
+        - label: Tests grün
+        - label: Reviewer-Check bestanden
