@@ -288,6 +288,26 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 - After editing this guide, run `python -m scripts.sync_contributor_guides` so the
   Claude and Gemini mirrors stay in sync.
 
+
+### Pull request review policy (required)
+
+For every pull request, reviewers and bots must enforce this minimum quality bar:
+
+1. Verify **branch-relevant coverage** so newly introduced branches and decision
+   paths are covered by tests.
+2. Require **traceable assertions** that validate user-visible outcomes or
+   business invariants (not private implementation details).
+3. Reject **fragile over-mocking** structures; mocks should be limited to true
+   integration boundaries and keep behavior-focused tests stable.
+4. For any new or changed logic, require a matching **regression test** in the
+   same PR before merge.
+5. Validate that **CI gates** (lint, typing, tests, coverage, and integration
+   checks) fail and pass for the right reasons so merge protection is
+   meaningful.
+6. Keep review turnaround below **30 minutes per PR** when feasible by focusing
+   on high-signal checks first and requesting targeted follow-ups for
+   non-blocking refinements.
+
 ## Review checklist
 
 - [ ] `ruff format`, `ruff check`, `mypy`, and `pytest -q` all pass locally.
@@ -299,7 +319,11 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 - [ ] All user-facing strings live in `strings.json`/`translations/` and follow
       Home Assistant tone guidelines.
 - [ ] New documentation includes citations to code/tests proving the behaviour.
-- [ ] New logic includes tests; pull requests without tests for new behavior are not merged.
+- [ ] New logic includes regression tests; pull requests without tests for new behavior are not merged.
+- [ ] Assertions in changed tests are traceable to user-visible behavior or business invariants.
+- [ ] Test updates avoid fragile over-mocking and mock only true integration boundaries.
+- [ ] CI gates are validated as meaningful for this PR (fail/pass behavior matches expectations).
+- [ ] Review scope is triaged for a <30 minute reviewer pass when feasible.
 - [ ] Any new `# pragma: no cover` usage is explicitly documented in the PR with file/line and a concrete justification.
 - [ ] Device removal (`async_remove_config_entry_device`) and diagnostics remain
       covered by tests when behaviour changes.
