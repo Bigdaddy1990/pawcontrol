@@ -131,3 +131,84 @@ def test_compute_activity_score_optimized_exception_fallbacks(
     )
 
     assert result == 80.0
+
+
+@pytest.mark.parametrize(
+    ("coordinator_available", "dog_data", "expected"),
+    [
+        (True, {"status": "ok"}, True),
+        (False, {"status": "ok"}, False),
+        (True, None, False),
+    ],
+)
+def test_sensor_available_requires_coordinator_and_dog_data(
+    monkeypatch: pytest.MonkeyPatch,
+    coordinator_available: bool,
+    dog_data: object,
+    expected: bool,
+) -> None:
+    """Sensor availability should require coordinator and valid dog payload."""
+    dog_status_sensor = sensor.PawControlDogStatusSensor(
+        SimpleNamespace(
+            available=coordinator_available,
+            update_interval=timedelta(minutes=5),
+        ),
+        "dog-1",
+        "Rex",
+    )
+    monkeypatch.setattr(dog_status_sensor, "_get_dog_data", lambda: dog_data)
+
+    assert dog_status_sensor.available is expected
+
+
+@pytest.mark.parametrize(
+    ("status_snapshot", "walk_data", "feeding_data", "gps_data", "expected"),
+    [
+        ({"state": "sleeping"}, {}, {}, {}, "sleeping"),
+        (None, {"walk_in_progress": True}, {}, {}, "walking"),
+        (None, {}, {"is_hungry": True}, {"zone": "home"}, "hungry"),
+        (None, {}, {"is_hungry": False}, {"zone": "garden"}, "at_garden"),
+        (None, {}, {}, {"zone": "unknown"}, "away"),
+    ],
+)
+def test_dog_status_native_value_decision_tree(
+    monkeypatch: pytest.MonkeyPatch,
+    status_snapshot: object,
+    walk_data: object,
+    feeding_data: object,
+    gps_data: object,
+    expected: str,
+) -> None:
+    """Status sensor should prioritize snapshot and then module-derived fallback."""
+    dog_status_sensor = sensor.PawControlDogStatusSensor(
+        SimpleNamespace(available=True, update_interval=timedelta(minutes=5)),
+        "dog-1",
+        "Rex",
+    )
+
+    monkeypatch.setattr(dog_status_sensor, "_get_dog_data", lambda: {"status": "ok"})
+    monkeypatch.setattr(dog_status_sensor, "_get_status_snapshot", lambda: status_snapshot)
+    monkeypatch.setattr(dog_status_sensor, "_get_walk_module", lambda: walk_data)
+    monkeypatch.setattr(dog_status_sensor, "_get_feeding_module", lambda: feeding_data)
+    monkeypatch.setattr(dog_status_sensor, "_get_gps_module", lambda: gps_data)
+
+    assert dog_status_sensor.native_value == expected
+
+
+def test_dog_status_native_value_returns_unknown_on_runtime_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected data-shape errors should degrade to unknown status safely."""
+    dog_status_sensor = sensor.PawControlDogStatusSensor(
+        SimpleNamespace(available=True, update_interval=timedelta(minutes=5)),
+        "dog-1",
+        "Rex",
+    )
+    monkeypatch.setattr(dog_status_sensor, "_get_dog_data", lambda: {"status": "ok"})
+    monkeypatch.setattr(
+        dog_status_sensor,
+        "_get_status_snapshot",
+        lambda: (_ for _ in ()).throw(RuntimeError("status unavailable")),
+    )
+
+    assert dog_status_sensor.native_value == "unknown"
