@@ -2,9 +2,12 @@
 
 from collections.abc import Callable
 from inspect import iscoroutinefunction, unwrap
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from aiohttp import ClientSession
+if TYPE_CHECKING:
+    from aiohttp import ClientSession
+else:  # pragma: no cover - typing fallback when aiohttp is unavailable in tests
+    ClientSession = Any
 
 
 def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:

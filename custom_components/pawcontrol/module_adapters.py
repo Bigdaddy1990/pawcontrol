@@ -3,9 +3,12 @@
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 import logging
-from typing import TYPE_CHECKING, Literal, TypedDict, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeVar, cast
 
-from aiohttp import ClientSession
+if TYPE_CHECKING:
+    from aiohttp import ClientSession
+else:  # pragma: no cover - typing fallback when aiohttp is unavailable in tests
+    ClientSession = Any
 
 try:
     from homeassistant.util import dt as dt_util

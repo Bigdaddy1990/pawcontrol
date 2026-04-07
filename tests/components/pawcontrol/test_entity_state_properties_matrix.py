@@ -350,6 +350,8 @@ def _assert_entity_attributes_contract(entity: object) -> None:
     ids=lambda value: (
         value.name
         if isinstance(value, _EntityMatrixSpec)
+        else value.label
+        if isinstance(value, _EntityMatrixCase)
         else f"{value[0].name}:{value[1].label}"
     ),
 )
