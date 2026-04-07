@@ -674,7 +674,12 @@ class PawControlGardenSensorBase(PawControlSensorBase):
             "activities_total": data.get("activities_total"),
         }
 
-        last_session = data.get("last_session") or {}
+        raw_last_session = data.get("last_session")
+        last_session = (
+            cast(Mapping[str, Any], raw_last_session)
+            if isinstance(raw_last_session, Mapping)
+            else {}
+        )
         if last_session:
             last_session_start = self._coerce_utc_datetime(
                 last_session.get("start_time"),
@@ -695,7 +700,12 @@ class PawControlGardenSensorBase(PawControlSensorBase):
                 },
             )
 
-        stats = data.get("stats") or {}
+        raw_stats = data.get("stats")
+        stats = (
+            cast(Mapping[str, Any], raw_stats)
+            if isinstance(raw_stats, Mapping)
+            else {}
+        )
         if stats:
             attrs["last_garden_visit"] = self._coerce_utc_datetime(
                 stats.get("last_garden_visit"),
@@ -3246,6 +3256,13 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                 err,
             )
             return 0.0
+        except AttributeError as err:
+            _LOGGER.debug(
+                "Error calculating calories burned for %s: %s",
+                self._dog_id,
+                err,
+            )
+            return 0.0
 
     def _calculate_calories_from_activity(
         self,
@@ -3310,6 +3327,8 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
             return 0.0
 
         except ZeroDivisionError:
+            return 0.0
+        except AttributeError:
             return 0.0
 
     @property
