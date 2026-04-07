@@ -195,6 +195,58 @@ async def test_async_call_hass_service_delegates_to_guard_helper(
     assert captured["description"] == "dog dog-1 (sensor.dog_1)"
 
 
+@pytest.mark.asyncio
+async def test_async_call_hass_service_uses_unregistered_guard_description(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Guard helper context should fallback when no entity_id is assigned."""
+    entity = _make_entity()
+    entity._attr_hass = object()
+
+    captured: dict[str, object] = {}
+
+    async def _fake_async_call(
+        hass: object,
+        domain: str,
+        service: str,
+        service_data: object,
+        *,
+        blocking: bool,
+        description: str,
+        logger: object,
+    ) -> ServiceGuardResult:
+        captured.update({
+            "hass": hass,
+            "domain": domain,
+            "service": service,
+            "service_data": service_data,
+            "blocking": blocking,
+            "description": description,
+            "logger": logger,
+        })
+        return ServiceGuardResult(
+            domain=domain,
+            service=service,
+            executed=False,
+            reason="hass_unavailable",
+        )
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.entity.async_call_hass_service_if_available",
+        _fake_async_call,
+    )
+
+    result = await entity._async_call_hass_service(
+        "switch",
+        "turn_off",
+        {"entity_id": "switch.demo"},
+    )
+
+    assert result.executed is False
+    assert result.reason == "hass_unavailable"
+    assert captured["description"] == "dog dog-1 (unregistered)"
+
+
 def test_get_module_data_handles_unexpected_exception_and_invalid_payload() -> None:
     """Unexpected lookup failures and non-mappings should return empty payloads."""
     entity = _make_entity()

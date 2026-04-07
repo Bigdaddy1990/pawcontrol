@@ -10,6 +10,7 @@ Python: 3.13+
 
 from dataclasses import dataclass
 import html
+import inspect
 from pathlib import Path
 import re
 from typing import Any
@@ -263,6 +264,51 @@ class InputValidator:
     def __init__(self) -> None:
         """Initialize input validator."""
         self._sanitizer = InputSanitizer()
+        self._validator_dispatch: dict[str, str] = {
+            "str": "validate_string",
+            "string": "validate_string",
+            "text": "validate_string",
+            "int": "validate_integer",
+            "integer": "validate_integer",
+            "float": "validate_float",
+            "email": "validate_email",
+            "url": "validate_url",
+            "phone": "validate_phone",
+        }
+
+    @staticmethod
+    def _normalise_validator_name(name: str) -> str:
+        """Return canonical validator key."""
+        normalised = name.strip().lower().replace("-", "_")
+        return normalised or "str"
+
+    def _resolve_validator_method(
+        self,
+        field_type: str,
+    ) -> tuple[str, Any] | None:
+        """Return validator method name and callable for ``field_type``."""
+        normalised = self._normalise_validator_name(field_type)
+        method_name = self._validator_dispatch.get(normalised)
+        if method_name is None:
+            return None
+        method = getattr(self, method_name, None)
+        if not callable(method):
+            return None
+        return method_name, method
+
+    @staticmethod
+    def _normalise_validator_kwargs(
+        method: Any,
+        rules: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Return kwargs supported by ``method`` from ``rules``."""
+        parameters = inspect.signature(method).parameters
+        allowed = {
+            name
+            for name in parameters
+            if name not in {"self", "value", "email", "phone", "url"}
+        }
+        return {name: rules[name] for name in allowed if name in rules}
 
     def validate_email(self, email: str) -> ValidationResult:
         """Validate email address.
@@ -488,31 +534,38 @@ class InputValidator:
                 continue
 
             value = data[field]
-            # Validate by type
-            field_type = rules.get("type", "str")
-            if field_type == "str":
-                result = self.validate_string(
-                    value,
-                    max_length=rules.get("max_length"),
-                )
-            elif field_type == "int":
-                result = self.validate_integer(
-                    value,
-                    min_value=rules.get("min_value"),
-                    max_value=rules.get("max_value"),
-                )
-            elif field_type == "float":
-                result = self.validate_float(
-                    value,
-                    min_value=rules.get("min_value"),
-                    max_value=rules.get("max_value"),
-                )
-            elif field_type == "email":
-                result = self.validate_email(value)
-            elif field_type == "url":
-                result = self.validate_url(value)
-            else:
+            field_type = str(rules.get("type", "str"))
+            resolved = self._resolve_validator_method(field_type)
+            if resolved is None:
                 result = ValidationResult(True, value, [])
+            else:
+                method_name, method = resolved
+                kwargs = self._normalise_validator_kwargs(method, rules)
+                expected_scalar = method_name in {
+                    "validate_string",
+                    "validate_email",
+                    "validate_url",
+                    "validate_phone",
+                }
+                if expected_scalar and not isinstance(value, str):
+                    errors.append(
+                        f"{field}: Expected text input for '{field_type}' "
+                        f"validation, got {type(value).__name__}",
+                    )
+                    continue
+                try:
+                    result = method(value, **kwargs)
+                except ValueError:
+                    errors.append(
+                        f"{field}: Validator '{field_type}' rejected value",
+                    )
+                    continue
+                except TypeError:
+                    errors.append(
+                        f"{field}: Validator '{field_type}' rejected "
+                        "provided arguments",
+                    )
+                    continue
 
             if not result.is_valid:
                 errors.extend([f"{field}: {e}" for e in result.errors])
@@ -605,8 +658,30 @@ def validate_and_sanitize(
         >>> clean = validate_and_sanitize("user@example.com", "validate_email")
     """
     validator = InputValidator()
-    validate_method = getattr(validator, validator_func)
-    result = validate_method(value, **kwargs)
+    method_name = validator_func.strip().lower().replace("-", "_")
+    if not method_name.startswith("validate_"):
+        method_name = f"validate_{method_name}"
+    validate_method = getattr(validator, method_name, None)
+    if not callable(validate_method):
+        raise ValidationError(
+            "validator_func",
+            value=validator_func,
+            constraint=f"Unknown validator: {validator_func}",
+        )
+    try:
+        result = validate_method(value, **kwargs)
+    except ValueError as err:
+        raise ValidationError(
+            "value",
+            value=value,
+            constraint=f"Validation raised ValueError: {err}",
+        ) from err
+    except TypeError as err:
+        raise ValidationError(
+            "value",
+            value=value,
+            constraint=f"Validation raised TypeError: {err}",
+        ) from err
     if not result.is_valid:
         raise ValidationError(
             "value",

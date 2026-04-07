@@ -233,3 +233,137 @@ def test_get_active_alerts_filters_and_excludes_expired(hass: HomeAssistant) -> 
     assert (
         manager.get_active_alerts(impact_filter=WeatherHealthImpact.HEAT_STRESS) == []
     )
+
+
+@pytest.mark.unit
+def test_find_activity_windows_splits_windows_on_state_transitions(
+    hass: HomeAssistant,
+) -> None:
+    """Planning windows should split when forecast suitability flips."""
+    manager = WeatherHealthManager(hass)
+    now = dt_util.utcnow().replace(minute=0, second=0, microsecond=0)
+    manager._current_forecast = WeatherForecast(
+        forecast_points=[
+            ForecastPoint(timestamp=now + timedelta(hours=1), health_score=82),
+            ForecastPoint(timestamp=now + timedelta(hours=2), health_score=79),
+            ForecastPoint(timestamp=now + timedelta(hours=3), health_score=55),
+            ForecastPoint(timestamp=now + timedelta(hours=4), health_score=88),
+            ForecastPoint(timestamp=now + timedelta(hours=5), health_score=90),
+            ForecastPoint(timestamp=now + timedelta(hours=6), health_score=40),
+        ],
+    )
+
+    windows = manager._find_activity_windows(
+        activity_type="walk",
+        min_score=60,
+        min_duration_hours=1,
+    )
+
+    assert len(windows) == 2
+    assert windows[0].start_time == now + timedelta(hours=1)
+    assert windows[0].end_time == now + timedelta(hours=3)
+    assert windows[0].health_score == 80
+    assert windows[1].start_time == now + timedelta(hours=4)
+    assert windows[1].end_time == now + timedelta(hours=6)
+    assert windows[1].health_score == 89
+
+
+@pytest.mark.unit
+def test_find_activity_windows_ignores_too_short_time_windows(
+    hass: HomeAssistant,
+) -> None:
+    """Sub-threshold windows should be rejected by duration guardrails."""
+    manager = WeatherHealthManager(hass)
+    now = dt_util.utcnow().replace(minute=0, second=0, microsecond=0)
+    manager._current_forecast = WeatherForecast(
+        forecast_points=[
+            ForecastPoint(timestamp=now + timedelta(minutes=0), health_score=92),
+            ForecastPoint(timestamp=now + timedelta(minutes=30), health_score=91),
+            ForecastPoint(timestamp=now + timedelta(minutes=45), health_score=25),
+            ForecastPoint(timestamp=now + timedelta(hours=1), health_score=95),
+            ForecastPoint(timestamp=now + timedelta(hours=2), health_score=96),
+            ForecastPoint(timestamp=now + timedelta(hours=3), health_score=20),
+        ],
+    )
+
+    windows = manager._find_activity_windows(
+        activity_type="exercise",
+        min_score=75,
+        min_duration_hours=1,
+    )
+
+    assert len(windows) == 1
+    assert windows[0].start_time == now + timedelta(hours=1)
+    assert windows[0].end_time == now + timedelta(hours=3)
+    assert windows[0].health_score == 95
+    assert windows[0].alert_level is WeatherSeverity.LOW
+
+
+@pytest.mark.unit
+def test_identify_optimal_activity_windows_handles_invalid_inputs_gracefully(
+    hass: HomeAssistant,
+) -> None:
+    """None scores should act as invalid input and close active windows cleanly."""
+    manager = WeatherHealthManager(hass)
+    now = dt_util.utcnow().replace(minute=0, second=0, microsecond=0)
+    manager._current_forecast = WeatherForecast(
+        forecast_points=[
+            ForecastPoint(timestamp=now + timedelta(hours=1), health_score=65),
+            ForecastPoint(timestamp=now + timedelta(hours=2), health_score=None),
+            ForecastPoint(timestamp=now + timedelta(hours=3), health_score=78),
+            ForecastPoint(timestamp=now + timedelta(hours=4), health_score=82),
+            ForecastPoint(timestamp=now + timedelta(hours=5), health_score=35),
+        ],
+    )
+
+    windows = manager._find_activity_windows(
+        activity_type="walk",
+        min_score=60,
+        min_duration_hours=1,
+    )
+
+    assert len(windows) == 2
+    assert windows[0].start_time == now + timedelta(hours=1)
+    assert windows[0].end_time == now + timedelta(hours=2)
+    assert windows[0].health_score == 65
+    assert windows[1].start_time == now + timedelta(hours=3)
+    assert windows[1].end_time == now + timedelta(hours=5)
+    assert windows[1].health_score == 80
+    assert all(window.start_time < window.end_time for window in windows)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_identify_optimal_activity_windows_creates_sorted_planning_timeline(
+    hass: HomeAssistant,
+) -> None:
+    """Planner should emit sorted windows across activity thresholds."""
+    manager = WeatherHealthManager(hass)
+    now = dt_util.utcnow().replace(minute=0, second=0, microsecond=0)
+    manager._current_forecast = WeatherForecast(
+        forecast_points=[
+            ForecastPoint(timestamp=now + timedelta(hours=1), health_score=62),
+            ForecastPoint(timestamp=now + timedelta(hours=2), health_score=74),
+            ForecastPoint(timestamp=now + timedelta(hours=3), health_score=81),
+            ForecastPoint(timestamp=now + timedelta(hours=4), health_score=84),
+            ForecastPoint(timestamp=now + timedelta(hours=5), health_score=59),
+            ForecastPoint(timestamp=now + timedelta(hours=6), health_score=76),
+            ForecastPoint(timestamp=now + timedelta(hours=7), health_score=79),
+            ForecastPoint(timestamp=now + timedelta(hours=8), health_score=45),
+        ],
+    )
+
+    await manager._identify_optimal_activity_windows()
+    timeline = manager._current_forecast.optimal_activity_windows
+
+    assert timeline
+    assert timeline == sorted(timeline, key=lambda slot: slot.start_time)
+    assert {slot.activity_type for slot in timeline} >= {
+        "walk",
+        "play",
+        "exercise",
+        "basic_needs",
+    }
+    walk_windows = [slot for slot in timeline if slot.activity_type == "walk"]
+    assert walk_windows[0].start_time == now + timedelta(hours=1)
+    assert walk_windows[-1].end_time <= now + timedelta(hours=8)

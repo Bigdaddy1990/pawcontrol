@@ -238,6 +238,57 @@ def test_given_schema_with_url_float_unknown_when_validating_then_dispatch() -> 
     assert any(error.startswith("weight:") for error in result.errors)
 
 
+def test_given_schema_with_validator_aliases_when_validating_then_dispatches() -> None:
+    """Schema aliases should normalize and dispatch to canonical validators."""
+    validator = InputValidator()
+    schema = {
+        "title": {"type": " Text ", "max_length": 5},
+        "count": {"type": "INTEGER", "min_value": 1, "max_value": 5},
+    }
+
+    result = validator.validate_dict(
+        {"title": "  Puppy  ", "count": "4"},
+        schema,
+    )
+
+    assert result.is_valid is True
+    assert result.sanitized_value == {"title": "Puppy", "count": 4}
+    assert result.errors == []
+
+
+def test_given_non_string_for_string_field_when_validating_then_return_type_error() -> (
+    None
+):
+    """String-like validators should reject non-string payloads with clear errors."""
+    validator = InputValidator()
+    schema = {"email": {"type": "email"}}
+
+    result = validator.validate_dict({"email": 42}, schema)
+
+    assert result.is_valid is False
+    assert result.sanitized_value == {}
+    assert "Expected text input" in result.errors[0]
+
+
+def test_given_incompatible_validator_args_when_validating_then_capture_dispatch_error(
+) -> None:
+    """Validation dispatch should convert argument/type failures into field errors."""
+    validator = InputValidator()
+    schema = {
+        "count": {
+            "type": "int",
+            "min_value": "bad",
+            "max_value": 10,
+        }
+    }
+
+    result = validator.validate_dict({"count": "4"}, schema)
+
+    assert result.is_valid is False
+    assert result.sanitized_value == {}
+    assert "rejected provided arguments" in result.errors[0]
+
+
 def test_given_missing_required_field_when_validating_then_return_required_error() -> (
     None
 ):
@@ -263,6 +314,19 @@ def test_given_validate_and_sanitize_when_called_then_return_value_or_raise() ->
 
     with pytest.raises(ValidationError, match="Validation failed"):
         validate_and_sanitize("bad-email", "validate_email")
+
+
+def test_given_validate_and_sanitize_with_alias_name_then_normalizes_method_name() -> (
+    None
+):
+    """Wrapper should normalize shorthand validator names to method calls."""
+    assert validate_and_sanitize("  woof  ", "string", max_length=10) == "woof"
+
+
+def test_given_validate_and_sanitize_when_unknown_validator_then_raise() -> None:
+    """Wrapper should fail fast with a useful unknown-validator message."""
+    with pytest.raises(ValidationError, match="Unknown validator"):
+        validate_and_sanitize("value", "validate_does_not_exist")
 
 
 def test_given_user_input_when_sanitized_then_trim_truncate_and_strip_controls() -> (

@@ -2406,6 +2406,7 @@ class PawControlDataManager:
         days: int | None = None,
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
+        allow_partial: bool = False,
     ) -> Path:
         """Export stored data for ``dog_id`` leveraging the shared history helper."""
         _ = self._ensure_profile(dog_id)
@@ -2635,15 +2636,44 @@ class PawControlDataManager:
                 "routes",
             ]
             exports: dict[str, str] = {}
+            export_errors: dict[str, str] = {}
             export_manifest = {
                 "dog_id": dog_id,
                 "data_type": "all",
                 "generated_at": _utcnow().isoformat(),
                 "exports": exports,
             }
+            if allow_partial:
+                export_manifest["errors"] = export_errors
 
             for export_type in export_types:
-                exports[export_type] = str(await _export_single(export_type))
+                try:
+                    exports[export_type] = str(await _export_single(export_type))
+                except HomeAssistantError as err:
+                    if not allow_partial:
+                        raise
+                    export_errors[export_type] = str(err)
+                    _LOGGER.debug(
+                        "Partial export skipped %s for %s: %s",
+                        export_type,
+                        dog_id,
+                        err,
+                    )
+                except OSError as err:
+                    if not allow_partial:
+                        raise
+                    export_errors[export_type] = f"I/O error: {err}"
+                    _LOGGER.debug(
+                        "Partial export failed with I/O error for %s/%s: %s",
+                        dog_id,
+                        export_type,
+                        err,
+                    )
+
+            if allow_partial and not exports:
+                raise HomeAssistantError(
+                    "Failed to export any data type while allow_partial=True",
+                )
 
             await self._async_add_executor_job(
                 export_path.write_text,
