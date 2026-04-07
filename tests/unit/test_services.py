@@ -2776,6 +2776,40 @@ async def test_setup_automatic_gps_service_records_failure(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_setup_automatic_gps_service_safe_zone_failure_keeps_state_consistent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Safe-zone API failures must not refresh coordinator or emit notifications."""
+    notification_manager = _NotificationManagerStub()
+    gps_manager = _GPSManagerStub()
+    gps_manager.fail_safe_zone = True
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        gps_manager=gps_manager,
+    )
+    coordinator.register_dog("fido")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+
+    with pytest.raises(services.HomeAssistantError, match="safe zone failed"):
+        await handler(SimpleNamespace(data={"dog_id": "fido"}))
+
+    assert coordinator.refresh_called is False
+    assert notification_manager.sent == []
+    assert gps_manager.last_config is not None
+    assert gps_manager.safe_zone is None
+
+    result = runtime_data.performance_stats["last_service_result"]
+    assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
+    assert result["status"] == "error"
+    assert result.get("message") == "safe zone failed"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_gps_export_route_service_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2915,6 +2949,76 @@ async def test_gps_export_route_service_records_no_routes(
     assert details is not None
     assert details["routes_count"] == 0
     assert details["result"] == "no_routes"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_gps_export_route_service_records_homeassistant_error_without_state_drift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HomeAssistantError from export API should not send notifications or mutate state."""
+    notification_manager = _NotificationManagerStub()
+    gps_manager = _GPSManagerStub()
+    gps_manager.fail_export = services.HomeAssistantError("export denied")
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        gps_manager=gps_manager,
+    )
+    coordinator.register_dog("luna")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
+
+    with pytest.raises(services.HomeAssistantError, match="export denied"):
+        await handler(SimpleNamespace(data={"dog_id": "luna"}))
+
+    assert gps_manager.export_calls == []
+    assert notification_manager.sent == []
+
+    result = runtime_data.performance_stats["last_service_result"]
+    assert result["service"] == services.SERVICE_GPS_EXPORT_ROUTE
+    assert result["status"] == "error"
+    assert result["message"] == "export denied"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_gps_export_route_service_wraps_unexpected_errors_with_stable_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected export errors should be wrapped and keep notification state unchanged."""
+    notification_manager = _NotificationManagerStub()
+    gps_manager = _GPSManagerStub()
+    gps_manager.fail_export = RuntimeError("network down")
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        gps_manager=gps_manager,
+    )
+    coordinator.register_dog("luna")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
+
+    with pytest.raises(
+        services.HomeAssistantError,
+        match="Failed to export routes for luna. Check the logs for details.",
+    ):
+        await handler(SimpleNamespace(data={"dog_id": "luna"}))
+
+    assert gps_manager.export_calls == []
+    assert notification_manager.sent == []
+
+    result = runtime_data.performance_stats["last_service_result"]
+    assert result["service"] == services.SERVICE_GPS_EXPORT_ROUTE
+    assert result["status"] == "error"
+    assert (
+        result["message"]
+        == "Failed to export routes for luna. Check the logs for details."
+    )
 
 
 @pytest.mark.unit
