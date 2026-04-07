@@ -35,7 +35,9 @@ def test_serialize_helpers_are_lazily_resolved(name: str) -> None:
     module = _reloaded_utils_module()
 
     assert name not in module.__dict__
-    assert getattr(module, name) is getattr(serialize, name)
+    resolved = getattr(module, name)
+    assert resolved is getattr(module.serialize, name)
+    assert resolved.__module__ == "custom_components.pawcontrol.utils.serialize"
 
 
 def test_package_all_contains_legacy_and_serialize_symbols() -> None:
@@ -75,4 +77,8 @@ def test_reload_skips_legacy_serialize_name_collisions(
     reloaded = _reloaded_utils_module()
 
     assert "serialize_datetime" not in reloaded.__dict__
-    assert reloaded.serialize_datetime is serialize.serialize_datetime
+    assert reloaded.serialize_datetime is reloaded.serialize.serialize_datetime
+    assert (
+        reloaded.serialize_datetime.__module__
+        == "custom_components.pawcontrol.utils.serialize"
+    )
