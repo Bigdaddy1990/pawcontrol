@@ -377,6 +377,42 @@ async def test_async_reload_entry_completes_after_successful_setup(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("setup_side_effect", "expected_exception", "expected_reason"),
+    [
+        (ConfigEntryNotReady("retry"), ConfigEntryNotReady, "retry"),
+        (ConfigEntryAuthFailed("auth"), ConfigEntryAuthFailed, "auth"),
+        (RuntimeError("boom"), RuntimeError, "boom"),
+    ],
+)
+async def test_async_reload_entry_propagates_setup_error_reasons(
+    monkeypatch: pytest.MonkeyPatch,
+    setup_side_effect: Exception,
+    expected_exception: type[Exception],
+    expected_reason: str,
+) -> None:
+    """Reload should bubble setup failures unchanged, including reason text."""
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry-id")
+    unload_entry = AsyncMock(return_value=True)
+    setup_entry = AsyncMock(side_effect=setup_side_effect)
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_unload_entry",
+        unload_entry,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_reload_entry.__globals__,
+        "async_setup_entry",
+        setup_entry,
+    )
+
+    with pytest.raises(expected_exception, match=expected_reason):
+        await pawcontrol_init.async_reload_entry(hass, entry)
+
+
+@pytest.mark.asyncio
 async def test_async_monitor_background_tasks_handles_restart_failures(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
