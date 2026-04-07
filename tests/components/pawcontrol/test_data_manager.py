@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+import json
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
+from homeassistant.exceptions import HomeAssistantError
 import pytest
 
 from custom_components.pawcontrol import data_manager
@@ -10,6 +13,7 @@ from custom_components.pawcontrol.const import CACHE_TIMESTAMP_STALE_THRESHOLD
 from custom_components.pawcontrol.data_manager import (
     AdaptiveCache,
     DogProfile,
+    PawControlDataManager,
     _coerce_health_payload,
     _coerce_mapping,
     _coerce_medication_payload,
@@ -358,3 +362,145 @@ def test_storage_namespace_cache_monitor_snapshot_with_unparseable_timestamp(
         payload["diagnostics"]["timestamp_anomalies"]["dog-unparseable"]
         == "unparseable"
     )
+
+
+async def _init_data_manager_for_export_tests(
+    mock_hass: object,
+    tmp_path: Path,
+) -> PawControlDataManager:
+    mock_hass.config.config_dir = str(tmp_path)  # type: ignore[attr-defined]
+    manager = PawControlDataManager(
+        mock_hass,  # type: ignore[arg-type]
+        entry_id="entry-1",
+        dogs_config=[{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}],
+    )
+    manager._async_load_storage = AsyncMock(return_value={})  # type: ignore[method-assign]
+    manager._write_storage = AsyncMock()  # type: ignore[method-assign]
+    await manager.async_initialize()
+    return manager
+
+
+@pytest.mark.asyncio
+async def test_async_export_data_routes_json_falls_back_for_invalid_json_content(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _init_data_manager_for_export_tests(mock_hass, tmp_path)
+    runtime_data = SimpleNamespace(
+        gps_geofence_manager=SimpleNamespace(
+            async_export_routes=AsyncMock(
+                return_value={
+                    "filename": "routes.json",
+                    "content": "{invalid json",
+                },
+            ),
+        ),
+    )
+    manager._get_runtime_data = lambda: runtime_data  # type: ignore[method-assign]
+
+    export_path = await manager.async_export_data("buddy", "routes", format="json")
+    exported_payload = json.loads(export_path.read_text(encoding="utf-8"))
+
+    assert exported_payload == {"raw_content": "{invalid json"}
+
+
+@pytest.mark.asyncio
+async def test_async_export_data_all_raises_on_partial_failure_without_silent_crash(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _init_data_manager_for_export_tests(mock_hass, tmp_path)
+    manager.async_get_module_history = AsyncMock(return_value=[])  # type: ignore[method-assign]
+    manager._get_runtime_data = lambda: SimpleNamespace(  # type: ignore[method-assign]
+        garden_manager=None,
+        gps_geofence_manager=SimpleNamespace(
+            async_export_routes=AsyncMock(
+                return_value={"filename": "routes.gpx", "content": "<gpx />"},
+            ),
+        ),
+    )
+
+    with pytest.raises(HomeAssistantError, match="Garden manager not available"):
+        await manager.async_export_data("buddy", "all", format="json")
+
+    exports_dir = tmp_path / "pawcontrol" / "exports"
+    manifest_files = list(exports_dir.glob("*_all_*.json"))
+    assert manifest_files == []
+
+
+@pytest.mark.asyncio
+async def test_async_generate_report_ignores_invalid_timestamps_and_persists_report(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _init_data_manager_for_export_tests(mock_hass, tmp_path)
+    profile = manager._dog_profiles["buddy"]
+    profile.feeding_history = [{"timestamp": "not-a-date", "portion_size": 10}]
+    profile.walk_history = [{"end_time": "also-not-a-date", "distance": 2.5}]
+    profile.health_history = [{"timestamp": "still-invalid", "mood": "ok"}]
+
+    report = await manager.async_generate_report(
+        "buddy",
+        "monthly",
+        include_recommendations=True,
+    )
+
+    assert report["feeding"]["entries"] == 0
+    assert report["walks"]["entries"] == 0
+    assert report["health"]["entries"] == 0
+    assert report["recommendations"] == [
+        "Log feeding events to improve analysis accuracy.",
+        "Schedule regular walks to maintain activity levels.",
+    ]
+    reports_namespace = await manager._get_namespace_data("reports")
+    assert reports_namespace["buddy"]["monthly"]["report_type"] == "monthly"
+
+
+@pytest.mark.asyncio
+async def test_async_generate_report_propagates_persist_errors(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _init_data_manager_for_export_tests(mock_hass, tmp_path)
+    manager._save_namespace = AsyncMock(side_effect=HomeAssistantError("persist boom"))  # type: ignore[method-assign]
+
+    with pytest.raises(HomeAssistantError, match="persist boom"):
+        await manager.async_generate_report("buddy", "weekly")
+
+    assert manager._namespace_state.get("reports") is None
+
+
+def test_cache_repair_summary_handles_corrupt_snapshot_payloads() -> None:
+    hass = SimpleNamespace(
+        config=SimpleNamespace(config_dir="/tmp"),
+        async_add_executor_job=None,
+    )
+    manager = PawControlDataManager(
+        hass,  # type: ignore[arg-type]
+        entry_id="entry-1",
+        dogs_config=[],
+    )
+    summary = manager.cache_repair_summary(
+        {
+            "cache-a": {
+                "stats": {"entries": "nan", "hits": "4", "misses": "2"},
+                "diagnostics": {
+                    "errors": "boom",
+                    "expired_entries": "x",
+                    "pending_expired_entries": 1,
+                    "active_override_flags": "2",
+                    "timestamp_anomalies": {"buddy": "future"},
+                },
+            },
+            "cache-b": object(),
+            "": {"stats": {"hits": 1}},  # ignored invalid cache name
+        },
+    )
+
+    assert summary is not None
+    assert summary["severity"] == "error"
+    assert summary["totals"]["hits"] == 4
+    assert summary["totals"]["misses"] == 2
+    assert summary["totals"]["active_override_flags"] == 2
+    assert summary["caches_with_errors"] == ["cache-a"]
+    assert summary["caches_with_pending_expired_entries"] == ["cache-a"]
