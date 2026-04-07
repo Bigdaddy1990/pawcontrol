@@ -6,6 +6,7 @@ import json
 import logging
 from types import MappingProxyType, SimpleNamespace
 from typing import TypedDict, cast
+from unittest.mock import AsyncMock
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import ServiceValidationError
