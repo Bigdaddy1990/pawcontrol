@@ -1375,23 +1375,35 @@ class FeedingManager:
         config_data: JSONLikeMapping,
     ) -> FeedingConfig:
         """Create enhanced feeding configuration with health integration."""
+        def _coerce_int(value: Any, default: int) -> int:
+            if not isinstance(value, int | float | str):
+                return default
+            try:
+                return int(value)
+            except ValueError:
+                return default
+            except TypeError:
+                return default
+
+        def _coerce_float(value: Any, default: float | None) -> float | None:
+            if not isinstance(value, int | float | str):
+                return default
+            try:
+                return float(value)
+            except ValueError:
+                return default
+            except TypeError:
+                return default
+
         special_diet = self._normalize_special_diet(
             config_data.get("special_diet", []),
         )
 
         meals_per_day_raw = config_data.get("meals_per_day", 2)
-        meals_per_day = (
-            int(meals_per_day_raw)
-            if isinstance(meals_per_day_raw, int | float | str)
-            else 2
-        )
+        meals_per_day = _coerce_int(meals_per_day_raw, 2)
 
         daily_food_amount_raw = config_data.get("daily_food_amount", 500.0)
-        daily_food_amount = (
-            float(daily_food_amount_raw)
-            if isinstance(daily_food_amount_raw, int | float | str)
-            else 500.0
-        )
+        daily_food_amount = _coerce_float(daily_food_amount_raw, 500.0) or 500.0
 
         food_type_raw = config_data.get("food_type", "dry_food")
         food_type = (
@@ -1453,11 +1465,7 @@ class FeedingManager:
         )
 
         portion_tolerance_raw = config_data.get("portion_tolerance", 10)
-        portion_tolerance = (
-            int(portion_tolerance_raw)
-            if isinstance(portion_tolerance_raw, int | float | str)
-            else 10
-        )
+        portion_tolerance = _coerce_int(portion_tolerance_raw, 10)
 
         health_aware_portions_raw = config_data.get(
             "health_aware_portions",
@@ -1470,22 +1478,14 @@ class FeedingManager:
         )
 
         dog_weight_value = config_data.get("dog_weight")
-        dog_weight = (
-            float(dog_weight_value)
-            if isinstance(dog_weight_value, int | float | str)
-            else None
-        )
+        dog_weight = _coerce_float(dog_weight_value, None)
 
         ideal_weight_value = config_data.get("ideal_weight")
-        ideal_weight = (
-            float(ideal_weight_value)
-            if isinstance(ideal_weight_value, int | float | str)
-            else None
-        )
+        ideal_weight = _coerce_float(ideal_weight_value, None)
 
         age_months_value = config_data.get("age_months")
         age_months = (
-            int(age_months_value)
+            _coerce_int(age_months_value, 0)
             if isinstance(age_months_value, int | float | str)
             else None
         )
@@ -1507,7 +1507,7 @@ class FeedingManager:
 
         body_condition_raw = config_data.get("body_condition_score")
         body_condition_score = (
-            int(body_condition_raw)
+            _coerce_int(body_condition_raw, 0)
             if isinstance(body_condition_raw, int | float | str)
             else None
         )
@@ -1597,11 +1597,9 @@ class FeedingManager:
                     "portion_size",
                     portion_size,
                 )
-                portion_size_value = (
-                    float(portion_size_raw)
-                    if isinstance(portion_size_raw, int | float | str)
-                    else portion_size
-                )
+                portion_size_value = _coerce_float(portion_size_raw, portion_size)
+                if portion_size_value is None:
+                    portion_size_value = portion_size
                 reminder_enabled_raw = config_data.get(
                     "enable_reminders",
                     True,
@@ -1615,11 +1613,7 @@ class FeedingManager:
                     "reminder_minutes_before",
                     15,
                 )
-                reminder_minutes_before = (
-                    int(reminder_minutes_raw)
-                    if isinstance(reminder_minutes_raw, int | float | str)
-                    else 15
-                )
+                reminder_minutes_before = _coerce_int(reminder_minutes_raw, 15)
 
                 meal_schedules.append(
                     MealSchedule(
@@ -2306,7 +2300,20 @@ class FeedingManager:
             if event.time.date() == today and not event.skipped:
                 meal = event.meal_type.value if event.meal_type else "unknown"
                 feedings_today[meal] = feedings_today.get(meal, 0) + 1
-                daily_amount += float(event.amount)
+                try:
+                    daily_amount += float(event.amount)
+                except ValueError:
+                    _LOGGER.debug(
+                        "Invalid feeding amount for %s event %s",
+                        dog_id,
+                        event.amount,
+                    )
+                except TypeError:
+                    _LOGGER.debug(
+                        "Invalid feeding amount for %s event %s",
+                        dog_id,
+                        event.amount,
+                    )
 
             if last_feeding is None and not event.skipped:
                 last_feeding = event
@@ -2546,6 +2553,25 @@ class FeedingManager:
                     health_status = "on_track"
         elif portion_adjustment is not None:
             health_status = "monitoring"
+        serialized_feedings: list[FeedingEventTelemetry] = []
+        for event in feedings:
+            try:
+                serialized_feedings.append(
+                    cast(FeedingEventTelemetry, event.to_dict()),
+                )
+            except ValueError:
+                _LOGGER.debug(
+                    "Failed to serialize feeding event amount for %s: %s",
+                    dog_id,
+                    event.amount,
+                )
+            except TypeError:
+                _LOGGER.debug(
+                    "Failed to serialize feeding event amount for %s: %s",
+                    dog_id,
+                    event.amount,
+                )
+
         snapshot: FeedingSnapshot = FeedingSnapshot(
             status="ready",
             last_feeding=last_feeding.time.isoformat() if last_feeding else None,
@@ -2566,7 +2592,7 @@ class FeedingManager:
             next_feeding=next_feeding.isoformat() if next_feeding else None,
             next_feeding_type=next_type,
             missed_feedings=missed_feedings,
-            feedings=[event.to_dict() for event in feedings],
+            feedings=serialized_feedings,
             daily_stats=daily_stats,
             medication_with_meals=bool(
                 config.medication_with_meals if config else False,
@@ -3833,6 +3859,8 @@ class FeedingManager:
                 raise ValueError(
                     "Portion adjustment must be between 0.5 and 1.2",
                 )
+            if duration_days <= 0:
+                raise ValueError("Duration must be at least 1 day")
 
             valid_emergency_types = [
                 "illness",
@@ -4148,7 +4176,20 @@ class FeedingManager:
                     accumulator = _DailyComplianceAccumulator(date=date_str)
                     daily_accumulators[date_str] = accumulator
                 accumulator.feedings.append(event)
-                accumulator.total_amount += event.amount
+                try:
+                    accumulator.total_amount += float(event.amount)
+                except ValueError:
+                    _LOGGER.debug(
+                        "Invalid compliance feeding amount for %s event %s",
+                        dog_id,
+                        event.amount,
+                    )
+                except TypeError:
+                    _LOGGER.debug(
+                        "Invalid compliance feeding amount for %s event %s",
+                        dog_id,
+                        event.amount,
+                    )
                 if event.meal_type:
                     accumulator.meal_types.add(event.meal_type.value)
                 if event.scheduled:
@@ -4263,19 +4304,34 @@ class FeedingManager:
                     "Enable automatic reminders for scheduled meals",
                 )
 
-            daily_analysis_payload: dict[str, DailyComplianceTelemetry] = {
-                date: {
+            daily_analysis_payload: dict[str, DailyComplianceTelemetry] = {}
+            for date, accumulator in sorted(daily_accumulators.items()):
+                serialized_events: list[FeedingEventTelemetry] = []
+                for event in accumulator.feedings:
+                    try:
+                        serialized_events.append(
+                            cast(FeedingEventTelemetry, event.to_dict()),
+                        )
+                    except ValueError:
+                        _LOGGER.debug(
+                            "Failed to serialize compliance event amount for %s: %s",
+                            dog_id,
+                            event.amount,
+                        )
+                    except TypeError:
+                        _LOGGER.debug(
+                            "Failed to serialize compliance event amount for %s: %s",
+                            dog_id,
+                            event.amount,
+                        )
+
+                daily_analysis_payload[date] = {
                     "date": accumulator.date,
-                    "feedings": [
-                        cast(FeedingEventTelemetry, event.to_dict())
-                        for event in accumulator.feedings
-                    ],
+                    "feedings": serialized_events,
                     "total_amount": accumulator.total_amount,
                     "meal_types": sorted(accumulator.meal_types),
                     "scheduled_feedings": accumulator.scheduled_feedings,
                 }
-                for date, accumulator in sorted(daily_accumulators.items())
-            }
 
             average_daily_amount = (
                 sum(acc.total_amount for acc in daily_accumulators.values())
