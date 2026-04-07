@@ -1,6 +1,6 @@
 """Coverage tests for feeding manager helpers and calculations."""
 
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -11,6 +11,7 @@ from custom_components.pawcontrol.feeding_manager import (
     FeedingEvent,
     FeedingManager,
     HealthCalculator,
+    FeedingScheduleType,
     MealSchedule,
     MealType,
     _normalise_health_override,
@@ -348,3 +349,162 @@ def test_diet_validation_summary_defaults_without_validation_data() -> None:
     assert summary["adjustment_info"] == "No validation data"
     assert summary["total_diets"] == 1
     assert summary["compatibility_level"] == "excellent"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("config_data", "expected"),
+    [
+        (
+            {},
+            {
+                "meals_per_day": 2,
+                "daily_food_amount": 500.0,
+                "food_type": "dry_food",
+                "schedule_type": FeedingScheduleType.FLEXIBLE,
+                "portion_tolerance": 10,
+                "health_aware_portions": True,
+                "meal_count": 0,
+            },
+        ),
+        (
+            {
+                "meals_per_day": "4",
+                "daily_food_amount": "999.9",
+                "food_type": "wet_food",
+                "feeding_schedule": "strict",
+                "portion_tolerance": "25",
+                "health_aware_portions": False,
+                "special_diet": [" renal ", "", 5],
+                "breakfast_time": "07:30",
+                "snack_times": ["10:00", None, "bad"],
+            },
+            {
+                "meals_per_day": 4,
+                "daily_food_amount": 999.9,
+                "food_type": "wet_food",
+                "schedule_type": FeedingScheduleType.STRICT,
+                "portion_tolerance": 25,
+                "health_aware_portions": False,
+                "meal_count": 2,
+            },
+        ),
+    ],
+)
+async def test_create_feeding_config_applies_defaults_and_coercion(
+    hass,
+    config_data: dict[str, object],
+    expected: dict[str, object],
+) -> None:
+    """Config creation should coerce input payloads into domain-safe values."""
+    manager = FeedingManager(hass)
+
+    config = await manager._create_feeding_config("dog-1", config_data)
+
+    assert config.meals_per_day == expected["meals_per_day"]
+    assert config.daily_food_amount == pytest.approx(expected["daily_food_amount"])
+    assert config.food_type == expected["food_type"]
+    assert config.schedule_type == expected["schedule_type"]
+    assert config.portion_tolerance == expected["portion_tolerance"]
+    assert config.health_aware_portions == expected["health_aware_portions"]
+    assert len(config.meal_schedules) == expected["meal_count"]
+
+
+@pytest.mark.asyncio
+async def test_create_feeding_config_rejects_invalid_schedule(hass) -> None:
+    """Invalid schedule enum values should surface as ValueError."""
+    manager = FeedingManager(hass)
+
+    with pytest.raises(ValueError):
+        await manager._create_feeding_config(
+            "dog-1",
+            {"feeding_schedule": "invalid_schedule"},
+        )
+
+
+def test_build_feeding_snapshot_reports_missed_meals_and_progress(hass) -> None:
+    """Snapshot builder should expose concrete adherence and consumption metrics."""
+    manager = FeedingManager(hass)
+    now = datetime(2026, 4, 7, 12, 0, tzinfo=UTC)
+    manager._configs["dog-1"] = FeedingConfig(
+        dog_id="dog-1",
+        meals_per_day=2,
+        daily_food_amount=200.0,
+        schedule_type=FeedingScheduleType.STRICT,
+        portion_tolerance=10,
+        health_aware_portions=False,
+        meal_schedules=[
+            MealSchedule(
+                meal_type=MealType.BREAKFAST,
+                scheduled_time=time(8, 0),
+                portion_size=100.0,
+            ),
+            MealSchedule(
+                meal_type=MealType.LUNCH,
+                scheduled_time=time(11, 0),
+                portion_size=100.0,
+            ),
+        ],
+    )
+    manager._feedings["dog-1"] = [
+        FeedingEvent(
+            time=now - timedelta(days=1),
+            amount=120.0,
+            meal_type=MealType.DINNER,
+        ),
+        FeedingEvent(time=now - timedelta(hours=4), amount=100.0, meal_type=MealType.BREAKFAST),
+        FeedingEvent(
+            time=now - timedelta(hours=1),
+            amount=40.0,
+            meal_type=MealType.LUNCH,
+            skipped=True,
+        ),
+    ]
+
+    with patch(
+        "custom_components.pawcontrol.feeding_manager.dt_util.now",
+        return_value=now,
+    ), patch(
+        "custom_components.pawcontrol.feeding_manager.dt_util.as_local",
+        side_effect=lambda value: value.replace(tzinfo=UTC),
+    ):
+        snapshot = manager._build_feeding_snapshot("dog-1")
+
+    assert snapshot["daily_amount_consumed"] == pytest.approx(100.0)
+    assert snapshot["daily_amount_percentage"] == 50
+    assert snapshot["schedule_adherence"] == 50
+    assert snapshot["total_feedings_today"] == 1
+    assert snapshot["missed_feedings"][0]["meal_type"] == MealType.LUNCH.value
+    assert snapshot["next_feeding_type"] == MealType.BREAKFAST.value
+
+
+@pytest.mark.asyncio
+async def test_async_check_feeding_compliance_returns_domain_issues(hass) -> None:
+    """Compliance check should report underfeeding and missing meals concretely."""
+    manager = FeedingManager(hass)
+    now = datetime(2026, 4, 7, 12, 0, tzinfo=UTC)
+    manager._configs["dog-1"] = FeedingConfig(
+        dog_id="dog-1",
+        meals_per_day=2,
+        daily_food_amount=200.0,
+        portion_tolerance=10,
+        health_aware_portions=False,
+    )
+    manager._feedings["dog-1"] = [
+        FeedingEvent(time=now - timedelta(hours=2), amount=100.0, meal_type=MealType.BREAKFAST),
+        FeedingEvent(
+            time=now - timedelta(days=5),
+            amount=200.0,
+            meal_type=MealType.DINNER,
+            skipped=True,
+        ),
+    ]
+
+    with patch("custom_components.pawcontrol.feeding_manager.dt_util.now", return_value=now):
+        result = await manager.async_check_feeding_compliance("dog-1", days_to_check=2)
+
+    assert result["status"] == "completed"
+    assert result["compliance_score"] == 50
+    assert result["days_analyzed"] == 1
+    assert result["missed_meals"] == [{"date": "2026-04-07", "expected": 2, "actual": 1}]
+    assert "Underfed by 50.0% (100g vs 200g)" in result["compliance_issues"][0]["issues"]
