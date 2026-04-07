@@ -1,9 +1,11 @@
 """Additional branch coverage for service guard telemetry helpers."""
 
 from collections.abc import MutableMapping
+from types import SimpleNamespace
 
 import pytest
 
+from custom_components.pawcontrol import helpers
 from custom_components.pawcontrol.service_guard import (
     ServiceGuardResult,
     ServiceGuardSnapshot,
@@ -178,3 +180,45 @@ def test_normalise_guard_history_rejects_non_sequence_payloads() -> None:
     assert normalise_guard_history(b"not-a-history") == []
     assert normalise_guard_history(bytearray(b"not-a-history")) == []
     assert normalise_guard_history(123) == []
+
+
+def test_helpers_data_structure_and_quiet_hour_fallback_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Helpers should emit robust defaults for malformed storage and time payloads."""
+    data_helper = helpers.PawControlData(
+        hass=SimpleNamespace(async_create_task=lambda coro: SimpleNamespace(coro=coro)),
+        config_entry=SimpleNamespace(entry_id="entry-1", data={}, options={}),
+    )
+
+    sanitized = data_helper._ensure_data_structure("broken-payload")
+    assert sanitized == {
+        "walks": {},
+        "feedings": {},
+        "health": {},
+        "routes": {},
+        "statistics": {},
+    }
+
+    class _BrokenStr:
+        def __str__(self) -> str:
+            raise RuntimeError("no str")
+
+    monkeypatch.setattr(helpers, "_deserialize_datetime", lambda _candidate: None)
+    monkeypatch.setattr(
+        helpers.dt_util,
+        "parse_time",
+        lambda value: None if value == "22:00:00" else helpers.time(7, 0, 0),
+        raising=False,
+    )
+    assert helpers.PawControlNotificationManager._coerce_quiet_hours_time(
+        _BrokenStr(),
+        "22:00:00",
+    ) is None
+    assert (
+        helpers.PawControlNotificationManager._coerce_quiet_hours_time(
+            None,
+            "07:00:00",
+        )
+        is not None
+    )

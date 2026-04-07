@@ -2,12 +2,19 @@
 
 from dataclasses import dataclass
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
+import pytest
 
 from custom_components.pawcontrol import script_manager
 from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
     DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
     DEFAULT_RESILIENCE_SKIP_THRESHOLD,
     DOMAIN,
+    MODULE_NOTIFICATIONS,
     RESILIENCE_BREAKER_THRESHOLD_MAX,
 )
 
@@ -35,7 +42,11 @@ def _build_entry(**overrides: object) -> SimpleNamespace:
 def _build_hass(state: object | None = None) -> SimpleNamespace:
     """Return a light-weight Home Assistant stub."""
     states = SimpleNamespace(get=lambda entity_id: state)
-    return SimpleNamespace(states=states, data={DOMAIN: {}})
+    return SimpleNamespace(
+        states=states,
+        data={DOMAIN: {}},
+        bus=SimpleNamespace(async_listen=lambda *_args, **_kwargs: (lambda: None)),
+    )
 
 
 def test_helper_slug_and_event_normalisation_paths() -> None:
@@ -164,3 +175,143 @@ def test_ensure_resilience_threshold_options_skips_when_already_configured() -> 
     manager = script_manager.PawControlScriptManager(hass, entry)
 
     assert manager.ensure_resilience_threshold_options() is None
+
+
+def test_resolve_manual_resilience_events_returns_robust_defaults_without_manager() -> (
+    None
+):
+    """Missing config-entry manager should emit stable telemetry defaults."""
+    entry = _build_entry()
+    hass = _build_hass()
+    manager = script_manager.PawControlScriptManager(hass, entry)
+
+    telemetry = manager._resolve_manual_resilience_events()
+
+    assert telemetry["available"] is False
+    assert telemetry["automations"] == []
+    assert telemetry["listener_events"] == {}
+    assert telemetry["listener_sources"] == {}
+    assert telemetry["listener_metadata"] == {}
+    assert telemetry["event_counters"] == {"total": 0, "by_event": {}, "by_reason": {}}
+    assert telemetry["active_listeners"] == []
+
+
+def test_manual_event_source_mapping_includes_roles_and_sources() -> None:
+    """Source mapping should retain configured roles and canonical source metadata."""
+    entry = _build_entry(
+        options={
+            "system_settings": {
+                "manual_guard_event": "paw.guard",
+                "manual_check_event": "paw.check",
+                "manual_breaker_event": "paw.breaker",
+            }
+        }
+    )
+    manager = script_manager.PawControlScriptManager(_build_hass(), entry)
+    manager._resolve_manual_resilience_events = lambda: {
+        "configured_guard_events": ["paw.guard"],
+        "configured_breaker_events": ["paw.breaker"],
+        "configured_check_events": ["paw.check"],
+        "listener_sources": {"paw.guard": ["system_options", "blueprint"]},
+        "listener_metadata": {
+            "paw.guard": {
+                "sources": ["system_settings", "default"],
+                "primary_source": "system_settings",
+            }
+        },
+    }
+
+    mapping = manager._manual_event_source_mapping()
+
+    assert mapping["paw.guard"]["configured_role"] == "guard"
+    assert mapping["paw.guard"]["preference_key"] == "manual_guard_event"
+    assert mapping["paw.guard"]["primary_source"] == "system_settings"
+    assert mapping["paw.guard"]["source_tags"] == ["system_settings", "default"]
+    assert mapping["paw.guard"]["listener_sources"] == ("system_options", "blueprint")
+    assert mapping["paw.breaker"]["configured_role"] == "breaker"
+    assert mapping["paw.check"]["configured_role"] == "check"
+
+
+@pytest.mark.asyncio
+async def test_async_generate_scripts_for_dogs_tracks_outputs_and_removes_obsolete(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Script generation should return per-dog/entry outputs and clean stale scripts."""
+
+    class _FakeScriptEntity:
+        def __init__(self, _hass, object_id, *_args):
+            self.object_id = object_id
+            self.entity_id = f"{SCRIPT_DOMAIN}.{object_id}"
+            self.removed = False
+
+        async def async_remove(self) -> None:
+            self.removed = True
+
+    class _FakeComponent:
+        def __init__(self) -> None:
+            self._entities: dict[str, _FakeScriptEntity] = {}
+
+        def get_entity(self, entity_id: str):
+            return self._entities.get(entity_id)
+
+        async def async_add_entities(self, entities: list[_FakeScriptEntity]) -> None:
+            for entity in entities:
+                self._entities[entity.entity_id] = entity
+
+    class _FakeRegistry:
+        def __init__(self) -> None:
+            self._entries = {
+                "script.paw_dog_1_setup": SimpleNamespace(config_entry_id="another"),
+                "script.paw_entry_resilience": SimpleNamespace(config_entry_id="old"),
+            }
+            self.updated: list[tuple[str, str]] = []
+
+        def async_get(self, entity_id: str):
+            return self._entries.get(entity_id)
+
+        def async_update_entity(self, entity_id: str, *, config_entry_id: str) -> None:
+            self.updated.append((entity_id, config_entry_id))
+            self._entries[entity_id] = SimpleNamespace(config_entry_id=config_entry_id)
+
+        async def async_remove(self, entity_id: str) -> None:
+            self._entries.pop(entity_id, None)
+
+    component = _FakeComponent()
+    registry = _FakeRegistry()
+    entry = _build_entry()
+    hass = _build_hass()
+    hass.data[SCRIPT_DOMAIN] = component
+    hass.config_entries = SimpleNamespace(async_entries=lambda _domain: [])
+    manager = script_manager.PawControlScriptManager(hass, entry)
+    manager._dog_scripts = {"old-dog": ["script.paw_old_cleanup"]}
+    manager._entry_scripts = ["script.paw_old_entry"]
+
+    monkeypatch.setattr(script_manager, "SCRIPT_ENTITY_SCHEMA", lambda payload: payload)
+    monkeypatch.setattr(script_manager, "ScriptEntity", _FakeScriptEntity)
+    monkeypatch.setattr(script_manager.er, "async_get", lambda _hass: registry)
+    monkeypatch.setattr(
+        manager,
+        "_build_scripts_for_dog",
+        lambda *_args, **_kwargs: [("paw_dog_1_setup", {"sequence": []})],
+    )
+    monkeypatch.setattr(
+        manager,
+        "_build_entry_scripts",
+        lambda: [("paw_entry_resilience", {"sequence": []})],
+    )
+    remove_entity = AsyncMock()
+    monkeypatch.setattr(manager, "_async_remove_script_entity", remove_entity)
+
+    created = await manager.async_generate_scripts_for_dogs(
+        [{CONF_DOG_ID: "dog-1", CONF_DOG_NAME: "Bolt"}],
+        {MODULE_NOTIFICATIONS},
+    )
+
+    assert created == {
+        "dog-1": ["script.paw_dog_1_setup"],
+        "__entry__": ["script.paw_entry_resilience"],
+    }
+    remove_entity.assert_any_await("script.paw_old_cleanup")
+    remove_entity.assert_any_await("script.paw_old_entry")
+    assert ("script.paw_dog_1_setup", entry.entry_id) in registry.updated
+    assert ("script.paw_entry_resilience", entry.entry_id) in registry.updated
