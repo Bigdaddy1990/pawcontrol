@@ -11,6 +11,7 @@ from typing import cast
 import homeassistant.components.weather as weather_module
 import homeassistant.const as ha_const
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -269,6 +270,110 @@ async def test_async_update_weather_data_handles_formatting_errors_in_translatio
         )
     )
     assert advisory.message == "Temperature 32.0°C requires heat precautions for dogs"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_update_forecast_data_returns_none_for_missing_or_invalid_forecast(
+    hass: HomeAssistant,
+) -> None:
+    """Forecast ingestion should deterministically reject malformed weather payloads."""
+    manager = WeatherHealthManager(hass)
+    await manager.async_load_translations()
+
+    # Missing entity -> deterministic None
+    assert await manager.async_update_forecast_data("weather.unknown") is None
+
+    # Forecast attribute must be a sequence
+    hass.states.async_set("weather.invalid_seq", "sunny", {"forecast": {"bad": True}})
+    assert await manager.async_update_forecast_data("weather.invalid_seq") is None
+
+    # Forecast sequence must contain mappings only
+    hass.states.async_set("weather.invalid_item", "sunny", {"forecast": ["bad"]})
+    assert await manager.async_update_forecast_data("weather.invalid_item") is None
+
+    # Empty sequence should also short-circuit
+    hass.states.async_set("weather.empty", "sunny", {"forecast": []})
+    assert await manager.async_update_forecast_data("weather.empty") is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_update_forecast_data_filters_invalid_points_and_out_of_horizon(
+    hass: HomeAssistant,
+) -> None:
+    """Forecast processing should keep only valid in-horizon entries."""
+    manager = WeatherHealthManager(hass)
+    await manager.async_load_translations()
+
+    now = dt_util.utcnow()
+    hass.states.async_set(
+        "weather.partial",
+        "sunny",
+        {
+            "forecast": [
+                {"datetime": "not-a-datetime", "temperature": 18.0},
+                {
+                    "datetime": (now + timedelta(hours=48)).isoformat(),
+                    "temperature": 17.0,
+                },
+                {
+                    "datetime": (now + timedelta(hours=2)).isoformat(),
+                    "temperature": 68.0,
+                    "temperature_unit": UnitOfTemperature.FAHRENHEIT,
+                    "humidity": 45,
+                    "uv_index": 2,
+                    "condition": "sunny",
+                },
+            ]
+        },
+    )
+
+    forecast = await manager.async_update_forecast_data(
+        "weather.partial",
+        forecast_horizon_hours=6,
+    )
+
+    assert forecast is not None
+    assert len(forecast.forecast_points) == 1
+    assert forecast.forecast_points[0].temperature_c == pytest.approx(20.0)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_update_weather_data_handles_resilience_timeout(
+    hass: HomeAssistant,
+) -> None:
+    """Timeouts from resilience orchestration should fail closed with None."""
+    manager = WeatherHealthManager(hass)
+    await manager.async_load_translations()
+
+    class _TimeoutResilience:
+        async def execute_with_resilience(self, *_args, **_kwargs) -> None:
+            raise TimeoutError("weather timeout")
+
+    manager.resilience_manager = _TimeoutResilience()
+    result = await manager.async_update_weather_data("weather.anything")
+    assert result is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_update_forecast_data_propagates_cancellation_from_resilience(
+    hass: HomeAssistant,
+) -> None:
+    """Cancellation should propagate instead of being converted to a generic failure."""
+    manager = WeatherHealthManager(hass)
+    await manager.async_load_translations()
+
+    class _CancelledResilience:
+        async def execute_with_resilience(self, *_args, **_kwargs) -> None:
+            raise asyncio.CancelledError
+
+    manager.resilience_manager = _CancelledResilience()
+
+    with pytest.raises(asyncio.CancelledError):
+        await manager.async_update_forecast_data("weather.anything")
 
 
 @pytest.mark.unit

@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -163,6 +164,64 @@ def _build_coordinator(
     )
 
     return coordinator
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_maintenance_records_error_and_keeps_details(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Maintenance errors should record an error event with deterministic metadata."""
+    coordinator = _build_coordinator()
+    coordinator._modules = _FailingModules()
+    coordinator.last_update_success = True
+
+    captured: dict[str, object] = {}
+
+    def _record_result(*_args: object, **kwargs: object) -> None:
+        captured.update(kwargs)
+
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: {"runtime": True})
+    monkeypatch.setattr(
+        tasks,
+        "capture_cache_diagnostics",
+        lambda *_: {"cache_health": "degraded"},
+    )
+    monkeypatch.setattr(tasks, "record_maintenance_result", _record_result)
+
+    with pytest.raises(RuntimeError, match="cleanup failed"):
+        await tasks.run_maintenance(coordinator)
+
+    assert captured["status"] == "error"
+    assert captured["task"] == "coordinator_maintenance"
+    assert captured["message"] == "cleanup failed"
+    assert captured["metadata"] == {"schedule": "hourly", "runtime_available": True}
+    assert captured["diagnostics"] == {"cache_health": "degraded"}
+    assert captured["details"] == {}
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_maintenance_propagates_cancellation_without_error_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cancellation must bubble up for clean orchestrator task shutdown."""
+    coordinator = _build_coordinator()
+    coordinator._modules = SimpleNamespace(
+        cleanup_expired=lambda *_: (_ for _ in ()).throw(asyncio.CancelledError()),
+    )
+    record_calls: list[dict[str, object]] = []
+
+    def _record_result(*_args: object, **kwargs: object) -> None:
+        record_calls.append(dict(kwargs))
+
+    monkeypatch.setattr(tasks, "record_maintenance_result", _record_result)
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: None)
+
+    with pytest.raises(asyncio.CancelledError):
+        await tasks.run_maintenance(coordinator)
+
+    assert record_calls == []
 
 
 def test_build_update_statistics_includes_repair_summary(monkeypatch) -> None:
