@@ -37,6 +37,24 @@ python -m scripts.hassfest \
 python -m scripts.sync_contributor_guides           # Refresh assistant copies
 ```
 
+### Test triage protocol (required)
+
+When the test pipeline becomes unstable or too slow, apply this escalation path
+before broad refactors:
+
+1. **If one test blocks for more than 30 minutes**
+   - Reduce scope to focused unit coverage.
+   - Mock API interactions more aggressively.
+   - Validate the affected branch behavior directly instead of running only
+     end-to-end flows.
+2. **If tests are flaky**
+   - Freeze time controls in the test harness.
+   - Make asynchronous tasks deterministic.
+3. **If coverage stalls**
+   - Re-read the branch coverage report.
+   - Fix only the top three coverage gaps first; avoid side quests until those
+     gaps are closed.
+
 ### Repository actions orchestration (required)
 
 All repository quality workflows follow the same sequencing rule: run checks first, and only when a run is both push-triggered and bot-authored may CI apply fixes, commit, and re-run the full gate. Pull requests remain strict failing checks with no write-back.
