@@ -446,3 +446,149 @@ def test_is_budget_exhausted(remaining: object, expected: bool) -> None:
     budget = SimpleNamespace(remaining=remaining)
 
     assert sensor._is_budget_exhausted(budget) is expected
+
+
+def _build_activity_score_sensor() -> sensor.PawControlActivityScoreSensor:
+    coordinator = SimpleNamespace(available=True, update_interval=timedelta(minutes=5))
+    return sensor.PawControlActivityScoreSensor(coordinator, "dog-1", "Rex")
+
+
+def _build_calorie_sensor() -> sensor.PawControlCaloriesBurnedTodaySensor:
+    coordinator = SimpleNamespace(available=True, update_interval=timedelta(minutes=5))
+    return sensor.PawControlCaloriesBurnedTodaySensor(coordinator, "dog-1", "Rex")
+
+
+@pytest.mark.parametrize(
+    ("scores", "expected"),
+    [
+        ({"walk": 80.0}, 80.0),
+        ({"walk": 80.0, "feeding": 50.0}, 70.0),
+        ({"walk": 80.0, "feeding": None, "gps": 60.0}, 72.3),
+        ({}, None),
+    ],
+)
+def test_compute_activity_score_optimized_weighted_outputs(
+    monkeypatch: pytest.MonkeyPatch,
+    scores: dict[str, float | None],
+    expected: float | None,
+) -> None:
+    activity_sensor = _build_activity_score_sensor()
+    dog_data = {
+        "walk": {"present": True},
+        "feeding": {"present": True},
+        "gps": {"present": True},
+        "health": {"present": True},
+    }
+
+    monkeypatch.setattr(
+        activity_sensor,
+        "_calculate_walk_score",
+        lambda _payload: scores.get("walk"),
+    )
+    monkeypatch.setattr(
+        activity_sensor,
+        "_calculate_feeding_score",
+        lambda _payload: scores.get("feeding"),
+    )
+    monkeypatch.setattr(
+        activity_sensor,
+        "_calculate_gps_score",
+        lambda _payload: scores.get("gps"),
+    )
+    monkeypatch.setattr(
+        activity_sensor,
+        "_calculate_health_score",
+        lambda _payload: scores.get("health"),
+    )
+
+    assert activity_sensor._compute_activity_score_optimized(dog_data) == expected
+
+
+def test_compute_activity_score_optimized_ignores_module_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    activity_sensor = _build_activity_score_sensor()
+
+    monkeypatch.setattr(
+        activity_sensor,
+        "_calculate_walk_score",
+        lambda _payload: (_ for _ in ()).throw(ValueError("invalid walk")),
+    )
+    monkeypatch.setattr(activity_sensor, "_calculate_feeding_score", lambda _payload: 90.0)
+    monkeypatch.setattr(activity_sensor, "_calculate_gps_score", lambda _payload: None)
+    monkeypatch.setattr(activity_sensor, "_calculate_health_score", lambda _payload: None)
+
+    result = activity_sensor._compute_activity_score_optimized(
+        {
+            "walk": {"present": True},
+            "feeding": {"present": True},
+            "gps": {"present": True},
+            "health": {"present": True},
+        },
+    )
+
+    assert result == 90.0
+
+
+def test_activity_score_native_value_uses_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    activity_sensor = _build_activity_score_sensor()
+    monkeypatch.setattr(activity_sensor, "_get_dog_data", lambda: {"walk": {}})
+    monkeypatch.setattr(activity_sensor, "_compute_activity_score_optimized", lambda _data: 42.5)
+
+    first = activity_sensor.native_value
+    monkeypatch.setattr(activity_sensor, "_compute_activity_score_optimized", lambda _data: 10.0)
+    second = activity_sensor.native_value
+
+    assert first == pytest.approx(42.5)
+    assert second == pytest.approx(42.5)
+
+
+@pytest.mark.parametrize(
+    ("duration", "distance", "dog_weight", "expected"),
+    [
+        (60, 9000, 10.0, 864.0),
+        (60, 6000, 10.0, 672.0),
+        (60, 2000, 10.0, 384.0),
+        (0, 1000, 10.0, 0.0),
+        ("invalid", 1000, 10.0, 0.0),
+    ],
+)
+def test_calculate_calories_from_activity_thresholds_and_fallbacks(
+    monkeypatch: pytest.MonkeyPatch,
+    duration: object,
+    distance: object,
+    dog_weight: float,
+    expected: float,
+) -> None:
+    calorie_sensor = _build_calorie_sensor()
+    monkeypatch.setattr(
+        calorie_sensor,
+        "_get_dog_data",
+        lambda: {"dog_info": {"dog_weight": dog_weight}},
+    )
+
+    result = calorie_sensor._calculate_calories_from_activity(
+        {
+            "total_duration_today": duration,
+            "total_distance_today": distance,
+        },
+    )
+
+    assert result == pytest.approx(expected)
+
+
+def test_calories_burned_native_value_prefers_direct_payload() -> None:
+    calorie_sensor = _build_calorie_sensor()
+    calorie_sensor._get_walk_module = lambda: {"calories_burned_today": "120.56"}
+
+    assert calorie_sensor.native_value == pytest.approx(120.6)
+
+
+def test_calories_burned_native_value_uses_activity_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calorie_sensor = _build_calorie_sensor()
+    calorie_sensor._get_walk_module = lambda: {"total_duration_today": 30}
+    monkeypatch.setattr(calorie_sensor, "_calculate_calories_from_activity", lambda _data: 77.7)
+
+    assert calorie_sensor.native_value == pytest.approx(77.7)
