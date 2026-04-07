@@ -4,6 +4,17 @@
 - Befehl: `pytest --cov=custom_components.pawcontrol --cov-branch --cov-report=term-missing:skip-covered --cov-report=xml:coverage.xml --cov-report=html:htmlcov -q`
 - Ergebnis: Testlauf wurde gestartet; Coverage-Artefakte (`coverage.xml`, `htmlcov/`) wurden erzeugt, Pytest stoppte wegen verbleibender Syntaxfehler in Testdateien.
 
+
+## Stabilitätsregel vor Coverage-Tickets
+
+Vor neuen Coverage-Tickets muss das separate Stabilitäts-Backlog
+`docs/stability_test_backlog.md` abgearbeitet werden, sobald der Hauptlauf
+(Coverage-Run) durch Blocker abbricht. Die Reihenfolge ist verbindlich:
+
+1. Fokuslauf stabilisieren
+2. Blocker beheben
+3. Danach Top-3-Coverage-Gaps schließen
+
 ## Top-10 Dateien mit den meisten ungetesteten Zeilen
 
 | Prio | Datei | Ungetestete Zeilen | Kategorie |
