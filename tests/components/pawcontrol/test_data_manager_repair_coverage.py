@@ -7,10 +7,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+from homeassistant.exceptions import HomeAssistantError
 import pytest
 
 from custom_components.pawcontrol.data_manager import PawControlDataManager
-from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
+from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD, FeedingData
 
 
 async def _create_manager(mock_hass: object, tmp_path: Path) -> PawControlDataManager:
@@ -213,3 +214,97 @@ async def test_async_generate_report_consistent_with_invalid_entries(
         "Log feeding events to improve analysis accuracy.",
         "Schedule regular walks to maintain activity levels.",
     ]
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_raises_error_when_storage_dir_creation_fails(
+    mock_hass: object,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Storage folder creation failures should be surfaced as HomeAssistantError."""
+    mock_hass.config.config_dir = str(tmp_path)  # type: ignore[attr-defined]
+    manager = PawControlDataManager(
+        mock_hass,  # type: ignore[arg-type]
+        entry_id="entry-1",
+        dogs_config=[{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}],
+    )
+    monkeypatch.setattr(
+        manager._storage_dir,
+        "mkdir",
+        lambda **_kwargs: (_ for _ in ()).throw(OSError("read-only filesystem")),
+    )
+
+    with pytest.raises(
+        HomeAssistantError, match="Unable to prepare PawControl storage"
+    ):
+        await manager.async_initialize()
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_continues_when_namespace_preload_fails(
+    mock_hass: object,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Initialization should continue when one namespace preload raises."""
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._initialised = False
+    failing_namespace = "module_state"
+    namespaces_seen: list[str] = []
+
+    async def _fake_get_namespace_data(namespace: str) -> dict[str, object]:
+        namespaces_seen.append(namespace)
+        if namespace == failing_namespace:
+            raise HomeAssistantError("simulated preload failure")
+        return {}
+
+    monkeypatch.setattr(manager, "_get_namespace_data", _fake_get_namespace_data)
+
+    await manager.async_initialize()
+
+    assert failing_namespace in namespaces_seen
+    assert manager._initialised is True
+
+
+@pytest.mark.asyncio
+async def test_async_log_feeding_returns_false_for_unknown_dog(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    """Unknown dog IDs should fail fast without persistence writes."""
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._async_save_dog_data = AsyncMock()  # type: ignore[method-assign]
+
+    feeding = FeedingData(
+        meal_type="breakfast",
+        portion_size=125.0,
+        food_type="kibble",
+        timestamp=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+    result = await manager.async_log_feeding("unknown-dog", feeding)
+
+    assert result is False
+    manager._async_save_dog_data.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_log_feeding_returns_false_when_persist_fails(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    """Persistence errors should produce a False return contract."""
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._async_save_dog_data = AsyncMock(  # type: ignore[method-assign]
+        side_effect=HomeAssistantError("disk full")
+    )
+    feeding = FeedingData(
+        meal_type="dinner",
+        portion_size=150.0,
+        food_type="wet",
+        timestamp=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+
+    result = await manager.async_log_feeding("buddy", feeding)
+
+    assert result is False
