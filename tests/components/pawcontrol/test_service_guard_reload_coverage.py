@@ -78,6 +78,21 @@ def test_service_guard_module_clone_executes_import_time_lines() -> None:
     }
 
 
+def test_service_guard_module_clone_can_be_reloaded_after_eviction() -> None:
+    """Clone loading should still work after a prior module registration is removed."""
+    clone = _load_service_guard_clone()
+    module_name = clone.__name__
+    del sys.modules[module_name]
+
+    reloaded = _load_service_guard_clone()
+    snapshot = reloaded.ServiceGuardSnapshot.from_sequence(
+        [reloaded.ServiceGuardResult("notify", "mobile_app", True)]
+    )
+
+    assert snapshot.to_metrics()["executed"] == 1
+    assert module_name in sys.modules
+
+
 def test_accumulate_handles_non_mapping_snapshot_reasons() -> None:
     """The summary payload should fall back to an empty reason snapshot."""
     snapshot = ServiceGuardSnapshot.from_sequence([
