@@ -4,9 +4,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.pawcontrol.coordinator import PawControlCoordinator, RuntimeCycleInfo
+from custom_components.pawcontrol.coordinator import (
+    PawControlCoordinator,
+    RuntimeCycleInfo,
+)
 from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed, UpdateFailed
-
 
 
 def _cycle_info(*, success: bool = True) -> RuntimeCycleInfo:

@@ -391,13 +391,12 @@ async def test_daily_reset_scheduler_returns_none_when_time_parsing_fails() -> N
     hass = SimpleNamespace()
 
     parse_results = iter([None, None])
-    with patch.object(services, "get_runtime_data", return_value=None):
-        with patch(
-            "custom_components.pawcontrol.services.dt_util.parse_time",
-            side_effect=lambda _value: next(parse_results),
-            create=True,
-        ):
-            result = await services.async_setup_daily_reset_scheduler(hass, entry)
+    with patch.object(services, "get_runtime_data", return_value=None), patch(
+        "custom_components.pawcontrol.services.dt_util.parse_time",
+        side_effect=lambda _value: next(parse_results),
+        create=True,
+    ):
+        result = await services.async_setup_daily_reset_scheduler(hass, entry)
 
     assert result is None
     entry.async_on_unload.assert_not_called()
