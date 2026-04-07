@@ -12,6 +12,7 @@ from custom_components.pawcontrol import services
 from custom_components.pawcontrol.const import (
     DOMAIN,
     EVENT_FEEDING_COMPLIANCE_CHECKED,
+    SERVICE_ADD_GPS_POINT,
     SERVICE_CHECK_FEEDING_COMPLIANCE,
     SERVICE_START_GROOMING,
 )
@@ -620,6 +621,137 @@ async def test_start_grooming_passthroughs_homeassistant_error(
         await handler(
             SimpleNamespace(
                 data={"dog_id": "buddy", "grooming_type": "bath"},
+                context=None,
+            )
+        )
+
+    assert runtime_data.performance_stats["last_service_result"]["status"] == "error"
+
+
+@pytest.mark.asyncio
+async def test_given_add_gps_point_when_dog_id_not_string_then_raise_validation_error(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
+) -> None:
+    """Non-string dog IDs should trigger validation in dog-id normalization."""
+    walk_manager = SimpleNamespace(async_add_gps_point=AsyncMock(return_value=True))
+    runtime_data = service_runtime_factory(
+        runtime_managers=SimpleNamespace(walk_manager=walk_manager),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    config_entry = runtime_data.coordinator.config_entry
+    coordinator = SimpleNamespace(
+        hass=mock_hass,
+        config_entry=config_entry,
+        runtime_managers=runtime_data.coordinator.runtime_managers,
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
+    )
+    runtime_data.coordinator = coordinator
+    mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
+    monkeypatch.setattr(services, "get_runtime_data", lambda _h, _e: runtime_data)
+
+    handler = await _register_services_and_get_handler(
+        mock_hass,
+        monkeypatch,
+        SERVICE_ADD_GPS_POINT,
+    )
+
+    with pytest.raises(ServiceValidationError, match="dog_id must be provided"):
+        await handler(
+            SimpleNamespace(
+                data={"dog_id": object(), "latitude": 48.1, "longitude": 11.5},
+                context=None,
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_add_gps_point_propagates_coordinate_validation_error(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
+) -> None:
+    """HomeAssistantError should pass through and still record error result."""
+    walk_manager = SimpleNamespace(async_add_gps_point=AsyncMock(return_value=True))
+    runtime_data = service_runtime_factory(
+        runtime_managers=SimpleNamespace(walk_manager=walk_manager),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    config_entry = runtime_data.coordinator.config_entry
+    coordinator = SimpleNamespace(
+        hass=mock_hass,
+        config_entry=config_entry,
+        runtime_managers=runtime_data.coordinator.runtime_managers,
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
+    )
+    runtime_data.coordinator = coordinator
+    mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
+    monkeypatch.setattr(services, "get_runtime_data", lambda _h, _e: runtime_data)
+    monkeypatch.setattr(
+        services,
+        "validate_service_coordinates",
+        lambda *_args: (_ for _ in ()).throw(HomeAssistantError("bad coordinates")),
+    )
+
+    handler = await _register_services_and_get_handler(
+        mock_hass,
+        monkeypatch,
+        SERVICE_ADD_GPS_POINT,
+    )
+
+    with pytest.raises(HomeAssistantError, match="bad coordinates"):
+        await handler(
+            SimpleNamespace(
+                data={"dog_id": "buddy", "latitude": 48.1, "longitude": 11.5},
+                context=None,
+            )
+        )
+
+    assert runtime_data.performance_stats["last_service_result"]["status"] == "error"
+
+
+@pytest.mark.asyncio
+async def test_given_add_gps_point_when_walk_manager_crashes_then_wrap_error(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
+) -> None:
+    """Unexpected exceptions must be wrapped into a user-facing error."""
+    walk_manager = SimpleNamespace(
+        async_add_gps_point=AsyncMock(side_effect=RuntimeError("db unavailable"))
+    )
+    runtime_data = service_runtime_factory(
+        runtime_managers=SimpleNamespace(walk_manager=walk_manager),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    config_entry = runtime_data.coordinator.config_entry
+    coordinator = SimpleNamespace(
+        hass=mock_hass,
+        config_entry=config_entry,
+        runtime_managers=runtime_data.coordinator.runtime_managers,
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
+    )
+    runtime_data.coordinator = coordinator
+    mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
+    monkeypatch.setattr(services, "get_runtime_data", lambda _h, _e: runtime_data)
+
+    handler = await _register_services_and_get_handler(
+        mock_hass,
+        monkeypatch,
+        SERVICE_ADD_GPS_POINT,
+    )
+
+    with pytest.raises(HomeAssistantError, match="Failed to add GPS point for buddy"):
+        await handler(
+            SimpleNamespace(
+                data={"dog_id": "buddy", "latitude": 48.1, "longitude": 11.5},
                 context=None,
             )
         )
