@@ -907,6 +907,79 @@ def test_classify_error_reason_detects_notification_failures() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("reason", "error", "expected"),
+    [
+        ("exception", TimeoutError("request timed out"), "timeout"),
+        ("auth_error", PermissionError("unauthorized"), "auth_error"),
+        ("exception", RuntimeError("HTTP 500 from upstream"), "exception"),
+        (None, None, "unknown"),
+    ],
+)
+def test_build_error_details_classifies_refresh_errors_deterministically(
+    reason: str | None,
+    error: Exception | str | None,
+    expected: str,
+) -> None:
+    """Error details should remain stable for timeout/auth/http/unknown variants."""
+    details = services._build_error_details(reason=reason, error=error)
+    assert details is not None
+    assert details["error_classification"] == expected
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_call_hass_service_if_available_executes_command_successfully() -> None:
+    """Service command helper should execute and mark the guard result successful."""
+    hass = SimpleNamespace(
+        services=SimpleNamespace(async_call=AsyncMock()),
+    )
+
+    result = await async_call_hass_service_if_available(
+        hass,
+        "notify",
+        "mobile_app_phone",
+        {"message": "ok"},
+        blocking=True,
+        description="command-test",
+    )
+
+    assert result.executed is True
+    assert result.reason is None
+    hass.services.async_call.assert_awaited_once_with(
+        "notify",
+        "mobile_app_phone",
+        {"message": "ok"},
+        blocking=True,
+    )
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("hass", "expected_reason"),
+    [
+        (None, "missing_instance"),
+        (SimpleNamespace(services=SimpleNamespace()), "missing_services_api"),
+    ],
+)
+async def test_async_call_hass_service_if_available_handles_negative_paths(
+    hass: object | None,
+    expected_reason: str,
+) -> None:
+    """Service command helper should skip execution cleanly on guard failures."""
+    result = await async_call_hass_service_if_available(
+        hass,  # type: ignore[arg-type]
+        "notify",
+        "mobile_app_phone",
+        {"message": "skip"},
+        description="command-test",
+    )
+
+    assert result.executed is False
+    assert result.reason == expected_reason
+
+
 class _DummyCoordinator:
     """Coordinator stub that records refresh requests."""
 
