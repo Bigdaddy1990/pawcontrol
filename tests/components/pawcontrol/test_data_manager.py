@@ -470,6 +470,137 @@ async def test_async_generate_report_propagates_persist_errors(
     assert manager._namespace_state.get("reports") is None
 
 
+@pytest.mark.asyncio
+async def test_async_export_data_defaults_to_json_when_format_is_invalid(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _init_data_manager_for_export_tests(mock_hass, tmp_path)
+    profile = manager._dog_profiles["buddy"]
+    profile.feeding_history = [
+        {"timestamp": "2026-01-01T10:00:00+00:00", "portion_size": 42.0},
+    ]
+
+    export_path = await manager.async_export_data(
+        "buddy",
+        "feeding",
+        format="invalid-format",
+    )
+    payload = json.loads(export_path.read_text(encoding="utf-8"))
+
+    assert export_path.suffix == ".json"
+    assert payload["dog_id"] == "buddy"
+    assert payload["data_type"] == "feeding"
+    assert isinstance(payload["entries"], list)
+
+
+@pytest.mark.asyncio
+async def test_async_export_data_raises_for_unknown_export_type(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _init_data_manager_for_export_tests(mock_hass, tmp_path)
+
+    with pytest.raises(HomeAssistantError, match="Unsupported export data type"):
+        await manager.async_export_data("buddy", "unknown-module")
+
+
+@pytest.mark.asyncio
+async def test_async_export_data_propagates_boundary_io_errors(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _init_data_manager_for_export_tests(mock_hass, tmp_path)
+    profile = manager._dog_profiles["buddy"]
+    profile.feeding_history = [
+        {"timestamp": "2026-01-01T10:00:00+00:00", "portion_size": 10.0},
+    ]
+    manager._async_add_executor_job = AsyncMock(side_effect=OSError("disk full"))  # type: ignore[method-assign]
+
+    with pytest.raises(OSError, match="disk full"):
+        await manager.async_export_data("buddy", "feeding", format="csv")
+
+
+@pytest.mark.asyncio
+async def test_async_generate_report_full_payload_with_best_effort_integrations(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _init_data_manager_for_export_tests(mock_hass, tmp_path)
+    profile = manager._dog_profiles["buddy"]
+    profile.feeding_history = [
+        {"timestamp": "2026-01-01T10:00:00+00:00", "portion_size": 100.0},
+    ]
+    profile.walk_history = [
+        {"end_time": "2026-01-01T11:00:00+00:00", "distance": 2.5},
+    ]
+    profile.health_history = [
+        {"timestamp": "2026-01-01T12:00:00+00:00", "mood": "great"},
+    ]
+    runtime_data = SimpleNamespace(
+        feeding_manager=SimpleNamespace(
+            async_generate_health_report=AsyncMock(return_value={"score": 93}),
+        ),
+        notification_manager=SimpleNamespace(
+            async_send_notification=AsyncMock(side_effect=RuntimeError("notify boom")),
+        ),
+    )
+    manager._get_runtime_data = lambda: runtime_data  # type: ignore[method-assign]
+
+    report = await manager.async_generate_report(
+        "buddy",
+        "monthly",
+        include_recommendations=True,
+        start_date="2025-12-31T00:00:00+00:00",
+        end_date="2026-01-03T00:00:00+00:00",
+        include_sections=["feeding", "walks", "health"],
+        send_notification=True,
+    )
+
+    assert report["feeding"]["entries"] == 1
+    assert report["walks"]["entries"] == 1
+    assert report["health"]["entries"] == 1
+    assert report["health"]["detailed_report"] == {"score": 93}
+    assert report["recommendations"] == []
+    runtime_data.notification_manager.async_send_notification.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_async_generate_report_handles_optional_fields_and_manager_exceptions(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _init_data_manager_for_export_tests(mock_hass, tmp_path)
+    manager._get_runtime_data = lambda: SimpleNamespace(  # type: ignore[method-assign]
+        feeding_manager=SimpleNamespace(
+            async_generate_health_report=AsyncMock(side_effect=ValueError("boom")),
+        ),
+    )
+
+    report = await manager.async_generate_report(
+        "buddy",
+        "weekly",
+        include_recommendations=False,
+        include_sections=None,
+    )
+
+    assert sorted(report["sections"]) == ["feeding", "health", "walks"]
+    assert "recommendations" not in report
+    assert report["health"]["latest"] is None
+    assert "detailed_report" not in report["health"]
+
+
+@pytest.mark.asyncio
+async def test_async_generate_report_rejects_unknown_dog(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _init_data_manager_for_export_tests(mock_hass, tmp_path)
+
+    with pytest.raises(HomeAssistantError, match="Unknown PawControl dog"):
+        await manager.async_generate_report("missing", "weekly")
+
+
 def test_cache_repair_summary_handles_corrupt_snapshot_payloads() -> None:
     hass = SimpleNamespace(
         config=SimpleNamespace(config_dir="/tmp"),
@@ -504,3 +635,43 @@ def test_cache_repair_summary_handles_corrupt_snapshot_payloads() -> None:
     assert summary["totals"]["active_override_flags"] == 2
     assert summary["caches_with_errors"] == ["cache-a"]
     assert summary["caches_with_pending_expired_entries"] == ["cache-a"]
+
+
+def test_cache_repair_summary_stable_defaults_for_missing_and_invalid_fields() -> None:
+    hass = SimpleNamespace(
+        config=SimpleNamespace(config_dir="/tmp"),
+        async_add_executor_job=None,
+    )
+    manager = PawControlDataManager(
+        hass,  # type: ignore[arg-type]
+        entry_id="entry-1",
+        dogs_config=[],
+    )
+
+    assert manager.cache_repair_summary({}) is None
+
+    summary = manager.cache_repair_summary(
+        {
+            "cache-typed-errors": {
+                "stats": {"entries": object(), "hits": "2", "misses": "3"},
+                "diagnostics": {
+                    "errors": 7,
+                    "expired_entries": None,
+                    "pending_override_candidates": "invalid",
+                    "timestamp_anomalies": {"buddy": 123},
+                },
+            },
+            "cache-no-issues": {"stats": {"entries": 1, "hits": 1, "misses": 0}},
+        },
+    )
+
+    assert summary is not None
+    assert summary["severity"] == "error"
+    assert summary["totals"]["entries"] == 1
+    assert summary["totals"]["hits"] == 3
+    assert summary["totals"]["misses"] == 3
+    assert summary["totals"]["expired_entries"] == 0
+    assert summary["issues"] is not None
+    issue = summary["issues"][0]
+    assert issue["errors"] == ["7"]
+    assert issue["timestamp_anomalies"] == {"buddy": "123"}
