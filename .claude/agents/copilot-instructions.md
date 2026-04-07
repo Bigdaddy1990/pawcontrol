@@ -63,6 +63,23 @@ before broad refactors:
    - Fix only the top three coverage gaps first; avoid side quests until those
      gaps are closed.
 
+### Coverage package execution protocol (required)
+
+For each coverage package, contributors must execute the work in this exact
+sequence:
+
+1. Select **5-10 target branches** from documentation-driven branch lists
+   before writing or editing tests.
+2. Modify **exactly one module** per package to keep review scope narrow and
+   traceable.
+3. Write behavior-oriented tests that verify business outcomes; avoid assertions
+   on private helper call order.
+4. Mock only integration boundaries (external APIs, IO, Home Assistant service
+   boundaries), never internal business logic.
+5. Ship a regression test immediately whenever an edge case bug is fixed.
+6. Close the package as soon as the minimum target is reached; do not pursue
+   perfection work in the same ticket.
+
 ### Repository actions orchestration (required)
 
 All repository quality workflows follow the same sequencing rule: run checks first, and only when a run is both push-triggered and bot-authored may CI apply fixes, commit, and re-run the full gate. Pull requests remain strict failing checks with no write-back.

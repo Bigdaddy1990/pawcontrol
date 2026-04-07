@@ -136,10 +136,16 @@ async def test_async_export_data_routes_rejects_missing_payload(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_supports_csv_export_single(mock_hass: object, tmp_path: Path) -> None:
+async def test_async_export_data_supports_csv_export_single(
+    mock_hass: object, tmp_path: Path
+) -> None:
     manager = await _create_manager(mock_hass, tmp_path)
     manager._dog_profiles["buddy"].feeding_history = [
-        {"timestamp": "2026-01-05T07:30:00+00:00", "portion_size": 50.0, "meal_type": "breakfast"},
+        {
+            "timestamp": "2026-01-05T07:30:00+00:00",
+            "portion_size": 50.0,
+            "meal_type": "breakfast",
+        },
     ]
 
     export_path = await manager.async_export_data("buddy", "feeding", format="csv")
@@ -151,7 +157,9 @@ async def test_async_export_data_supports_csv_export_single(mock_hass: object, t
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_falls_back_to_json_for_unknown_format(mock_hass: object, tmp_path: Path) -> None:
+async def test_async_export_data_falls_back_to_json_for_unknown_format(
+    mock_hass: object, tmp_path: Path
+) -> None:
     manager = await _create_manager(mock_hass, tmp_path)
     manager._dog_profiles["buddy"].health_history = [
         {"timestamp": "2026-01-05T07:30:00+00:00", "status": "ok"},
@@ -166,7 +174,9 @@ async def test_async_export_data_falls_back_to_json_for_unknown_format(mock_hass
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_routes_json_wraps_invalid_content(mock_hass: object, tmp_path: Path) -> None:
+async def test_async_export_data_routes_json_wraps_invalid_content(
+    mock_hass: object, tmp_path: Path
+) -> None:
     manager = await _create_manager(mock_hass, tmp_path)
     manager._get_runtime_data = lambda: SimpleNamespace(  # type: ignore[method-assign]
         gps_geofence_manager=SimpleNamespace(
@@ -256,3 +266,102 @@ async def test_async_export_data_all_propagates_export_exception(
 
     with pytest.raises(RuntimeError, match="garden boom"):
         await manager.async_export_data("buddy", "all")
+
+
+@pytest.mark.asyncio
+async def test_async_export_data_all_allow_partial_records_errors_and_continues(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._dog_profiles["buddy"].feeding_history = [
+        {"timestamp": "2026-01-05T07:30:00+00:00", "portion_size": 30.0},
+    ]
+    manager._dog_profiles["buddy"].walk_history = []
+    manager._dog_profiles["buddy"].health_history = []
+    manager._dog_profiles["buddy"].medication_history = []
+    manager._get_runtime_data = lambda: SimpleNamespace(  # type: ignore[method-assign]
+        garden_manager=SimpleNamespace(
+            async_export_sessions=AsyncMock(
+                side_effect=HomeAssistantError("garden unavailable"),
+            ),
+        ),
+        gps_geofence_manager=SimpleNamespace(
+            async_export_routes=AsyncMock(
+                return_value={"filename": "routes.gpx", "content": "<gpx />"},
+            ),
+        ),
+    )
+
+    manifest_path = await manager.async_export_data(
+        "buddy",
+        "all",
+        allow_partial=True,
+    )
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert "errors" in payload
+    assert payload["errors"]["garden"] == "garden unavailable"
+    assert "feeding" in payload["exports"]
+    assert "routes" in payload["exports"]
+
+
+@pytest.mark.asyncio
+async def test_async_export_data_all_allow_partial_raises_when_every_export_fails(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._dog_profiles["buddy"].feeding_history = []
+    manager._dog_profiles["buddy"].walk_history = []
+    manager._dog_profiles["buddy"].health_history = []
+    manager._dog_profiles["buddy"].medication_history = []
+    manager.async_get_module_history = AsyncMock(side_effect=OSError("disk offline"))  # type: ignore[method-assign]
+    manager._get_runtime_data = lambda: SimpleNamespace(  # type: ignore[method-assign]
+        garden_manager=SimpleNamespace(
+            async_export_sessions=AsyncMock(
+                side_effect=HomeAssistantError("garden unavailable"),
+            ),
+        ),
+        gps_geofence_manager=SimpleNamespace(
+            async_export_routes=AsyncMock(side_effect=OSError("route disk offline")),
+        ),
+    )
+
+    with pytest.raises(
+        HomeAssistantError,
+        match="Failed to export any data type while allow_partial=True",
+    ):
+        await manager.async_export_data("buddy", "all", allow_partial=True)
+
+
+@pytest.mark.asyncio
+async def test_async_export_data_all_allow_partial_still_surfaces_manifest_io_failures(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._dog_profiles["buddy"].feeding_history = [
+        {"timestamp": "2026-01-05T07:30:00+00:00", "portion_size": 10.0},
+    ]
+    manager._dog_profiles["buddy"].walk_history = []
+    manager._dog_profiles["buddy"].health_history = []
+    manager._dog_profiles["buddy"].medication_history = []
+    manager._get_runtime_data = lambda: SimpleNamespace(  # type: ignore[method-assign]
+        garden_manager=SimpleNamespace(
+            async_export_sessions=AsyncMock(
+                return_value=tmp_path / DOMAIN / "exports" / "garden.json",
+            ),
+        ),
+        gps_geofence_manager=SimpleNamespace(
+            async_export_routes=AsyncMock(
+                return_value={"filename": "routes.gpx", "content": "<gpx />"},
+            ),
+        ),
+    )
+    manager._async_add_executor_job = AsyncMock(
+        side_effect=OSError("manifest read-only")
+    )  # type: ignore[method-assign]
+
+    with pytest.raises(OSError, match="manifest read-only"):
+        await manager.async_export_data("buddy", "all", allow_partial=True)
