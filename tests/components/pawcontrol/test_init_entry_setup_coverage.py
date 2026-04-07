@@ -2,7 +2,7 @@
 
 import importlib
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -122,6 +122,46 @@ async def test_async_setup_entry_propagates_known_failures(
         await pawcontrol_init.async_setup_entry(
             SimpleNamespace(), SimpleNamespace(entry_id="id", options={})
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("setup_error", "expected_exception"),
+    [
+        (ConfigEntryNotReady("retry"), ConfigEntryNotReady),
+        (RuntimeError("boom"), PawControlSetupError),
+    ],
+)
+async def test_async_setup_entry_disables_debug_logging_on_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    setup_error: Exception,
+    expected_exception: type[Exception],
+) -> None:
+    """Any setup failure should restore logger level when debug logging was enabled."""
+    disable_debug = Mock()
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_enable_debug_logging",
+        lambda _entry: True,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_disable_debug_logging",
+        disable_debug,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        AsyncMock(side_effect=setup_error),
+    )
+
+    with pytest.raises(expected_exception):
+        await pawcontrol_init.async_setup_entry(
+            SimpleNamespace(), SimpleNamespace(entry_id="entry-id", options={})
+        )
+
+    disable_debug.assert_called_once()
 
 
 @pytest.mark.asyncio

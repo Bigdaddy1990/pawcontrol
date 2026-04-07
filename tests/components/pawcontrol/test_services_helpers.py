@@ -1,8 +1,9 @@
 """Unit tests for service helper utilities."""
 
+import asyncio
 from types import SimpleNamespace
 from typing import cast
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import Context
@@ -315,6 +316,91 @@ def test_merge_service_context_metadata_supports_include_none() -> None:
         target, {"parent_id": None}, include_none=True
     )
     assert target["parent_id"] is None
+
+
+def test_service_manager_reuses_existing_registration_task() -> None:
+    """Creating a second service manager should reuse the first manager's task."""
+    existing_task = asyncio.Future()
+    existing_manager = SimpleNamespace(_services_task=existing_task)
+    hass = SimpleNamespace(
+        data={DOMAIN: {"service_manager": existing_manager}},
+        services=SimpleNamespace(has_service=lambda *_: False),
+        async_create_task=Mock(),
+    )
+
+    manager = services.PawControlServiceManager(hass)
+
+    assert manager._services_task is existing_task
+    hass.async_create_task.assert_not_called()
+
+
+def test_service_manager_starts_setup_task_when_service_is_missing() -> None:
+    """Service manager should schedule setup when the domain is not registered."""
+    created_task = asyncio.Future()
+    hass = SimpleNamespace(
+        data={},
+        services=SimpleNamespace(has_service=lambda *_: False),
+        async_create_task=Mock(return_value=created_task),
+    )
+
+    manager = services.PawControlServiceManager(hass)
+
+    assert manager._services_task is created_task
+    assert hass.data[DOMAIN]["service_manager"] is manager
+
+
+@pytest.mark.asyncio
+async def test_service_manager_shutdown_unloads_and_clears_domain_registration() -> None:
+    """Shutdown awaits pending setup tasks and removes only its own registration."""
+    setup_task = asyncio.Future()
+    setup_task.set_result(None)
+    hass = SimpleNamespace(
+        data={DOMAIN: {}},
+        services=SimpleNamespace(has_service=lambda *_: True),
+        async_create_task=Mock(),
+    )
+    manager = services.PawControlServiceManager(hass)
+    manager._services_task = setup_task
+    hass.data[DOMAIN]["service_manager"] = manager
+
+    with patch.object(services, "async_unload_services", AsyncMock()) as unload_mock:
+        await manager.async_shutdown()
+
+    unload_mock.assert_awaited_once_with(hass)
+    assert "service_manager" not in hass.data[DOMAIN]
+
+
+@pytest.mark.asyncio
+async def test_perform_daily_reset_returns_without_runtime_data() -> None:
+    """Daily reset should no-op when runtime data is not yet available."""
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry-id")
+
+    with patch.object(services, "get_runtime_data", return_value=None):
+        await services._perform_daily_reset(hass, entry)
+
+
+@pytest.mark.asyncio
+async def test_daily_reset_scheduler_returns_none_when_time_parsing_fails() -> None:
+    """Scheduler creation should abort when both configured and default times fail."""
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        options={},
+        async_on_unload=Mock(),
+    )
+    hass = SimpleNamespace()
+
+    parse_results = iter([None, None])
+    with patch.object(services, "get_runtime_data", return_value=None):
+        with patch(
+            "custom_components.pawcontrol.services.dt_util.parse_time",
+            side_effect=lambda _value: next(parse_results),
+            create=True,
+        ):
+            result = await services.async_setup_daily_reset_scheduler(hass, entry)
+
+    assert result is None
+    entry.async_on_unload.assert_not_called()
 
 
 def test_record_delivery_failure_reason_updates_metrics() -> None:
