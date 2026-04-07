@@ -455,6 +455,7 @@ SERVICE_GENERATE_REPORT: Final[str] = "generate_report"
 SERVICE_GPS_START_WALK: Final[str] = "gps_start_walk"
 SERVICE_GPS_END_WALK: Final[str] = "gps_end_walk"
 SERVICE_GPS_POST_LOCATION: Final[str] = "gps_post_location"
+SERVICE_ADD_GPS_POINT: Final[str] = SERVICE_GPS_POST_LOCATION
 SERVICE_GPS_EXPORT_ROUTE: Final[str] = "gps_export_last_route"
 
 # OPTIMIZED: Automation services from docs/automations_health_feeding.md
