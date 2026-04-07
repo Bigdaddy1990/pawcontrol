@@ -8,6 +8,16 @@
 
 ## Top-Liste als 2–4h-Pakete (in Bearbeitungsreihenfolge)
 
+## Verbindlicher Ablauf pro Paket
+
+Jedes Coverage-Paket wird strikt nach diesem Ablauf abgearbeitet:
+
+1. **10–15 Minuten:** Zielpfade aus dem Coverage-Report auswählen (nur das aktuelle Modulpaket).
+2. **90–150 Minuten:** Tests schreiben und ausschließlich innerhalb **eines** Modulpakets bleiben.
+3. **15 Minuten:** Flaky-/Determinismus-Härtung durchführen (z. B. Zeit einfrieren, Async-Abläufe deterministisch machen).
+4. Paket sofort beenden, sobald das Mindestziel erreicht ist; **keine Nebenbaustellen** im selben Ticket.
+5. Erst danach mit dem nächsten Paket starten – nur wenn das vorherige Paket dokumentiert abgeschlossen ist (neu abgedeckte Zeilen + betroffene Funktionen).
+
 Regeln für jedes Paket:
 
 1. Paket nur mit zusammenhängenden Funktionen/Codepfaden bearbeiten.
