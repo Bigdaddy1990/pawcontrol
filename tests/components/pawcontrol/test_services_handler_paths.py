@@ -12,7 +12,9 @@ from custom_components.pawcontrol import services
 from custom_components.pawcontrol.const import (
     DOMAIN,
     EVENT_FEEDING_COMPLIANCE_CHECKED,
+    SERVICE_ADD_FEEDING,
     SERVICE_CHECK_FEEDING_COMPLIANCE,
+    SERVICE_SEND_NOTIFICATION,
     SERVICE_START_GROOMING,
 )
 from custom_components.pawcontrol.exceptions import (
@@ -88,7 +90,9 @@ async def test_async_setup_services_successfully_registers_target_handlers(
 
     await services.async_setup_services(mock_hass)
 
-    registered = {call.args[1] for call in mock_hass.services.async_register.call_args_list}
+    registered = {
+        call.args[1] for call in mock_hass.services.async_register.call_args_list
+    }
     assert services.SERVICE_SEND_NOTIFICATION in registered
     assert SERVICE_CHECK_FEEDING_COMPLIANCE in registered
     assert SERVICE_START_GROOMING in registered
@@ -192,7 +196,9 @@ async def test_send_notification_service_success_path(
         dog_ids={"buddy"},
         dog_config={"name": "Buddy"},
     )
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
 
     handler = await _register_service_handler(
         mock_hass,
@@ -200,7 +206,9 @@ async def test_send_notification_service_success_path(
         services.SERVICE_SEND_NOTIFICATION,
     )
 
-    await handler(SimpleNamespace(data={"title": "Hi", "message": "Dinner"}, context=None))
+    await handler(
+        SimpleNamespace(data={"title": "Hi", "message": "Dinner"}, context=None)
+    )
 
     assert runtime_data.performance_stats["last_service_result"]["status"] == "success"
 
@@ -221,14 +229,18 @@ async def test_send_notification_service_validation_error_input(
         dog_ids={"buddy"},
         dog_config={"name": "Buddy"},
     )
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
     handler = await _register_service_handler(
         mock_hass,
         monkeypatch,
         services.SERVICE_SEND_NOTIFICATION,
     )
 
-    with pytest.raises(ServiceValidationError, match="expires_in_hours must be a number"):
+    with pytest.raises(
+        ServiceValidationError, match="expires_in_hours must be a number"
+    ):
         await handler(
             SimpleNamespace(
                 data={
@@ -257,15 +269,21 @@ async def test_send_notification_service_exception_path_wraps_boundary_error(
         service_runtime_factory=service_runtime_factory,
         runtime_managers=SimpleNamespace(notification_manager=notification_manager),
     )
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
     handler = await _register_service_handler(
         mock_hass,
         monkeypatch,
         services.SERVICE_SEND_NOTIFICATION,
     )
 
-    with pytest.raises(HomeAssistantError, match="Failed to send the PawControl notification"):
-        await handler(SimpleNamespace(data={"title": "Hi", "message": "Dinner"}, context=None))
+    with pytest.raises(
+        HomeAssistantError, match="Failed to send the PawControl notification"
+    ):
+        await handler(
+            SimpleNamespace(data={"title": "Hi", "message": "Dinner"}, context=None)
+        )
 
 
 @pytest.mark.asyncio
@@ -280,7 +298,9 @@ async def test_send_notification_service_abort_when_manager_missing(
         service_runtime_factory=service_runtime_factory,
         runtime_managers=SimpleNamespace(notification_manager=None),
     )
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
 
     handler = await _register_service_handler(
         mock_hass,
@@ -288,8 +308,12 @@ async def test_send_notification_service_abort_when_manager_missing(
         services.SERVICE_SEND_NOTIFICATION,
     )
 
-    with pytest.raises(HomeAssistantError, match="notification manager is not ready yet"):
-        await handler(SimpleNamespace(data={"title": "Hi", "message": "Dinner"}, context=None))
+    with pytest.raises(
+        HomeAssistantError, match="notification manager is not ready yet"
+    ):
+        await handler(
+            SimpleNamespace(data={"title": "Hi", "message": "Dinner"}, context=None)
+        )
 
 
 @pytest.mark.asyncio
@@ -326,7 +350,9 @@ async def test_check_feeding_compliance_service_success_and_abort_notification(
     )
     mock_hass.config = SimpleNamespace(language="de")
 
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
     monkeypatch.setattr(services, "async_publish_feeding_compliance_issue", AsyncMock())
     monkeypatch.setattr(
         services,
@@ -348,7 +374,9 @@ async def test_check_feeding_compliance_service_success_and_abort_notification(
     )
 
     notification_manager.async_send_feeding_compliance_summary.assert_not_called()
-    assert mock_hass.bus.async_fire.call_args.args[0] == EVENT_FEEDING_COMPLIANCE_CHECKED
+    assert (
+        mock_hass.bus.async_fire.call_args.args[0] == EVENT_FEEDING_COMPLIANCE_CHECKED
+    )
 
 
 @pytest.mark.asyncio
@@ -365,7 +393,9 @@ async def test_check_feeding_compliance_service_validation_error_unknown_dog(
         dog_ids={"buddy"},
         dog_config=None,
     )
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
     handler = await _register_service_handler(
         mock_hass,
         monkeypatch,
@@ -393,7 +423,9 @@ async def test_check_feeding_compliance_service_exception_path(
         dog_ids={"buddy"},
         dog_config={"name": "Buddy"},
     )
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
     handler = await _register_service_handler(
         mock_hass,
         monkeypatch,
@@ -417,14 +449,22 @@ async def test_start_grooming_service_success_path(
     runtime_data, coordinator = _build_runtime(
         mock_hass=mock_hass,
         service_runtime_factory=service_runtime_factory,
-        runtime_managers=SimpleNamespace(data_manager=data_manager, notification_manager=None),
+        runtime_managers=SimpleNamespace(
+            data_manager=data_manager, notification_manager=None
+        ),
         dog_ids={"buddy"},
         dog_config={"name": "Buddy"},
     )
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
-    handler = await _register_service_handler(mock_hass, monkeypatch, SERVICE_START_GROOMING)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
+    handler = await _register_service_handler(
+        mock_hass, monkeypatch, SERVICE_START_GROOMING
+    )
 
-    await handler(SimpleNamespace(data={"dog_id": "buddy", "grooming_type": "bath"}, context=None))
+    await handler(
+        SimpleNamespace(data={"dog_id": "buddy", "grooming_type": "bath"}, context=None)
+    )
 
     coordinator.async_request_refresh.assert_awaited_once()
     assert runtime_data.performance_stats["last_service_result"]["status"] == "success"
@@ -444,11 +484,19 @@ async def test_start_grooming_service_validation_error_unknown_dog(
         dog_ids={"buddy"},
         dog_config=None,
     )
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
-    handler = await _register_service_handler(mock_hass, monkeypatch, SERVICE_START_GROOMING)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
+    handler = await _register_service_handler(
+        mock_hass, monkeypatch, SERVICE_START_GROOMING
+    )
 
     with pytest.raises(ServiceValidationError, match="Unknown dog_id"):
-        await handler(SimpleNamespace(data={"dog_id": "ghost", "grooming_type": "bath"}, context=None))
+        await handler(
+            SimpleNamespace(
+                data={"dog_id": "ghost", "grooming_type": "bath"}, context=None
+            )
+        )
 
 
 @pytest.mark.asyncio
@@ -464,15 +512,25 @@ async def test_start_grooming_service_exception_path(
     runtime_data, _ = _build_runtime(
         mock_hass=mock_hass,
         service_runtime_factory=service_runtime_factory,
-        runtime_managers=SimpleNamespace(data_manager=data_manager, notification_manager=None),
+        runtime_managers=SimpleNamespace(
+            data_manager=data_manager, notification_manager=None
+        ),
         dog_ids={"buddy"},
         dog_config={"name": "Buddy"},
     )
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
-    handler = await _register_service_handler(mock_hass, monkeypatch, SERVICE_START_GROOMING)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
+    handler = await _register_service_handler(
+        mock_hass, monkeypatch, SERVICE_START_GROOMING
+    )
 
     with pytest.raises(HomeAssistantError, match="Failed to start grooming"):
-        await handler(SimpleNamespace(data={"dog_id": "buddy", "grooming_type": "bath"}, context=None))
+        await handler(
+            SimpleNamespace(
+                data={"dog_id": "buddy", "grooming_type": "bath"}, context=None
+            )
+        )
 
 
 @pytest.mark.asyncio
@@ -489,8 +547,144 @@ async def test_start_grooming_service_abort_when_data_manager_missing(
         dog_ids={"buddy"},
         dog_config={"name": "Buddy"},
     )
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
-    handler = await _register_service_handler(mock_hass, monkeypatch, SERVICE_START_GROOMING)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
+    handler = await _register_service_handler(
+        mock_hass, monkeypatch, SERVICE_START_GROOMING
+    )
 
     with pytest.raises(HomeAssistantError, match="data manager is not ready yet"):
-        await handler(SimpleNamespace(data={"dog_id": "buddy", "grooming_type": "bath"}, context=None))
+        await handler(
+            SimpleNamespace(
+                data={"dog_id": "buddy", "grooming_type": "bath"}, context=None
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_send_notification_wrapper_records_error_service_telemetry(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
+) -> None:
+    """Wrapped handlers should mark failed calls in runtime telemetry."""
+    notification_manager = SimpleNamespace(
+        async_send_notification=AsyncMock(side_effect=RuntimeError("smtp offline")),
+    )
+    runtime_data, _ = _build_runtime(
+        mock_hass=mock_hass,
+        service_runtime_factory=service_runtime_factory,
+        runtime_managers=SimpleNamespace(notification_manager=notification_manager),
+    )
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
+    handler = await _register_service_handler(
+        mock_hass, monkeypatch, SERVICE_SEND_NOTIFICATION
+    )
+
+    with pytest.raises(
+        HomeAssistantError, match="Failed to send the PawControl notification"
+    ):
+        await handler(
+            SimpleNamespace(data={"title": "Hi", "message": "Dinner"}, context=None)
+        )
+
+    telemetry = runtime_data.performance_stats["service_call_telemetry"]
+    assert telemetry["total_calls"] == 1
+    assert telemetry["error_calls"] == 1
+    assert telemetry["success_calls"] == 0
+    assert telemetry["error_rate"] == 1.0
+    assert telemetry["per_service"][SERVICE_SEND_NOTIFICATION]["error_calls"] == 1
+
+
+@pytest.mark.asyncio
+async def test_send_notification_wrapper_skips_telemetry_when_resolver_fails(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
+) -> None:
+    """Telemetry lookup failures should not mask handler success."""
+    notification_manager = SimpleNamespace(
+        async_send_notification=AsyncMock(return_value="notif-3"),
+    )
+    runtime_data, _ = _build_runtime(
+        mock_hass=mock_hass,
+        service_runtime_factory=service_runtime_factory,
+        runtime_managers=SimpleNamespace(notification_manager=notification_manager),
+    )
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
+    handler = await _register_service_handler(
+        mock_hass, monkeypatch, SERVICE_SEND_NOTIFICATION
+    )
+    monkeypatch.setattr(
+        services, "get_runtime_data", Mock(side_effect=RuntimeError("metrics offline"))
+    )
+
+    await handler(
+        SimpleNamespace(data={"title": "Hi", "message": "Dinner"}, context=None)
+    )
+
+    assert runtime_data.performance_stats["last_service_result"]["status"] == "success"
+    assert "service_call_telemetry" not in runtime_data.performance_stats
+
+
+@pytest.mark.asyncio
+async def test_add_feeding_service_propagates_homeassistant_error_without_wrapping(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
+) -> None:
+    """HomeAssistantError should pass through central feeding handler unchanged."""
+    feeding_manager = SimpleNamespace(
+        async_add_feeding=AsyncMock(side_effect=HomeAssistantError("quota exceeded")),
+        async_add_feeding_with_medication=AsyncMock(),
+    )
+    runtime_data, coordinator = _build_runtime(
+        mock_hass=mock_hass,
+        service_runtime_factory=service_runtime_factory,
+        runtime_managers=SimpleNamespace(feeding_manager=feeding_manager),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
+    handler = await _register_service_handler(
+        mock_hass, monkeypatch, SERVICE_ADD_FEEDING
+    )
+
+    with pytest.raises(HomeAssistantError, match="quota exceeded"):
+        await handler(
+            SimpleNamespace(
+                data={"dog_id": "buddy", "amount": 85.0, "meal_type": "breakfast"},
+                context=None,
+            )
+        )
+
+    coordinator.async_request_refresh.assert_not_awaited()
+    assert runtime_data.performance_stats["last_service_result"]["status"] == "error"
+    assert (
+        runtime_data.performance_stats["last_service_result"]["message"]
+        == "quota exceeded"
+    )
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        ("false", False),
+        ("off", False),
+        ("0", False),
+        (0, False),
+    ],
+)
+def test_coerce_service_bool_false_branches_are_supported(
+    raw_value: object,
+    expected: bool,
+) -> None:
+    """Central boolean coercion should map known false-ish values to False."""
+    assert services._coerce_service_bool(raw_value, field="enabled") is expected
