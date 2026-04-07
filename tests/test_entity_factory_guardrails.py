@@ -147,6 +147,86 @@ def test_create_entity_config_rejects_invalid_type() -> None:
     )
 
 
+def test_create_entity_config_rejects_missing_required_values() -> None:
+    """Missing required inputs should return ``None`` defensively."""
+    factory = EntityFactory(coordinator=None)
+
+    assert (
+        factory.create_entity_config(
+            dog_id="",
+            entity_type=_Platform.SENSOR,
+            module="feeding",
+            profile="standard",
+        )
+        is None
+    )
+    assert (
+        factory.create_entity_config(
+            dog_id="buddy",
+            entity_type=_Platform.SENSOR,
+            module="",
+            profile="standard",
+        )
+        is None
+    )
+
+
+def test_create_entity_config_rejects_unknown_module() -> None:
+    """Unknown modules are rejected in config creation paths."""
+    factory = EntityFactory(coordinator=None)
+
+    assert (
+        factory.create_entity_config(
+            dog_id="buddy",
+            entity_type=_Platform.SENSOR,
+            module="unknown",
+            profile="advanced",
+            priority=9,
+        )
+        is None
+    )
+
+
+def test_create_entity_config_falls_back_to_standard_profile() -> None:
+    """Invalid profiles should still build config using standard fallback values."""
+    factory = EntityFactory(coordinator=None)
+
+    config = factory.create_entity_config(
+        dog_id="buddy",
+        entity_type=_Platform.SENSOR,
+        module="feeding",
+        profile="invalid-profile",
+        priority=6,
+    )
+
+    assert config is not None
+    assert config["profile"] == "invalid-profile"
+    assert (
+        config["performance_impact"]
+        == ENTITY_PROFILES["standard"]["performance_impact"]
+    )
+
+
+def test_estimate_entity_count_uses_default_modules_for_invalid_mapping() -> None:
+    """Estimate path should normalise invalid module payloads to defaults."""
+    factory = EntityFactory(coordinator=None)
+    default_estimate = factory.estimate_entity_count(
+        "standard", factory._get_default_modules()
+    )  # type: ignore[arg-type]
+
+    result_none_modules = factory.estimate_entity_count(
+        "standard",
+        None,  # type: ignore[arg-type]
+    )
+    result_unknown_modules = factory.estimate_entity_count(
+        "standard",
+        {"not_known": True},
+    )
+
+    assert result_none_modules == default_estimate
+    assert result_unknown_modules == default_estimate
+
+
 def test_runtime_guard_expands_when_scheduler_starves() -> None:
     """The runtime guard should expand if operations are repeatedly delayed."""
     factory = EntityFactory(coordinator=None, enforce_min_runtime=True)
