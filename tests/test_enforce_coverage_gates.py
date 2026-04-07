@@ -39,13 +39,16 @@ def test_evaluate_gates_passes_when_all_thresholds_met(tmp_path: Path) -> None:
         class_rates={
             "custom_components/pawcontrol/coordinator.py": ("0.91", "1"),
             "custom_components/pawcontrol/config_flow.py": ("0.95", "1"),
-            "custom_components/pawcontrol/services.py": ("0.83", "1"),
-            "custom_components/pawcontrol/data_manager.py": ("0.79", "1"),
+            "custom_components/pawcontrol/services.py": ("0.93", "1"),
+            "custom_components/pawcontrol/data_manager.py": ("0.92", "1"),
         },
     )
 
     overall, failures, notices = enforce_coverage_gates._evaluate_gates(
-        report, tmp_path / "missing-exceptions.json"
+        report,
+        tmp_path / "missing-exceptions.json",
+        enforce_coverage_gates.DEFAULT_TOTAL_MINIMUM_PERCENT,
+        enforce_coverage_gates.DEFAULT_CRITICAL_MODULE_MINIMUM_PERCENT,
     )
 
     assert overall == Decimal("89.00")
@@ -66,7 +69,10 @@ def test_evaluate_gates_reports_total_and_module_failures(tmp_path: Path) -> Non
     )
 
     _, failures, _ = enforce_coverage_gates._evaluate_gates(
-        report, tmp_path / "missing-exceptions.json"
+        report,
+        tmp_path / "missing-exceptions.json",
+        enforce_coverage_gates.DEFAULT_TOTAL_MINIMUM_PERCENT,
+        enforce_coverage_gates.DEFAULT_CRITICAL_MODULE_MINIMUM_PERCENT,
     )
 
     assert any("overall coverage gate failed" in failure for failure in failures)
@@ -86,7 +92,10 @@ def test_evaluate_gates_fails_when_critical_module_is_missing(tmp_path: Path) ->
 
     with pytest.raises(SystemExit, match="critical module"):
         enforce_coverage_gates._evaluate_gates(
-            report, tmp_path / "missing-exceptions.json"
+            report,
+            tmp_path / "missing-exceptions.json",
+            enforce_coverage_gates.DEFAULT_TOTAL_MINIMUM_PERCENT,
+            enforce_coverage_gates.DEFAULT_CRITICAL_MODULE_MINIMUM_PERCENT,
         )
 
 
@@ -97,8 +106,8 @@ def test_evaluate_gates_uses_documented_branch_exception(tmp_path: Path) -> None
         class_rates={
             "custom_components/pawcontrol/coordinator.py": ("0.95", "0.85"),
             "custom_components/pawcontrol/config_flow.py": ("0.91", "1"),
-            "custom_components/pawcontrol/services.py": ("0.88", "1"),
-            "custom_components/pawcontrol/data_manager.py": ("0.89", "1"),
+            "custom_components/pawcontrol/services.py": ("0.91", "1"),
+            "custom_components/pawcontrol/data_manager.py": ("0.92", "1"),
         },
     )
     exceptions_file = tmp_path / "exceptions.json"
@@ -109,8 +118,37 @@ def test_evaluate_gates_uses_documented_branch_exception(tmp_path: Path) -> None
     )
 
     _, failures, notices = enforce_coverage_gates._evaluate_gates(
-        report, exceptions_file
+        report,
+        exceptions_file,
+        enforce_coverage_gates.DEFAULT_TOTAL_MINIMUM_PERCENT,
+        enforce_coverage_gates.DEFAULT_CRITICAL_MODULE_MINIMUM_PERCENT,
     )
 
     assert failures == []
     assert any("exception applied" in notice for notice in notices)
+
+
+def test_evaluate_gates_reports_critical_module_line_floor_failures(
+    tmp_path: Path,
+) -> None:
+    report = _write_coverage_xml(
+        tmp_path,
+        line_rate="0.95",
+        class_rates={
+            "custom_components/pawcontrol/coordinator.py": ("0.89", "1"),
+            "custom_components/pawcontrol/config_flow.py": ("0.95", "1"),
+            "custom_components/pawcontrol/services.py": ("0.95", "1"),
+            "custom_components/pawcontrol/data_manager.py": ("0.95", "1"),
+        },
+    )
+
+    _, failures, _ = enforce_coverage_gates._evaluate_gates(
+        report,
+        tmp_path / "missing-exceptions.json",
+        enforce_coverage_gates.DEFAULT_TOTAL_MINIMUM_PERCENT,
+        enforce_coverage_gates.DEFAULT_CRITICAL_MODULE_MINIMUM_PERCENT,
+    )
+
+    assert any(
+        "critical module line coverage gate failed" in failure for failure in failures
+    )
