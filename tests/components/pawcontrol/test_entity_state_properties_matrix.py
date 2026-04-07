@@ -73,6 +73,7 @@ class _EntityMatrixCase:
     label: str
     payload: Mapping[str, object] | None
     coordinator_available: bool
+    expected_state: object
     expected_available: bool
 
 
@@ -99,212 +100,260 @@ def _coordinator_from_payload(
     return coordinator
 
 
+def _assert_entity_identity_contract(entity: object) -> None:
+    """Assert shared identity/metadata expectations for all entity types."""
+    unique_id = entity.unique_id
+    assert isinstance(unique_id, str) and unique_id
+
+    device_info = entity.device_info
+    assert device_info is not None
+
+
+def _assert_entity_attributes_contract(entity: object) -> None:
+    """Assert shared attribute schema for all dog entities."""
+    attrs = entity.extra_state_attributes
+    assert isinstance(attrs, Mapping)
+    assert attrs.get("dog_id") == _DOG_ID
+    assert attrs.get("dog_name") == _DOG_NAME
+    assert "last_updated" in attrs
+
+
 @pytest.mark.parametrize(
-    "spec",
+    ("spec", "case"),
     [
-        _EntityMatrixSpec(
-            name="dog_status_sensor",
-            factory=lambda coordinator: PawControlDogStatusSensor(
-                cast(Any, coordinator), _DOG_ID, _DOG_NAME
-            ),
-            state_accessor=lambda entity: entity.native_value,
-            cases=(
-                _EntityMatrixCase(
-                    label="normal",
-                    payload={
-                        "status_snapshot": {"state": "calm"},
-                        "dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME},
-                    },
-                    coordinator_available=True,
-                    expected_available=True,
+        (
+            spec,
+            case,
+        )
+        for spec in (
+            _EntityMatrixSpec(
+                name="dog_status_sensor",
+                factory=lambda coordinator: PawControlDogStatusSensor(
+                    cast(Any, coordinator), _DOG_ID, _DOG_NAME
                 ),
-                _EntityMatrixCase(
-                    label="unknown_state",
-                    payload={
-                        "status_snapshot": {"state": ""},
-                        "gps": {"zone": "unknown"},
-                        "dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME},
-                    },
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="missing_keys",
-                    payload={},
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="no_payload",
-                    payload=None,
-                    coordinator_available=True,
-                    expected_available=False,
-                ),
-            ),
-        ),
-        _EntityMatrixSpec(
-            name="online_binary_sensor",
-            factory=lambda coordinator: PawControlOnlineBinarySensor(
-                cast(Any, coordinator), _DOG_ID, _DOG_NAME
-            ),
-            state_accessor=lambda entity: entity.is_on,
-            cases=(
-                _EntityMatrixCase(
-                    label="normal",
-                    payload={
-                        "last_update": dt_util.utcnow().isoformat(),
-                        "dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME},
-                    },
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="none_timestamp",
-                    payload={"last_update": None},
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="missing_keys",
-                    payload={},
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="coordinator_unavailable",
-                    payload={"last_update": dt_util.utcnow().isoformat()},
-                    coordinator_available=False,
-                    expected_available=False,
+                state_accessor=lambda entity: entity.native_value,
+                cases=(
+                    _EntityMatrixCase(
+                        label="normal",
+                        payload={
+                            "status_snapshot": {"state": "calm"},
+                            "dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME},
+                        },
+                        coordinator_available=True,
+                        expected_state="calm",
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="unknown_state",
+                        payload={
+                            "status_snapshot": {"state": ""},
+                            "gps": {"zone": "unknown"},
+                            "dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME},
+                        },
+                        coordinator_available=True,
+                        expected_state="away",
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="missing_keys",
+                        payload={},
+                        coordinator_available=True,
+                        expected_state=STATE_UNKNOWN,
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="no_payload",
+                        payload=None,
+                        coordinator_available=True,
+                        expected_state=STATE_UNKNOWN,
+                        expected_available=False,
+                    ),
                 ),
             ),
-        ),
-        _EntityMatrixSpec(
-            name="health_status_select",
-            factory=lambda coordinator: PawControlHealthStatusSelect(
-                cast(Any, coordinator), _DOG_ID, _DOG_NAME
-            ),
-            state_accessor=lambda entity: entity.current_option,
-            cases=(
-                _EntityMatrixCase(
-                    label="normal",
-                    payload={"health": {"health_status": "excellent"}},
-                    coordinator_available=True,
-                    expected_available=True,
+            _EntityMatrixSpec(
+                name="online_binary_sensor",
+                factory=lambda coordinator: PawControlOnlineBinarySensor(
+                    cast(Any, coordinator), _DOG_ID, _DOG_NAME
                 ),
-                _EntityMatrixCase(
-                    label="none_value",
-                    payload={"health": {"health_status": None}},
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="missing_keys",
-                    payload={},
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="no_payload",
-                    payload=None,
-                    coordinator_available=True,
-                    expected_available=False,
-                ),
-            ),
-        ),
-        _EntityMatrixSpec(
-            name="visitor_mode_switch",
-            factory=lambda coordinator: PawControlVisitorModeSwitch(
-                cast(Any, coordinator), _DOG_ID, _DOG_NAME
-            ),
-            state_accessor=lambda entity: entity.is_on,
-            cases=(
-                _EntityMatrixCase(
-                    label="normal",
-                    payload={"visitor_mode_active": True},
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="unknown_value",
-                    payload={"visitor_mode_active": "??"},
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="missing_keys",
-                    payload={},
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="coordinator_unavailable",
-                    payload={"visitor_mode_active": False},
-                    coordinator_available=False,
-                    expected_available=False,
+                state_accessor=lambda entity: entity.is_on,
+                cases=(
+                    _EntityMatrixCase(
+                        label="normal",
+                        payload={
+                            "last_update": dt_util.utcnow().isoformat(),
+                            "dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME},
+                        },
+                        coordinator_available=True,
+                        expected_state=True,
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="none_timestamp",
+                        payload={"last_update": None},
+                        coordinator_available=True,
+                        expected_state=False,
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="missing_keys",
+                        payload={},
+                        coordinator_available=True,
+                        expected_state=False,
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="coordinator_unavailable",
+                        payload={"last_update": dt_util.utcnow().isoformat()},
+                        coordinator_available=False,
+                        expected_state=True,
+                        expected_available=False,
+                    ),
                 ),
             ),
-        ),
-        _EntityMatrixSpec(
-            name="gps_tracker",
-            factory=lambda coordinator: PawControlGPSTracker(
-                cast(Any, coordinator), _DOG_ID, _DOG_NAME
+            _EntityMatrixSpec(
+                name="health_status_select",
+                factory=lambda coordinator: PawControlHealthStatusSelect(
+                    cast(Any, coordinator), _DOG_ID, _DOG_NAME
+                ),
+                state_accessor=lambda entity: entity.current_option,
+                cases=(
+                    _EntityMatrixCase(
+                        label="normal",
+                        payload={"health": {"health_status": "excellent"}},
+                        coordinator_available=True,
+                        expected_state="excellent",
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="none_value",
+                        payload={"health": {"health_status": None}},
+                        coordinator_available=True,
+                        expected_state="good",
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="missing_keys",
+                        payload={},
+                        coordinator_available=True,
+                        expected_state="good",
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="no_payload",
+                        payload=None,
+                        coordinator_available=True,
+                        expected_state="good",
+                        expected_available=False,
+                    ),
+                ),
             ),
-            state_accessor=lambda entity: entity.state,
-            cases=(
-                _EntityMatrixCase(
-                    label="normal",
-                    payload={
-                        "gps": {"zone": "park", "latitude": 48.1, "longitude": 11.5},
-                    },
-                    coordinator_available=True,
-                    expected_available=True,
+            _EntityMatrixSpec(
+                name="visitor_mode_switch",
+                factory=lambda coordinator: PawControlVisitorModeSwitch(
+                    cast(Any, coordinator), _DOG_ID, _DOG_NAME
                 ),
-                _EntityMatrixCase(
-                    label="unknown_zone",
-                    payload={"gps": {"zone": "unknown"}},
-                    coordinator_available=True,
-                    expected_available=True,
-                ),
-                _EntityMatrixCase(
-                    label="none_gps",
-                    payload={"gps": None},
-                    coordinator_available=True,
-                    expected_available=False,
-                ),
-                _EntityMatrixCase(
-                    label="missing_keys",
-                    payload={},
-                    coordinator_available=True,
-                    expected_available=False,
+                state_accessor=lambda entity: entity.is_on,
+                cases=(
+                    _EntityMatrixCase(
+                        label="normal",
+                        payload={"visitor_mode_active": True},
+                        coordinator_available=True,
+                        expected_state=True,
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="unknown_value",
+                        payload={"visitor_mode_active": "??"},
+                        coordinator_available=True,
+                        expected_state=True,
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="missing_keys",
+                        payload={},
+                        coordinator_available=True,
+                        expected_state=False,
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="coordinator_unavailable",
+                        payload={"visitor_mode_active": False},
+                        coordinator_available=False,
+                        expected_state=False,
+                        expected_available=False,
+                    ),
                 ),
             ),
-        ),
+            _EntityMatrixSpec(
+                name="gps_tracker",
+                factory=lambda coordinator: PawControlGPSTracker(
+                    cast(Any, coordinator), _DOG_ID, _DOG_NAME
+                ),
+                state_accessor=lambda entity: entity.state,
+                cases=(
+                    _EntityMatrixCase(
+                        label="normal",
+                        payload={
+                            "gps": {
+                                "zone": "park",
+                                "latitude": 48.1,
+                                "longitude": 11.5,
+                            },
+                        },
+                        coordinator_available=True,
+                        expected_state="park",
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="unknown_zone",
+                        payload={"gps": {"zone": "unknown"}},
+                        coordinator_available=True,
+                        expected_state=STATE_NOT_HOME,
+                        expected_available=True,
+                    ),
+                    _EntityMatrixCase(
+                        label="none_gps",
+                        payload={"gps": None},
+                        coordinator_available=True,
+                        expected_state=STATE_UNKNOWN,
+                        expected_available=False,
+                    ),
+                    _EntityMatrixCase(
+                        label="missing_keys",
+                        payload={},
+                        coordinator_available=True,
+                        expected_state=STATE_UNKNOWN,
+                        expected_available=False,
+                    ),
+                ),
+            ),
+        )
+        for case in spec.cases
     ],
-    ids=lambda spec: spec.name,
+    ids=lambda value: (
+        value.name
+        if isinstance(value, _EntityMatrixSpec)
+        else f"{value[0].name}:{value[1].label}"
+    ),
 )
 def test_entity_property_matrix_per_entity_type(
     spec: _EntityMatrixSpec,
+    case: _EntityMatrixCase,
 ) -> None:
     """Apply the same matrix on every entity type for core entity properties."""
-    for case in spec.cases:
-        coordinator = _coordinator_from_payload(
-            case.payload,
-            available=case.coordinator_available,
-        )
-        entity = spec.factory(coordinator)
+    coordinator = _coordinator_from_payload(
+        case.payload,
+        available=case.coordinator_available,
+    )
+    entity = spec.factory(coordinator)
 
-        # state/native_value/is_on branch
-        spec.state_accessor(entity)
-        # available branch
-        assert entity.available is case.expected_available, case.label
-        # attributes/device_info/unique_id branches
-        attrs = entity.extra_state_attributes
-        assert isinstance(attrs, Mapping)
-        assert attrs.get("dog_id") == _DOG_ID
-        assert attrs.get("dog_name") == _DOG_NAME
-        assert "last_updated" in attrs
-        assert entity.device_info is not None
-        assert isinstance(entity.unique_id, str) and entity.unique_id
+    # state/native_value/is_on mapping branch
+    assert spec.state_accessor(entity) == case.expected_state, case.label
+    # available branch
+    assert entity.available is case.expected_available, case.label
+    # attributes/device_info/unique_id branches
+    _assert_entity_attributes_contract(entity)
+    _assert_entity_identity_contract(entity)
 
 
 @pytest.mark.parametrize(

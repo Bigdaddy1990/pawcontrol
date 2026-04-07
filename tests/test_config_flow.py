@@ -6,7 +6,13 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.pawcontrol.config_flow import PawControlConfigFlow
-from custom_components.pawcontrol.const import CONF_DOG_ID, CONF_DOG_NAME, CONF_DOGS, CONF_NAME, DOMAIN
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    CONF_NAME,
+    DOMAIN,
+)
 from custom_components.pawcontrol.exceptions import FlowValidationError
 from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
 
