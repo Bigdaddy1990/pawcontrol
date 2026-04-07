@@ -24,7 +24,8 @@ class BranchCoverageException:
     rationale: str
 
 
-TOTAL_MINIMUM_PERCENT = Decimal("85")
+DEFAULT_TOTAL_MINIMUM_PERCENT = Decimal("85")
+DEFAULT_CRITICAL_MODULE_MINIMUM_PERCENT = Decimal("90")
 CRITICAL_MODULE_GATES: tuple[ModuleGate, ...] = (
     ModuleGate("custom_components/pawcontrol/coordinator.py"),
     ModuleGate("custom_components/pawcontrol/config_flow.py"),
@@ -139,7 +140,10 @@ def _load_branch_exceptions(
 
 
 def _evaluate_gates(
-    coverage_xml: Path, exceptions_file: Path
+    coverage_xml: Path,
+    exceptions_file: Path,
+    total_minimum_percent: Decimal,
+    critical_module_minimum_percent: Decimal,
 ) -> tuple[Decimal, list[str], list[str]]:
     root = _coverage_root(coverage_xml)
     branch_exceptions = _load_branch_exceptions(exceptions_file)
@@ -147,14 +151,21 @@ def _evaluate_gates(
     notices: list[str] = []
 
     overall_percent = _overall_coverage_percent(root)
-    if overall_percent < TOTAL_MINIMUM_PERCENT:
+    if overall_percent < total_minimum_percent:
         failures.append(
             "overall coverage gate failed: "
-            f"{overall_percent}% < {TOTAL_MINIMUM_PERCENT}%"
+            f"{overall_percent}% < {total_minimum_percent}%"
         )
 
     for gate in CRITICAL_MODULE_GATES:
-        _module_coverage_percent(root, gate.path)
+        module_line_percent = _module_coverage_percent(root, gate.path)
+        if module_line_percent < critical_module_minimum_percent:
+            failures.append(
+                "critical module line coverage gate failed: "
+                f"{gate.path} = {module_line_percent}% < "
+                f"{critical_module_minimum_percent}%"
+            )
+
         branch_percent = _module_branch_percent(root, gate.path)
         if branch_percent >= CRITICAL_BRANCH_TARGET_PERCENT:
             continue
@@ -200,14 +211,35 @@ def main() -> int:
         type=Path,
         help=("JSON file that documents critical-module branch coverage exceptions"),
     )
+    parser.add_argument(
+        "--total-minimum-percent",
+        default=DEFAULT_TOTAL_MINIMUM_PERCENT,
+        type=Decimal,
+        help="minimum overall line coverage percentage",
+    )
+    parser.add_argument(
+        "--critical-module-minimum-percent",
+        default=DEFAULT_CRITICAL_MODULE_MINIMUM_PERCENT,
+        type=Decimal,
+        help="minimum line coverage percentage for each critical module",
+    )
     args = parser.parse_args()
 
     overall_percent, failures, notices = _evaluate_gates(
-        args.coverage_xml, args.exceptions_file
+        args.coverage_xml,
+        args.exceptions_file,
+        args.total_minimum_percent,
+        args.critical_module_minimum_percent,
     )
-    print(f"Overall coverage: {overall_percent}% (minimum {TOTAL_MINIMUM_PERCENT}%)")
+    print(
+        f"Overall coverage: {overall_percent}% (minimum {args.total_minimum_percent}%)"
+    )
 
     for gate in CRITICAL_MODULE_GATES:
+        print(
+            "Critical module line gate: "
+            f"{gate.path} >= {args.critical_module_minimum_percent}%"
+        )
         print(
             "Critical module branch gate: "
             f"{gate.path} >= {CRITICAL_BRANCH_TARGET_PERCENT}% "
