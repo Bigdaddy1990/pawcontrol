@@ -64,6 +64,31 @@ async def test_given_notification_service_when_coordinator_missing_then_raise_er
 
 
 @pytest.mark.asyncio
+async def test_given_async_setup_services_when_reconfigured_then_replace_listener(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup should replace old listeners and keep target handlers registered."""
+    removed = Mock()
+    mock_hass.data = {DOMAIN: {"_service_coordinator_listener": removed}}
+    mock_hass.services.async_register = Mock()
+    mock_hass.services.has_service = Mock(return_value=False)
+    if "async_entries" not in vars(mock_hass.config_entries):
+        mock_hass.config_entries.async_entries = Mock(return_value=[])
+
+    monkeypatch.setattr(services, "async_dispatcher_connect", lambda *_: lambda: None)
+
+    await services.async_setup_services(mock_hass)
+
+    removed.assert_called_once_with()
+    registered = {
+        call.args[1] for call in mock_hass.services.async_register.call_args_list
+    }
+    assert services.SERVICE_SEND_NOTIFICATION in registered
+    assert SERVICE_START_GROOMING in registered
+
+
+@pytest.mark.asyncio
 async def test_given_notification_service_when_expires_hours_invalid_then_raise_error(
     mock_hass: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
@@ -367,3 +392,178 @@ def test_given_record_service_result_when_rejections_exist_then_include_details(
     result = runtime_data.performance_stats["last_service_result"]
     assert result["details"]["resilience"]["rejected_call_count"] == 2
     assert result["status"] == "error"
+
+
+@pytest.mark.parametrize(
+    ("schema", "payload"),
+    [
+        (
+            services.SERVICE_SEND_NOTIFICATION_SCHEMA,
+            {"message": "Body only"},
+        ),
+        (
+            services.SERVICE_SEND_NOTIFICATION_SCHEMA,
+            {"title": "Title only"},
+        ),
+        (
+            services.SERVICE_START_GROOMING_SCHEMA,
+            {"dog_id": "buddy"},
+        ),
+        (
+            services.SERVICE_START_GROOMING_SCHEMA,
+            {"grooming_type": "bath"},
+        ),
+    ],
+)
+def test_given_service_schema_when_required_field_missing_then_raise_invalid(
+    schema: object,
+    payload: dict[str, object],
+) -> None:
+    """Service schemas must reject payloads that miss required user input."""
+    with pytest.raises(services.vol.Invalid):
+        schema(payload)
+
+
+@pytest.mark.parametrize(
+    ("schema", "payload"),
+    [
+        (
+            services.SERVICE_SEND_NOTIFICATION_SCHEMA,
+            {"title": "A", "message": "B", "channels": "mobile"},
+        ),
+        (
+            services.SERVICE_START_GROOMING_SCHEMA,
+            {"dog_id": "buddy", "grooming_type": "bath", "groomer": 42},
+        ),
+    ],
+)
+def test_given_service_schema_when_payload_types_invalid_then_raise_invalid(
+    schema: object,
+    payload: dict[str, object],
+) -> None:
+    """Service schemas should reject invalid datatypes before handler execution."""
+    with pytest.raises(services.vol.Invalid):
+        schema(payload)
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_type", "expected_priority"),
+    [
+        ({"notification_type": "unknown"}, "system_info", "normal"),
+        ({"notification_type": []}, "system_info", "normal"),
+        ({"priority": "invalid"}, "system_info", "normal"),
+        ({"priority": []}, "system_info", "normal"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_given_notification_service_when_enum_coercion_fails_then_defaults_used(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
+    payload: dict[str, object],
+    expected_type: str,
+    expected_priority: str,
+) -> None:
+    """ValueError/TypeError enum paths should not leak exceptions and use defaults."""
+    notification_manager = SimpleNamespace(
+        async_send_notification=AsyncMock(return_value="notification-1")
+    )
+    runtime_data = service_runtime_factory(
+        runtime_managers=SimpleNamespace(notification_manager=notification_manager),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    config_entry = runtime_data.coordinator.config_entry
+    coordinator = SimpleNamespace(
+        hass=mock_hass,
+        config_entry=config_entry,
+        runtime_managers=runtime_data.coordinator.runtime_managers,
+        notification_manager=notification_manager,
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
+    )
+    runtime_data.coordinator = coordinator
+    mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
+    monkeypatch.setattr(
+        services,
+        "get_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+
+    handler = await _register_services_and_get_handler(
+        mock_hass,
+        monkeypatch,
+        services.SERVICE_SEND_NOTIFICATION,
+    )
+
+    call_data = {"title": "Heads up", "message": "Dinner time", **payload}
+    await handler(SimpleNamespace(data=call_data, context=None))
+
+    send_call = notification_manager.async_send_notification.await_args.kwargs
+    assert send_call["notification_type"].value == expected_type
+    assert send_call["priority"].value == expected_priority
+    last_result = runtime_data.performance_stats["last_service_result"]
+    assert last_result["status"] == "success"
+    assert last_result["details"]["notification_type"] == expected_type
+    assert last_result["details"]["priority"] == expected_priority
+
+
+@pytest.mark.parametrize(
+    "manager_error",
+    [ValueError("bad duration"), TypeError("bad payload"), RuntimeError("boom")],
+)
+@pytest.mark.asyncio
+async def test_given_start_grooming_when_manager_raises_then_wrap_and_track(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
+    manager_error: Exception,
+) -> None:
+    """Boundary exceptions in grooming startup should produce stable user errors."""
+    data_manager = SimpleNamespace(
+        async_start_grooming_session=AsyncMock(side_effect=manager_error)
+    )
+    runtime_data = service_runtime_factory(
+        runtime_managers=SimpleNamespace(
+            data_manager=data_manager,
+            notification_manager=None,
+        ),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    config_entry = runtime_data.coordinator.config_entry
+    coordinator = SimpleNamespace(
+        hass=mock_hass,
+        config_entry=config_entry,
+        runtime_managers=runtime_data.coordinator.runtime_managers,
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
+        get_configured_dog_name=runtime_data.coordinator.get_configured_dog_name,
+        async_request_refresh=AsyncMock(),
+    )
+    runtime_data.coordinator = coordinator
+    mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
+    monkeypatch.setattr(
+        services,
+        "get_runtime_data",
+        lambda _hass, _entry: runtime_data,
+    )
+
+    handler = await _register_services_and_get_handler(
+        mock_hass,
+        monkeypatch,
+        SERVICE_START_GROOMING,
+    )
+
+    with pytest.raises(HomeAssistantError, match="Failed to start grooming"):
+        await handler(
+            SimpleNamespace(
+                data={"dog_id": "buddy", "grooming_type": "bath"},
+                context=None,
+            )
+        )
+
+    last_result = runtime_data.performance_stats["last_service_result"]
+    assert last_result["status"] == "error"
+    assert last_result["service"] == SERVICE_START_GROOMING
+    assert "reminder_attached" in last_result["diagnostics"]["metadata"]
