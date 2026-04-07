@@ -168,6 +168,16 @@ def _assert_entity_attributes_contract(entity: object) -> None:
                         expected_state=STATE_UNKNOWN,
                         expected_available=False,
                     ),
+                    _EntityMatrixCase(
+                        label="coordinator_unavailable_with_payload",
+                        payload={
+                            "status_snapshot": {"state": "playing"},
+                            "dog_info": {"dog_id": _DOG_ID, "dog_name": _DOG_NAME},
+                        },
+                        coordinator_available=False,
+                        expected_state="playing",
+                        expected_available=False,
+                    ),
                 ),
             ),
             _EntityMatrixSpec(
@@ -323,6 +333,13 @@ def _assert_entity_attributes_contract(entity: object) -> None:
                         payload={},
                         coordinator_available=True,
                         expected_state=STATE_UNKNOWN,
+                        expected_available=False,
+                    ),
+                    _EntityMatrixCase(
+                        label="coordinator_unavailable_with_gps",
+                        payload={"gps": {"zone": "home"}},
+                        coordinator_available=False,
+                        expected_state=STATE_HOME,
                         expected_available=False,
                     ),
                 ),
