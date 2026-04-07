@@ -73,8 +73,10 @@ def _overall_coverage_percent(root: ET.Element) -> Decimal:
 
 
 def _module_coverage_percent(root: ET.Element, module_path: str) -> Decimal:
+    normalized_target = module_path.removeprefix("custom_components/pawcontrol/")
     for class_node in root.findall(".//class"):
-        if class_node.attrib.get("filename") != module_path:
+        filename = class_node.attrib.get("filename")
+        if filename not in {module_path, normalized_target}:
             continue
         line_rate = class_node.attrib.get("line-rate")
         if line_rate is None:
@@ -89,8 +91,10 @@ def _module_coverage_percent(root: ET.Element, module_path: str) -> Decimal:
 
 
 def _module_branch_percent(root: ET.Element, module_path: str) -> Decimal:
+    normalized_target = module_path.removeprefix("custom_components/pawcontrol/")
     for class_node in root.findall(".//class"):
-        if class_node.attrib.get("filename") != module_path:
+        filename = class_node.attrib.get("filename")
+        if filename not in {module_path, normalized_target}:
             continue
         branch_rate = class_node.attrib.get("branch-rate")
         if branch_rate is None:
