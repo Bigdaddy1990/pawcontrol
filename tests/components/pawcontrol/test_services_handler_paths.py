@@ -15,7 +15,10 @@ from custom_components.pawcontrol.const import (
     SERVICE_CHECK_FEEDING_COMPLIANCE,
     SERVICE_START_GROOMING,
 )
-from custom_components.pawcontrol.exceptions import HomeAssistantError, ServiceValidationError
+from custom_components.pawcontrol.exceptions import (
+    HomeAssistantError,
+    ServiceValidationError,
+)
 
 
 async def _register_service_handler(
