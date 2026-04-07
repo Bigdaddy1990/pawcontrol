@@ -315,3 +315,69 @@ async def test_async_generate_scripts_for_dogs_tracks_outputs_and_removes_obsole
     remove_entity.assert_any_await("script.paw_old_entry")
     assert ("script.paw_dog_1_setup", entry.entry_id) in registry.updated
     assert ("script.paw_entry_resilience", entry.entry_id) in registry.updated
+
+
+@pytest.mark.asyncio
+async def test_async_generate_scripts_for_dogs_skips_invalid_ids_and_uses_name_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Generation should ignore invalid dogs and fall back to the dog id as name."""
+
+    class _FakeScriptEntity:
+        def __init__(self, _hass, object_id, *_args):
+            self.entity_id = f"{SCRIPT_DOMAIN}.{object_id}"
+
+        async def async_remove(self) -> None:
+            return None
+
+    class _FakeComponent:
+        def __init__(self) -> None:
+            self._entities: dict[str, _FakeScriptEntity] = {}
+
+        def get_entity(self, entity_id: str):
+            return self._entities.get(entity_id)
+
+        async def async_add_entities(self, entities: list[_FakeScriptEntity]) -> None:
+            for entity in entities:
+                self._entities[entity.entity_id] = entity
+
+    class _FakeRegistry:
+        def async_get(self, _entity_id: str):
+            return None
+
+        def async_update_entity(self, _entity_id: str, *, config_entry_id: str) -> None:
+            return None
+
+        async def async_remove(self, _entity_id: str) -> None:
+            return None
+
+    captured: list[tuple[str, str, str, bool]] = []
+    component = _FakeComponent()
+    hass = _build_hass()
+    hass.data[SCRIPT_DOMAIN] = component
+    hass.config_entries = SimpleNamespace(async_entries=lambda _domain: [])
+    manager = script_manager.PawControlScriptManager(hass, _build_entry())
+
+    monkeypatch.setattr(script_manager, "SCRIPT_ENTITY_SCHEMA", lambda payload: payload)
+    monkeypatch.setattr(script_manager, "ScriptEntity", _FakeScriptEntity)
+    monkeypatch.setattr(script_manager.er, "async_get", lambda _hass: _FakeRegistry())
+    monkeypatch.setattr(
+        manager,
+        "_build_scripts_for_dog",
+        lambda slug, dog_id, dog_name, notifications_enabled: (
+            captured.append((slug, dog_id, dog_name, notifications_enabled))
+            or [("paw_generated", {"sequence": []})]
+        ),
+    )
+    monkeypatch.setattr(manager, "_build_entry_scripts", lambda: [])
+
+    created = await manager.async_generate_scripts_for_dogs(
+        [
+            {CONF_DOG_ID: "", CONF_DOG_NAME: "invalid-empty-id"},
+            {CONF_DOG_ID: "dog-2", CONF_DOG_NAME: "   "},
+        ],
+        set(),
+    )
+
+    assert created == {"dog-2": ["script.paw_generated"]}
+    assert captured == [("dog-2", "dog-2", "dog-2", False)]

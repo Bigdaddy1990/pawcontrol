@@ -111,6 +111,14 @@ def test_validate_notification_targets_handles_scalar_and_none() -> None:
     ]
 
 
+def test_validate_notification_targets_handles_type_error_candidates() -> None:
+    """Non-coercible targets should be reported as invalid via TypeError handling."""
+    parsed = validate_notification_targets([["nested"], {"set"}], enum_type=_Target)
+
+    assert parsed.targets == []
+    assert "['nested']" in parsed.invalid
+
+
 def test_validate_time_window_uses_defaults_and_required_constraints() -> None:
     """Time window validation should consume defaults and raise required errors."""
     assert validate_time_window(
