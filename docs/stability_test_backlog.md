@@ -17,9 +17,9 @@ neuen Coverage-Gap-Arbeiten abgearbeitet, sobald Blocker den Hauptlauf
 
 | ID | Kategorie | Reproduktion (Testpfad + Befehl) | Ist-Verhalten | Erwartetes Verhalten | Status |
 |---|---|---|---|---|---|
-| STAB-001 | Import-/Abhängigkeits-Blocker (Hauptlauf) | `pytest -q -o addopts='' tests/unit/test_walk_schemas.py` | Collection-Abbruch mit `ModuleNotFoundError: No module named 'voluptuous'`. | Testdatei wird gesammelt und ausgeführt; bei Fehlern ausschließlich testbezogene Assertion-Fails statt Import-Abbruch. | Offen |
-| STAB-002 | Import-/Abhängigkeits-Blocker (Hauptlauf) | `pytest -q -o addopts='' tests/unit/test_weather_manager_data.py` | Collection-Abbruch mit `ModuleNotFoundError: No module named 'aiohttp'` in `custom_components/pawcontrol/module_adapters.py`. | Modulimporte sind im Testlauf verfügbar; Testfall läuft bis zu fachlichen Assertions durch. | Offen |
-| STAB-003 | Harte Collection-Abbrüche (Folgefehler) | `pytest -q -o addopts='' --collect-only` | Mehrere ImportError-Kaskaden (u. a. `CoordinatorModuleAdapters`/`WeatherModuleAdapter`) unterbrechen die Coverage-Pipeline mit >100 Collection-Fehlern. | Collection läuft stabil durch; verbleibende Probleme erscheinen als isolierte, reproduzierbare Test-Fails. | Offen |
+| STAB-001 | Import-/Abhängigkeits-Blocker (Hauptlauf) | `pytest -q -o addopts='' tests/unit/test_walk_schemas.py` | Collection-Abbruch mit `ModuleNotFoundError: No module named 'voluptuous'`. | Testdatei wird gesammelt und ausgeführt; bei Fehlern ausschließlich testbezogene Assertion-Fails statt Import-Abbruch. | Erledigt |
+| STAB-002 | Import-/Abhängigkeits-Blocker (Hauptlauf) | `pytest -q -o addopts='' tests/unit/test_weather_manager_data.py` | Collection-Abbruch mit `ModuleNotFoundError: No module named 'aiohttp'` in `custom_components/pawcontrol/module_adapters.py`. | Modulimporte sind im Testlauf verfügbar; Testfall läuft bis zu fachlichen Assertions durch. | Erledigt |
+| STAB-003 | Harte Collection-Abbrüche (Folgefehler) | `pytest -q -o addopts='' --collect-only` | Mehrere ImportError-Kaskaden (u. a. `CoordinatorModuleAdapters`/`WeatherModuleAdapter`) unterbrechen die Coverage-Pipeline mit >100 Collection-Fehlern. | Collection läuft stabil durch; verbleibende Probleme erscheinen als isolierte, reproduzierbare Test-Fails. | Erledigt |
 
 ## Parallelisierungs-Notizen pro Blocker
 

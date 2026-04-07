@@ -1,6 +1,8 @@
 """Tests for walk schema builder helpers."""
 
-import voluptuous as vol
+import pytest
+
+vol = pytest.importorskip("voluptuous")
 
 from custom_components.pawcontrol.flows.walk_schemas import (
     build_auto_end_walks_field,
