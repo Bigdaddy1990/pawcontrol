@@ -11,11 +11,13 @@
 ## Checklist
 - [ ] Tests added/updated (new logic without tests is not merged)
 - [ ] New/changed logic is covered by automated tests in this PR.
+- [ ] Tests for new branches are included (new branch paths are not merged untested).
 - [ ] Critical modules keep 100% branch coverage, or documented exception entries were updated with rationale.
 - [ ] No TODO markers remain in `tests/**` for uncovered branches.
 - [ ] Docs updated (README / `docs/`)
 - [ ] Coverage exceptions (`# pragma: no cover`) are explicitly listed below and justified.
 - [ ] CI green
+- [ ] No merge without sufficient coverage (total + critical module gates pass).
 - [ ] Linked issue
 
 ## Coverage exceptions (required when applicable)
