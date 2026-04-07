@@ -5,7 +5,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
-from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import Context
 import pytest
 
@@ -47,7 +46,7 @@ async def _register_services_and_get_handler(
 
 
 @pytest.mark.asyncio
-async def test_send_notification_service_rejects_missing_coordinator(
+async def test_given_notification_service_when_coordinator_missing_then_raise_error(
     mock_hass: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -65,22 +64,27 @@ async def test_send_notification_service_rejects_missing_coordinator(
 
 
 @pytest.mark.asyncio
-async def test_send_notification_service_invalid_expires_in_hours_records_error(
+async def test_given_notification_service_when_expires_hours_invalid_then_raise_error(
     mock_hass: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
 ) -> None:
     """Invalid expiry payload should raise validation errors and persist status."""
-    runtime_data = SimpleNamespace(performance_stats={})
-    config_entry = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="entry-1")
-    coordinator = SimpleNamespace(
-        hass=mock_hass,
-        config_entry=config_entry,
+    runtime_data = service_runtime_factory(
         runtime_managers=SimpleNamespace(
             notification_manager=SimpleNamespace(async_send_notification=AsyncMock())
         ),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    config_entry = runtime_data.coordinator.config_entry
+    coordinator = SimpleNamespace(
+        hass=mock_hass,
+        config_entry=config_entry,
+        runtime_managers=runtime_data.coordinator.runtime_managers,
         notification_manager=SimpleNamespace(async_send_notification=AsyncMock()),
-        get_dog_config=Mock(return_value={"name": "Buddy"}),
-        get_configured_dog_ids=Mock(return_value={"buddy"}),
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
     )
     mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
 
@@ -118,23 +122,26 @@ async def test_send_notification_service_invalid_expires_in_hours_records_error(
 
 
 @pytest.mark.asyncio
-async def test_send_notification_service_wraps_runtime_exception(
+async def test_given_notification_service_when_runtime_fails_then_wrap_and_track(
     mock_hass: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
 ) -> None:
     """Unexpected delivery errors should be wrapped and persisted."""
-    runtime_data = SimpleNamespace(performance_stats={})
     notification_manager = SimpleNamespace(
         async_send_notification=AsyncMock(side_effect=RuntimeError("smtp down"))
     )
-    config_entry = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="entry-1")
+    runtime_data = service_runtime_factory(
+        runtime_managers=SimpleNamespace(notification_manager=notification_manager)
+    )
+    config_entry = runtime_data.coordinator.config_entry
     coordinator = SimpleNamespace(
         hass=mock_hass,
         config_entry=config_entry,
-        runtime_managers=SimpleNamespace(notification_manager=notification_manager),
+        runtime_managers=runtime_data.coordinator.runtime_managers,
         notification_manager=notification_manager,
-        get_dog_config=Mock(return_value=None),
-        get_configured_dog_ids=Mock(return_value=set()),
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
     )
     mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
 
@@ -165,23 +172,31 @@ async def test_send_notification_service_wraps_runtime_exception(
 
 
 @pytest.mark.asyncio
-async def test_start_grooming_service_aborts_when_data_manager_missing(
+async def test_given_start_grooming_when_data_manager_missing_then_abort_guard(
     mock_hass: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
 ) -> None:
     """Missing manager should trigger early abort semantics."""
-    config_entry = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="entry-1")
+    runtime_data = service_runtime_factory(
+        runtime_managers=SimpleNamespace(data_manager=None),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    config_entry = runtime_data.coordinator.config_entry
     coordinator = SimpleNamespace(
         hass=mock_hass,
         config_entry=config_entry,
-        runtime_managers=SimpleNamespace(data_manager=None),
-        get_dog_config=Mock(return_value={"name": "Buddy"}),
-        get_configured_dog_ids=Mock(return_value={"buddy"}),
-        get_configured_dog_name=Mock(return_value="Buddy"),
+        runtime_managers=runtime_data.coordinator.runtime_managers,
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
+        get_configured_dog_name=runtime_data.coordinator.get_configured_dog_name,
     )
     mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
 
-    runtime_data = SimpleNamespace(performance_stats={}, coordinator=coordinator)
+    runtime_data = SimpleNamespace(
+        performance_stats=runtime_data.performance_stats, coordinator=coordinator
+    )
     monkeypatch.setattr(
         services,
         "get_runtime_data",
@@ -203,12 +218,12 @@ async def test_start_grooming_service_aborts_when_data_manager_missing(
 
 
 @pytest.mark.asyncio
-async def test_check_feeding_compliance_service_emits_event_on_success(
+async def test_given_feeding_compliance_service_when_successful_then_emit_event(
     mock_hass: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
 ) -> None:
     """Success path should fire the user-visible compliance event."""
-    runtime_data = SimpleNamespace(performance_stats={})
     feeding_result = {
         "status": "completed",
         "compliance_score": 95,
@@ -221,18 +236,23 @@ async def test_check_feeding_compliance_service_emits_event_on_success(
     feeding_manager = SimpleNamespace(
         async_check_feeding_compliance=AsyncMock(return_value=feeding_result)
     )
-    config_entry = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="entry-1")
-    coordinator = SimpleNamespace(
-        hass=mock_hass,
-        config_entry=config_entry,
+    runtime_data = service_runtime_factory(
         runtime_managers=SimpleNamespace(
             feeding_manager=feeding_manager,
             notification_manager=None,
         ),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    config_entry = runtime_data.coordinator.config_entry
+    coordinator = SimpleNamespace(
+        hass=mock_hass,
+        config_entry=config_entry,
+        runtime_managers=runtime_data.coordinator.runtime_managers,
         feeding_manager=feeding_manager,
         notification_manager=None,
-        get_dog_config=Mock(return_value={"name": "Buddy"}),
-        get_configured_dog_ids=Mock(return_value={"buddy"}),
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
     )
     mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
     mock_hass.config = SimpleNamespace(language="de")
@@ -274,27 +294,32 @@ async def test_check_feeding_compliance_service_emits_event_on_success(
 
 
 @pytest.mark.asyncio
-async def test_check_feeding_compliance_service_wraps_unexpected_errors(
+async def test_given_feeding_compliance_when_manager_raises_then_wrap_error(
     mock_hass: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
 ) -> None:
     """Unexpected manager errors should be wrapped into HomeAssistantError."""
-    runtime_data = SimpleNamespace(performance_stats={})
     feeding_manager = SimpleNamespace(
         async_check_feeding_compliance=AsyncMock(side_effect=RuntimeError("api boom"))
     )
-    config_entry = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="entry-1")
-    coordinator = SimpleNamespace(
-        hass=mock_hass,
-        config_entry=config_entry,
+    runtime_data = service_runtime_factory(
         runtime_managers=SimpleNamespace(
             feeding_manager=feeding_manager,
             notification_manager=None,
         ),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    config_entry = runtime_data.coordinator.config_entry
+    coordinator = SimpleNamespace(
+        hass=mock_hass,
+        config_entry=config_entry,
+        runtime_managers=runtime_data.coordinator.runtime_managers,
         feeding_manager=feeding_manager,
         notification_manager=None,
-        get_dog_config=Mock(return_value={"name": "Buddy"}),
-        get_configured_dog_ids=Mock(return_value={"buddy"}),
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
     )
     mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
 
@@ -317,12 +342,14 @@ async def test_check_feeding_compliance_service_wraps_unexpected_errors(
     assert runtime_data.performance_stats["last_service_result"]["status"] == "error"
 
 
-def test_record_service_result_returns_early_without_runtime_data() -> None:
+def test_given_record_service_result_when_runtime_data_missing_then_return_early() -> (
+    None
+):
     """Runtime-data guard should no-op cleanly for abort branches."""
     services._record_service_result(None, service="send_notification", status="error")
 
 
-def test_record_service_result_adds_resilience_details_when_rejections_present() -> (
+def test_given_record_service_result_when_rejections_exist_then_include_details() -> (
     None
 ):
     """Rejection metrics should surface in persisted service details."""
