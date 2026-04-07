@@ -182,6 +182,21 @@ def test_normalise_guard_history_rejects_non_sequence_payloads() -> None:
     assert normalise_guard_history(123) == []
 
 
+def test_normalise_guard_result_payload_marks_skipped_without_metadata() -> None:
+    """Guard payloads should keep executed=False even when metadata is unusable."""
+    payload = normalise_guard_result_payload(
+        {
+            "executed": 0,
+            "domain": "",
+            "service": "",
+            "reason": "",
+            "description": None,
+        }
+    )
+
+    assert payload == {"executed": False}
+
+
 def test_helpers_data_structure_and_quiet_hour_fallback_branches(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
