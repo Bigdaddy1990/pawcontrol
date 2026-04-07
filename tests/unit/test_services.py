@@ -309,9 +309,11 @@ def test_service_schema_rejects_invalid_field_types(
 
 def test_service_schema_accepts_valid_start_grooming_payload() -> None:
     """A valid grooming payload should pass schema validation for handler execution."""
-    validated = services.SERVICE_START_GROOMING_SCHEMA(
-        {"dog_id": "buddy", "grooming_type": "bath", "estimated_duration_minutes": 30}
-    )
+    validated = services.SERVICE_START_GROOMING_SCHEMA({
+        "dog_id": "buddy",
+        "grooming_type": "bath",
+        "estimated_duration_minutes": 30,
+    })
 
     assert validated["dog_id"] == "buddy"
     assert validated["grooming_type"] == "bath"
@@ -989,7 +991,9 @@ def test_build_error_details_classifies_refresh_errors_deterministically(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_async_call_hass_service_if_available_executes_command_successfully() -> None:
+async def test_async_call_hass_service_if_available_executes_command_successfully() -> (
+    None
+):
     """Service command helper should execute and mark the guard result successful."""
     hass = SimpleNamespace(
         services=SimpleNamespace(async_call=AsyncMock()),
@@ -3089,7 +3093,7 @@ async def test_gps_export_route_service_records_no_routes(
 async def test_gps_export_route_service_records_homeassistant_error_without_state_drift(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """HomeAssistantError from export API should not send notifications or mutate state."""
+    """Export HomeAssistantError should not notify or mutate service state."""
     notification_manager = _NotificationManagerStub()
     gps_manager = _GPSManagerStub()
     gps_manager.fail_export = services.HomeAssistantError("export denied")
@@ -3121,7 +3125,7 @@ async def test_gps_export_route_service_records_homeassistant_error_without_stat
 async def test_gps_export_route_service_wraps_unexpected_errors_with_stable_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Unexpected export errors should be wrapped and keep notification state unchanged."""
+    """Wrap unexpected export errors and keep notification state unchanged."""
     notification_manager = _NotificationManagerStub()
     gps_manager = _GPSManagerStub()
     gps_manager.fail_export = RuntimeError("network down")

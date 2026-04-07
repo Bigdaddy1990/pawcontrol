@@ -575,12 +575,12 @@ async def test_given_start_grooming_when_manager_raises_then_wrap_and_track(
 
 
 @pytest.mark.asyncio
-async def test_given_start_grooming_when_manager_raises_homeassistant_error_then_passthrough(
+async def test_start_grooming_passthroughs_homeassistant_error(
     mock_hass: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
     service_runtime_factory,
 ) -> None:
-    """Existing HomeAssistantError instances should not be wrapped again."""
+    """Do not wrap existing HomeAssistantError instances again."""
     manager_error = HomeAssistantError("manager already unavailable")
     data_manager = SimpleNamespace(
         async_start_grooming_session=AsyncMock(side_effect=manager_error)
@@ -606,7 +606,9 @@ async def test_given_start_grooming_when_manager_raises_homeassistant_error_then
     )
     runtime_data.coordinator = coordinator
     mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
-    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda _hass, _entry: runtime_data
+    )
 
     handler = await _register_services_and_get_handler(
         mock_hass,

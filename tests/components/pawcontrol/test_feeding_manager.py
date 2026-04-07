@@ -10,8 +10,8 @@ from custom_components.pawcontrol.feeding_manager import (
     FeedingConfig,
     FeedingEvent,
     FeedingManager,
-    HealthCalculator,
     FeedingScheduleType,
+    HealthCalculator,
     MealSchedule,
     MealType,
     _normalise_health_override,
@@ -424,7 +424,7 @@ async def test_create_feeding_config_rejects_invalid_schedule(hass) -> None:
 
 @pytest.mark.asyncio
 async def test_create_feeding_config_ignores_invalid_meal_time_inputs(hass) -> None:
-    """Invalid meal time values should be ignored instead of crashing config creation."""
+    """Ignore invalid meal times instead of crashing config creation."""
     manager = FeedingManager(hass)
 
     config = await manager._create_feeding_config(
@@ -471,7 +471,9 @@ def test_build_feeding_snapshot_reports_missed_meals_and_progress(hass) -> None:
             amount=120.0,
             meal_type=MealType.DINNER,
         ),
-        FeedingEvent(time=now - timedelta(hours=4), amount=100.0, meal_type=MealType.BREAKFAST),
+        FeedingEvent(
+            time=now - timedelta(hours=4), amount=100.0, meal_type=MealType.BREAKFAST
+        ),
         FeedingEvent(
             time=now - timedelta(hours=1),
             amount=40.0,
@@ -480,12 +482,15 @@ def test_build_feeding_snapshot_reports_missed_meals_and_progress(hass) -> None:
         ),
     ]
 
-    with patch(
-        "custom_components.pawcontrol.feeding_manager.dt_util.now",
-        return_value=now,
-    ), patch(
-        "custom_components.pawcontrol.feeding_manager.dt_util.as_local",
-        side_effect=lambda value: value.replace(tzinfo=UTC),
+    with (
+        patch(
+            "custom_components.pawcontrol.feeding_manager.dt_util.now",
+            return_value=now,
+        ),
+        patch(
+            "custom_components.pawcontrol.feeding_manager.dt_util.as_local",
+            side_effect=lambda value: value.replace(tzinfo=UTC),
+        ),
     ):
         snapshot = manager._build_feeding_snapshot("dog-1")
 
@@ -497,7 +502,9 @@ def test_build_feeding_snapshot_reports_missed_meals_and_progress(hass) -> None:
     assert snapshot["next_feeding_type"] == MealType.BREAKFAST.value
 
 
-def test_build_feeding_snapshot_falls_back_to_empty_payload_without_history(hass) -> None:
+def test_build_feeding_snapshot_falls_back_to_empty_payload_without_history(
+    hass,
+) -> None:
     """Snapshot builder should return empty defaults when no history exists."""
     manager = FeedingManager(hass)
     manager._configs["dog-1"] = FeedingConfig(
@@ -526,7 +533,9 @@ async def test_async_check_feeding_compliance_returns_domain_issues(hass) -> Non
         health_aware_portions=False,
     )
     manager._feedings["dog-1"] = [
-        FeedingEvent(time=now - timedelta(hours=2), amount=100.0, meal_type=MealType.BREAKFAST),
+        FeedingEvent(
+            time=now - timedelta(hours=2), amount=100.0, meal_type=MealType.BREAKFAST
+        ),
         FeedingEvent(
             time=now - timedelta(days=5),
             amount=200.0,
@@ -535,11 +544,17 @@ async def test_async_check_feeding_compliance_returns_domain_issues(hass) -> Non
         ),
     ]
 
-    with patch("custom_components.pawcontrol.feeding_manager.dt_util.now", return_value=now):
+    with patch(
+        "custom_components.pawcontrol.feeding_manager.dt_util.now", return_value=now
+    ):
         result = await manager.async_check_feeding_compliance("dog-1", days_to_check=2)
 
     assert result["status"] == "completed"
     assert result["compliance_score"] == 50
     assert result["days_analyzed"] == 1
-    assert result["missed_meals"] == [{"date": "2026-04-07", "expected": 2, "actual": 1}]
-    assert "Underfed by 50.0% (100g vs 200g)" in result["compliance_issues"][0]["issues"]
+    assert result["missed_meals"] == [
+        {"date": "2026-04-07", "expected": 2, "actual": 1}
+    ]
+    assert (
+        "Underfed by 50.0% (100g vs 200g)" in result["compliance_issues"][0]["issues"]
+    )
