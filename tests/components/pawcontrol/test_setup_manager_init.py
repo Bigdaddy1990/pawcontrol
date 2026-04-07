@@ -377,9 +377,8 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides() -> N
 
 
 @pytest.mark.asyncio
-async def test_async_initialize_geofencing_manager_ignores_invalid_per_dog_payloads(
-) -> None:
-    """Global geofence options should be used when per-dog payloads are invalid."""
+async def test_geofencing_manager_ignores_invalid_per_dog_payloads() -> None:
+    """Use global geofence options when per-dog payloads are invalid."""
     from custom_components.pawcontrol.setup import manager_init
 
     geofencing_manager = SimpleNamespace(async_initialize=AsyncMock())

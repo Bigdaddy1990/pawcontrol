@@ -161,17 +161,15 @@ def test_ensure_gps_payload_satellite_type_paths(
 
 
 def test_ensure_gps_payload_float_and_timestamp_normalisation() -> None:
-    """GPS payload should coerce numeric/timestamp fields and keep invalids as ``None``."""
-    payload = types.ensure_gps_payload(
-        {
-            "last_seen": datetime(2025, 1, 1, tzinfo=UTC),
-            "last_update": " 2025-01-02T03:04:05+00:00 ",
-            "longitude": True,
-            "speed": "4.2",
-            "status": " tracking ",
-            "current_route": {},
-        }
-    )
+    """Coerce numeric/timestamp fields and keep invalid GPS values as ``None``."""
+    payload = types.ensure_gps_payload({
+        "last_seen": datetime(2025, 1, 1, tzinfo=UTC),
+        "last_update": " 2025-01-02T03:04:05+00:00 ",
+        "longitude": True,
+        "speed": "4.2",
+        "status": " tracking ",
+        "current_route": {},
+    })
 
     assert payload is not None
     assert payload["last_seen"].startswith("2025-01-01T")
@@ -182,19 +180,22 @@ def test_ensure_gps_payload_float_and_timestamp_normalisation() -> None:
     assert payload["current_route"]["point_count"] == 0
 
 
-def test_cache_diagnostics_snapshot_from_mapping_uses_mapping_and_typed_instances() -> None:
+def test_cache_diagnostics_snapshot_from_mapping_uses_mapping_and_typed_instances() -> (
+    None
+):
     """Snapshot factory should accept both plain mappings and typed summaries."""
-    summary = types.CacheRepairAggregate.from_mapping({"severity": "minor", "repair_rate": 0.5})
+    summary = types.CacheRepairAggregate.from_mapping({
+        "severity": "minor",
+        "repair_rate": 0.5,
+    })
 
-    snapshot = types.CacheDiagnosticsSnapshot.from_mapping(
-        {
-            "stats": {"hits": 1},
-            "diagnostics": {"cache": "ok"},
-            "snapshot": {"state": "fresh"},
-            "error": "broken",
-            "repair_summary": summary,
-        }
-    )
+    snapshot = types.CacheDiagnosticsSnapshot.from_mapping({
+        "stats": {"hits": 1},
+        "diagnostics": {"cache": "ok"},
+        "snapshot": {"state": "fresh"},
+        "error": "broken",
+        "repair_summary": summary,
+    })
 
     assert snapshot.stats == {"hits": 1}
     assert snapshot.diagnostics == {"cache": "ok"}
@@ -213,15 +214,13 @@ def test_cache_diagnostics_snapshot_from_mapping_discards_invalid_repair_summary
 
     monkeypatch.setattr(types.CacheRepairAggregate, "from_mapping", _raise)
 
-    snapshot = types.CacheDiagnosticsSnapshot.from_mapping(
-        {
-            "stats": {"hits": 1},
-            "diagnostics": {"cache": "ok"},
-            "snapshot": {"state": "fresh"},
-            "error": 42,
-            "repair_summary": {"repair_rate": "not-a-number"},
-        }
-    )
+    snapshot = types.CacheDiagnosticsSnapshot.from_mapping({
+        "stats": {"hits": 1},
+        "diagnostics": {"cache": "ok"},
+        "snapshot": {"state": "fresh"},
+        "error": 42,
+        "repair_summary": {"repair_rate": "not-a-number"},
+    })
 
     assert snapshot.stats == {"hits": 1}
     assert snapshot.diagnostics == {"cache": "ok"}
@@ -234,7 +233,12 @@ def test_cache_diagnostics_snapshot_from_mapping_discards_invalid_repair_summary
     ("payload", "expected_feedings", "expected_walks", "expected_food"),
     [
         pytest.param(
-            {"date": "not-a-date", "feedings_count": True, "walks_count": " 2.0 ", "total_food_amount": False},
+            {
+                "date": "not-a-date",
+                "feedings_count": True,
+                "walks_count": " 2.0 ",
+                "total_food_amount": False,
+            },
             1,
             2,
             0.0,
