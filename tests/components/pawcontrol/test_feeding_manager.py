@@ -422,6 +422,25 @@ async def test_create_feeding_config_rejects_invalid_schedule(hass) -> None:
         )
 
 
+@pytest.mark.asyncio
+async def test_create_feeding_config_ignores_invalid_meal_time_inputs(hass) -> None:
+    """Invalid meal time values should be ignored instead of crashing config creation."""
+    manager = FeedingManager(hass)
+
+    config = await manager._create_feeding_config(
+        "dog-1",
+        {
+            "feeding_schedule": "strict",
+            "breakfast_time": "07:30",
+            "lunch_time": "invalid-time",
+            "dinner_time": object(),
+        },
+    )
+
+    assert len(config.meal_schedules) == 1
+    assert config.meal_schedules[0].meal_type is MealType.BREAKFAST
+
+
 def test_build_feeding_snapshot_reports_missed_meals_and_progress(hass) -> None:
     """Snapshot builder should expose concrete adherence and consumption metrics."""
     manager = FeedingManager(hass)
@@ -476,6 +495,22 @@ def test_build_feeding_snapshot_reports_missed_meals_and_progress(hass) -> None:
     assert snapshot["total_feedings_today"] == 1
     assert snapshot["missed_feedings"][0]["meal_type"] == MealType.LUNCH.value
     assert snapshot["next_feeding_type"] == MealType.BREAKFAST.value
+
+
+def test_build_feeding_snapshot_falls_back_to_empty_payload_without_history(hass) -> None:
+    """Snapshot builder should return empty defaults when no history exists."""
+    manager = FeedingManager(hass)
+    manager._configs["dog-1"] = FeedingConfig(
+        dog_id="dog-1",
+        daily_food_amount=250.0,
+        meals_per_day=2,
+    )
+
+    snapshot = manager._build_feeding_snapshot("dog-1")
+
+    assert snapshot["daily_amount_consumed"] == 0.0
+    assert snapshot["total_feedings_today"] == 0
+    assert snapshot["schedule_adherence"] == 100
 
 
 @pytest.mark.asyncio

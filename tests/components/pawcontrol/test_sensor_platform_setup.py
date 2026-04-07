@@ -6,6 +6,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+pytest.importorskip("homeassistant")
+pytest.importorskip("aiohttp")
+
 from custom_components.pawcontrol import sensor
 from custom_components.pawcontrol.const import MODULE_FEEDING, MODULE_GPS, MODULE_WALK
 
@@ -82,6 +85,37 @@ async def test_async_setup_entry_builds_entities_and_awaits_callback(
     assert factory.finalize_calls == [("dog-1", "standard")]
 
 
+@pytest.mark.asyncio
+async def test_async_setup_entry_finalizes_budget_when_module_creation_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Budget finalization should run even when module entity creation raises."""
+    factory = _FakeFactory(budget_remaining=5)
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(),
+        dogs=[{"dog_id": "dog-1", "dog_name": "Buddy"}],
+        entity_factory=factory,
+        entity_profile="standard",
+    )
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda _hass, _entry: runtime_data)
+    monkeypatch.setattr(sensor, "_create_core_entities", lambda *_args: ["core-1"])
+    monkeypatch.setattr(
+        sensor,
+        "_create_module_entities",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("module-failure")),
+    )
+
+    with pytest.raises(RuntimeError, match="module-failure"):
+        await sensor.async_setup_entry(
+            SimpleNamespace(),
+            SimpleNamespace(entry_id="entry"),
+            AsyncMock(),
+        )
+
+    assert factory.begin_calls == [("dog-1", "standard", 1)]
+    assert factory.finalize_calls == [("dog-1", "standard")]
+
+
 def test_create_module_entities_uses_profile_fallback_and_budget_checks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -130,3 +164,26 @@ def test_coerce_budget_remaining_handles_invalid_values() -> None:
     assert sensor._coerce_budget_remaining(_Budget("7")) == 7
     assert sensor._coerce_budget_remaining(_Budget(object())) is None
     assert sensor._is_budget_exhausted(_Budget("0")) is True
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_skips_registration_when_no_dogs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup should skip registration when runtime has no configured dogs."""
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(),
+        dogs=[],
+        entity_factory=_FakeFactory(),
+        entity_profile="standard",
+    )
+    add_entities = AsyncMock()
+    monkeypatch.setattr(sensor, "get_runtime_data", lambda _hass, _entry: runtime_data)
+
+    await sensor.async_setup_entry(
+        SimpleNamespace(),
+        SimpleNamespace(entry_id="entry"),
+        add_entities,
+    )
+
+    add_entities.assert_not_called()

@@ -429,11 +429,15 @@ def test_given_service_schema_when_required_field_missing_then_raise_invalid(
     [
         (
             services.SERVICE_SEND_NOTIFICATION_SCHEMA,
-            {"title": "A", "message": "B", "channels": "mobile"},
+            {"title": "A", "message": "B", "channels": [42]},
         ),
         (
             services.SERVICE_START_GROOMING_SCHEMA,
-            {"dog_id": "buddy", "grooming_type": "bath", "groomer": 42},
+            {
+                "dog_id": "buddy",
+                "grooming_type": "bath",
+                "estimated_duration_minutes": "not-an-int",
+            },
         ),
     ],
 )
@@ -536,6 +540,7 @@ async def test_given_start_grooming_when_manager_raises_then_wrap_and_track(
         hass=mock_hass,
         config_entry=config_entry,
         runtime_managers=runtime_data.coordinator.runtime_managers,
+        data_manager=data_manager,
         get_dog_config=runtime_data.coordinator.get_dog_config,
         get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
         get_configured_dog_name=runtime_data.coordinator.get_configured_dog_name,
@@ -567,3 +572,54 @@ async def test_given_start_grooming_when_manager_raises_then_wrap_and_track(
     assert last_result["status"] == "error"
     assert last_result["service"] == SERVICE_START_GROOMING
     assert "reminder_attached" in last_result["diagnostics"]["metadata"]
+
+
+@pytest.mark.asyncio
+async def test_given_start_grooming_when_manager_raises_homeassistant_error_then_passthrough(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    service_runtime_factory,
+) -> None:
+    """Existing HomeAssistantError instances should not be wrapped again."""
+    manager_error = HomeAssistantError("manager already unavailable")
+    data_manager = SimpleNamespace(
+        async_start_grooming_session=AsyncMock(side_effect=manager_error)
+    )
+    runtime_data = service_runtime_factory(
+        runtime_managers=SimpleNamespace(
+            data_manager=data_manager,
+            notification_manager=None,
+        ),
+        dog_ids={"buddy"},
+        dog_config={"name": "Buddy"},
+    )
+    config_entry = runtime_data.coordinator.config_entry
+    coordinator = SimpleNamespace(
+        hass=mock_hass,
+        config_entry=config_entry,
+        runtime_managers=runtime_data.coordinator.runtime_managers,
+        data_manager=data_manager,
+        get_dog_config=runtime_data.coordinator.get_dog_config,
+        get_configured_dog_ids=runtime_data.coordinator.get_configured_dog_ids,
+        get_configured_dog_name=runtime_data.coordinator.get_configured_dog_name,
+        async_request_refresh=AsyncMock(),
+    )
+    runtime_data.coordinator = coordinator
+    mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
+    monkeypatch.setattr(services, "get_runtime_data", lambda _hass, _entry: runtime_data)
+
+    handler = await _register_services_and_get_handler(
+        mock_hass,
+        monkeypatch,
+        SERVICE_START_GROOMING,
+    )
+
+    with pytest.raises(HomeAssistantError, match="manager already unavailable"):
+        await handler(
+            SimpleNamespace(
+                data={"dog_id": "buddy", "grooming_type": "bath"},
+                context=None,
+            )
+        )
+
+    assert runtime_data.performance_stats["last_service_result"]["status"] == "error"
