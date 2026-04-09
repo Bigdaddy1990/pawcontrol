@@ -20,6 +20,20 @@ These thresholds are enforced by:
 - `pyproject.toml` (`[tool.coverage.report].fail_under`), and
 - `python -m scripts.enforce_coverage_gates --coverage-xml coverage.xml` in CI.
 
+
+## Test-Authoring-Checkliste (verbindlich)
+
+- **Genau ein Verhalten pro Testfall**: Ein Test prüft genau eine fachliche Aussage
+  (kein Multi-Assertion-Mix über mehrere Verhaltenszwecke).
+- **Given/When/Then-Struktur**: Testfälle müssen klar in Setup (Given), Ausführung
+  (When) und Erwartung (Then) gegliedert sein (durch Kommentare, Hilfsfunktionen
+  oder Testnamen).
+- **Mocking nur an Integrationsgrenzen**: Mocks/Stubs sind nur für IO, externe APIs
+  und Home-Assistant-Servicegrenzen zulässig; interne Businesslogik wird nicht
+  gemockt, sondern mit echten Domänenobjekten getestet.
+- **Regressionstest-Pflicht pro Fix**: Jede behobene Kante (Bug/Edge Case) muss im
+  selben Ticket unmittelbar durch einen Regressionstest abgesichert werden.
+
 ## Allowed exclusions (`# pragma: no cover`)
 
 Coverage exclusions are allowed only for these categories, and each excluded line
@@ -55,10 +69,15 @@ resolved before merge.
 ## Contributor workflow
 
 1. Add or update tests for every functional behavior change.
-2. Run `pytest` with coverage locally.
-3. Run `python -m scripts.enforce_coverage_gates --coverage-xml coverage.xml`.
-4. If a critical module is below 100% branch coverage, either add
+2. Ensure every new/updated test follows one-behavior-only and explicit
+   Given/When/Then structure.
+3. Keep mocks at integration boundaries only (IO/API/HA service boundaries);
+   avoid mocking internal business logic.
+4. Add a regression test in the same ticket for every fixed bug or edge case.
+5. Run `pytest` with coverage locally.
+6. Run `python -m scripts.enforce_coverage_gates --coverage-xml coverage.xml`.
+7. If a critical module is below 100% branch coverage, either add
    module-focused tests or update
    `docs/coverage_critical_module_exceptions.json` with a justified floor.
-5. Run `python -m scripts.enforce_test_todo_policy` to verify there are no
+8. Run `python -m scripts.enforce_test_todo_policy` to verify there are no
    remaining TODO markers in test files.
