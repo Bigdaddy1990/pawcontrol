@@ -282,3 +282,48 @@ def test_daily_stats_from_dict_parses_datetime_objects_and_strings() -> None:
     assert parsed.last_feeding is not None
     assert parsed.last_walk is not None
     assert parsed.last_health_event is None
+
+
+@pytest.mark.parametrize(
+    ("value", "current", "fallback", "expected"),
+    [
+        pytest.param("FULL", None, "balanced", "full", id="explicit-value-normalized"),
+        pytest.param("standard", None, "minimal", "balanced", id="alias-value"),
+        pytest.param(None, " STANDARD ", "minimal", "balanced", id="alias-current"),
+        pytest.param(object(), "unknown", "minimal", "minimal", id="fallback-default"),
+    ],
+)
+def test_normalize_performance_mode_priority_and_aliases(
+    value: object,
+    current: str | None,
+    fallback: types.PerformanceMode,
+    expected: str,
+) -> None:
+    """Performance mode helper should normalize value/current before fallback."""
+    assert (
+        types.normalize_performance_mode(
+            value,
+            current=current,
+            fallback=fallback,
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    ("weight", "size", "expected"),
+    [
+        pytest.param(1.0, "toy", True, id="toy-min-boundary"),
+        pytest.param(6.1, "toy", False, id="toy-out-of-range"),
+        pytest.param(22.0, "large", True, id="large-min-boundary"),
+        pytest.param(90.1, "giant", False, id="giant-out-of-range"),
+        pytest.param(999.0, "unknown", True, id="unknown-size-accepted"),
+    ],
+)
+def test_validate_dog_weight_for_size_ranges(
+    weight: float,
+    size: str,
+    expected: bool,
+) -> None:
+    """Weight validation should enforce known ranges and ignore unknown sizes."""
+    assert types.validate_dog_weight_for_size(weight, size) is expected
