@@ -18,6 +18,17 @@ Jedes Coverage-Paket wird strikt nach diesem Ablauf abgearbeitet:
 4. Paket sofort beenden, sobald das Mindestziel erreicht ist; **keine Nebenbaustellen** im selben Ticket.
 5. Erst danach mit dem nächsten Paket starten – nur wenn das vorherige Paket dokumentiert abgeschlossen ist (neu abgedeckte Zeilen + betroffene Funktionen).
 
+## Reihenfolge- und Gate-Regel (ohne Ausnahmen)
+
+1. **Gate 0 zuerst:** Vor jedem Paketstart muss
+   `docs/stability_test_backlog.md` keine offenen Hauptlauf-Blocker enthalten.
+2. Paketbearbeitung erfolgt strikt in numerischer Reihenfolge:
+   **Paket 1 → Paket 11**, **ohne Überspringen**.
+3. Ein Paket gilt als abgeschlossen, sobald das jeweilige Mindestziel erreicht
+   und in `docs/coverage_gap_priorisierung.md` mit Abschlussmarker dokumentiert ist.
+4. Danach sofort nächstes Paket starten; keine Perfektionsarbeit im bereits
+   geschlossenen Paket-Ticket.
+
 Regeln für jedes Paket:
 
 1. Paket nur mit zusammenhängenden Funktionen/Codepfaden bearbeiten.

@@ -15,6 +15,37 @@ Vor neuen Coverage-Tickets muss das separate Stabilitäts-Backlog
 2. Blocker beheben
 3. Danach Top-3-Coverage-Gaps schließen
 
+### Gate 0 (Startbedingung je Paket)
+
+Ein neues Coverage-Paket darf nur starten, wenn in
+`docs/stability_test_backlog.md` **kein** offener Eintrag mit Hauptlauf-Effekt
+mehr vorhanden ist.
+
+### Feste Paket-Reihenfolge (verbindlich)
+
+Paketbearbeitung ausschließlich in folgender Reihenfolge, ohne Überspringen:
+**1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11** (gemäß
+`docs/coverage_hotspot_backlog.md`).
+
+### Paket-Abschlussmarker + Stop-Kriterium (Pflichtdokumentation)
+
+Ein Paket wird sofort geschlossen, sobald das Mindestziel an neu abgedeckten
+Zeilen erreicht ist. Danach sofort das nächste Paket starten.
+
+| Paket | Mindestziel (neu abgedeckte Zeilen) | Stop-Kriterium | Abschlussdatum (UTC) | Bearbeitetes Modul | Neu abgedeckte Zeilen | Verantwortlich | Status |
+|---:|---:|---|---|---|---:|---|---|
+| 1 | 120 | Schließen bei `>=120` neuen Zeilen; danach direkt Paket 2 starten. | TBD | `custom_components/pawcontrol/services.py` | TBD | TBD | Offen |
+| 2 | 110 | Schließen bei `>=110` neuen Zeilen; danach direkt Paket 3 starten. | TBD | `custom_components/pawcontrol/data_manager.py` | TBD | TBD | Offen |
+| 3 | 100 | Schließen bei `>=100` neuen Zeilen; danach direkt Paket 4 starten. | TBD | `custom_components/pawcontrol/feeding_manager.py` | TBD | TBD | Offen |
+| 4 | 80 | Schließen bei `>=80` neuen Zeilen; danach direkt Paket 5 starten. | TBD | `custom_components/pawcontrol/sensor.py` | TBD | TBD | Offen |
+| 5 | 90 | Schließen bei `>=90` neuen Zeilen; danach direkt Paket 6 starten. | TBD | `custom_components/pawcontrol/script_manager.py` | TBD | TBD | Offen |
+| 6 | 120 | Schließen bei `>=120` neuen Zeilen; danach direkt Paket 7 starten. | TBD | `custom_components/pawcontrol/types.py` | TBD | TBD | Offen |
+| 7 | 90 | Schließen bei `>=90` neuen Zeilen; danach direkt Paket 8 starten. | TBD | `custom_components/pawcontrol/repairs.py` + `custom_components/pawcontrol/telemetry.py` | TBD | TBD | Offen |
+| 8 | 100 | Schließen bei `>=100` neuen Zeilen; danach direkt Paket 9 starten. | TBD | `custom_components/pawcontrol/walk_manager.py` + `custom_components/pawcontrol/notifications.py` | TBD | TBD | Offen |
+| 9 | 90 | Schließen bei `>=90` neuen Zeilen; danach direkt Paket 10 starten. | TBD | `custom_components/pawcontrol/coordinator_tasks.py` + `custom_components/pawcontrol/weather_manager.py` | TBD | TBD | Offen |
+| 10 | 80 | Schließen bei `>=80` neuen Zeilen; danach direkt Paket 11 starten. | TBD | `custom_components/pawcontrol/entity_factory.py` + `custom_components/pawcontrol/door_sensor_manager.py` | TBD | TBD | Offen |
+| 11 | 70 | Schließen bei `>=70` neuen Zeilen; Backlog-Runde beenden. | TBD | `custom_components/pawcontrol/gps_manager.py` + `custom_components/pawcontrol/validation.py` | TBD | TBD | Offen |
+
 ## Top-10 Dateien mit den meisten ungetesteten Zeilen
 
 | Prio | Datei | Ungetestete Zeilen | Kategorie |
