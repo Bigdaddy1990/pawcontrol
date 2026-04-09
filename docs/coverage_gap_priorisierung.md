@@ -193,3 +193,65 @@ Zeilen erreicht ist. Danach sofort das nächste Paket starten.
 7. **Mittel**: `config_flow_main.py`, `types.py`, `dashboard_templates.py` (Validierung, Konvertierung, Template-Fails).
 
 > Hinweis: Diese Liste priorisiert Risiko (Core-Logik > Fehlerbehandlung > defensive/logging-only) und dient als Basis für alle folgenden Testtickets.
+
+
+## Funktionsanker für Hotspot-Pakete 8–11 (Ticket-Planung)
+
+Zur Umsetzung der Paketliste aus `docs/coverage_hotspot_backlog.md` werden die
+folgenden konkreten Funktionen als verpflichtende Ticket-Anker ergänzt.
+
+### 11) `custom_components/pawcontrol/walk_manager.py` (Ergänzung für Paket 8)
+- `async_initialize`
+- `async_update_gps_data`
+- `async_start_walk`
+- `_start_walk_locked`
+- `async_end_walk`
+
+### 12) `custom_components/pawcontrol/notifications.py` (Ergänzung für Paket 8)
+- `_empty_custom_settings`
+- `_empty_rate_limit_config`
+- `check_rate_limit`
+- `cleanup_expired`
+- `coordinator_snapshot`
+
+### 13) `custom_components/pawcontrol/coordinator_tasks.py` (Ergänzung für Paket 9)
+- `_build_runtime_store_summary`
+- `derive_rejection_metrics`
+- `_derive_rejection_metrics`
+- `resolve_service_guard_metrics`
+- `resolve_entity_factory_guard_metrics`
+
+### 14) `custom_components/pawcontrol/weather_manager.py` (Ergänzung für Paket 9)
+- `get_weather_translations`
+- `async_load_translations`
+- `_resolve_alert_translation`
+- `_resolve_recommendation_translation`
+- `is_valid`
+
+### 15) `custom_components/pawcontrol/entity_factory.py` (Ergänzung für Paket 10)
+- `_prewarm_caches`
+- `begin_budget`
+- `get_budget`
+- `_update_last_estimate_state`
+- `snapshot`
+
+### 16) `custom_components/pawcontrol/door_sensor_manager.py` (Ergänzung für Paket 10)
+- `ensure_door_sensor_settings_config`
+- `_settings_from_config`
+- `_settings_to_payload`
+- `_apply_settings_to_config`
+- `_build_payload`
+
+### 17) `custom_components/pawcontrol/gps_manager.py` (Ergänzung für Paket 11)
+- `_build_tracking_config`
+- `calculate_distance`
+- `calculate_bearing`
+- `async_configure_dog_gps`
+- `set_notification_manager`
+
+### 18) `custom_components/pawcontrol/validation.py` (Ergänzung für Paket 11)
+- `normalize_dog_id`
+- `validate_time_window`
+- `validate_gps_coordinates`
+- `validate_entity_id`
+- `validate_interval`
