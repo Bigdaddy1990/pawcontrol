@@ -27,8 +27,11 @@ from custom_components.pawcontrol.door_sensor_manager import (
     WalkDetectionState,
     _classify_timestamp,
     _coerce_bool,
+    _coerce_float,
+    _coerce_int,
     _DoorSensorManagerCacheMonitor,
     _serialize_datetime,
+    _settings_to_payload,
     ensure_door_sensor_settings_config,
 )
 from custom_components.pawcontrol.types import (
@@ -228,6 +231,125 @@ def test_ensure_door_sensor_settings_config_rejects_invalid_type() -> None:
     """Invalid settings payloads should raise a deterministic type error."""
     with pytest.raises(TypeError):
         ensure_door_sensor_settings_config(cast(DoorSensorSettingsInput, object()))
+
+
+def test_ensure_door_sensor_settings_config_ignores_non_string_keys() -> None:
+    """Non-string mapping keys should be ignored instead of raising."""
+    overrides = cast(
+        DoorSensorSettingsInput,
+        {1: "500", "minimum_walk_duration": "240"},
+    )
+
+    result = ensure_door_sensor_settings_config(overrides)
+
+    assert result.minimum_walk_duration == 240
+    assert result.walk_detection_timeout == DEFAULT_WALK_DETECTION_TIMEOUT
+
+
+def test_ensure_door_sensor_settings_config_uses_door_sensor_config_base() -> None:
+    """Door sensor config objects should be accepted as base settings."""
+    base = DoorSensorConfig(
+        entity_id="binary_sensor.front_door",
+        dog_id="dog-1",
+        dog_name="Buddy",
+        walk_detection_timeout=120,
+        minimum_walk_duration=180,
+        maximum_walk_duration=600,
+        door_closed_delay=30,
+        require_confirmation=False,
+        auto_end_walks=False,
+        confidence_threshold=0.35,
+    )
+
+    result = ensure_door_sensor_settings_config(
+        {"timeout": "350", "require_confirmation": "yes"},
+        base=base,
+    )
+
+    assert result.walk_detection_timeout == 350
+    assert result.minimum_walk_duration == 180
+    assert result.require_confirmation is True
+    assert result.auto_end_walks is False
+
+
+@pytest.mark.parametrize(
+    ("value", "default", "minimum", "maximum", "expected"),
+    [
+        (True, 9, 1, 10, 9),
+        ("", 8, 1, 10, 8),
+        ("not-a-number", 7, 1, 10, 7),
+        ("999", 5, 1, 10, 10),
+        ("-5", 5, 1, 10, 1),
+    ],
+)
+def test_coerce_int_handles_invalid_and_bounds(
+    value: DoorSensorOverrideScalar,
+    default: int,
+    minimum: int,
+    maximum: int,
+    expected: int,
+) -> None:
+    """Integer coercion should keep defaults and apply bounds."""
+    assert (
+        _coerce_int(
+            value,
+            default=default,
+            minimum=minimum,
+            maximum=maximum,
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    ("value", "default", "minimum", "maximum", "expected"),
+    [
+        (False, 0.8, 0.0, 1.0, 0.8),
+        ("", 0.7, 0.0, 1.0, 0.7),
+        ("not-a-number", 0.6, 0.0, 1.0, 0.6),
+        ("3.5", 0.5, 0.0, 1.0, 1.0),
+        ("-2.0", 0.5, 0.0, 1.0, 0.0),
+    ],
+)
+def test_coerce_float_handles_invalid_and_bounds(
+    value: DoorSensorOverrideScalar,
+    default: float,
+    minimum: float,
+    maximum: float,
+    expected: float,
+) -> None:
+    """Float coercion should keep defaults and apply bounds."""
+    assert _coerce_float(
+        value,
+        default=default,
+        minimum=minimum,
+        maximum=maximum,
+    ) == pytest.approx(expected)
+
+
+def test_settings_to_payload_round_trips_all_fields() -> None:
+    """Serialisation payload should include every settings field."""
+    settings = DoorSensorSettingsConfig(
+        walk_detection_timeout=321,
+        minimum_walk_duration=222,
+        maximum_walk_duration=999,
+        door_closed_delay=45,
+        require_confirmation=False,
+        auto_end_walks=True,
+        confidence_threshold=0.42,
+    )
+
+    payload = _settings_to_payload(settings)
+
+    assert payload == {
+        "walk_detection_timeout": 321,
+        "minimum_walk_duration": 222,
+        "maximum_walk_duration": 999,
+        "door_closed_delay": 45,
+        "require_confirmation": False,
+        "auto_end_walks": True,
+        "confidence_threshold": 0.42,
+    }
 
 
 def test_timestamp_helpers_classify_and_serialize() -> None:
