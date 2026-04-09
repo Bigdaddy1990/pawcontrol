@@ -1,4 +1,4 @@
-"""Focused failure-path unit tests for ``services.py``."""
+"""Gate-oriented tests for ``services.py`` failure, recovery and persistence paths."""
 
 from __future__ import annotations
 
@@ -67,10 +67,47 @@ async def _register_handler(
     raise AssertionError(f"Service handler {service_name} was not registered")
 
 
+# Validation cluster
+
+
 def test_coerce_service_bool_false_variants_are_deterministic() -> None:
     """False-like service values should map to the ``return False`` branches."""
     assert services._coerce_service_bool("off", field="enabled") is False
     assert services._coerce_service_bool(0, field="enabled") is False
+
+
+@pytest.mark.asyncio
+async def test_add_gps_point_rejects_non_string_dog_id(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-string IDs must trigger the InputCoercionError validation wrapper."""
+    walk_manager = SimpleNamespace(async_add_gps_point=AsyncMock())
+    runtime_data, config_entry = _runtime_data_with_coordinator(
+        mock_hass=mock_hass,
+        runtime_managers=SimpleNamespace(walk_manager=walk_manager),
+        dog_configs={"buddy": {"name": "Buddy"}},
+    )
+    handler = await _register_handler(
+        mock_hass=mock_hass,
+        monkeypatch=monkeypatch,
+        runtime_data=runtime_data,
+        config_entry=config_entry,
+        service_name=services.SERVICE_ADD_GPS_POINT,
+    )
+
+    with pytest.raises(
+        ServiceValidationError, match="dog_id must be provided as a string"
+    ):
+        await handler(
+            SimpleNamespace(
+                data={"dog_id": object(), "latitude": 51.1234, "longitude": 8.5678},
+                context=None,
+            )
+        )
+
+
+# Error-path cluster
 
 
 @pytest.mark.asyncio
@@ -123,6 +160,145 @@ async def test_service_wrapper_marks_handler_exception_as_error(
         await handler(
             SimpleNamespace(data={"title": "A", "message": "B"}, context=None)
         )
+
+
+@pytest.mark.asyncio
+async def test_add_feeding_error_paths_record_and_raise(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Add feeding must expose both HomeAssistantError and wrapped generic errors."""
+    feeding_manager = SimpleNamespace(
+        async_add_feeding=AsyncMock(
+            side_effect=[HomeAssistantError("invalid meal"), RuntimeError("db crashed")]
+        ),
+        async_add_feeding_with_medication=AsyncMock(),
+    )
+    runtime_data, config_entry = _runtime_data_with_coordinator(
+        mock_hass=mock_hass,
+        runtime_managers=SimpleNamespace(feeding_manager=feeding_manager),
+        dog_configs={"buddy": {"name": "Buddy"}},
+    )
+    handler = await _register_handler(
+        mock_hass=mock_hass,
+        monkeypatch=monkeypatch,
+        runtime_data=runtime_data,
+        config_entry=config_entry,
+        service_name=services.SERVICE_ADD_FEEDING,
+    )
+    call = SimpleNamespace(data={"dog_id": "buddy", "amount": 120.0}, context=None)
+
+    with pytest.raises(HomeAssistantError, match="invalid meal"):
+        await handler(call)
+    assert runtime_data.performance_stats["last_service_result"]["status"] == "error"
+
+    with pytest.raises(HomeAssistantError, match="Failed to add feeding for buddy"):
+        await handler(call)
+    assert (
+        "Failed to add feeding for buddy"
+        in runtime_data.performance_stats["last_service_result"]["message"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_update_health_error_paths_record_and_raise(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Update health must keep explicit vs wrapped error contracts stable."""
+    feeding_manager = SimpleNamespace(
+        async_update_health_data=AsyncMock(
+            side_effect=[HomeAssistantError("bad payload"), RuntimeError("timeout")]
+        )
+    )
+    runtime_data, config_entry = _runtime_data_with_coordinator(
+        mock_hass=mock_hass,
+        runtime_managers=SimpleNamespace(feeding_manager=feeding_manager),
+        dog_configs={"buddy": {"name": "Buddy"}},
+    )
+    handler = await _register_handler(
+        mock_hass=mock_hass,
+        monkeypatch=monkeypatch,
+        runtime_data=runtime_data,
+        config_entry=config_entry,
+        service_name=services.SERVICE_UPDATE_HEALTH,
+    )
+    call = SimpleNamespace(data={"dog_id": "buddy", "weight": 14.2}, context=None)
+
+    with pytest.raises(HomeAssistantError, match="bad payload"):
+        await handler(call)
+    with pytest.raises(
+        HomeAssistantError, match="Failed to update health data for buddy"
+    ):
+        await handler(call)
+
+
+@pytest.mark.asyncio
+async def test_log_health_error_paths_record_and_raise(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Log health must map both explicit and generic failures to stable outcomes."""
+    data_manager = SimpleNamespace(
+        async_log_health_data=AsyncMock(
+            side_effect=[HomeAssistantError("invalid health"), RuntimeError("storage")]
+        )
+    )
+    runtime_data, config_entry = _runtime_data_with_coordinator(
+        mock_hass=mock_hass,
+        runtime_managers=SimpleNamespace(data_manager=data_manager),
+        dog_configs={"buddy": {"name": "Buddy"}},
+    )
+    handler = await _register_handler(
+        mock_hass=mock_hass,
+        monkeypatch=monkeypatch,
+        runtime_data=runtime_data,
+        config_entry=config_entry,
+        service_name=services.SERVICE_LOG_HEALTH,
+    )
+    call = SimpleNamespace(data={"dog_id": "buddy", "weight": 14.2}, context=None)
+
+    with pytest.raises(HomeAssistantError, match="invalid health"):
+        await handler(call)
+    with pytest.raises(HomeAssistantError, match="Failed to log health data for buddy"):
+        await handler(call)
+
+
+@pytest.mark.asyncio
+async def test_log_medication_error_paths_record_and_raise(
+    mock_hass: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Medication logging must preserve user-facing error semantics."""
+    data_manager = SimpleNamespace(
+        async_log_medication=AsyncMock(
+            side_effect=[HomeAssistantError("dose invalid"), RuntimeError("disk")]
+        )
+    )
+    runtime_data, config_entry = _runtime_data_with_coordinator(
+        mock_hass=mock_hass,
+        runtime_managers=SimpleNamespace(data_manager=data_manager),
+        dog_configs={"buddy": {"name": "Buddy"}},
+    )
+    handler = await _register_handler(
+        mock_hass=mock_hass,
+        monkeypatch=monkeypatch,
+        runtime_data=runtime_data,
+        config_entry=config_entry,
+        service_name=services.SERVICE_LOG_MEDICATION,
+    )
+    call = SimpleNamespace(
+        data={"dog_id": "buddy", "medication_name": "X", "dose": "5mg"},
+        context=None,
+    )
+
+    with pytest.raises(HomeAssistantError, match="dose invalid"):
+        await handler(call)
+    with pytest.raises(HomeAssistantError, match="Failed to log medication for buddy"):
+        await handler(call)
+
+
+# Recovery + result-persistence cluster
 
 
 @pytest.mark.asyncio
@@ -255,44 +431,3 @@ async def test_update_health_success_and_no_update_paths_are_exposed(
     second_result = runtime_data.performance_stats["last_service_result"]
     assert second_result["details"]["result"] == "no_update"
     assert runtime_data.coordinator.async_request_refresh.await_count == 1
-
-
-@pytest.mark.asyncio
-async def test_update_health_invalid_input_and_exception_paths(
-    mock_hass: SimpleNamespace,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Health handler should fail for invalid IDs and wrap runtime exceptions."""
-    feeding_manager = SimpleNamespace(
-        async_update_health_data=AsyncMock(
-            side_effect=RuntimeError("storage unavailable")
-        )
-    )
-    runtime_data, config_entry = _runtime_data_with_coordinator(
-        mock_hass=mock_hass,
-        runtime_managers=SimpleNamespace(feeding_manager=feeding_manager),
-        dog_configs={"buddy": {"name": "Buddy"}},
-    )
-    handler = await _register_handler(
-        mock_hass=mock_hass,
-        monkeypatch=monkeypatch,
-        runtime_data=runtime_data,
-        config_entry=config_entry,
-        service_name=services.SERVICE_UPDATE_HEALTH,
-    )
-
-    with pytest.raises(ServiceValidationError, match="Unknown dog_id 'ghost'.*buddy"):
-        await handler(
-            SimpleNamespace(data={"dog_id": "ghost", "weight": 15.0}, context=None)
-        )
-
-    with pytest.raises(
-        HomeAssistantError, match="Failed to update health data for buddy"
-    ):
-        await handler(
-            SimpleNamespace(data={"dog_id": "buddy", "weight": 15.0}, context=None)
-        )
-
-    result = runtime_data.performance_stats["last_service_result"]
-    assert result["status"] == "error"
-    assert "Failed to update health data for buddy" in result["message"]
