@@ -15,6 +15,37 @@ Vor neuen Coverage-Tickets muss das separate Stabilitäts-Backlog
 2. Blocker beheben
 3. Danach Top-3-Coverage-Gaps schließen
 
+### Gate 0 (Startbedingung je Paket)
+
+Ein neues Coverage-Paket darf nur starten, wenn in
+`docs/stability_test_backlog.md` **kein** offener Eintrag mit Hauptlauf-Effekt
+mehr vorhanden ist.
+
+### Feste Paket-Reihenfolge (verbindlich)
+
+Paketbearbeitung ausschließlich in folgender Reihenfolge, ohne Überspringen:
+**1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11** (gemäß
+`docs/coverage_hotspot_backlog.md`).
+
+### Paket-Abschlussmarker + Stop-Kriterium (Pflichtdokumentation)
+
+Ein Paket wird sofort geschlossen, sobald das Mindestziel an neu abgedeckten
+Zeilen erreicht ist. Danach sofort das nächste Paket starten.
+
+| Paket | Mindestziel (neu abgedeckte Zeilen) | Stop-Kriterium | Abschlussdatum (UTC) | Bearbeitetes Modul | Neu abgedeckte Zeilen | Verantwortlich | Status |
+|---:|---:|---|---|---|---:|---|---|
+| 1 | 120 | Schließen bei `>=120` neuen Zeilen; danach direkt Paket 2 starten. | TBD | `custom_components/pawcontrol/services.py` | TBD | TBD | Offen |
+| 2 | 110 | Schließen bei `>=110` neuen Zeilen; danach direkt Paket 3 starten. | TBD | `custom_components/pawcontrol/data_manager.py` | TBD | TBD | Offen |
+| 3 | 100 | Schließen bei `>=100` neuen Zeilen; danach direkt Paket 4 starten. | TBD | `custom_components/pawcontrol/feeding_manager.py` | TBD | TBD | Offen |
+| 4 | 80 | Schließen bei `>=80` neuen Zeilen; danach direkt Paket 5 starten. | TBD | `custom_components/pawcontrol/sensor.py` | TBD | TBD | Offen |
+| 5 | 90 | Schließen bei `>=90` neuen Zeilen; danach direkt Paket 6 starten. | TBD | `custom_components/pawcontrol/script_manager.py` | TBD | TBD | Offen |
+| 6 | 120 | Schließen bei `>=120` neuen Zeilen; danach direkt Paket 7 starten. | TBD | `custom_components/pawcontrol/types.py` | TBD | TBD | Offen |
+| 7 | 90 | Schließen bei `>=90` neuen Zeilen; danach direkt Paket 8 starten. | TBD | `custom_components/pawcontrol/repairs.py` + `custom_components/pawcontrol/telemetry.py` | TBD | TBD | Offen |
+| 8 | 100 | Schließen bei `>=100` neuen Zeilen; danach direkt Paket 9 starten. | TBD | `custom_components/pawcontrol/walk_manager.py` + `custom_components/pawcontrol/notifications.py` | TBD | TBD | Offen |
+| 9 | 90 | Schließen bei `>=90` neuen Zeilen; danach direkt Paket 10 starten. | TBD | `custom_components/pawcontrol/coordinator_tasks.py` + `custom_components/pawcontrol/weather_manager.py` | TBD | TBD | Offen |
+| 10 | 80 | Schließen bei `>=80` neuen Zeilen; danach direkt Paket 11 starten. | TBD | `custom_components/pawcontrol/entity_factory.py` + `custom_components/pawcontrol/door_sensor_manager.py` | TBD | TBD | Offen |
+| 11 | 70 | Schließen bei `>=70` neuen Zeilen; Backlog-Runde beenden. | TBD | `custom_components/pawcontrol/gps_manager.py` + `custom_components/pawcontrol/validation.py` | TBD | TBD | Offen |
+
 ## Top-10 Dateien mit den meisten ungetesteten Zeilen
 
 | Prio | Datei | Ungetestete Zeilen | Kategorie |
@@ -162,3 +193,65 @@ Vor neuen Coverage-Tickets muss das separate Stabilitäts-Backlog
 7. **Mittel**: `config_flow_main.py`, `types.py`, `dashboard_templates.py` (Validierung, Konvertierung, Template-Fails).
 
 > Hinweis: Diese Liste priorisiert Risiko (Core-Logik > Fehlerbehandlung > defensive/logging-only) und dient als Basis für alle folgenden Testtickets.
+
+
+## Funktionsanker für Hotspot-Pakete 8–11 (Ticket-Planung)
+
+Zur Umsetzung der Paketliste aus `docs/coverage_hotspot_backlog.md` werden die
+folgenden konkreten Funktionen als verpflichtende Ticket-Anker ergänzt.
+
+### 11) `custom_components/pawcontrol/walk_manager.py` (Ergänzung für Paket 8)
+- `async_initialize`
+- `async_update_gps_data`
+- `async_start_walk`
+- `_start_walk_locked`
+- `async_end_walk`
+
+### 12) `custom_components/pawcontrol/notifications.py` (Ergänzung für Paket 8)
+- `_empty_custom_settings`
+- `_empty_rate_limit_config`
+- `check_rate_limit`
+- `cleanup_expired`
+- `coordinator_snapshot`
+
+### 13) `custom_components/pawcontrol/coordinator_tasks.py` (Ergänzung für Paket 9)
+- `_build_runtime_store_summary`
+- `derive_rejection_metrics`
+- `_derive_rejection_metrics`
+- `resolve_service_guard_metrics`
+- `resolve_entity_factory_guard_metrics`
+
+### 14) `custom_components/pawcontrol/weather_manager.py` (Ergänzung für Paket 9)
+- `get_weather_translations`
+- `async_load_translations`
+- `_resolve_alert_translation`
+- `_resolve_recommendation_translation`
+- `is_valid`
+
+### 15) `custom_components/pawcontrol/entity_factory.py` (Ergänzung für Paket 10)
+- `_prewarm_caches`
+- `begin_budget`
+- `get_budget`
+- `_update_last_estimate_state`
+- `snapshot`
+
+### 16) `custom_components/pawcontrol/door_sensor_manager.py` (Ergänzung für Paket 10)
+- `ensure_door_sensor_settings_config`
+- `_settings_from_config`
+- `_settings_to_payload`
+- `_apply_settings_to_config`
+- `_build_payload`
+
+### 17) `custom_components/pawcontrol/gps_manager.py` (Ergänzung für Paket 11)
+- `_build_tracking_config`
+- `calculate_distance`
+- `calculate_bearing`
+- `async_configure_dog_gps`
+- `set_notification_manager`
+
+### 18) `custom_components/pawcontrol/validation.py` (Ergänzung für Paket 11)
+- `normalize_dog_id`
+- `validate_time_window`
+- `validate_gps_coordinates`
+- `validate_entity_id`
+- `validate_interval`

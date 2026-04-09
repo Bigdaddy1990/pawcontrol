@@ -13,6 +13,18 @@ neuen Coverage-Gap-Arbeiten abgearbeitet, sobald Blocker den Hauptlauf
 3. **Erst danach** die **Top-3-Coverage-Gaps** bearbeiten (gemäß
    `docs/coverage_gap_priorisierung.md`).
 
+## Gate 0 (verbindlich vor jedem Coverage-Paket)
+
+- Ein neues Coverage-Paket darf **nicht** gestartet werden, solange mindestens
+  ein Eintrag mit Hauptlauf-Effekt den Status **Offen** trägt.
+- Gate-Check vor Paketstart:
+  1. Tabelle „Aktuelle Blocker“ prüfen.
+  2. Sicherstellen, dass alle Blocker mit Hauptlauf-Effekt auf **Erledigt**
+     stehen.
+  3. Erst dann Paketarbeit gemäß
+     `docs/coverage_hotspot_backlog.md` (Paket 1 → 11, ohne Überspringen)
+     beginnen.
+
 ## Aktuelle Blocker (Coverage-abbrechend)
 
 | ID | Kategorie | Reproduktion (Testpfad + Befehl) | Ist-Verhalten | Erwartetes Verhalten | Status |
