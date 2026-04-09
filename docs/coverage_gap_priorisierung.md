@@ -162,3 +162,110 @@ Vor neuen Coverage-Tickets muss das separate Stabilitäts-Backlog
 7. **Mittel**: `config_flow_main.py`, `types.py`, `dashboard_templates.py` (Validierung, Konvertierung, Template-Fails).
 
 > Hinweis: Diese Liste priorisiert Risiko (Core-Logik > Fehlerbehandlung > defensive/logging-only) und dient als Basis für alle folgenden Testtickets.
+
+## Parametrisierungsmatrizen für große Hotspot-Funktionen
+
+Die folgenden Matrizen sind die verbindliche Vorlage pro Hotspot-Funktion.
+Jede Funktion erhält mindestens je einen Testfall für **valid**, **invalid**,
+**boundary** und **error**.
+
+### 1) `services.py`
+
+| Funktion | valid | invalid | boundary | error |
+|---|---|---|---|---|
+| `async_setup_services` | vollständige Service-Registrierung mit konsistentem Runtime-Store | fehlende/inkonsistente Service-Definition | minimaler gültiger Service-Satz | HA-Service-Registry wirft Ausnahme |
+| `send_notification_service` | gültiger Payload + Zielkanal vorhanden | unbekannter Kanal/fehlende Pflichtfelder | leerer aber erlaubter Nachrichtentext | Downstream-Notifier/API-Fehler |
+| `_record_service_result` | erfolgreicher Resultat-Write | ungültiger Statuswert | Resultat ohne optionale Metadaten | Persistenz/Serializer-Ausnahme |
+| `start_grooming_service` | gültige Grooming-Session startet | unbekannte Dog-ID/ungültiger Modus | Start direkt am Zeitfenster-Rand | Coordinator/Manager-Call schlägt fehl |
+| `check_feeding_compliance_service` | regelkonforme Fütterungsdaten | unvollständige Compliance-Daten | exakt auf Grenzwert für Compliance | Berechnung/Abfrage wirft Ausnahme |
+
+### 2) `data_manager.py`
+
+| Funktion | valid | invalid | boundary | error |
+|---|---|---|---|---|
+| `async_export_data` | Export mit vollständigem Datensatz | ungültiges Exportformat | Export mit leerem aber gültigem Dataset | Dateisystem-/Writer-Fehler |
+| `cache_repair_summary` | gültige Summary wird gecached | Summary mit falschem Schema | Summary ohne optionale Felder | Cache-Backend-Ausnahme |
+| `async_generate_report` | Report aus konsistenten Inputs | fehlende Pflichtsektion | minimale Report-Periode | Template-/Render-Ausnahme |
+| `_export_single` | einzelnes Modul erfolgreich exportiert | unbekannter Modulname | Modul mit genau 1 Dateneintrag | Serializer-/IO-Ausnahme |
+| `async_get_module_history` | Historie für existierendes Modul | nicht existierendes Modul | Zeitraum mit exakt einem Event | Datenquelle liefert Fehler |
+
+### 3) `feeding_manager.py`
+
+| Funktion | valid | invalid | boundary | error |
+|---|---|---|---|---|
+| `_build_feeding_snapshot` | vollständiger Snapshot aus gültigen Inputs | inkonsistente Feed-Einträge | Snapshot mit minimalem Zeitfenster | Aggregation wirft Ausnahme |
+| `async_check_feeding_compliance` | Compliance korrekt als `True`/`False` | fehlende Pflichtwerte im Plan | Grenzfall exakt am Compliance-Limit | Regel-Engine-Ausnahme |
+| `_create_feeding_config` | gültige Konfiguration aus UI-Daten | ungültige Intervalle/Portionen | min/max erlaubte Portionsgröße | Validierungsfehler im Mapping |
+| `async_initialize` | Initialisierung mit vollständigem Zustand | fehlende Runtime-Abhängigkeit | Initialzustand ohne historische Daten | Initial-Load schlägt fehl |
+| `async_activate_emergency_feeding_mode` | Notfallmodus wird gesetzt | ungültiger Triggergrund | Aktivierung am Ende des Gültigkeitsfensters | Persistenz/Coordinator-Fehler |
+
+### 4) `sensor.py`
+
+| Funktion | valid | invalid | boundary | error |
+|---|---|---|---|---|
+| `_compute_activity_score_optimized` | Score aus normalem Aktivitätsprofil | negative/inkonsistente Messwerte | exakt auf Schwellenwerten | mathematischer/Datentyp-Fehler |
+| `native_value` (L1221-L1302) | Sensorwert korrekt aus Coordinator-Data | fehlender Schlüssel im Payload | `None`/0 an erlaubter Grenze | Zugriff auf defekten Coordinator-State |
+| `_garden_attributes` | vollständige Attributableitung | ungültiges Garten-Objekt | minimale Attributmenge | Parsing-Ausnahme |
+| `_calculate_calories_from_activity` | Kalorien korrekt für Standardprofil | unbekannte Aktivitätsart | Aktivitätsdauer = 0 oder Minimalwert | Rechen-/Konvertierungsfehler |
+| `native_value` (L872-L920) | Fallback-Reihenfolge korrekt | vollständig leere Datenstruktur | Wert exakt an Anzeigegrenze | Formatierungs-/Typausnahme |
+
+### 5) `script_manager.py`
+
+| Funktion | valid | invalid | boundary | error |
+|---|---|---|---|---|
+| `_resolve_manual_resilience_events` | Event-Auflösung für gültige Sequenz | ungültige Eventquelle | exakt ein manuelles Event | Resolver-Ausnahme |
+| `get_resilience_escalation_snapshot` | Snapshot mit korrekter Eskalationsstufe | ungültiger Statusübergang | Stufe direkt am Eskalationslimit | Snapshot-Berechnung fehlschlägt |
+| `_manual_event_source_mapping` | korrekte Source-Zuordnung | unbekannter Source-Key | minimal zulässiger Mapping-Eintrag | Mapping-Lookup-Ausnahme |
+| `async_generate_scripts_for_dogs` | Skriptgenerierung für gültige Hunde-Liste | leere/ungültige Hunde-Referenz | genau ein Hund im Batch | Generator/API-Abhängigkeit schlägt fehl |
+| `_serialise_manual_event_record` | vollständige Serialisierung | Record mit falschen Typen | Record ohne optionale Felder | Serialisierungs-Ausnahme |
+
+### 6) `repairs.py`
+
+| Funktion | valid | invalid | boundary | error |
+|---|---|---|---|---|
+| `_check_notification_delivery_errors` | Issues korrekt erkannt | ungültiges Delivery-Format | genau ein Grenzfall-Issue | Analysefunktion wirft Ausnahme |
+| `async_publish_feeding_compliance_issue` | Issue wird korrekt publiziert | fehlende Issue-Metadaten | minimaler Issue-Payload | Publish-Service-Ausnahme |
+| `_check_push_issues` | Push-Probleme korrekt klassifiziert | ungültige Push-Konfiguration | Queue-Länge exakt am Limit | Push-Client-Fehler |
+| `_check_runtime_store_duration_alerts` | Alert bei Überschreitung erzeugt | ungültige Dauerwerte | Dauer exakt auf Schwellwert | Zeitberechnungs-/Store-Fehler |
+| `async_step_init` | Repair-Flow startet korrekt | invalider Flow-Input | Initialstep ohne optionale Daten | Flow-Initialisierung scheitert |
+
+### 7) `helpers.py`
+
+| Funktion | valid | invalid | boundary | error |
+|---|---|---|---|---|
+| `_process_walk_batch` | Batch wird korrekt transformiert | fehlerhafte Batch-Struktur | Batch mit genau einem Eintrag | Verarbeitung wirft Ausnahme |
+| `async_load_data` | Daten werden vollständig geladen | ungültige Quelle/Config | leere aber gültige Datenquelle | Lade-/IO-Fehler |
+| `decorator` | Decorator ergänzt Verhalten korrekt | ungültige Decorator-Parameter | no-op Decorator-Konfiguration | Wrapped-Call wirft Ausnahme |
+| `__call__` | Callable liefert erwartetes Ergebnis | ungültige Aufrufargumente | minimaler gültiger Aufruf | Laufzeitfehler in Handler |
+| `_process_health_batch` | Health-Batch korrekt normalisiert | ungültige Health-Werte | Batch mit Grenzwerten (min/max) | Normalisierung schlägt fehl |
+
+### 8) `telemetry.py`
+
+| Funktion | valid | invalid | boundary | error |
+|---|---|---|---|---|
+| `_summarise_runtime_store_assessment_events` | Events korrekt aggregiert | ungültige Eventstruktur | genau ein Assessment-Event | Aggregator-Ausnahme |
+| `update_runtime_entity_factory_guard_metrics` | Metriken korrekt aktualisiert | ungültige Metric-Namen/Werte | Wert exakt am Guard-Limit | Metric-Sink-Ausnahme |
+| `_build_runtime_store_assessment` | Assessment aus gültigen Inputs | fehlende Pflichtsegmente | minimaler vollständiger Assessment-Satz | Builder-Fehler |
+| `_build_runtime_store_assessment_segments` | Segmente vollständig konstruiert | fehlerhafte Segmentdaten | genau ein Segment | Segment-Parser-Ausnahme |
+| `update_runtime_store_health` | Health-Status korrekt gesetzt | ungültiger Statuswert | Statuswechsel am Schwellenwert | Store-Update-Ausnahme |
+
+### 9) `config_flow_main.py`
+
+| Funktion | valid | invalid | boundary | error |
+|---|---|---|---|---|
+| `_merge_dog_entry` | Eintrag korrekt zusammengeführt | kollidierende IDs/Felder | Merge mit minimalen Pflichtfeldern | Merge-Logik-Ausnahme |
+| `_normalise_discovery_metadata` | Metadaten korrekt normalisiert | ungültiges Discovery-Format | genau ein Discovery-Hinweis | Normalisierung schlägt fehl |
+| `_validate_import_config_enhanced` | Import-Config valide | fehlende Pflichtkeys | kleinste gültige Import-Config | Validator wirft Ausnahme |
+| `_build_dog_candidate` | Kandidat korrekt aufgebaut | unvollständige Kandidatdaten | Kandidat mit Randwerten | Build-Fehler im Mapping |
+| `async_step_reconfigure` | Reconfigure-Step erfolgreich | invalide User-Eingaben | Reconfigure ohne optionale Felder | Flow-Service-Ausnahme |
+
+### 10) `types.py`
+
+| Funktion | valid | invalid | boundary | error |
+|---|---|---|---|---|
+| `ensure_dog_config_data` | Mapping wird korrekt normalisiert | falsche Typen/Pflichtfelder fehlen | minimale gültige Dog-Config | Validierung wirft Ausnahme |
+| `ensure_notification_options` | Optionen konsistent aufgebaut | ungültige Kanal-/Levelkombination | minimale Optionsmenge | Konvertierungsfehler |
+| `from_mapping` | Objekt wird korrekt erzeugt | Mapping mit ungültigen Keys | Mapping mit nur Pflichtfeldern | Factory-/Cast-Ausnahme |
+| `ensure_gps_payload` | GPS-Payload valide (lat/lon/timestamp) | fehlende Koordinaten | Koordinaten exakt an erlaubter Grenze | Parsing-/Typfehler |
+| `from_dict` | Dataclass aus Dict korrekt erstellt | Dictionary mit falschen Typen | Dict ohne optionale Felder | Konstruktor-Ausnahme |
+
