@@ -17,7 +17,6 @@ from custom_components.pawcontrol.exceptions import (
     ValidationError,
 )
 
-
 # Validation cluster
 
 
