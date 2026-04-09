@@ -8,7 +8,6 @@ import pytest
 
 from custom_components.pawcontrol import config_flow, config_flow_main
 
-
 # Validation cluster
 
 

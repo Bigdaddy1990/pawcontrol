@@ -20,7 +20,7 @@ class URL:
     def host(self) -> str | None:
         return urlparse(self.raw).hostname
 
-    def join(self, other: "URL") -> "URL":
+    def join(self, other: URL) -> URL:
         return URL(urljoin(self.raw.rstrip("/") + "/", other.raw.lstrip("/")))
 
     def __str__(self) -> str:

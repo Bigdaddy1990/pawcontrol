@@ -105,7 +105,7 @@ class Schema:
     def __call__(self, value: Any) -> Any:
         return value
 
-    def extend(self, schema: Mapping[Any, Any]) -> "Schema":
+    def extend(self, schema: Mapping[Any, Any]) -> Schema:
         if isinstance(self.schema, Mapping):
             merged = dict(self.schema)
             merged.update(schema)

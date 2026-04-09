@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 
 class HealthCheck:
@@ -12,13 +13,13 @@ class HealthCheck:
 
 
 class _Strategy:
-    def __or__(self, _other: object) -> "_Strategy":
+    def __or__(self, _other: object) -> _Strategy:
         return self
 
-    def map(self, _func: Callable[[Any], Any]) -> "_Strategy":
+    def map(self, _func: Callable[[Any], Any]) -> _Strategy:
         return self
 
-    def filter(self, _func: Callable[[Any], bool]) -> "_Strategy":
+    def filter(self, _func: Callable[[Any], bool]) -> _Strategy:
         return self
 
 
