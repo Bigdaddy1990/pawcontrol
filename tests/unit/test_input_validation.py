@@ -310,3 +310,51 @@ def test_validate_integer_value_error_and_success_path() -> None:
     valid = validator.validate_integer("8", min_value=0, max_value=10)
     assert valid.is_valid
     assert valid.sanitized_value == 8
+
+
+def test_validate_dict_rejects_non_string_values_for_string_validators() -> None:
+    """Schema validation should fail when text validators receive non-strings."""
+    validator = InputValidator()
+
+    result = validator.validate_dict(
+        {"email": 123, "phone": 456},
+        {
+            "email": {"type": "email", "required": True},
+            "phone": {"type": "phone", "required": True},
+        },
+    )
+
+    assert not result.is_valid
+    assert "email: Expected text input for 'email' validation, got int" in result.errors
+    assert "phone: Expected text input for 'phone' validation, got int" in result.errors
+
+
+def test_validate_dict_handles_validator_exceptions() -> None:
+    """Value/type errors raised by validators should be captured as field errors."""
+    validator = InputValidator()
+
+    def _raise_value_error(*_: object, **__: object) -> ValidationResult:
+        raise ValueError("bad-value")
+
+    def _raise_type_error(*_: object, **__: object) -> ValidationResult:
+        raise TypeError("bad-type")
+
+    validator.validate_integer = _raise_value_error  # type: ignore[method-assign]
+    validator.validate_float = _raise_type_error  # type: ignore[method-assign]
+
+    result = validator.validate_dict(
+        {"count": "4", "weight": "5.5"},
+        {
+            "count": {"type": "int", "required": True},
+            "weight": {"type": "float", "required": True},
+        },
+    )
+
+    assert not result.is_valid
+    assert "count: Validator 'int' rejected value" in result.errors
+    assert "weight: Validator 'float' rejected provided arguments" in result.errors
+
+
+def test_validate_and_sanitize_normalizes_non_prefixed_validator_name() -> None:
+    """Helper should normalize validator names before dispatching methods."""
+    assert validate_and_sanitize("12", " Integer ", min_value=0) == 12
