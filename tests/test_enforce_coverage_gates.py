@@ -152,3 +152,81 @@ def test_evaluate_gates_reports_critical_module_line_floor_failures(
     assert any(
         "critical module line coverage gate failed" in failure for failure in failures
     )
+
+
+def test_module_coverage_percent_accepts_normalized_filename(tmp_path: Path) -> None:
+    report = _write_coverage_xml(
+        tmp_path,
+        line_rate="0.90",
+        class_rates={
+            "coordinator.py": ("0.95", "1"),
+        },
+    )
+
+    root = enforce_coverage_gates._coverage_root(report)
+    percent = enforce_coverage_gates._module_coverage_percent(
+        root,
+        "custom_components/pawcontrol/coordinator.py",
+    )
+
+    assert percent == Decimal("95.00")
+
+
+def test_overall_coverage_percent_requires_line_rate_attribute(tmp_path: Path) -> None:
+    report = tmp_path / "coverage.xml"
+    report.write_text(
+        '<?xml version="1.0" ?>\n'
+        '<coverage branch-rate="0" version="7">\n'
+        '<packages><package name="pawcontrol"><classes /></package></packages>\n'
+        "</coverage>\n",
+        encoding="utf-8",
+    )
+
+    root = enforce_coverage_gates._coverage_root(report)
+    with pytest.raises(SystemExit, match="line-rate"):
+        enforce_coverage_gates._overall_coverage_percent(root)
+
+
+def test_module_branch_percent_requires_branch_rate_attribute(tmp_path: Path) -> None:
+    report = tmp_path / "coverage.xml"
+    report.write_text(
+        '<?xml version="1.0" ?>\n'
+        '<coverage line-rate="0.9" branch-rate="0" version="7">\n'
+        '<packages><package name="pawcontrol" line-rate="0" branch-rate="0">\n'
+        '<classes><class filename="custom_components/pawcontrol/coordinator.py" '
+        'line-rate="0.95"><lines /></class></classes>\n'
+        "</package></packages></coverage>\n",
+        encoding="utf-8",
+    )
+
+    root = enforce_coverage_gates._coverage_root(report)
+    with pytest.raises(SystemExit, match="missing branch-rate"):
+        enforce_coverage_gates._module_branch_percent(
+            root,
+            "custom_components/pawcontrol/coordinator.py",
+        )
+
+
+def test_load_branch_exceptions_rejects_invalid_payload_types(tmp_path: Path) -> None:
+    exceptions_file = tmp_path / "exceptions.json"
+    exceptions_file.write_text('{"path":"bad"}', encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="JSON list"):
+        enforce_coverage_gates._load_branch_exceptions(exceptions_file)
+
+
+def test_load_branch_exceptions_rejects_missing_rationale(tmp_path: Path) -> None:
+    exceptions_file = tmp_path / "exceptions.json"
+    exceptions_file.write_text(
+        '[{"path":"custom_components/pawcontrol/coordinator.py",'
+        '"minimum_branch_percent":"90","rationale":"   "}]',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(SystemExit, match="string values"):
+        enforce_coverage_gates._load_branch_exceptions(exceptions_file)
+
+
+def test_parse_percent_rejects_invalid_numeric_values() -> None:
+    with pytest.raises(SystemExit, match="invalid numeric value"):
+        enforce_coverage_gates._parse_percent("not-a-number")
