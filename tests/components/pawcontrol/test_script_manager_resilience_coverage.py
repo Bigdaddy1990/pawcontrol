@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 from homeassistant.util import dt as dt_util
 import pytest
@@ -142,6 +143,22 @@ def test_resolve_manual_resilience_events_handles_keyerror_and_invalid_forms() -
     ]
 
 
+def test_resolve_manual_resilience_events_handles_async_entries_attributeerror() -> None:
+    """Resolver should gracefully handle config entry managers without domains."""
+    hass = _build_hass()
+    hass.config_entries = SimpleNamespace(
+        async_entries=lambda _domain: (_ for _ in ()).throw(AttributeError("boom"))
+    )
+    manager = script_manager.PawControlScriptManager(hass, _build_entry())
+
+    telemetry = manager._resolve_manual_resilience_events()
+
+    assert telemetry["available"] is False
+    assert telemetry["configured_guard_events"] == []
+    assert telemetry["configured_breaker_events"] == []
+    assert telemetry["configured_check_events"] == []
+
+
 def test_serialise_manual_event_record_rejects_non_mapping_records() -> None:
     """Serializer should reject unknown record shapes without raising."""
     manager = script_manager.PawControlScriptManager(_build_hass(), _build_entry())
@@ -211,3 +228,42 @@ async def test_async_generate_scripts_for_dogs_returns_falsey_paths(
     )
 
     assert created_no_component == {}
+
+
+@pytest.mark.asyncio
+async def test_async_generate_scripts_for_dogs_resets_entry_scripts_without_new_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Generation should clear stale entry scripts when no entry definitions remain."""
+
+    class _FakeRegistry:
+        def async_get(self, _entity_id: str):
+            return SimpleNamespace(config_entry_id="entry-resilience")
+
+    class _FakeComponent:
+        def get_entity(self, _entity_id: str):
+            return None
+
+        async def async_add_entities(self, _entities: list[object]) -> None:
+            return None
+
+    manager = script_manager.PawControlScriptManager(_build_hass(), _build_entry())
+    manager._dog_scripts = {"stale-dog": ["script.paw_old_dog"]}
+    manager._entry_scripts = ["script.paw_old_entry"]
+
+    monkeypatch.setattr(script_manager.er, "async_get", lambda _hass: _FakeRegistry())
+    monkeypatch.setattr(manager, "_get_component", lambda: _FakeComponent())
+    monkeypatch.setattr(manager, "_build_scripts_for_dog", lambda *_args: [])
+    monkeypatch.setattr(manager, "_build_entry_scripts", lambda: [])
+    remove_entity = AsyncMock()
+    monkeypatch.setattr(manager, "_async_remove_script_entity", remove_entity)
+
+    created = await manager.async_generate_scripts_for_dogs(
+        [{CONF_DOG_ID: "dog-1"}],
+        set(),
+    )
+
+    assert created == {}
+    assert manager._entry_scripts == []
+    remove_entity.assert_any_await("script.paw_old_dog")
+    remove_entity.assert_any_await("script.paw_old_entry")
