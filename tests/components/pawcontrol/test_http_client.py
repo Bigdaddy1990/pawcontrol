@@ -36,6 +36,20 @@ class _ClosedValidSession(_ValidSession):
     closed = True
 
 
+class _SessionUsingPrivateRequestFallback:
+    closed = False
+
+    def request(self, *_args, **_kwargs):
+        return None
+
+    async def _request(self, *_args, **_kwargs):
+        return None
+
+
+class _SessionWithNonBooleanClosed(_ValidSession):
+    closed = "yes"
+
+
 def test_ensure_shared_client_session_rejects_none() -> None:
     with pytest.raises(ValueError, match="received None"):
         ensure_shared_client_session(None, owner="test")
@@ -69,5 +83,19 @@ def test_ensure_shared_client_session_rejects_closed_sessions() -> None:
 
 def test_ensure_shared_client_session_accepts_valid_session() -> None:
     session = _ValidSession()
+
+    assert ensure_shared_client_session(session, owner="test") is session
+
+
+def test_ensure_shared_client_session_accepts_private_request_fallback() -> None:
+    """aiohttp-like sessions may expose the coroutine on ``_request`` only."""
+    session = _SessionUsingPrivateRequestFallback()
+
+    assert ensure_shared_client_session(session, owner="test") is session
+
+
+def test_ensure_shared_client_session_ignores_non_boolean_closed_flag() -> None:
+    """Non-boolean ``closed`` attributes should not force a false positive."""
+    session = _SessionWithNonBooleanClosed()
 
     assert ensure_shared_client_session(session, owner="test") is session
