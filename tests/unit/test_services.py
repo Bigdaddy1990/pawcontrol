@@ -260,6 +260,43 @@ def test_coerce_service_bool_rejects_numeric_non_boolean_values() -> None:
 
 
 @pytest.mark.parametrize(
+    ("min_value", "max_value", "expected"),
+    [
+        (
+            1.5,
+            3.5,
+            "expires_in_hours must be between 1.5 and 3.5",
+        ),
+        (
+            None,
+            None,
+            "expires_in_hours is out of range",
+        ),
+    ],
+)
+def test_format_expires_in_hours_error_out_of_range_variants(
+    min_value: float | None,
+    max_value: float | None,
+    expected: str,
+) -> None:
+    """Out-of-range expiry errors should render all supported bound combinations."""
+    error = services.ValidationError(
+        field="expires_in_hours",
+        value=0.5,
+        constraint="expires_in_hours_out_of_range",
+        min_value=min_value,
+        max_value=max_value,
+    )
+
+    assert services._format_expires_in_hours_error(error) == expected
+
+
+def test_format_numeric_value_preserves_non_integral_float_text() -> None:
+    """Numeric formatter should keep decimal precision when needed."""
+    assert services._format_numeric_value(2.75) == "2.75"
+
+
+@pytest.mark.parametrize(
     ("schema", "payload"),
     [
         (
