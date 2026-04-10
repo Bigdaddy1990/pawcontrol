@@ -1,7 +1,5 @@
 """Coverage tests for manager_compliance helpers."""
 
-from __future__ import annotations
-
 import logging
 
 from custom_components.pawcontrol.base_manager import BaseManager
@@ -88,7 +86,9 @@ def test_validate_manager_compliance_accepts_instance_and_reports_issues() -> No
     assert report.manager_name == 5
     assert report.is_compliant is False
     assert any("Missing required method" in issue.message for issue in report.issues)
-    assert any(issue.message == "MANAGER_NAME must be a string" for issue in report.issues)
+    assert any(
+        issue.message == "MANAGER_NAME must be a string" for issue in report.issues
+    )
 
 
 def test_validate_all_managers_and_summary_for_mixed_reports() -> None:
