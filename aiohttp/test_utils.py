@@ -1,7 +1,5 @@
 """Minimal aiohttp.test_utils compatibility layer for pytest plugin loading."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable
 from typing import Any
 

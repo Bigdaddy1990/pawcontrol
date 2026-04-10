@@ -910,9 +910,12 @@ def test_coordinator_resolver_raises_when_runtime_data_not_ready() -> None:
     entry = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="id-1")
     hass = SimpleNamespace(config_entries=_FakeConfigEntries([entry]))
 
-    with patch.object(services, "get_runtime_data", return_value=None), pytest.raises(
-        ServiceValidationError,
-        match="runtime data is not ready",
+    with (
+        patch.object(services, "get_runtime_data", return_value=None),
+        pytest.raises(
+            ServiceValidationError,
+            match="runtime data is not ready",
+        ),
     ):
         services._CoordinatorResolver(hass)._resolve_from_sources()
 
