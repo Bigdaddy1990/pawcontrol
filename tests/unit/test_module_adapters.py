@@ -334,6 +334,33 @@ def test_normalise_health_medication_preserves_optional_nones(
     }
 
 
+def test_normalise_health_alert_without_type_uses_custom_defaults(
+    module_adapters: tuple[Any, _DtUtilStub],
+) -> None:
+    """Missing alert fields should use built-in fallback values."""
+    module, _ = module_adapters
+
+    alert = module._normalise_health_alert({})
+
+    assert alert == {
+        "type": "custom",
+        "message": "Custom",
+        "severity": "medium",
+        "action_required": False,
+    }
+
+
+def test_normalise_health_medication_defaults_name_when_missing(
+    module_adapters: tuple[Any, _DtUtilStub],
+) -> None:
+    """Medication entries should fall back to a deterministic default name."""
+    module, _ = module_adapters
+
+    reminder = module._normalise_health_medication({})
+
+    assert reminder == {"name": "medication"}
+
+
 def test_base_module_adapter_cache_snapshot_without_ttl(
     module_adapters: tuple[Any, _DtUtilStub],
 ) -> None:
