@@ -510,6 +510,21 @@ def test_cache_repair_aggregate_to_mapping_omits_empty_optional_sections() -> No
     }
 
 
+def test_cache_repair_aggregate_mapping_protocol_helpers() -> None:
+    """Mapping protocol dunder methods should proxy to ``to_mapping`` output."""
+    aggregate = types.CacheRepairAggregate(
+        total_caches=3,
+        anomaly_count=1,
+        severity="minor",
+        generated_at="2026-03-02T00:00:00+00:00",
+        caches_with_errors=["cache_a"],
+    )
+
+    assert aggregate["severity"] == "minor"
+    assert list(iter(aggregate)) == list(aggregate.to_mapping())
+    assert len(aggregate) == len(aggregate.to_mapping())
+
+
 def test_ensure_dog_options_entry_prefers_payload_dog_id_and_normalizes_notifications() -> (
     None
 ):
