@@ -413,6 +413,66 @@ def test_resolve_coordinator_statistics_uses_runtime_data(
 
 
 @patch("custom_components.pawcontrol.dashboard_generator.Store")
+def test_resolve_coordinator_statistics_requires_callable_provider(
+    mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Coordinator statistics require a callable provider on the coordinator."""
+    mock_store.return_value = MagicMock()
+    generator = PawControlDashboardGenerator(hass, mock_config_entry)
+
+    class RuntimeStub:
+        coordinator = SimpleNamespace(get_update_statistics="not-callable")
+
+    monkeypatch.setattr(generator, "_get_runtime_data", lambda: RuntimeStub())
+
+    assert generator._resolve_coordinator_statistics() is None
+
+
+@patch("custom_components.pawcontrol.dashboard_generator.Store")
+def test_resolve_coordinator_statistics_handles_provider_exception(
+    mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Statistics resolution should return ``None`` when provider raises."""
+    mock_store.return_value = MagicMock()
+    generator = PawControlDashboardGenerator(hass, mock_config_entry)
+
+    class CoordinatorStub:
+        @staticmethod
+        def get_update_statistics() -> dict[str, object]:
+            msg = "boom"
+            raise RuntimeError(msg)
+
+    class RuntimeStub:
+        coordinator = CoordinatorStub()
+
+    monkeypatch.setattr(generator, "_get_runtime_data", lambda: RuntimeStub())
+
+    assert generator._resolve_coordinator_statistics() is None
+
+
+@patch("custom_components.pawcontrol.dashboard_generator.Store")
+def test_resolve_coordinator_statistics_returns_non_mapping_payload(
+    mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Non-mapping statistics payloads should be returned unchanged."""
+    mock_store.return_value = MagicMock()
+    generator = PawControlDashboardGenerator(hass, mock_config_entry)
+    sentinel = ["unexpected", "payload"]
+
+    class CoordinatorStub:
+        @staticmethod
+        def get_update_statistics() -> list[str]:
+            return sentinel
+
+    class RuntimeStub:
+        coordinator = CoordinatorStub()
+
+    monkeypatch.setattr(generator, "_get_runtime_data", lambda: RuntimeStub())
+
+    assert generator._resolve_coordinator_statistics() == sentinel
+
+
+@patch("custom_components.pawcontrol.dashboard_generator.Store")
 def test_resolve_service_execution_metrics_uses_runtime_data(
     mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
