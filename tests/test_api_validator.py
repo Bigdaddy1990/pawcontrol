@@ -421,3 +421,61 @@ def test_extract_helpers_cover_supported_shapes() -> None:
     assert _extract_capabilities({"capabilities": []}) == []
     assert _extract_capabilities({"capabilities": "flat"}) is None
     assert _extract_capabilities(["invalid"]) is None
+
+
+@pytest.mark.asyncio
+async def test_test_endpoint_reachability_uses_default_ssl_options(hass) -> None:
+    """Reachability checks should avoid passing ssl when verification is enabled."""
+    session = _SequentialGetSession([_MockResponse(204)])
+    validator = APIValidator(hass, session, verify_ssl=True)
+
+    assert await validator._test_endpoint_reachability("https://example.com") is True
+    assert session.calls[0][1] == {"allow_redirects": True}
+
+
+@pytest.mark.asyncio
+async def test_test_authentication_retries_until_success(hass) -> None:
+    """Authentication should continue across endpoint errors until one succeeds."""
+    session = _SequentialGetSession([
+        aiohttp.ClientError("first failed"),
+        _MockResponse(204, {"version": "2.0", "capabilities": []}),
+    ])
+    validator = APIValidator(hass, session)
+
+    result = await validator._test_authentication("https://example.com", "token")
+
+    assert result == {
+        "authenticated": True,
+        "api_version": "2.0",
+        "capabilities": [],
+    }
+    assert len(session.calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_async_test_api_health_returns_degraded_when_validation_not_valid(
+    hass,
+    mock_session,
+) -> None:
+    """Health checks should remain degraded when endpoint is reachable but invalid."""
+    validator = APIValidator(hass, mock_session)
+    validator.async_validate_api_connection = AsyncMock(  # type: ignore[method-assign]
+        return_value=type(
+            "Result",
+            (),
+            {
+                "valid": False,
+                "reachable": True,
+                "authenticated": False,
+                "response_time_ms": 10.0,
+                "error_message": "partial",
+                "api_version": None,
+                "capabilities": None,
+            },
+        )()
+    )
+
+    health = await validator.async_test_api_health("https://example.com")
+
+    assert health["status"] == "degraded"
+    assert health["reachable"] is True
