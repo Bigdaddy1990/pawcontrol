@@ -86,9 +86,27 @@ def test_validate_gps_source_checks_missing_and_unavailable_states() -> None:
         validate_gps_source(hass, "device_tracker.unavailable")
 
 
+def test_validate_gps_source_rejects_non_strings_blank_and_manual_override() -> None:
+    """GPS source validation should enforce string input and manual policy."""
+    hass = _build_hass(states={"device_tracker.rover": SimpleNamespace(state="home")})
+
+    with pytest.raises(ValidationError, match="gps_source_required"):
+        validate_gps_source(hass, 42)
+
+    with pytest.raises(ValidationError, match="gps_source_required"):
+        validate_gps_source(hass, "   ")
+
+    with pytest.raises(ValidationError, match="gps_source_not_found"):
+        validate_gps_source(hass, "manual", allow_manual=False)
+
+    assert validate_gps_source(hass, "mqtt") == "mqtt"
+
+
 @pytest.mark.parametrize(
     ("notify_service", "message"),
     [
+        (42, "notify_service_invalid"),
+        ("   ", "notify_service_invalid"),
         ("notify", "notify_service_invalid"),
         ("light.kitchen", "notify_service_invalid"),
         ("notify.mobile_missing", "notify_service_not_found"),
@@ -103,6 +121,14 @@ def test_validate_notify_service_rejects_invalid_targets(
 
     with pytest.raises(ValidationError, match=message):
         validate_notify_service(hass, notify_service)
+
+
+def test_validate_notify_service_accepts_known_notify_services() -> None:
+    """Valid notify services should pass and preserve trimmed value."""
+    hass = _build_hass(notify_services={"mobile_app": object()})
+
+    assert validate_notify_service(hass, "notify.mobile_app") == "notify.mobile_app"
+    assert validate_notify_service(hass, "  notify.mobile_app  ") == "notify.mobile_app"
 
 
 @pytest.mark.parametrize(
