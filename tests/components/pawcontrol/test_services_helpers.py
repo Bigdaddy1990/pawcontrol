@@ -899,3 +899,57 @@ def test_record_service_result_replaces_non_list_service_results() -> None:
     assert performance_stats["last_service_result"]["diagnostics"]["metadata"] == {
         "attempt": 1
     }
+
+
+def test_coordinator_resolver_raises_when_runtime_data_not_ready() -> None:
+    entry = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="id-1")
+    hass = SimpleNamespace(config_entries=_FakeConfigEntries([entry]))
+
+    with patch.object(services, "get_runtime_data", return_value=None), pytest.raises(
+        ServiceValidationError,
+        match="runtime data is not ready",
+    ):
+        services._CoordinatorResolver(hass)._resolve_from_sources()
+
+
+def test_coordinator_resolver_raises_for_initializing_and_missing_setup() -> None:
+    initializing_entry = SimpleNamespace(
+        state=ConfigEntryState.SETUP_IN_PROGRESS,
+        entry_id="id-2",
+    )
+    hass_initializing = SimpleNamespace(
+        config_entries=_FakeConfigEntries([initializing_entry])
+    )
+    hass_missing = SimpleNamespace(config_entries=_FakeConfigEntries([]))
+
+    with pytest.raises(ServiceValidationError, match="still initializing"):
+        services._CoordinatorResolver(hass_initializing)._resolve_from_sources()
+
+    with pytest.raises(ServiceValidationError, match="not set up"):
+        services._CoordinatorResolver(hass_missing)._resolve_from_sources()
+
+
+def test_coordinator_resolver_callback_reuses_cached_instance() -> None:
+    hass = SimpleNamespace(data={DOMAIN: {}})
+
+    first = services._coordinator_resolver(hass)
+    second = services._coordinator_resolver(hass)
+
+    assert first is second
+
+
+def test_extract_service_context_from_attributes() -> None:
+    call = SimpleNamespace(
+        context=SimpleNamespace(id="  abc ", parent_id=None, user_id=" user-1 ")
+    )
+
+    context, metadata = services._extract_service_context(call)
+
+    assert context is not None
+    assert context.id == "abc"
+    assert context.user_id == "user-1"
+    assert metadata == {
+        "context_id": "abc",
+        "parent_id": None,
+        "user_id": "user-1",
+    }
