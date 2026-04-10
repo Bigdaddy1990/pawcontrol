@@ -126,6 +126,48 @@ def test_resolve_component_translation_uses_separator_candidates() -> None:
     )
 
 
+def test_resolve_component_translation_checks_all_suffix_separators() -> None:
+    """Known key suffix separators should resolve through stripped candidate keys."""
+    translations = {
+        "quiet_hours": "Quiet hours",
+        "door_sensor": "Door sensor",
+        "walk_state": "Walk state",
+    }
+
+    assert (
+        resolve_component_translation(
+            translations,
+            {},
+            "door_sensor_label_quiet_hours",
+        )
+        == "Quiet hours"
+    )
+    assert (
+        resolve_component_translation(
+            translations,
+            {},
+            "geo_fallback_door_sensor",
+        )
+        == "Door sensor"
+    )
+    assert (
+        resolve_component_translation(
+            translations,
+            {},
+            "summary_template_walk_state",
+        )
+        == "Walk state"
+    )
+
+
+def test_resolve_component_translation_returns_explicit_default() -> None:
+    """Explicit defaults should win when no candidate key is present."""
+    assert (
+        resolve_component_translation({}, {}, "missing_label_value", default="Fallback")
+        == "Fallback"
+    )
+
+
 def test_bundled_translation_loader_handles_invalid_payloads(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
