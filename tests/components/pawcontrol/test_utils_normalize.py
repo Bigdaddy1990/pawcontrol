@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
+import pytest
+
 from custom_components.pawcontrol.utils.normalize import normalize_value
 
 
@@ -93,3 +95,43 @@ def test_normalize_value_falls_back_to_repr_for_bytes_and_custom_objects() -> No
 def test_normalize_value_returns_dataclass_type_repr_when_given_class() -> None:
     """Dataclass classes should not be treated as dataclass instances."""
     assert normalize_value(SamplePayload) == repr(SamplePayload)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        pytest.param(None, None, id="none"),
+        pytest.param(True, True, id="bool"),
+        pytest.param(42, 42, id="int"),
+        pytest.param(4.2, 4.2, id="float"),
+        pytest.param("pawcontrol", "pawcontrol", id="str"),
+    ],
+)
+def test_normalize_value_keeps_json_primitives_unchanged(
+    value: object,
+    expected: object,
+) -> None:
+    """Primitive JSON values should pass through without conversion."""
+    assert normalize_value(value) == expected
+
+
+def test_normalize_value_normalizes_tuples_and_nested_iterables() -> None:
+    """Tuple values should be normalized via iterable handling branch."""
+    source = (
+        timedelta(seconds=1),
+        [timedelta(seconds=2), {"nested": timedelta(seconds=3)}],
+    )
+
+    assert normalize_value(source) == [1.0, [2.0, {"nested": 3.0}]]
+
+
+def test_normalize_value_handles_dataclass_with_mapping_field() -> None:
+    """Dataclasses containing mappings should normalize keys and nested values."""
+
+    @dataclass(slots=True)
+    class MappingPayload:
+        values: dict[object, object]
+
+    payload = MappingPayload(values={1: timedelta(seconds=30), "keep": "ok"})
+
+    assert normalize_value(payload) == {"values": {"1": 30.0, "keep": "ok"}}
