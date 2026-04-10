@@ -270,8 +270,9 @@ def test_given_non_string_for_string_field_when_validating_then_return_type_erro
     assert "Expected text input" in result.errors[0]
 
 
-def test_given_incompatible_validator_args_when_validating_then_capture_dispatch_error(
-) -> None:
+def test_given_incompatible_validator_args_when_validating_then_capture_dispatch_error() -> (
+    None
+):
     """Validation dispatch should convert argument/type failures into field errors."""
     validator = InputValidator()
     schema = {

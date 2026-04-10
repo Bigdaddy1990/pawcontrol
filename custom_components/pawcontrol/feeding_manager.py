@@ -1375,6 +1375,7 @@ class FeedingManager:
         config_data: JSONLikeMapping,
     ) -> FeedingConfig:
         """Create enhanced feeding configuration with health integration."""
+
         def _coerce_int(value: Any, default: int) -> int:
             if not isinstance(value, int | float | str):
                 return default

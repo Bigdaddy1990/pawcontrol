@@ -1,7 +1,5 @@
 """Dedicated service-handler path coverage for PawControl services."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 

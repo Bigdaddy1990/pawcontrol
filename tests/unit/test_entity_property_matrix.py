@@ -1,7 +1,5 @@
 """Matrix tests validating common entity properties across all entity platforms."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock

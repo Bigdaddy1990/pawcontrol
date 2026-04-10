@@ -187,7 +187,9 @@ def test_dog_status_native_value_decision_tree(
     )
 
     monkeypatch.setattr(dog_status_sensor, "_get_dog_data", lambda: {"status": "ok"})
-    monkeypatch.setattr(dog_status_sensor, "_get_status_snapshot", lambda: status_snapshot)
+    monkeypatch.setattr(
+        dog_status_sensor, "_get_status_snapshot", lambda: status_snapshot
+    )
     monkeypatch.setattr(dog_status_sensor, "_get_walk_module", lambda: walk_data)
     monkeypatch.setattr(dog_status_sensor, "_get_feeding_module", lambda: feeding_data)
     monkeypatch.setattr(dog_status_sensor, "_get_gps_module", lambda: gps_data)

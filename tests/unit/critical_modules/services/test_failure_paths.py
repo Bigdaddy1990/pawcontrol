@@ -1,7 +1,5 @@
 """Gate-oriented tests for ``services.py`` failure, recovery and persistence paths."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 

@@ -1,7 +1,5 @@
 """Small yarl.URL compatibility shim used in dependency-light tests."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from urllib.parse import urljoin, urlparse
 

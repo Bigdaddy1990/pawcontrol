@@ -1,7 +1,5 @@
 """Gate-oriented tests for ``data_manager.py`` error, false and recovery paths."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock

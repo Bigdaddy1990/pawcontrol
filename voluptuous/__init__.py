@@ -1,7 +1,5 @@
 """Lightweight voluptuous compatibility shim for dependency-light test runs."""
 
-from __future__ import annotations
-
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -51,7 +49,9 @@ def Coerce(target_type: type[Any]) -> Callable[[Any], Any]:
     return _coerce
 
 
-def In(options: Mapping[Any, Any] | list[Any] | tuple[Any, ...] | set[Any]) -> Callable[[Any], Any]:
+def In(
+    options: Mapping[Any, Any] | list[Any] | tuple[Any, ...] | set[Any],
+) -> Callable[[Any], Any]:
     def _validate(value: Any) -> Any:
         if value in options:
             return value
@@ -86,7 +86,9 @@ def All(*validators: Any) -> Callable[[Any], Any]:
     return _validate
 
 
-def Range(*, min: float | int | None = None, max: float | int | None = None) -> Callable[[Any], Any]:
+def Range(
+    *, min: float | int | None = None, max: float | int | None = None
+) -> Callable[[Any], Any]:
     def _validate(value: Any) -> Any:
         if min is not None and value < min:
             raise Invalid(f"value {value!r} is below minimum {min}")

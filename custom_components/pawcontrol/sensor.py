@@ -702,9 +702,7 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
         raw_stats = data.get("stats")
         stats = (
-            cast(Mapping[str, Any], raw_stats)
-            if isinstance(raw_stats, Mapping)
-            else {}
+            cast(Mapping[str, Any], raw_stats) if isinstance(raw_stats, Mapping) else {}
         )
         if stats:
             attrs["last_garden_visit"] = self._coerce_utc_datetime(

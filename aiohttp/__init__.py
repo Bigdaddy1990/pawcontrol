@@ -1,7 +1,5 @@
 """Lightweight aiohttp compatibility shim for unit test collection."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any
 

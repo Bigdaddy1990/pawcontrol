@@ -1,7 +1,5 @@
 """Small coverage.py shim used for dependency-light test collection."""
 
-from __future__ import annotations
-
 
 class Coverage:
     def __init__(self, *args, **kwargs) -> None:

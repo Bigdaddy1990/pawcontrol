@@ -1,7 +1,5 @@
 """Tiny hypothesis compatibility layer for import-time usage in tests."""
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import Any
 
@@ -23,7 +21,9 @@ class _Strategy:
         return self
 
 
-def given(*_strategies: Any, **_kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def given(
+    *_strategies: Any, **_kwargs: Any
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     def _decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         return func
 
@@ -33,7 +33,9 @@ def given(*_strategies: Any, **_kwargs: Any) -> Callable[[Callable[..., Any]], C
 class _Settings:
     _profiles: dict[str, object] = {}
 
-    def __call__(self, *_args: Any, **_kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def __call__(
+        self, *_args: Any, **_kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def _decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             return func
 
