@@ -252,7 +252,9 @@ def test_validate_sensor_entity_id_rejects_unavailable_and_non_string_values() -
     """Unavailable and malformed sensor IDs should fail with not-found constraints."""
     hass = _build_hass(
         states={
-            "binary_sensor.unknown_state": SimpleNamespace(state="unknown", attributes={}),
+            "binary_sensor.unknown_state": SimpleNamespace(
+                state="unknown", attributes={}
+            ),
             "binary_sensor.unavailable_state": SimpleNamespace(
                 state="unavailable",
                 attributes={},

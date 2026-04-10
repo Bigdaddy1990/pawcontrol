@@ -155,7 +155,9 @@ async def test_async_get_weather_translations_prefers_requested_then_fallback() 
 
 def test_weather_translation_key_helpers_prefix_component_fragments() -> None:
     """Key helper utilities should generate stable translation key fragments."""
-    assert _weather_alert_title_key("storm_warning") == "weather_alert_storm_warning_title"
+    assert (
+        _weather_alert_title_key("storm_warning") == "weather_alert_storm_warning_title"
+    )
     assert _weather_alert_message_key("storm_warning") == (
         "weather_alert_storm_warning_message"
     )
