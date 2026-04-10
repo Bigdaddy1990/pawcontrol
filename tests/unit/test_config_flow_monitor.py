@@ -92,3 +92,29 @@ async def test_timed_operation_warns_for_slow_operations(
             pass
 
     assert "Slow config flow operation: discovery took 3.50s" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_timed_operation_records_duration_when_block_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timed operations should record durations even when the wrapped block fails."""
+    from custom_components.pawcontrol import config_flow_monitor as monitor_module
+
+    monitor_module.config_flow_monitor = ConfigFlowPerformanceMonitor()
+    timeline = [20.0, 20.25]
+
+    def fake_monotonic() -> float:
+        if timeline:
+            return timeline.pop(0)
+        return 20.25
+
+    monkeypatch.setattr(monitor_module.time, "monotonic", fake_monotonic)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        async with timed_operation("failing-step"):
+            raise RuntimeError("boom")
+
+    stats = monitor_module.config_flow_monitor.get_stats()
+    assert stats["operations"]["failing-step"]["count"] == 1
+    assert stats["operations"]["failing-step"]["avg_time"] == pytest.approx(0.25)
