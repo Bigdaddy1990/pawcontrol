@@ -7,6 +7,9 @@ from unittest.mock import AsyncMock, patch
 from custom_components.pawcontrol.weather_translations import (
     WEATHER_ALERT_KEYS,
     WEATHER_RECOMMENDATION_KEYS,
+    _weather_alert_message_key,
+    _weather_alert_title_key,
+    _weather_recommendation_key,
     async_get_weather_translations,
     empty_weather_translations,
     get_weather_translations,
@@ -148,3 +151,35 @@ async def test_async_get_weather_translations_prefers_requested_then_fallback() 
     )
     assert translations["recommendations"]["extra_water"] == "Localized recommendation"
     assert translations["alerts"]["storm_warning"]["title"] == "storm_warning"
+
+
+def test_weather_translation_key_helpers_prefix_component_fragments() -> None:
+    """Key helper utilities should generate stable translation key fragments."""
+    assert _weather_alert_title_key("storm_warning") == "weather_alert_storm_warning_title"
+    assert _weather_alert_message_key("storm_warning") == (
+        "weather_alert_storm_warning_message"
+    )
+    assert _weather_recommendation_key("extra_water") == (
+        "weather_recommendation_extra_water"
+    )
+
+
+async def test_async_get_weather_translations_returns_declared_key_defaults() -> None:
+    """Missing translation catalogs should default each field to its declared key."""
+    with patch(
+        "custom_components.pawcontrol.weather_translations"
+        ".async_get_component_translation_lookup",
+        AsyncMock(return_value=({}, {})),
+    ):
+        translations = await async_get_weather_translations(
+            hass=object(),
+            language="en",
+        )
+
+    assert set(translations["alerts"]) == set(WEATHER_ALERT_KEYS)
+    assert set(translations["recommendations"]) == set(WEATHER_RECOMMENDATION_KEYS)
+    assert translations["alerts"]["storm_warning"] == {
+        "title": "storm_warning",
+        "message": "storm_warning",
+    }
+    assert translations["recommendations"]["extra_water"] == "extra_water"
