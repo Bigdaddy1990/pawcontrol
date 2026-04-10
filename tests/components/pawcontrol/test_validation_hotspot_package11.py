@@ -8,11 +8,14 @@ from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.validation import (
     clamp_float_range,
     clamp_int_range,
+    validate_coordinate,
     validate_entity_id,
     validate_expires_in_hours,
     validate_float_range,
     validate_gps_accuracy_value,
+    validate_gps_coordinates,
     validate_gps_source,
+    validate_gps_update_interval,
     validate_int_range,
     validate_interval,
     validate_notify_service,
@@ -373,3 +376,89 @@ def test_validate_int_and_float_range_cover_default_clamp_and_required_branches(
 
     with pytest.raises(ValidationError, match="Maximum value is 5.0"):
         validate_float_range(8.0, minimum=1.0, maximum=5.0)
+
+
+def test_validate_coordinate_handles_optional_and_range_constraints() -> None:
+    """Coordinate validator should support optional, numeric, and range branches."""
+    assert (
+        validate_coordinate(
+            " 48.2 ",
+            field="latitude",
+            minimum=-90.0,
+            maximum=90.0,
+        )
+        == 48.2
+    )
+    assert (
+        validate_coordinate(
+            None,
+            field="latitude",
+            minimum=-90.0,
+            maximum=90.0,
+            required=False,
+        )
+        is None
+    )
+
+    with pytest.raises(ValidationError, match="coordinate_required"):
+        validate_coordinate(
+            "",
+            field="latitude",
+            minimum=-90.0,
+            maximum=90.0,
+        )
+
+    with pytest.raises(ValidationError, match="coordinate_not_numeric"):
+        validate_coordinate(
+            "north",
+            field="latitude",
+            minimum=-90.0,
+            maximum=90.0,
+        )
+
+    with pytest.raises(ValidationError, match="coordinate_out_of_range"):
+        validate_coordinate(
+            91,
+            field="latitude",
+            minimum=-90.0,
+            maximum=90.0,
+        )
+
+
+def test_validate_gps_coordinates_covers_fast_path_and_error_translation() -> None:
+    """GPS coordinate helper should fast-path numerics and wrap validation errors."""
+    assert validate_gps_coordinates(48.1, 11.5) == (48.1, 11.5)
+    assert validate_gps_coordinates("48.1", "11.5") == (48.1, 11.5)
+
+    with pytest.raises(TypeError, match="'<=' not supported"):
+        validate_gps_coordinates("invalid", "payload")
+
+
+def test_validate_gps_update_interval_delegates_to_range_validator() -> None:
+    """GPS update interval wrapper should expose int-range behaviour."""
+    assert (
+        validate_gps_update_interval(
+            "30",
+            minimum=10,
+            maximum=60,
+            required=True,
+        )
+        == 30
+    )
+    assert (
+        validate_gps_update_interval(
+            None,
+            minimum=10,
+            maximum=60,
+            default=15,
+        )
+        == 15
+    )
+
+    with pytest.raises(ValidationError, match="gps_update_interval_required"):
+        validate_gps_update_interval(
+            None,
+            minimum=10,
+            maximum=60,
+            required=True,
+        )
