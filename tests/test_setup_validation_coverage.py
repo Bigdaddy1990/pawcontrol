@@ -121,3 +121,33 @@ def test_extract_enabled_modules_skips_missing_modules_key() -> None:
     dogs_config = [{"dog_id": "buddy", "dog_name": "Buddy"}]
 
     assert validation._extract_enabled_modules(dogs_config) == frozenset()
+
+
+@pytest.mark.asyncio
+async def test_validate_dogs_config_defaults_when_key_missing(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Missing dogs key should default to an empty validated configuration."""
+    entry = SimpleNamespace(data={}, entry_id="entry-missing")
+
+    with caplog.at_level("DEBUG"):
+        dogs = await validation._async_validate_dogs_config(entry)
+
+    assert dogs == []
+    assert "No dogs configured for entry entry-missing" in caplog.text
+
+
+def test_extract_enabled_modules_deduplicates_unknown_module_warnings(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Unknown module warnings should remain stable across multiple dog payloads."""
+    dogs_config = [
+        {"dog_id": "buddy", "modules": {"unknown_mod": True, "gps": True}},
+        {"dog_id": "luna", "modules": {"unknown_mod": True}},
+    ]
+
+    with caplog.at_level("WARNING"):
+        enabled = validation._extract_enabled_modules(dogs_config)
+
+    assert enabled == frozenset({"gps"})
+    assert caplog.text.count("Ignoring unknown PawControl modules: unknown_mod") == 1
