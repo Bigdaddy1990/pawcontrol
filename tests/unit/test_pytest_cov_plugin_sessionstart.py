@@ -4,9 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
-
 from pytest_cov import plugin
-
 
 _skip_no_coverage = pytest.mark.skipif(
     plugin.coverage is None,
