@@ -316,3 +316,56 @@ async def test_persistent_cache_save_failure_is_swallowed(
     await persistent.async_save()
 
     assert persistent.get_stats().size == 1
+
+
+@pytest.mark.asyncio
+async def test_persistent_cache_delete_loads_before_removing_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Delete should trigger a lazy load before removing an existing key."""
+    monkeypatch.setattr(cache_module, "Store", _FakeStore)
+    persistent = cache_module.PersistentCache[str](hass=object(), name="paw")
+    fake_store = persistent._store
+    assert isinstance(fake_store, _FakeStore)
+    now = time.time()
+    fake_store._data = {
+        "dog": {"value": "Milo", "timestamp": now, "ttl_seconds": 60.0}
+    }
+
+    assert await persistent.delete("dog") is True
+    assert await persistent.get("dog") is None
+
+
+@pytest.mark.asyncio
+async def test_two_level_cache_get_short_circuits_on_l1_hit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """L2 lookup should be skipped when L1 already contains the key."""
+    monkeypatch.setattr(cache_module, "Store", _FakeStore)
+    cache = cache_module.TwoLevelCache[str](hass=object(), name="paw")
+    await cache._l1.set("dog", "Nala")
+    cache._l2.get = AsyncMock(return_value="from-l2")  # type: ignore[method-assign]
+
+    assert await cache.get("dog") == "Nala"
+    cache._l2.get.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_cached_decorator_uses_sorted_kwargs_for_cache_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Equivalent kwargs ordering should resolve to a single cache key."""
+    monkeypatch.setattr(cache_module, "Store", _FakeStore)
+    cache = cache_module.TwoLevelCache[int](hass=object(), name="paw")
+
+    calls = 0
+
+    @cache_module.cached(cache, "calc", ttl=5)
+    async def combine(*, first: int, second: int) -> int:
+        nonlocal calls
+        calls += 1
+        return first + second
+
+    assert await combine(first=2, second=3) == 5
+    assert await combine(second=3, first=2) == 5
+    assert calls == 1
