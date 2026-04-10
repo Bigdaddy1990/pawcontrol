@@ -184,15 +184,13 @@ def test_normalise_guard_history_rejects_non_sequence_payloads() -> None:
 
 def test_normalise_guard_result_payload_marks_skipped_without_metadata() -> None:
     """Guard payloads should keep executed=False even when metadata is unusable."""
-    payload = normalise_guard_result_payload(
-        {
-            "executed": 0,
-            "domain": "",
-            "service": "",
-            "reason": "",
-            "description": None,
-        }
-    )
+    payload = normalise_guard_result_payload({
+        "executed": 0,
+        "domain": "",
+        "service": "",
+        "reason": "",
+        "description": None,
+    })
 
     assert payload == {"executed": False}
 
@@ -226,10 +224,13 @@ def test_helpers_data_structure_and_quiet_hour_fallback_branches(
         lambda value: None if value == "22:00:00" else helpers.time(7, 0, 0),
         raising=False,
     )
-    assert helpers.PawControlNotificationManager._coerce_quiet_hours_time(
-        _BrokenStr(),
-        "22:00:00",
-    ) is None
+    assert (
+        helpers.PawControlNotificationManager._coerce_quiet_hours_time(
+            _BrokenStr(),
+            "22:00:00",
+        )
+        is None
+    )
     assert (
         helpers.PawControlNotificationManager._coerce_quiet_hours_time(
             None,

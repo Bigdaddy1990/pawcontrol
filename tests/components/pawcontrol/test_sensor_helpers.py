@@ -514,9 +514,13 @@ def test_compute_activity_score_optimized_ignores_module_errors(
         "_calculate_walk_score",
         lambda _payload: (_ for _ in ()).throw(ValueError("invalid walk")),
     )
-    monkeypatch.setattr(activity_sensor, "_calculate_feeding_score", lambda _payload: 90.0)
+    monkeypatch.setattr(
+        activity_sensor, "_calculate_feeding_score", lambda _payload: 90.0
+    )
     monkeypatch.setattr(activity_sensor, "_calculate_gps_score", lambda _payload: None)
-    monkeypatch.setattr(activity_sensor, "_calculate_health_score", lambda _payload: None)
+    monkeypatch.setattr(
+        activity_sensor, "_calculate_health_score", lambda _payload: None
+    )
 
     result = activity_sensor._compute_activity_score_optimized(
         {
@@ -530,13 +534,19 @@ def test_compute_activity_score_optimized_ignores_module_errors(
     assert result == 90.0
 
 
-def test_activity_score_native_value_uses_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_activity_score_native_value_uses_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     activity_sensor = _build_activity_score_sensor()
     monkeypatch.setattr(activity_sensor, "_get_dog_data", lambda: {"walk": {}})
-    monkeypatch.setattr(activity_sensor, "_compute_activity_score_optimized", lambda _data: 42.5)
+    monkeypatch.setattr(
+        activity_sensor, "_compute_activity_score_optimized", lambda _data: 42.5
+    )
 
     first = activity_sensor.native_value
-    monkeypatch.setattr(activity_sensor, "_compute_activity_score_optimized", lambda _data: 10.0)
+    monkeypatch.setattr(
+        activity_sensor, "_compute_activity_score_optimized", lambda _data: 10.0
+    )
     second = activity_sensor.native_value
 
     assert first == pytest.approx(42.5)
@@ -589,6 +599,8 @@ def test_calories_burned_native_value_uses_activity_fallback(
 ) -> None:
     calorie_sensor = _build_calorie_sensor()
     calorie_sensor._get_walk_module = lambda: {"total_duration_today": 30}
-    monkeypatch.setattr(calorie_sensor, "_calculate_calories_from_activity", lambda _data: 77.7)
+    monkeypatch.setattr(
+        calorie_sensor, "_calculate_calories_from_activity", lambda _data: 77.7
+    )
 
     assert calorie_sensor.native_value == pytest.approx(77.7)

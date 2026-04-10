@@ -85,9 +85,9 @@ def test_service_guard_module_clone_can_be_reloaded_after_eviction() -> None:
     del sys.modules[module_name]
 
     reloaded = _load_service_guard_clone()
-    snapshot = reloaded.ServiceGuardSnapshot.from_sequence(
-        [reloaded.ServiceGuardResult("notify", "mobile_app", True)]
-    )
+    snapshot = reloaded.ServiceGuardSnapshot.from_sequence([
+        reloaded.ServiceGuardResult("notify", "mobile_app", True)
+    ])
 
     assert snapshot.to_metrics()["executed"] == 1
     assert module_name in sys.modules

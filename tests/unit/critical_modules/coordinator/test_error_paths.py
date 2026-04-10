@@ -1,7 +1,5 @@
 """Gate-oriented unit tests for ``coordinator.py`` decision paths."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 

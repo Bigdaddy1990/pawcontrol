@@ -45,7 +45,7 @@ def _build_hass(state: object | None = None) -> SimpleNamespace:
     return SimpleNamespace(
         states=states,
         data={DOMAIN: {}},
-        bus=SimpleNamespace(async_listen=lambda *_args, **_kwargs: (lambda: None)),
+        bus=SimpleNamespace(async_listen=lambda *_args, **_kwargs: lambda: None),
     )
 
 
@@ -239,7 +239,7 @@ async def test_async_generate_scripts_for_dogs_tracks_outputs_and_removes_obsole
     """Script generation should return per-dog/entry outputs and clean stale scripts."""
 
     class _FakeScriptEntity:
-        def __init__(self, _hass, object_id, *_args):
+        def __init__(self, _hass, object_id, *_args) -> None:
             self.object_id = object_id
             self.entity_id = f"{SCRIPT_DOMAIN}.{object_id}"
             self.removed = False
@@ -324,7 +324,7 @@ async def test_async_generate_scripts_for_dogs_skips_invalid_ids_and_uses_name_f
     """Generation should ignore invalid dogs and fall back to the dog id as name."""
 
     class _FakeScriptEntity:
-        def __init__(self, _hass, object_id, *_args):
+        def __init__(self, _hass, object_id, *_args) -> None:
             self.entity_id = f"{SCRIPT_DOMAIN}.{object_id}"
 
         async def async_remove(self) -> None:

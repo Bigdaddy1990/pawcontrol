@@ -97,7 +97,9 @@ async def test_async_activate_emergency_feeding_mode_invalid_input_raises(hass) 
 
 
 @pytest.mark.asyncio
-async def test_async_activate_emergency_feeding_mode_fallback_missing_config(hass) -> None:
+async def test_async_activate_emergency_feeding_mode_fallback_missing_config(
+    hass,
+) -> None:
     """Missing config should fail fast with a clear ValueError."""
     manager = FeedingManager(hass)
 

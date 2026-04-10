@@ -23,7 +23,10 @@ async def _complete_minimal_setup(flow: PawControlConfigFlow) -> dict[str, objec
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "add_dog"
 
-    result = await flow.async_step_add_dog({CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy_1"})
+    result = await flow.async_step_add_dog({
+        CONF_DOG_NAME: "Buddy",
+        CONF_DOG_ID: "buddy_1",
+    })
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "dog_modules"
 
@@ -38,7 +41,9 @@ async def _complete_minimal_setup(flow: PawControlConfigFlow) -> dict[str, objec
             case "configure_dashboard":
                 result = await flow.async_step_configure_dashboard({})
             case "entity_profile":
-                result = await flow.async_step_entity_profile({"entity_profile": "standard"})
+                result = await flow.async_step_entity_profile({
+                    "entity_profile": "standard"
+                })
             case "final_setup":
                 result = await flow.async_step_final_setup({})
             case step_id:
@@ -80,7 +85,10 @@ async def test_config_flow_known_validation_errors_return_form_error(
 
     monkeypatch.setattr(flow, "_validate_dog_input_cached", _raise_validation)
 
-    result = await flow.async_step_add_dog({CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy"})
+    result = await flow.async_step_add_dog({
+        CONF_DOG_NAME: "Buddy",
+        CONF_DOG_ID: "buddy",
+    })
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == error_key
@@ -98,13 +106,18 @@ async def test_config_flow_unknown_error_returns_unknown_error_form(
 
     monkeypatch.setattr(flow, "_validate_dog_input_cached", _raise_unknown)
 
-    result = await flow.async_step_add_dog({CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy"})
+    result = await flow.async_step_add_dog({
+        CONF_DOG_NAME: "Buddy",
+        CONF_DOG_ID: "buddy",
+    })
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "unknown_error"
 
 
-async def test_config_flow_duplicate_aborts_already_configured(hass: HomeAssistant) -> None:
+async def test_config_flow_duplicate_aborts_already_configured(
+    hass: HomeAssistant,
+) -> None:
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={CONF_DOGS: []})
     entry.add_to_hass(hass)
 

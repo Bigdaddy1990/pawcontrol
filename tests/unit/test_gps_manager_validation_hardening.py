@@ -59,20 +59,18 @@ def test_tracking_int_coercion_truncates_float_and_falls_back() -> None:
 @pytest.mark.unit
 def test_build_tracking_config_applies_defaults_without_crash() -> None:
     """Schema/type mismatches should safely fallback to runtime defaults."""
-    config = _build_tracking_config(
-        {
-            "enabled": "yes",
-            "auto_start_walk": 1,
-            "track_route": None,
-            "safety_alerts": "no",
-            "geofence_notifications": [],
-            "auto_detect_home": {},
-            "gps_accuracy_threshold": "50",
-            "update_interval_seconds": "30",
-            "min_distance_for_point": False,
-            "route_smoothing": "on",
-        }
-    )
+    config = _build_tracking_config({
+        "enabled": "yes",
+        "auto_start_walk": 1,
+        "track_route": None,
+        "safety_alerts": "no",
+        "geofence_notifications": [],
+        "auto_detect_home": {},
+        "gps_accuracy_threshold": "50",
+        "update_interval_seconds": "30",
+        "min_distance_for_point": False,
+        "route_smoothing": "on",
+    })
 
     assert config.enabled is True
     assert config.auto_start_walk is True
@@ -89,20 +87,18 @@ def test_build_tracking_config_applies_defaults_without_crash() -> None:
 @pytest.mark.unit
 def test_build_tracking_config_accepts_explicit_bool_and_numeric_values() -> None:
     """Valid inputs should be preserved exactly where appropriate."""
-    config = _build_tracking_config(
-        {
-            "enabled": False,
-            "auto_start_walk": False,
-            "track_route": False,
-            "safety_alerts": False,
-            "geofence_notifications": False,
-            "auto_detect_home": False,
-            "gps_accuracy_threshold": 18,
-            "update_interval_seconds": 15.9,
-            "min_distance_for_point": 2,
-            "route_smoothing": False,
-        }
-    )
+    config = _build_tracking_config({
+        "enabled": False,
+        "auto_start_walk": False,
+        "track_route": False,
+        "safety_alerts": False,
+        "geofence_notifications": False,
+        "auto_detect_home": False,
+        "gps_accuracy_threshold": 18,
+        "update_interval_seconds": 15.9,
+        "min_distance_for_point": 2,
+        "route_smoothing": False,
+    })
 
     assert config.enabled is False
     assert config.auto_start_walk is False
@@ -170,7 +166,9 @@ def test_validate_notification_targets_separates_value_and_type_errors() -> None
 @pytest.mark.unit
 def test_validate_notification_targets_handles_scalar_non_iterable() -> None:
     """A scalar non-iterable candidate should be validated without crashing."""
-    parsed = validate_notification_targets(SimpleNamespace(value="x"), enum_type=_Target)
+    parsed = validate_notification_targets(
+        SimpleNamespace(value="x"), enum_type=_Target
+    )
     assert parsed.targets == []
     assert parsed.invalid == ["namespace(value='x')"]
 

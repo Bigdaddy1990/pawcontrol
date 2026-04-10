@@ -569,10 +569,7 @@ async def test_async_step_reauth_wraps_validation_error(
         ),
         (
             ValidationError("entry_dogs", constraint="missing id"),
-            (
-                "Entry validation failed: Validation failed for entry_dogs: "
-                "missing id"
-            ),
+            ("Entry validation failed: Validation failed for entry_dogs: missing id"),
         ),
     ],
 )

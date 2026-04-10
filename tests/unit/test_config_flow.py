@@ -24,9 +24,10 @@ async def _finish_user_flow_with_single_dog(
     assert step["type"] == FlowResultType.FORM
     assert step["step_id"] == "add_dog"
 
-    step = await flow.async_step_add_dog(
-        {CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy_1"}
-    )
+    step = await flow.async_step_add_dog({
+        CONF_DOG_NAME: "Buddy",
+        CONF_DOG_ID: "buddy_1",
+    })
     assert step["type"] == FlowResultType.FORM
     assert step["step_id"] == "dog_modules"
 
@@ -77,16 +78,15 @@ async def test_user_flow_invalid_auth_shows_form_error(
     flow.hass = hass
     await flow.async_step_user({CONF_NAME: "Paw Control"})
 
-    async def _raise_invalid_auth(
-        _user_input: dict[str, str]
-    ) -> dict[str, str]:
+    async def _raise_invalid_auth(_user_input: dict[str, str]) -> dict[str, str]:
         raise FlowValidationError(base_errors=["invalid_auth"])
 
     monkeypatch.setattr(flow, "_validate_dog_input_cached", _raise_invalid_auth)
 
-    result = await flow.async_step_add_dog(
-        {CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy"}
-    )
+    result = await flow.async_step_add_dog({
+        CONF_DOG_NAME: "Buddy",
+        CONF_DOG_ID: "buddy",
+    })
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "invalid_auth"
 
@@ -99,16 +99,15 @@ async def test_user_flow_cannot_connect_shows_form_error(
     flow.hass = hass
     await flow.async_step_user({CONF_NAME: "Paw Control"})
 
-    async def _raise_connect_error(
-        _user_input: dict[str, str]
-    ) -> dict[str, str]:
+    async def _raise_connect_error(_user_input: dict[str, str]) -> dict[str, str]:
         raise FlowValidationError(base_errors=["cannot_connect"])
 
     monkeypatch.setattr(flow, "_validate_dog_input_cached", _raise_connect_error)
 
-    result = await flow.async_step_add_dog(
-        {CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy"}
-    )
+    result = await flow.async_step_add_dog({
+        CONF_DOG_NAME: "Buddy",
+        CONF_DOG_ID: "buddy",
+    })
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "cannot_connect"
 
@@ -121,16 +120,15 @@ async def test_user_flow_unknown_exception_shows_unknown(
     flow.hass = hass
     await flow.async_step_user({CONF_NAME: "Paw Control"})
 
-    async def _raise_unknown(
-        _user_input: dict[str, str]
-    ) -> dict[str, str]:
+    async def _raise_unknown(_user_input: dict[str, str]) -> dict[str, str]:
         raise RuntimeError("unexpected")
 
     monkeypatch.setattr(flow, "_validate_dog_input_cached", _raise_unknown)
 
-    result = await flow.async_step_add_dog(
-        {CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy"}
-    )
+    result = await flow.async_step_add_dog({
+        CONF_DOG_NAME: "Buddy",
+        CONF_DOG_ID: "buddy",
+    })
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "unknown_error"
 

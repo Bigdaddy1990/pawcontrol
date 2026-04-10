@@ -1,7 +1,5 @@
 """Gate-oriented tests for ``config_flow.py`` export behavior."""
 
-from __future__ import annotations
-
 import importlib
 
 import pytest

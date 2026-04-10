@@ -328,10 +328,7 @@ async def test_async_check_feeding_compliance_strict_schedule_recommendations(
         for entry in result["compliance_issues"][0]["issues"]
     )
     assert "Consider setting up feeding reminders" in result["recommendations"]
-    assert (
-        "Enable automatic reminders for scheduled meals"
-        in result["recommendations"]
-    )
+    assert "Enable automatic reminders for scheduled meals" in result["recommendations"]
     assert "Reduce portion sizes to prevent weight gain" in result["recommendations"]
 
 

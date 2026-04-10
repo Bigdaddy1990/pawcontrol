@@ -81,7 +81,9 @@ async def test_refresh_partial_payload_handles_missing_keys(
     """Refresh accepts partial payloads and keeps processing without crashes."""
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     partial_payload = {"test_dog": {"status": "online"}}
-    coordinator._execute_cycle = AsyncMock(return_value=(partial_payload, _cycle_info()))
+    coordinator._execute_cycle = AsyncMock(
+        return_value=(partial_payload, _cycle_info())
+    )
 
     result = await coordinator._async_update_data()
 
@@ -123,7 +125,9 @@ async def test_no_state_mutation_on_failed_refresh(
         "test_dog": {"status": "online", "last_update": "previous", "walk": {}}
     }
     coordinator._data = dict(previous_payload)
-    coordinator._execute_cycle = AsyncMock(side_effect=UpdateFailed("backend unavailable"))
+    coordinator._execute_cycle = AsyncMock(
+        side_effect=UpdateFailed("backend unavailable")
+    )
 
     with pytest.raises(UpdateFailed):
         await coordinator._async_update_data()
@@ -140,7 +144,9 @@ async def test_update_interval_or_manual_refresh_behavior(
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coordinator._data = {"test_dog": {"status": "stale"}}
     refreshed_payload = {"test_dog": {"status": "online", "last_update": "manual"}}
-    coordinator._execute_cycle = AsyncMock(return_value=(refreshed_payload, _cycle_info()))
+    coordinator._execute_cycle = AsyncMock(
+        return_value=(refreshed_payload, _cycle_info())
+    )
     coordinator._synchronize_module_states = AsyncMock()
     coordinator.async_set_updated_data = AsyncMock()  # type: ignore[assignment]
 

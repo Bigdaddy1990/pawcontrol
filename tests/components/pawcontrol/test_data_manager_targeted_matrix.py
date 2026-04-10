@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
@@ -140,7 +138,9 @@ async def test_async_generate_report_tolerates_adapter_exceptions_and_persists(
     profile.health_history = [{"timestamp": "invalid", "status": "ok"}]
     runtime = SimpleNamespace(
         feeding_manager=SimpleNamespace(
-            async_generate_health_report=AsyncMock(side_effect=RuntimeError("adapter down")),
+            async_generate_health_report=AsyncMock(
+                side_effect=RuntimeError("adapter down")
+            ),
         ),
         notification_manager=SimpleNamespace(
             async_send_notification=AsyncMock(side_effect=RuntimeError("notify down")),
@@ -161,7 +161,10 @@ async def test_async_generate_report_tolerates_adapter_exceptions_and_persists(
     assert report["walks"]["entries"] == 0
     assert report["health"]["entries"] == 0
     assert "detailed_report" not in report["health"]
-    assert "Schedule regular walks to maintain activity levels." in report["recommendations"]
+    assert (
+        "Schedule regular walks to maintain activity levels."
+        in report["recommendations"]
+    )
     reports_namespace = manager._namespace_state.get("reports")
     assert isinstance(reports_namespace, dict)
     reports_dump = json.dumps(reports_namespace)

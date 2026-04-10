@@ -350,7 +350,9 @@ def test_service_manager_starts_setup_task_when_service_is_missing() -> None:
 
 
 @pytest.mark.asyncio
-async def test_service_manager_shutdown_unloads_and_clears_domain_registration() -> None:
+async def test_service_manager_shutdown_unloads_and_clears_domain_registration() -> (
+    None
+):
     """Shutdown awaits pending setup tasks and removes only its own registration."""
     setup_task = asyncio.Future()
     setup_task.set_result(None)
@@ -391,10 +393,13 @@ async def test_daily_reset_scheduler_returns_none_when_time_parsing_fails() -> N
     hass = SimpleNamespace()
 
     parse_results = iter([None, None])
-    with patch.object(services, "get_runtime_data", return_value=None), patch(
-        "custom_components.pawcontrol.services.dt_util.parse_time",
-        side_effect=lambda _value: next(parse_results),
-        create=True,
+    with (
+        patch.object(services, "get_runtime_data", return_value=None),
+        patch(
+            "custom_components.pawcontrol.services.dt_util.parse_time",
+            side_effect=lambda _value: next(parse_results),
+            create=True,
+        ),
     ):
         result = await services.async_setup_daily_reset_scheduler(hass, entry)
 
