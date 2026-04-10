@@ -180,6 +180,75 @@ def test_ensure_gps_payload_float_and_timestamp_normalisation() -> None:
     assert payload["current_route"]["point_count"] == 0
 
 
+def test_ensure_gps_route_snapshot_filters_invalid_points_and_optional_fields() -> None:
+    """Route snapshots should keep only valid point mappings and numeric options."""
+    snapshot = types.ensure_gps_route_snapshot(
+        {
+            "id": "route-1",
+            "name": "",
+            "active": 1,
+            "points": [
+                {"latitude": "52.5", "longitude": "13.4", "altitude": "45"},
+                {"latitude": "bad", "longitude": "13.5"},
+                "invalid-point",
+                {"latitude": 53.0, "longitude": 13.6, "speed": "3.1"},
+            ],
+            "distance": "2.75",
+            "duration": "42",
+            "end_time": " 2025-01-02T04:05:06+00:00 ",
+            "last_point_time": "",
+        }
+    )
+
+    assert snapshot is not None
+    assert snapshot["active"] is True
+    assert snapshot["name"] == "route-1"
+    assert snapshot["point_count"] == 2
+    assert snapshot["points"][0]["latitude"] == 52.5
+    assert snapshot["points"][0]["altitude"] == 45.0
+    assert snapshot["points"][1]["speed"] == 3.1
+    assert snapshot["distance"] == 2.75
+    assert snapshot["duration"] == 42.0
+    assert snapshot["end_time"] == "2025-01-02T04:05:06+00:00"
+    assert "last_point_time" not in snapshot
+
+
+def test_ensure_gps_payload_removes_invalid_current_route_and_keeps_active_route() -> None:
+    """Payload normalisation should drop invalid current routes and build active routes."""
+    payload = types.ensure_gps_payload(
+        {
+            "current_route": [],
+            "active_route": {
+                "id": "walk-1",
+                "points": [{"latitude": 50, "longitude": 8}],
+            },
+            "status": None,
+        }
+    )
+
+    assert payload is not None
+    assert "current_route" not in payload
+    assert payload["active_route"]["id"] == "walk-1"
+    assert payload["active_route"]["point_count"] == 1
+    assert payload["status"] == "unknown"
+
+
+def test_ensure_gps_payload_null_satellites_and_trimmed_last_seen() -> None:
+    """Explicit satellite nulls and blank timestamps should normalize consistently."""
+    payload = types.ensure_gps_payload(
+        {
+            "satellites": None,
+            "last_seen": "   ",
+            "latitude": "48.1",
+        }
+    )
+
+    assert payload is not None
+    assert payload["satellites"] is None
+    assert payload["last_seen"] is None
+    assert payload["latitude"] == 48.1
+
+
 def test_cache_diagnostics_snapshot_from_mapping_uses_mapping_and_typed_instances() -> (
     None
 ):
