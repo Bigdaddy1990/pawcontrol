@@ -1,7 +1,7 @@
 """Tests for scripts.enforce_test_todo_policy."""
 
-import sys
 from pathlib import Path
+import sys
 
 from scripts import enforce_test_todo_policy
 

@@ -143,7 +143,9 @@ def test_resolve_manual_resilience_events_handles_keyerror_and_invalid_forms() -
     ]
 
 
-def test_resolve_manual_resilience_events_handles_async_entries_attributeerror() -> None:
+def test_resolve_manual_resilience_events_handles_async_entries_attributeerror() -> (
+    None
+):
     """Resolver should gracefully handle config entry managers without domains."""
     hass = _build_hass()
     hass.config_entries = SimpleNamespace(

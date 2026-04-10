@@ -262,8 +262,14 @@ def test_validate_expires_in_hours_rejects_invalid_values(
 def test_validate_gps_accuracy_value_handles_default_clamp_and_range_errors() -> None:
     """GPS accuracy should support defaults, clamping, and out-of-range failures."""
     assert validate_gps_accuracy_value("", default=5.0) == 5.0
-    assert validate_gps_accuracy_value(-2, min_value=0.0, max_value=10.0, clamp=True) == 0.0
-    assert validate_gps_accuracy_value(50, min_value=0.0, max_value=10.0, clamp=True) == 10.0
+    assert (
+        validate_gps_accuracy_value(-2, min_value=0.0, max_value=10.0, clamp=True)
+        == 0.0
+    )
+    assert (
+        validate_gps_accuracy_value(50, min_value=0.0, max_value=10.0, clamp=True)
+        == 10.0
+    )
 
     with pytest.raises(ValidationError, match="gps_accuracy_required"):
         validate_gps_accuracy_value(None, required=True)
@@ -275,10 +281,18 @@ def test_validate_gps_accuracy_value_handles_default_clamp_and_range_errors() ->
         validate_gps_accuracy_value(11, min_value=0.0, max_value=10.0)
 
 
-def test_validate_int_and_float_range_cover_default_clamp_and_required_branches() -> None:
+def test_validate_int_and_float_range_cover_default_clamp_and_required_branches() -> (
+    None
+):
     """Range validators should exercise defaulting, clamp, and required branches."""
-    assert validate_int_range(None, field="interval", minimum=1, maximum=10, default=4) == 4
-    assert validate_int_range(12, field="interval", minimum=1, maximum=10, clamp=True) == 10
+    assert (
+        validate_int_range(None, field="interval", minimum=1, maximum=10, default=4)
+        == 4
+    )
+    assert (
+        validate_int_range(12, field="interval", minimum=1, maximum=10, clamp=True)
+        == 10
+    )
     assert validate_float_range(None, minimum=1.0, maximum=5.0, default=1.5) == 1.5
     assert validate_float_range(0.2, minimum=1.0, maximum=5.0, clamp=True) == 1.0
 
