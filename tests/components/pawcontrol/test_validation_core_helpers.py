@@ -13,6 +13,7 @@ from custom_components.pawcontrol.validation import (
     _parse_time_string,
     coerce_float,
     coerce_int,
+    validate_dog_name,
     normalize_dog_id,
     validate_name,
     validate_notification_targets,
@@ -88,6 +89,9 @@ def test_coerce_int_handles_fractional_and_invalid_values() -> None:
     with pytest.raises(InputCoercionError, match="Must be a whole number"):
         coerce_int("interval", False)
 
+    with pytest.raises(InputCoercionError, match="Must be a whole number"):
+        coerce_int("interval", object())
+
 
 def test_validate_notification_targets_handles_iterables_duplicates_and_invalid() -> (
     None
@@ -138,6 +142,15 @@ def test_validate_time_window_uses_defaults_and_required_constraints() -> None:
             required_start_constraint="start_required",
         )
 
+    with pytest.raises(ValidationError, match="end_required"):
+        validate_time_window(
+            "07:00",
+            None,
+            start_field="start",
+            end_field="end",
+            required_end_constraint="end_required",
+        )
+
 
 def test_validate_name_and_float_constraint_helpers() -> None:
     """Name and float coercion helpers should normalize and map constraints."""
@@ -148,3 +161,31 @@ def test_validate_name_and_float_constraint_helpers() -> None:
 
     with pytest.raises(ValidationError, match="must_be_numeric"):
         _coerce_float_with_constraint("weight", "not-a-number", "must_be_numeric")
+
+
+@pytest.mark.parametrize(
+    ("name", "kwargs", "expected"),
+    [
+        ("", {"required": False}, None),
+        ("  Buddy  ", {}, "Buddy"),
+    ],
+)
+def test_validate_dog_name_accepts_optional_empty_and_trims(
+    name: str,
+    kwargs: dict[str, bool],
+    expected: str | None,
+) -> None:
+    """Dog name validation should trim values and allow optional empty fields."""
+    assert validate_dog_name(name, **kwargs) == expected
+
+
+def test_validate_dog_name_rejects_length_and_type_errors() -> None:
+    """Dog name validation should emit specific constraints for invalid payloads."""
+    with pytest.raises(ValidationError, match="dog_name_invalid"):
+        validate_dog_name(123)
+
+    with pytest.raises(ValidationError, match="dog_name_too_short"):
+        validate_dog_name("A")
+
+    with pytest.raises(ValidationError, match="dog_name_too_long"):
+        validate_dog_name("A" * 65)
