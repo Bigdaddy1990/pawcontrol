@@ -180,8 +180,18 @@ def test_coerce_service_bool_true_values(value: object) -> None:
     assert services._coerce_service_bool(value, field="enabled") is True
 
 
+@pytest.mark.parametrize("value", ["  TRUE ", "Enabled", " On "])
+def test_coerce_service_bool_true_string_normalization(value: object) -> None:
+    assert services._coerce_service_bool(value, field="enabled") is True
+
+
 @pytest.mark.parametrize("value", [False, "off", "disable", "0", 0])
 def test_coerce_service_bool_false_values(value: object) -> None:
+    assert services._coerce_service_bool(value, field="enabled") is False
+
+
+@pytest.mark.parametrize("value", ["  FALSE ", "Disabled", " Off "])
+def test_coerce_service_bool_false_string_normalization(value: object) -> None:
     assert services._coerce_service_bool(value, field="enabled") is False
 
 
@@ -288,6 +298,64 @@ def test_format_text_validation_error_variants(  # noqa: F811
     message: str,
 ) -> None:
     assert services._format_text_validation_error(error) == message
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(2.0, "2"), (2.5, "2.5"), ("3.0", "3.0")],
+)
+def test_format_numeric_value_preserves_stable_text(
+    value: object,
+    expected: str,
+) -> None:
+    assert services._format_numeric_value(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("error", "unit", "expected"),
+    [
+        (
+            ValidationError(
+                "geofence_radius",
+                constraint="geofence_radius_required",
+            ),
+            None,
+            "geofence_radius is required",
+        ),
+        (
+            ValidationError(
+                "geofence_radius",
+                constraint="geofence_radius_not_numeric",
+            ),
+            None,
+            "geofence_radius must be a number",
+        ),
+        (
+            ValidationError(
+                "gps_update_interval",
+                constraint="gps_update_interval_not_numeric",
+            ),
+            None,
+            "gps_update_interval must be a whole number",
+        ),
+        (
+            ValidationError(
+                "gps_accuracy",
+                constraint="gps_accuracy_out_of_range",
+                min_value=5,
+                max_value=50,
+            ),
+            None,
+            "gps_accuracy must be between 5 and 50",
+        ),
+    ],
+)
+def test_format_gps_validation_error_additional_constraints(
+    error: ValidationError,
+    unit: str | None,
+    expected: str,
+) -> None:
+    assert services._format_gps_validation_error(error, unit=unit) == expected
 
 
 def test_normalise_context_identifier_handles_bad_string_conversion() -> None:
