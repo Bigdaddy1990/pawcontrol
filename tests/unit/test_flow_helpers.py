@@ -500,7 +500,7 @@ class TestSchemaBuilding:
 
         marker = next(iter(schema))
         assert marker.schema == "size"
-        assert marker.default is vol.UNDEFINED
+        assert marker.default() is vol.UNDEFINED
 
     def test_build_select_schema_translation_key(self) -> None:
         """Select schema should propagate translation keys when configured."""
@@ -522,7 +522,7 @@ class TestSchemaBuilding:
 
         marker = next(iter(schema))
         assert isinstance(marker, vol.Optional)
-        assert marker.default is vol.UNDEFINED
+        assert marker.default() is vol.UNDEFINED
 
     def test_build_select_schema_required_with_default(self) -> None:
         """Required select schemas should support explicit defaults."""
@@ -548,7 +548,7 @@ class TestSchemaBuilding:
 
         marker = next(iter(schema))
         assert marker.schema == "walk_minutes"
-        assert marker.default is vol.UNDEFINED
+        assert marker.default() is vol.UNDEFINED
 
     def test_build_number_schema_with_unit(self) -> None:
         """Number schema should attach units when supplied."""
@@ -572,7 +572,7 @@ class TestSchemaBuilding:
 
         marker = next(iter(schema))
         assert isinstance(marker, vol.Optional)
-        assert marker.default is vol.UNDEFINED
+        assert marker.default() is vol.UNDEFINED
 
     def test_build_number_schema_required_with_default(self) -> None:
         """Required number schemas should accept explicit defaults."""
@@ -597,7 +597,7 @@ class TestSchemaBuilding:
 
         marker = next(iter(schema))
         assert marker.schema == "nickname"
-        assert marker.default is vol.UNDEFINED
+        assert marker.default() is vol.UNDEFINED
 
     def test_build_text_schema_with_autocomplete(self) -> None:
         """Text schema should include autocomplete metadata when provided."""
@@ -615,7 +615,7 @@ class TestSchemaBuilding:
 
         marker = next(iter(schema))
         assert isinstance(marker, vol.Optional)
-        assert marker.default is vol.UNDEFINED
+        assert marker.default() is vol.UNDEFINED
 
     def test_build_text_schema_required_with_default(self) -> None:
         """Required text schemas should allow explicit defaults."""

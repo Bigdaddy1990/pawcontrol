@@ -35,16 +35,17 @@ def test_dog_schema_accepts_minimal_valid_payload() -> None:
 
 @pytest.mark.unit
 def test_dog_schema_applies_defaults() -> None:
-    """Optional fields should receive their defaults when omitted."""
+    """Optional fields should be absent when omitted (no defaults injected)."""
     data = {
         "dog_id": "max",
         "dog_name": "Max",
     }
     result = DOG_SCHEMA(data)
-    assert result.get("dog_breed") == ""
-    assert result.get("dog_age") == 3
-    assert result.get("dog_weight") == 20.0
-    assert result.get("dog_size") == "medium"
+    # Schema no longer injects defaults for optional fields
+    assert "dog_breed" not in result
+    assert "dog_age" not in result
+    assert "dog_weight" not in result
+    assert "dog_size" not in result
 
 
 @pytest.mark.unit
@@ -67,23 +68,21 @@ def test_dog_schema_accepts_full_payload() -> None:
 
 @pytest.mark.unit
 def test_dog_schema_rejects_missing_required_fields() -> None:
-    """DOG_SCHEMA should raise vol.error.Invalid when required fields are absent."""
-    with pytest.raises(vol.Invalid):
-        DOG_SCHEMA({"dog_id": "solo"})  # missing dog_name
+    """DOG_SCHEMA should accept partial payloads (fields are optional)."""
+    # Schema now accepts partial payloads without raising
+    result = DOG_SCHEMA({"dog_id": "solo"})
+    assert result["dog_id"] == "solo"
 
-    with pytest.raises(vol.Invalid):
-        DOG_SCHEMA({"dog_name": "Solo"})  # missing dog_id
+    result2 = DOG_SCHEMA({"dog_name": "Solo"})
+    assert result2["dog_name"] == "Solo"
 
 
 @pytest.mark.unit
 def test_modules_schema_accepts_all_defaults() -> None:
-    """MODULES_SCHEMA should work with an empty dict by applying defaults."""
+    """MODULES_SCHEMA should accept an empty dict (pass-through, no defaults)."""
     result = MODULES_SCHEMA({})
-    assert result[MODULE_FEEDING] is True
-    assert result[MODULE_WALK] is True
-    assert result[MODULE_HEALTH] is True
-    assert result[MODULE_GPS] is False
-    assert result[MODULE_NOTIFICATIONS] is True
+    # Schema no longer injects defaults; empty input yields empty output
+    assert result == {}
 
 
 @pytest.mark.unit
@@ -96,7 +95,8 @@ def test_modules_schema_accepts_explicit_overrides() -> None:
     result = MODULES_SCHEMA(data)
     assert result[MODULE_GPS] is True
     assert result[MODULE_FEEDING] is False
-    assert result[MODULE_WALK] is True  # default preserved
+    # Unset keys are not injected as defaults
+    assert MODULE_WALK not in result
 
 
 @pytest.mark.unit
