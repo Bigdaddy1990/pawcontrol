@@ -438,6 +438,21 @@ def test_derive_rejection_metrics_handles_missing_summary() -> None:
     assert tasks.derive_rejection_metrics({}) == tasks.default_rejection_metrics()
 
 
+def test_derive_rejection_metrics_wrapper_matches_public_helper() -> None:
+    """Legacy wrapper should delegate to ``derive_rejection_metrics`` unchanged."""
+    summary = {
+        "rejected_call_count": "7",
+        "rejection_breaker_count": "2",
+        "rejection_rate": "0.5",
+        "open_breakers": ["alpha"],
+        "half_open_breakers": [],
+    }
+
+    assert tasks._derive_rejection_metrics(summary) == tasks.derive_rejection_metrics(
+        summary
+    )
+
+
 def test_collect_resilience_diagnostics_persists_summary(monkeypatch) -> None:
     """Collected resilience summaries should persist into runtime performance stats."""
     breaker = SimpleNamespace(
