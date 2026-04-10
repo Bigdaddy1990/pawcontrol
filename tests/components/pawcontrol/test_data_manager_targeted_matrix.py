@@ -224,6 +224,35 @@ async def test_async_generate_report_tolerates_adapter_exceptions_and_persists(
     assert '"report_type": "weekly"' in reports_dump
 
 
+@pytest.mark.asyncio
+async def test_async_export_data_all_allow_partial_captures_homeassistant_and_io_errors(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._dog_profiles["buddy"].feeding_history = [
+        {"timestamp": "2026-01-02T08:00:00+00:00", "portion_size": 10.0},
+    ]
+    manager._get_runtime_data = lambda: SimpleNamespace(  # type: ignore[method-assign]
+        gps_geofence_manager=SimpleNamespace(
+            async_export_routes=AsyncMock(side_effect=OSError("disk offline")),
+        ),
+    )
+
+    manifest_path = await manager.async_export_data(
+        "buddy",
+        "all",
+        allow_partial=True,
+    )
+
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert payload["data_type"] == "all"
+    assert "feeding" in payload["exports"]
+    assert "walks" in payload["exports"]
+    assert payload["errors"]["garden"] == "Garden manager not available for export"
+    assert payload["errors"]["routes"].startswith("I/O error: disk offline")
+
+
 def test_cache_repair_summary_classifies_normal_corrupt_and_error_states(
     mock_hass: object,
     tmp_path: Path,
