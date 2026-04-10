@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock
 
 from homeassistant.exceptions import HomeAssistantError
@@ -79,6 +80,56 @@ async def test_async_get_module_history_handles_inconsistent_entries(
 
 
 @pytest.mark.asyncio
+async def test_async_get_module_history_returns_empty_for_unknown_module_or_profile(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+
+    assert await manager.async_get_module_history("unknown", "buddy") == []
+    assert await manager.async_get_module_history("feeding", "missing-dog") == []
+
+
+@pytest.mark.asyncio
+async def test_async_get_module_history_returns_empty_when_profile_payload_not_list(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+    profile = manager._dog_profiles["buddy"]
+    profile.feeding_history = cast(list[dict[str, object]], "not-a-list")
+
+    history = await manager.async_get_module_history("feeding", "buddy")
+
+    assert history == []
+
+
+@pytest.mark.asyncio
+async def test_async_get_module_history_filters_bad_entries_with_bounds(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+    profile = manager._dog_profiles["buddy"]
+    profile.feeding_history = [
+        {"timestamp": "2026-01-04T09:00:00+00:00", "portion_size": 45},
+        {"timestamp": "not-a-date", "portion_size": 15},
+        {"timestamp": None, "portion_size": 10},
+    ]
+
+    history = await manager.async_get_module_history(
+        "feeding",
+        "buddy",
+        since="2026-01-03T00:00:00+00:00",
+        until="2026-01-05T00:00:00+00:00",
+    )
+
+    assert history == [
+        {"timestamp": "2026-01-04T09:00:00+00:00", "portion_size": 45},
+    ]
+
+
+@pytest.mark.asyncio
 async def test_async_export_data_json_path_returns_business_payload(
     mock_hass: object,
     tmp_path: Path,
@@ -140,7 +191,9 @@ async def test_async_generate_report_tolerates_adapter_exceptions_and_persists(
     profile.health_history = [{"timestamp": "invalid", "status": "ok"}]
     runtime = SimpleNamespace(
         feeding_manager=SimpleNamespace(
-            async_generate_health_report=AsyncMock(side_effect=RuntimeError("adapter down")),
+            async_generate_health_report=AsyncMock(
+                side_effect=RuntimeError("adapter down")
+            ),
         ),
         notification_manager=SimpleNamespace(
             async_send_notification=AsyncMock(side_effect=RuntimeError("notify down")),
@@ -161,7 +214,10 @@ async def test_async_generate_report_tolerates_adapter_exceptions_and_persists(
     assert report["walks"]["entries"] == 0
     assert report["health"]["entries"] == 0
     assert "detailed_report" not in report["health"]
-    assert "Schedule regular walks to maintain activity levels." in report["recommendations"]
+    assert (
+        "Schedule regular walks to maintain activity levels."
+        in report["recommendations"]
+    )
     reports_namespace = manager._namespace_state.get("reports")
     assert isinstance(reports_namespace, dict)
     reports_dump = json.dumps(reports_namespace)
