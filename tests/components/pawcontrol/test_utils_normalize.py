@@ -88,12 +88,10 @@ def test_normalize_value_coerces_mapping_keys_and_iterables() -> None:
 
 def test_normalize_value_falls_back_to_repr_for_bytes_and_custom_objects() -> None:
     """Values excluded from iterable conversion use repr fallback."""
-
     assert normalize_value(b"raw") == "b'raw'"
     assert normalize_value(UnserializableObject()) == "UnserializableObject()"
 
 
 def test_normalize_value_returns_dataclass_type_repr_when_given_class() -> None:
     """Dataclass classes should not be treated as dataclass instances."""
-
     assert normalize_value(SamplePayload) == repr(SamplePayload)
