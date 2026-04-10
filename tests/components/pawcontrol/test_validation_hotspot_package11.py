@@ -8,6 +8,10 @@ from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.validation import (
     clamp_float_range,
     clamp_int_range,
+    validate_expires_in_hours,
+    validate_float_range,
+    validate_gps_accuracy_value,
+    validate_int_range,
     validate_entity_id,
     validate_gps_source,
     validate_interval,
@@ -192,3 +196,80 @@ def test_validate_sensor_entity_id_checks_domain_and_device_class() -> None:
             field="door_sensor",
             device_classes={"humidity"},
         )
+
+
+@pytest.mark.parametrize(
+    ("value", "kwargs", "expected"),
+    [
+        (None, {"minimum": 1.5, "maximum": 6.0, "required": False}, None),
+        ("2.5", {"minimum": 1.5, "maximum": 6.0}, 2.5),
+    ],
+)
+def test_validate_expires_in_hours_accepts_optional_and_numeric_input(
+    value: object,
+    kwargs: dict[str, object],
+    expected: float | None,
+) -> None:
+    """Expiry hours should accept empty optional values and valid numbers."""
+    assert validate_expires_in_hours(value, **kwargs) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "kwargs", "message"),
+    [
+        (None, {"required": True}, "expires_in_hours_required"),
+        ("bad", {}, "expires_in_hours_not_numeric"),
+        (0, {"minimum": 0.0}, "expires_in_hours_out_of_range"),
+        (9, {"minimum": 0.0, "maximum": 8.0}, "expires_in_hours_out_of_range"),
+    ],
+)
+def test_validate_expires_in_hours_rejects_invalid_values(
+    value: object,
+    kwargs: dict[str, object],
+    message: str,
+) -> None:
+    """Expiry validator should enforce required, numeric, and bounds rules."""
+    with pytest.raises(ValidationError, match=message):
+        validate_expires_in_hours(value, **kwargs)
+
+
+def test_validate_gps_accuracy_value_handles_default_clamp_and_range_errors() -> None:
+    """GPS accuracy should support defaults, clamping, and out-of-range failures."""
+    assert validate_gps_accuracy_value("", default=5.0) == 5.0
+    assert validate_gps_accuracy_value(-2, min_value=0.0, max_value=10.0, clamp=True) == 0.0
+    assert validate_gps_accuracy_value(50, min_value=0.0, max_value=10.0, clamp=True) == 10.0
+
+    with pytest.raises(ValidationError, match="gps_accuracy_required"):
+        validate_gps_accuracy_value(None, required=True)
+
+    with pytest.raises(ValidationError, match="gps_accuracy_not_numeric"):
+        validate_gps_accuracy_value("oops")
+
+    with pytest.raises(ValidationError, match="gps_accuracy_out_of_range"):
+        validate_gps_accuracy_value(11, min_value=0.0, max_value=10.0)
+
+
+def test_validate_int_and_float_range_cover_default_clamp_and_required_branches() -> None:
+    """Range validators should exercise defaulting, clamp, and required branches."""
+    assert validate_int_range(None, field="interval", minimum=1, maximum=10, default=4) == 4
+    assert validate_int_range(12, field="interval", minimum=1, maximum=10, clamp=True) == 10
+    assert validate_float_range(None, minimum=1.0, maximum=5.0, default=1.5) == 1.5
+    assert validate_float_range(0.2, minimum=1.0, maximum=5.0, clamp=True) == 1.0
+
+    with pytest.raises(ValidationError, match="value_required"):
+        validate_int_range(None, field="interval", minimum=1, maximum=10, required=True)
+
+    with pytest.raises(ValidationError, match="value_not_numeric"):
+        validate_int_range("bad", field="interval", minimum=1, maximum=10)
+
+    with pytest.raises(ValidationError, match="value_out_of_range"):
+        validate_int_range(99, field="interval", minimum=1, maximum=10)
+
+    with pytest.raises(ValidationError, match="Value is required"):
+        validate_float_range(None, minimum=1.0, maximum=5.0, required=True)
+
+    with pytest.raises(ValidationError, match="Must be numeric"):
+        validate_float_range("bad", minimum=1.0, maximum=5.0)
+
+    with pytest.raises(ValidationError, match="Maximum value is 5.0"):
+        validate_float_range(8.0, minimum=1.0, maximum=5.0)
