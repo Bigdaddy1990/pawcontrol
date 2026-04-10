@@ -224,6 +224,64 @@ def test_validate_sensor_entity_id_checks_domain_and_device_class() -> None:
         )
 
 
+def test_validate_sensor_entity_id_optional_and_required_empty_paths() -> None:
+    """Empty sensor IDs should respect required flag and custom constraints."""
+    hass = _build_hass()
+
+    assert (
+        validate_sensor_entity_id(
+            hass,
+            None,
+            field="door_sensor",
+            required=False,
+        )
+        is None
+    )
+
+    with pytest.raises(ValidationError, match="door_sensor_required"):
+        validate_sensor_entity_id(
+            hass,
+            "   ",
+            field="door_sensor",
+            required=True,
+            required_constraint="door_sensor_required",
+        )
+
+
+def test_validate_sensor_entity_id_rejects_unavailable_and_non_string_values() -> None:
+    """Unavailable and malformed sensor IDs should fail with not-found constraints."""
+    hass = _build_hass(
+        states={
+            "binary_sensor.unknown_state": SimpleNamespace(state="unknown", attributes={}),
+            "binary_sensor.unavailable_state": SimpleNamespace(
+                state="unavailable",
+                attributes={},
+            ),
+        }
+    )
+
+    with pytest.raises(ValidationError, match="sensor_not_found"):
+        validate_sensor_entity_id(
+            hass,
+            123,
+            field="door_sensor",
+        )
+
+    with pytest.raises(ValidationError, match="sensor_not_found"):
+        validate_sensor_entity_id(
+            hass,
+            "binary_sensor.unknown_state",
+            field="door_sensor",
+        )
+
+    with pytest.raises(ValidationError, match="sensor_not_found"):
+        validate_sensor_entity_id(
+            hass,
+            "binary_sensor.unavailable_state",
+            field="door_sensor",
+        )
+
+
 @pytest.mark.parametrize(
     ("value", "kwargs", "expected"),
     [
