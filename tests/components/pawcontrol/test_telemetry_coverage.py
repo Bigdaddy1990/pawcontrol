@@ -123,3 +123,101 @@ def test_record_door_sensor_persistence_failure_returns_none_without_runtime_dat
         )
         is None
     )
+
+
+def test_build_runtime_store_assessment_escalates_on_future_incompatible_status() -> (
+    None
+):
+    """Future-incompatible snapshots should produce action-required assessments."""
+    snapshot = {
+        "status": "future_incompatible",
+        "entry": {"status": "future_incompatible"},
+        "store": {"status": "future_incompatible"},
+        "divergence_detected": False,
+    }
+    history = {
+        "checks": 4,
+        "divergence_events": 0,
+        "last_status": "future_incompatible",
+        "last_entry_status": "future_incompatible",
+        "last_store_status": "future_incompatible",
+        "last_checked": "2026-01-01T00:00:00+00:00",
+        "divergence_detected": False,
+    }
+
+    assessment = telemetry._build_runtime_store_assessment(  # noqa: SLF001
+        snapshot,
+        history,
+        recorded=True,
+        previous_assessment=None,
+    )
+
+    assert assessment["level"] == "action_required"
+    assert assessment["reason"] == (
+        "Runtime store caches were produced by a newer schema and must be reset."
+    )
+    assert assessment["recommended_action"] is not None
+
+
+def test_build_runtime_store_assessment_segments_uses_duration_fallback_for_last_event() -> (
+    None
+):
+    """Segment builder should use current-level fallback duration for final events."""
+    events = [
+        {
+            "timestamp": "2026-01-01T00:00:00+00:00",
+            "level": "ok",
+            "status": "current",
+            "reason": "ok",
+        },
+        {
+            "timestamp": "2026-01-01T00:10:00+00:00",
+            "level": "watch",
+            "status": "diverged",
+            "reason": "drift",
+            "current_level_duration_seconds": 120.0,
+        },
+    ]
+
+    segments = telemetry._build_runtime_store_assessment_segments(events)  # noqa: SLF001
+
+    assert len(segments) == 2
+    assert segments[0]["duration_seconds"] == 600.0
+    assert segments[1]["duration_seconds"] == 120.0
+    assert segments[1]["status"] == "diverged"
+
+
+def test_update_runtime_entity_factory_guard_metrics_calculates_regressing_trend() -> (
+    None
+):
+    """Guard metrics should report regressing trend when stable ratio drops sharply."""
+    runtime_data = SimpleNamespace(
+        performance_stats={
+            "entity_factory_guard_metrics": {
+                "schema_version": 1,
+                "samples": 10,
+                "stable_samples": 8,
+                "stable_ratio": 0.8,
+                "runtime_floor": 10.0,
+                "recent_events": ["expand", "contract", "expand", "contract"],
+                "recent_durations": [2.0, 2.0, 2.0, 2.0],
+                "expansions": 1,
+                "contractions": 1,
+            }
+        },
+    )
+
+    metrics = telemetry.update_runtime_entity_factory_guard_metrics(
+        runtime_data,
+        runtime_floor=8.0,
+        actual_duration=3.0,
+        event="expand",
+        baseline_floor=5.0,
+        max_floor=20.0,
+        enforce_min_runtime=True,
+    )
+
+    assert metrics is not None
+    assert metrics["samples"] == 11
+    assert metrics["expansions"] == 2
+    assert metrics["stability_trend"] == "regressing"
