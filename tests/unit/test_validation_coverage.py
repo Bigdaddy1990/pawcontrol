@@ -1,7 +1,7 @@
 """Targeted coverage tests for validation.py."""
 
-from enum import Enum
 from datetime import time
+from enum import Enum
 
 import pytest
 
