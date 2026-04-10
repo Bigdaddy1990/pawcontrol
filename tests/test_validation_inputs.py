@@ -39,6 +39,13 @@ validate_dog_name = validation.validate_dog_name
 validate_gps_interval = validation.validate_gps_interval
 validate_notification_targets = validation.validate_notification_targets
 validate_time_window = validation.validate_time_window
+validate_entity_id = validation.validate_entity_id
+validate_coordinate = validation.validate_coordinate
+validate_expires_in_hours = validation.validate_expires_in_hours
+validate_int_range = validation.validate_int_range
+validate_float_range = validation.validate_float_range
+clamp_int_range = validation.clamp_int_range
+clamp_float_range = validation.clamp_float_range
 validate_json_schema_payload = schemas.validate_json_schema_payload
 GPS_DOG_CONFIG_JSON_SCHEMA = schemas.GPS_DOG_CONFIG_JSON_SCHEMA
 GPS_OPTIONS_JSON_SCHEMA = schemas.GPS_OPTIONS_JSON_SCHEMA
@@ -292,3 +299,113 @@ def test_validate_time_window_rejects_invalid_time() -> None:
         )
 
     assert err.value.constraint == "quiet_start_invalid"
+
+
+def test_validate_entity_id_accepts_trimmed_candidate() -> None:
+    assert validate_entity_id("  sensor.garden_temperature  ") == (
+        "sensor.garden_temperature"
+    )
+
+
+@pytest.mark.parametrize("entity_id", [None, "sensor", "sensor.", ".name", "1foo.bar"])
+def test_validate_entity_id_rejects_invalid_shapes(entity_id: object) -> None:
+    with pytest.raises(ValidationError):
+        validate_entity_id(entity_id)
+
+
+def test_validate_coordinate_handles_required_and_optional_paths() -> None:
+    assert validate_coordinate("52.2", field="latitude", minimum=-90, maximum=90) == (
+        pytest.approx(52.2)
+    )
+    assert (
+        validate_coordinate(
+            None, field="latitude", minimum=-90, maximum=90, required=False
+        )
+        is None
+    )
+
+    with pytest.raises(ValidationError) as err:
+        validate_coordinate(
+            "not-a-number",
+            field="latitude",
+            minimum=-90,
+            maximum=90,
+        )
+    assert err.value.constraint == "coordinate_not_numeric"
+
+    with pytest.raises(ValidationError) as range_err:
+        validate_coordinate("100", field="latitude", minimum=-90, maximum=90)
+    assert range_err.value.constraint == "coordinate_out_of_range"
+
+
+def test_validate_expires_in_hours_supports_required_and_bounds() -> None:
+    assert validate_expires_in_hours("1.5", minimum=0.0, maximum=2.0) == pytest.approx(
+        1.5
+    )
+    assert validate_expires_in_hours("", required=False) is None
+
+    with pytest.raises(ValidationError) as required_err:
+        validate_expires_in_hours(None, required=True)
+    assert required_err.value.constraint == "expires_in_hours_required"
+
+    with pytest.raises(ValidationError) as numeric_err:
+        validate_expires_in_hours("tomorrow")
+    assert numeric_err.value.constraint == "expires_in_hours_not_numeric"
+
+    with pytest.raises(ValidationError) as range_err:
+        validate_expires_in_hours(0, minimum=0.0)
+    assert range_err.value.constraint == "expires_in_hours_out_of_range"
+
+
+def test_validate_int_and_float_range_and_clamp_helpers() -> None:
+    assert (
+        validate_int_range(
+            "5",
+            field="interval",
+            minimum=1,
+            maximum=10,
+            required=True,
+        )
+        == 5
+    )
+    assert (
+        validate_float_range(
+            "1.25",
+            minimum=0.5,
+            maximum=2.0,
+            field="temperature",
+            required=True,
+        )
+        == pytest.approx(1.25)
+    )
+    assert (
+        clamp_int_range(
+            "200",
+            field="interval",
+            minimum=1,
+            maximum=120,
+            default=30,
+        )
+        == 120
+    )
+    assert (
+        clamp_float_range(
+            "9.5",
+            field="threshold",
+            minimum=0.0,
+            maximum=5.0,
+            default=2.0,
+        )
+        == pytest.approx(5.0)
+    )
+
+    with pytest.raises(ValidationError) as int_required_err:
+        validate_int_range(
+            None,
+            field="interval",
+            minimum=1,
+            maximum=10,
+            required=True,
+            required_constraint="interval_required",
+        )
+    assert int_required_err.value.constraint == "interval_required"
