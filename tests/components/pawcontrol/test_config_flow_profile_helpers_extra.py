@@ -18,10 +18,7 @@ def test_coerce_str_and_title_helpers_fall_back_for_non_strings() -> None:
     assert profile_helpers._coerce_str(5, fallback="fallback") == "fallback"
 
     assert profile_helpers._get_profile_title("guardian", None) == "Guardian"
-    assert (
-        profile_helpers._get_profile_title("guardian", {"name": 10})
-        == "Guardian"
-    )
+    assert profile_helpers._get_profile_title("guardian", {"name": 10}) == "Guardian"
 
 
 def test_get_profile_selector_options_omits_optional_label_parts(

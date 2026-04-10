@@ -1,7 +1,5 @@
 """Coverage tests for local ``aiohttp`` compatibility shims."""
 
-from __future__ import annotations
-
 import asyncio
 import json
 

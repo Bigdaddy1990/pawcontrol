@@ -64,8 +64,9 @@ def test_ensure_dog_config_data_normalises_optional_fields_and_trims_sensor() ->
     assert normalised["walk"] == {"enabled": True}
 
 
-def test_ensure_dog_config_data_includes_text_and_non_default_door_sensor_settings(
-) -> None:
+def test_ensure_dog_config_data_includes_text_and_non_default_door_sensor_settings() -> (
+    None
+):
     """Dog config should include text snapshots and non-default door settings."""
     payload = {
         types.DOG_ID_FIELD: "dog-9",
@@ -509,8 +510,9 @@ def test_cache_repair_aggregate_to_mapping_omits_empty_optional_sections() -> No
     }
 
 
-def test_ensure_dog_options_entry_prefers_payload_dog_id_and_normalizes_notifications(
-) -> None:
+def test_ensure_dog_options_entry_prefers_payload_dog_id_and_normalizes_notifications() -> (
+    None
+):
     """Options entry should prefer payload dog_id and apply notification defaults."""
     entry = types.ensure_dog_options_entry(
         {
