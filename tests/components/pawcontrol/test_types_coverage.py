@@ -525,6 +525,46 @@ def test_cache_repair_aggregate_mapping_protocol_helpers() -> None:
     assert len(aggregate) == len(aggregate.to_mapping())
 
 
+def test_cache_repair_aggregate_from_mapping_handles_invalid_nested_payloads() -> None:
+    """Invalid totals/issue payload values should gracefully fall back."""
+    aggregate = types.CacheRepairAggregate.from_mapping({
+        "total_caches": object(),
+        "anomaly_count": "not-a-number",
+        "severity": 7,
+        "generated_at": None,
+        "totals": {
+            "entries": "3",
+            "overall_hit_rate": "bad-rate",
+        },
+        "issues": {"cache": "cache_a"},
+    })
+
+    assert aggregate.total_caches == 0
+    assert aggregate.anomaly_count == 0
+    assert aggregate.severity == "7"
+    assert aggregate.generated_at == "None"
+    assert aggregate.totals is not None
+    assert aggregate.totals.entries == 3
+    assert aggregate.totals.overall_hit_rate is None
+    assert aggregate.issues is None
+
+
+def test_daily_stats_from_dict_falls_back_to_utcnow_for_invalid_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid date payloads should use ``dt_util.utcnow`` as deterministic fallback."""
+    fallback_now = datetime(2026, 1, 15, tzinfo=UTC)
+    monkeypatch.setattr(types.dt_util, "utcnow", lambda: fallback_now)
+
+    parsed = types.DailyStats.from_dict({
+        "date": "not-a-date",
+        "feedings_count": "2",
+    })
+
+    assert parsed.date == fallback_now
+    assert parsed.feedings_count == 2
+
+
 def test_ensure_dog_options_entry_prefers_payload_dog_id_and_normalizes_notifications() -> (
     None
 ):
