@@ -1,5 +1,6 @@
 """Unit tests for dashboard renderer helper behavior."""
 
+import os
 from types import SimpleNamespace
 from typing import Any
 
@@ -227,3 +228,88 @@ async def test_cleanup_marks_jobs_cancelled_and_reports_stats(
     assert stats["active_jobs"] == 0
     assert stats["total_jobs_processed"] == 4
     assert stats["template_cache"] == {"hits": 0, "misses": 0}
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_render_main_dashboard_returns_empty_when_dogs_config_invalid(
+    renderer: dashboard_renderer.DashboardRenderer,
+) -> None:
+    """Main dashboard render should short-circuit when no valid dogs are provided."""
+    result = await renderer.render_main_dashboard("invalid")
+
+    assert result == {"views": []}
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_render_module_view_returns_none_when_generator_raises(
+    renderer: dashboard_renderer.DashboardRenderer,
+) -> None:
+    """Module view rendering should swallow generator exceptions."""
+
+    async def _failing_generator(*args: Any, **kwargs: Any) -> list[dict[str, str]]:
+        raise RuntimeError("broken cards")
+
+    view = await renderer._render_module_view(
+        {"dog_id": "buddy", "dog_name": "Buddy"},
+        {},
+        MODULE_GPS,
+        "Location",
+        "mdi:map-marker",
+        _failing_generator,
+    )
+
+    assert view is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_write_dashboard_file_writes_metadata_payload(
+    renderer: dashboard_renderer.DashboardRenderer,
+    tmp_path: Any,
+) -> None:
+    """Dashboard writes should include metadata and preserve unicode content."""
+    output = tmp_path / "dashboards" / "buddy.json"
+    metadata = {"owner": "Jürgen"}
+
+    await renderer.write_dashboard_file(
+        {"views": [{"title": "Übersicht"}]},
+        output,
+        metadata=metadata,
+    )
+
+    assert output.exists()
+    payload = output.read_text(encoding="utf-8")
+    assert "Jürgen" in payload
+    assert "Übersicht" in payload
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_write_dashboard_file_cleans_temp_file_when_replace_fails(
+    renderer: dashboard_renderer.DashboardRenderer,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Any,
+) -> None:
+    """Failed file replacement should remove temporary file and raise HA error."""
+    output = tmp_path / "dashboard.json"
+    created_temp_paths: list[os.PathLike[str] | str] = []
+    original_replace = dashboard_renderer.os.replace
+
+    def _tracking_replace(
+        src: os.PathLike[str] | str,
+        dst: os.PathLike[str] | str,
+    ) -> None:
+        created_temp_paths.append(src)
+        raise OSError("replace failed")
+
+    monkeypatch.setattr(dashboard_renderer.os, "replace", _tracking_replace)
+
+    with pytest.raises(HomeAssistantError, match="Dashboard file write failed"):
+        await renderer.write_dashboard_file({"views": []}, output)
+
+    for path in created_temp_paths:
+        assert not os.path.exists(path)
+
+    monkeypatch.setattr(dashboard_renderer.os, "replace", original_replace)
