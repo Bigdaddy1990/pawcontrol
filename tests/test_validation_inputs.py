@@ -368,16 +368,13 @@ def test_validate_int_and_float_range_and_clamp_helpers() -> None:
         )
         == 5
     )
-    assert (
-        validate_float_range(
-            "1.25",
-            minimum=0.5,
-            maximum=2.0,
-            field="temperature",
-            required=True,
-        )
-        == pytest.approx(1.25)
-    )
+    assert validate_float_range(
+        "1.25",
+        minimum=0.5,
+        maximum=2.0,
+        field="temperature",
+        required=True,
+    ) == pytest.approx(1.25)
     assert (
         clamp_int_range(
             "200",
@@ -388,16 +385,13 @@ def test_validate_int_and_float_range_and_clamp_helpers() -> None:
         )
         == 120
     )
-    assert (
-        clamp_float_range(
-            "9.5",
-            field="threshold",
-            minimum=0.0,
-            maximum=5.0,
-            default=2.0,
-        )
-        == pytest.approx(5.0)
-    )
+    assert clamp_float_range(
+        "9.5",
+        field="threshold",
+        minimum=0.0,
+        maximum=5.0,
+        default=2.0,
+    ) == pytest.approx(5.0)
 
     with pytest.raises(ValidationError) as int_required_err:
         validate_int_range(

@@ -33,7 +33,9 @@ def test_validate_dict_normalizes_types_and_reports_scalar_type_mismatch() -> No
 
     assert not result.is_valid
     assert result.sanitized_value == {"phone": "+49 123 4567", "name": "Rex"}
-    assert result.errors == ["email: Expected text input for ' EMAIL ' validation, got int"]
+    assert result.errors == [
+        "email: Expected text input for ' EMAIL ' validation, got int"
+    ]
 
 
 @pytest.mark.unit

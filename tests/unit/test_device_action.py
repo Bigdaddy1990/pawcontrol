@@ -63,7 +63,9 @@ async def test_async_get_action_capabilities_returns_schema_fields(
     )
 
     assert "fields" in capabilities
-    schema_keys = {k.schema if hasattr(k, "schema") else k for k in capabilities["fields"].schema}
+    schema_keys = {
+        k.schema if hasattr(k, "schema") else k for k in capabilities["fields"].schema
+    }
     assert expected_keys.issubset(schema_keys)
 
 

@@ -328,9 +328,7 @@ async def test_persistent_cache_delete_loads_before_removing_key(
     fake_store = persistent._store
     assert isinstance(fake_store, _FakeStore)
     now = time.time()
-    fake_store._data = {
-        "dog": {"value": "Milo", "timestamp": now, "ttl_seconds": 60.0}
-    }
+    fake_store._data = {"dog": {"value": "Milo", "timestamp": now, "ttl_seconds": 60.0}}
 
     assert await persistent.delete("dog") is True
     assert await persistent.get("dog") is None
