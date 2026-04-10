@@ -1,5 +1,6 @@
 """Tests for scripts.enforce_test_todo_policy."""
 
+import sys
 from pathlib import Path
 
 from scripts import enforce_test_todo_policy
@@ -29,6 +30,7 @@ def test_main_fails_when_todo_is_present(tmp_path: Path, monkeypatch) -> None:
     )
 
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["enforce_test_todo_policy"])
 
     assert enforce_test_todo_policy.main() == 1
 
@@ -42,5 +44,6 @@ def test_main_passes_when_no_todo_marker_exists(tmp_path: Path, monkeypatch) -> 
     )
 
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["enforce_test_todo_policy"])
 
     assert enforce_test_todo_policy.main() == 0

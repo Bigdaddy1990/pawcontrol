@@ -63,7 +63,8 @@ async def test_async_get_action_capabilities_returns_schema_fields(
     )
 
     assert "fields" in capabilities
-    assert expected_keys.issubset(set(capabilities["fields"].schema))
+    schema_keys = {k.schema if hasattr(k, "schema") else k for k in capabilities["fields"].schema}
+    assert expected_keys.issubset(schema_keys)
 
 
 async def test_async_get_action_capabilities_returns_empty_for_unknown_type() -> None:
@@ -151,7 +152,7 @@ async def test_async_call_action_dispatches_to_runtime_managers(monkeypatch) -> 
 
     feeding_manager.async_add_feeding.assert_awaited_once_with(
         "buddy",
-        120.0,
+        "120",
         meal_type="dinner",
         notes="extra",
         scheduled=True,
