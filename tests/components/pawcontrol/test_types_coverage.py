@@ -66,6 +66,66 @@ def test_ensure_dog_config_data_normalises_optional_fields_and_trims_sensor() ->
     assert normalised["walk"] == {"enabled": True}
 
 
+def test_ensure_dog_config_data_includes_text_and_non_default_door_sensor_settings(
+) -> None:
+    """Dog config should include text snapshots and non-default door settings."""
+    payload = {
+        types.DOG_ID_FIELD: "dog-9",
+        types.DOG_NAME_FIELD: "Nori",
+        types.CONF_DOOR_SENSOR_SETTINGS: {
+            "walk_detection_timeout": 600,
+            "minimum_walk_duration": 120,
+            "maximum_walk_duration": 4800,
+            "door_closed_delay": 10,
+            "require_confirmation": False,
+            "auto_end_walks": False,
+            "confidence_threshold": 0.9,
+        },
+        types.DOG_TEXT_VALUES_FIELD: {
+            "custom_label": "Ready",
+            "notes": "Very playful",
+        },
+        types.DOG_TEXT_METADATA_FIELD: {
+            "custom_label": {
+                "last_updated": "2026-01-10T10:00:00+00:00",
+                "context_id": "ctx-1",
+            },
+        },
+    }
+
+    normalised = types.ensure_dog_config_data(payload)
+
+    assert normalised is not None
+    assert normalised["door_sensor_settings"]["walk_detection_timeout"] == 600
+    assert normalised[types.DOG_TEXT_VALUES_FIELD]["custom_label"] == "Ready"
+    assert (
+        normalised[types.DOG_TEXT_METADATA_FIELD]["custom_label"]["context_id"]
+        == "ctx-1"
+    )
+
+
+def test_ensure_dog_config_data_drops_default_door_sensor_settings_payload() -> None:
+    """Default door sensor settings should not be stored in dog config payloads."""
+    payload = {
+        types.DOG_ID_FIELD: "dog-10",
+        types.DOG_NAME_FIELD: "Yuki",
+        types.CONF_DOOR_SENSOR_SETTINGS: {
+            "walk_detection_timeout": types.DEFAULT_WALK_DETECTION_TIMEOUT,
+            "minimum_walk_duration": types.DEFAULT_MINIMUM_WALK_DURATION,
+            "maximum_walk_duration": types.DEFAULT_MAXIMUM_WALK_DURATION,
+            "door_closed_delay": types.DEFAULT_DOOR_CLOSED_DELAY,
+            "require_confirmation": True,
+            "auto_end_walks": True,
+            "confidence_threshold": types.DEFAULT_CONFIDENCE_THRESHOLD,
+        },
+    }
+
+    normalised = types.ensure_dog_config_data(payload)
+
+    assert normalised is not None
+    assert "door_sensor_settings" not in normalised
+
+
 @pytest.mark.parametrize(
     ("value", "defaults", "expected"),
     [
@@ -449,3 +509,28 @@ def test_cache_repair_aggregate_to_mapping_omits_empty_optional_sections() -> No
         "severity": "normal",
         "generated_at": "2026-03-01T00:00:00+00:00",
     }
+
+
+def test_ensure_dog_options_entry_prefers_payload_dog_id_and_normalizes_notifications(
+) -> None:
+    """Options entry should prefer payload dog_id and apply notification defaults."""
+    entry = types.ensure_dog_options_entry(
+        {
+            types.DOG_ID_FIELD: "dog-in-payload",
+            types.CONF_NOTIFICATIONS: {
+                "quiet_hours": "off",
+            },
+            types.DOG_MODULES_FIELD: {
+                "feeding": 1,
+            },
+        },
+        dog_id="dog-from-arg",
+    )
+
+    assert entry["dog_id"] == "dog-in-payload"
+    assert entry["notifications"][types.NOTIFICATION_QUIET_HOURS_FIELD] is False
+    assert (
+        entry["notifications"][types.NOTIFICATION_REMINDER_REPEAT_FIELD]
+        == types.DEFAULT_REMINDER_REPEAT_MIN
+    )
+    assert entry["modules"]["feeding"] is True
