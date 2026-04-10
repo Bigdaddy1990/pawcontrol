@@ -5,11 +5,11 @@ from datetime import timedelta
 import pytest
 
 from custom_components.pawcontrol.gps_manager import (
-    GPSAccuracy,
-    GPSPoint,
     GeofenceEvent,
     GeofenceEventType,
     GeofenceZone,
+    GPSAccuracy,
+    GPSPoint,
     LocationSource,
     RouteSegment,
     WalkRoute,
