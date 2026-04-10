@@ -377,3 +377,83 @@ def test_map_external_error_covers_remaining_constraints(
     """Constraint mapping should return the expected frontend error identifiers."""
     error = ValidationError(field="field", value="value", constraint=constraint)
     assert _map_external_error(error) == expected
+
+
+def test_merge_external_entity_config_updates_only_selected_keys() -> None:
+    """Merging should only overwrite keys explicitly present in the new payload."""
+    hass = _FakeHomeAssistant(
+        states=_FakeStates({}),
+        services=_FakeServices({"notify": {}}),
+    )
+    flow = _ExternalEntityFlow(
+        hass,
+        modules=cast(
+            DogModulesConfig,
+            {MODULE_GPS: True, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: True},
+        ),
+    )
+    target = cast(
+        ExternalEntityConfig,
+        {
+            CONF_GPS_SOURCE: "device_tracker.original",
+            CONF_DOOR_SENSOR: "binary_sensor.original",
+            CONF_NOTIFY_FALLBACK: "notify.original",
+        },
+    )
+
+    flow._merge_external_entity_config(
+        target,
+        cast(
+            ExternalEntityConfig,
+            {CONF_GPS_SOURCE: "device_tracker.updated"},
+        ),
+    )
+
+    assert target == {
+        CONF_GPS_SOURCE: "device_tracker.updated",
+        CONF_DOOR_SENSOR: "binary_sensor.original",
+        CONF_NOTIFY_FALLBACK: "notify.original",
+    }
+
+
+@pytest.mark.asyncio
+async def test_async_validate_external_entities_formats_notify_error_without_domain() -> (
+    None
+):
+    """Notify errors without ``notify.`` prefix should still produce clear base text."""
+    hass = _FakeHomeAssistant(
+        states=_FakeStates({}),
+        services=_FakeServices({"notify": {}}),
+    )
+    flow = _ExternalEntityFlow(
+        hass,
+        modules=cast(
+            DogModulesConfig,
+            {MODULE_GPS: False, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: True},
+        ),
+    )
+    monkeypatch = pytest.MonkeyPatch()
+
+    def _raise_notify_not_found(hass: object, value: object, **kwargs: object) -> str:
+        raise ValidationError(
+            field=CONF_NOTIFY_FALLBACK,
+            value=value,
+            constraint="notify_service_not_found",
+        )
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.config_flow_external.validate_notify_service",
+        _raise_notify_not_found,
+    )
+
+    try:
+        with pytest.raises(FlowValidationError) as err:
+            await flow._async_validate_external_entities(
+                cast(ExternalEntityConfig, {CONF_NOTIFY_FALLBACK: "mobile_app_phone"}),
+            )
+    finally:
+        monkeypatch.undo()
+
+    assert err.value.as_form_errors() == {
+        "base": "Notification service mobile_app_phone not found",
+    }
