@@ -270,7 +270,7 @@ def test_validate_url_and_unknown_validator_errors() -> None:
     assert invalid.sanitized_value == "ftp://example.com"
     assert invalid.errors
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(ValidationError, match="Unknown validator"):
         validate_and_sanitize("value", "missing_validator")
 
 
