@@ -290,6 +290,25 @@ def test_given_incompatible_validator_args_when_validating_then_capture_dispatch
     assert "rejected provided arguments" in result.errors[0]
 
 
+def test_given_validator_raises_value_error_when_validating_then_capture_dispatch_error() -> (
+    None
+):
+    """Validation dispatch should map validator-raised ValueError to field errors."""
+    validator = InputValidator()
+    schema = {"count": {"type": "int"}}
+
+    def _raise_value_error(value: object, **_: object) -> ValidationResult:
+        raise ValueError(f"bad value: {value}")
+
+    validator.validate_integer = _raise_value_error  # type: ignore[method-assign]
+
+    result = validator.validate_dict({"count": "4"}, schema)
+
+    assert result.is_valid is False
+    assert result.sanitized_value == {}
+    assert "rejected value" in result.errors[0]
+
+
 def test_given_missing_required_field_when_validating_then_return_required_error() -> (
     None
 ):
@@ -328,6 +347,33 @@ def test_given_validate_and_sanitize_when_unknown_validator_then_raise() -> None
     """Wrapper should fail fast with a useful unknown-validator message."""
     with pytest.raises(ValidationError, match="Unknown validator"):
         validate_and_sanitize("value", "validate_does_not_exist")
+
+
+def test_given_validate_and_sanitize_when_validator_raises_type_error_then_wrap() -> (
+    None
+):
+    """Wrapper should convert validator-raised TypeError into ValidationError."""
+    with pytest.raises(ValidationError, match="Validation raised TypeError"):
+        validate_and_sanitize("anything", "validate_integer", extra_arg=True)
+
+
+def test_given_validate_and_sanitize_when_validator_raises_value_error_then_wrap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Wrapper should convert validator-raised ValueError into ValidationError."""
+    validator = InputValidator()
+
+    def _raise(_: object, **__: object) -> ValidationResult:
+        raise ValueError("boom")
+
+    monkeypatch.setattr(validator, "validate_integer", _raise)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.input_validation.InputValidator",
+        lambda: validator,
+    )
+
+    with pytest.raises(ValidationError, match="Validation raised ValueError"):
+        validate_and_sanitize("anything", "validate_integer")
 
 
 def test_given_user_input_when_sanitized_then_trim_truncate_and_strip_controls() -> (

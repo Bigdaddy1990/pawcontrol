@@ -121,6 +121,7 @@ async def test_no_state_mutation_on_failed_refresh(
 ) -> None:
     """Failed refreshes must not mutate the last known good payload."""
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coordinator._setup_complete = True
     previous_payload = {
         "test_dog": {"status": "online", "last_update": "previous", "walk": {}}
     }

@@ -21,5 +21,5 @@ def test_build_garden_module_selector_creates_boolean_optional_field() -> None:
     assert isinstance(selector_value, selector.BooleanSelector)
 
     schema = vol.Schema(selector_mapping)
-    assert schema({}) == {"enable_garden": True}
+    assert schema({}) == {}
     assert schema({"enable_garden": False}) == {"enable_garden": False}

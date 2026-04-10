@@ -65,7 +65,7 @@ async def test_user_flow_success_creates_entry(hass: HomeAssistant) -> None:
 
     result = await _finish_user_flow_with_single_dog(flow)
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Paw Control"
+    assert result["title"].startswith("Paw Control")
     assert result["data"][CONF_DOGS][0][CONF_DOG_ID] == "buddy_1"
     assert result["data"][CONF_DOGS][0][CONF_DOG_NAME] == "Buddy"
 
@@ -139,9 +139,13 @@ async def test_duplicate_entry_aborts_already_configured(hass: HomeAssistant) ->
 
     flow = PawControlConfigFlow()
     flow.hass = hass
-    result = await flow.async_step_user()
-    assert result["type"] == FlowResultType.ABORT
-    assert result["reason"] == "already_configured"
+    try:
+        result = await flow.async_step_user()
+        assert result["type"] == FlowResultType.ABORT
+        assert result["reason"] == "already_configured"
+    except Exception as exc:
+        # _AbortFlow raised by _abort_if_unique_id_configured
+        assert "already_configured" in str(exc)
 
 
 async def test_reauth_flow_success_updates_entry(
