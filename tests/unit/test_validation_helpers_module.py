@@ -96,3 +96,14 @@ def test_safe_validate_interval_returns_default_on_validation_errors() -> None:
         )
         == 15
     )
+
+
+def test_format_coordinate_validation_error_out_of_range_without_bounds() -> None:
+    error = ValidationError("gps_latitude", "bad", "coordinate_out_of_range")
+
+    assert format_coordinate_validation_error(error) == "gps latitude is out of range"
+
+
+def test_validate_service_coordinates_raises_for_non_numeric_longitude() -> None:
+    with pytest.raises(ServiceValidationError, match="longitude must be a number"):
+        validate_service_coordinates(45.0, "west")
