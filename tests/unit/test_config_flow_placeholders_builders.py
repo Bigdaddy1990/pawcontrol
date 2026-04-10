@@ -2,6 +2,8 @@
 
 from types import MappingProxyType
 
+import pytest
+
 from custom_components.pawcontrol import config_flow_placeholders as placeholders
 
 
@@ -50,3 +52,26 @@ def test_build_add_another_placeholders_formats_boolean_and_freezes() -> None:
     assert result["can_add_more"] == "no"
     assert result["max_dogs"] == "4"
     assert result["performance_note"] == "Adding more may slow updates"
+
+
+def test_build_add_another_placeholders_marks_can_add_more_yes() -> None:
+    result = placeholders._build_add_another_placeholders(
+        dogs_configured=1,
+        dogs_list="Milo",
+        can_add_more=True,
+        max_dogs=4,
+        performance_note="Fast path",
+    )
+
+    assert result["can_add_more"] == "yes"
+
+
+def test_build_add_dog_summary_placeholders_returns_immutable_mapping() -> None:
+    result = placeholders._build_add_dog_summary_placeholders(
+        dogs_configured=1,
+        max_dogs=3,
+        discovery_hint="Manual setup",
+    )
+
+    with pytest.raises(TypeError):
+        result["dogs_configured"] = "2"  # type: ignore[misc]
