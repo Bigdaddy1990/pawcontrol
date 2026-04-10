@@ -16,6 +16,48 @@ def test_resolve_translation_prefers_primary_then_fallback_then_default() -> Non
     assert translation_helpers.resolve_translation({}, {}, "k") == "k"
 
 
+def test_resolve_translation_supports_legacy_unscoped_keys() -> None:
+    """Component-prefixed lookups should fall back to legacy unscoped keys."""
+    scoped_key = translation_helpers.component_translation_key("walk_state")
+
+    assert (
+        translation_helpers.resolve_translation(
+            {"walk_state": "Legacy value"},
+            {},
+            scoped_key,
+        )
+        == "Legacy value"
+    )
+    assert (
+        translation_helpers.resolve_translation(
+            {},
+            {"walk_state": "Fallback legacy value"},
+            scoped_key,
+        )
+        == "Fallback legacy value"
+    )
+
+
+def test_resolve_component_translation_uses_separator_candidates() -> None:
+    """Suffix candidates after known separators should resolve correctly."""
+    assert (
+        translation_helpers.resolve_component_translation(
+            {},
+            {"timeout": "Timeout from fallback"},
+            "door_label_timeout",
+        )
+        == "Timeout from fallback"
+    )
+    assert (
+        translation_helpers.resolve_component_translation(
+            {},
+            {"stale": "Stale from fallback"},
+            "sensor_fallback_stale",
+        )
+        == "Stale from fallback"
+    )
+
+
 def test_get_translation_cache_initializes_hass_data() -> None:
     """The cache helper should initialize missing hass.data structures."""
     hass = SimpleNamespace(data=None)
