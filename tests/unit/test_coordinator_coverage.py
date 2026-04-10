@@ -467,6 +467,7 @@ async def test_async_update_data_error_paths_keep_cached_state_stable(
 ) -> None:
     """Refresh errors should not mutate cached state before a recovery run."""
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coord._setup_complete = True
     original_payload = {"test_dog": {"status": "cached", "last_update": "before"}}
     coord._data = original_payload.copy()  # type: ignore[assignment]
     coord._execute_cycle = AsyncMock(side_effect=error)  # type: ignore[method-assign]
@@ -488,6 +489,7 @@ async def test_async_update_data_recovers_after_failure_and_applies_fresh_payloa
 ) -> None:
     """A successful retry after a failed refresh should replace stale cache state."""
     coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coord._setup_complete = True
     coord._data = {"test_dog": {"status": "stale"}}  # type: ignore[assignment]
     refreshed_payload = {"test_dog": {"status": "online", "last_update": "now"}}
     runtime_cycle = RuntimeCycleInfo(

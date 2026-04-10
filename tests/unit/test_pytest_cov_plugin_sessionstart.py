@@ -1,8 +1,17 @@
 """Tests for pytest_cov plugin session start configuration."""
 
 from types import SimpleNamespace
+from unittest.mock import MagicMock
+
+import pytest
 
 from pytest_cov import plugin
+
+
+_skip_no_coverage = pytest.mark.skipif(
+    plugin.coverage is None,
+    reason="coverage module not available in pytest_cov.plugin",
+)
 
 
 class _CoverageRecorder:
@@ -16,6 +25,7 @@ class _CoverageRecorder:
         self.started = True
 
 
+@_skip_no_coverage
 def test_sessionstart_uses_include_without_source(monkeypatch) -> None:
     """Include patterns should disable source roots to avoid conflicts."""
     created: list[_CoverageRecorder] = []
@@ -44,6 +54,7 @@ def test_sessionstart_uses_include_without_source(monkeypatch) -> None:
     assert recorder.kwargs["source"] is None
 
 
+@_skip_no_coverage
 def test_sessionstart_without_cov_sources_keeps_source_none(monkeypatch) -> None:
     """Empty ``--cov`` options should not inject include or source filters."""
     created: list[_CoverageRecorder] = []
