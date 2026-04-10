@@ -64,6 +64,66 @@ def test_ensure_dog_config_data_normalises_optional_fields_and_trims_sensor() ->
     assert normalised["walk"] == {"enabled": True}
 
 
+def test_ensure_dog_config_data_includes_text_and_non_default_door_sensor_settings(
+) -> None:
+    """Dog config should include text snapshots and non-default door settings."""
+    payload = {
+        types.DOG_ID_FIELD: "dog-9",
+        types.DOG_NAME_FIELD: "Nori",
+        types.CONF_DOOR_SENSOR_SETTINGS: {
+            "walk_detection_timeout": 600,
+            "minimum_walk_duration": 120,
+            "maximum_walk_duration": 4800,
+            "door_closed_delay": 10,
+            "require_confirmation": False,
+            "auto_end_walks": False,
+            "confidence_threshold": 0.9,
+        },
+        types.DOG_TEXT_VALUES_FIELD: {
+            "custom_label": "Ready",
+            "notes": "Very playful",
+        },
+        types.DOG_TEXT_METADATA_FIELD: {
+            "custom_label": {
+                "last_updated": "2026-01-10T10:00:00+00:00",
+                "context_id": "ctx-1",
+            },
+        },
+    }
+
+    normalised = types.ensure_dog_config_data(payload)
+
+    assert normalised is not None
+    assert normalised["door_sensor_settings"]["walk_detection_timeout"] == 600
+    assert normalised[types.DOG_TEXT_VALUES_FIELD]["custom_label"] == "Ready"
+    assert (
+        normalised[types.DOG_TEXT_METADATA_FIELD]["custom_label"]["context_id"]
+        == "ctx-1"
+    )
+
+
+def test_ensure_dog_config_data_drops_default_door_sensor_settings_payload() -> None:
+    """Default door sensor settings should not be stored in dog config payloads."""
+    payload = {
+        types.DOG_ID_FIELD: "dog-10",
+        types.DOG_NAME_FIELD: "Yuki",
+        types.CONF_DOOR_SENSOR_SETTINGS: {
+            "walk_detection_timeout": types.DEFAULT_WALK_DETECTION_TIMEOUT,
+            "minimum_walk_duration": types.DEFAULT_MINIMUM_WALK_DURATION,
+            "maximum_walk_duration": types.DEFAULT_MAXIMUM_WALK_DURATION,
+            "door_closed_delay": types.DEFAULT_DOOR_CLOSED_DELAY,
+            "require_confirmation": True,
+            "auto_end_walks": True,
+            "confidence_threshold": types.DEFAULT_CONFIDENCE_THRESHOLD,
+        },
+    }
+
+    normalised = types.ensure_dog_config_data(payload)
+
+    assert normalised is not None
+    assert "door_sensor_settings" not in normalised
+
+
 @pytest.mark.parametrize(
     ("value", "defaults", "expected"),
     [
@@ -176,6 +236,71 @@ def test_ensure_gps_payload_float_and_timestamp_normalisation() -> None:
     assert payload["speed"] == 4.2
     assert payload["status"] == " tracking "
     assert payload["current_route"]["point_count"] == 0
+
+
+def test_ensure_gps_route_snapshot_filters_invalid_points_and_optional_fields() -> None:
+    """Route snapshots should keep only valid point mappings and numeric options."""
+    snapshot = types.ensure_gps_route_snapshot({
+        "id": "route-1",
+        "name": "",
+        "active": 1,
+        "points": [
+            {"latitude": "52.5", "longitude": "13.4", "altitude": "45"},
+            {"latitude": "bad", "longitude": "13.5"},
+            "invalid-point",
+            {"latitude": 53.0, "longitude": 13.6, "speed": "3.1"},
+        ],
+        "distance": "2.75",
+        "duration": "42",
+        "end_time": " 2025-01-02T04:05:06+00:00 ",
+        "last_point_time": "",
+    })
+
+    assert snapshot is not None
+    assert snapshot["active"] is True
+    assert snapshot["name"] == "route-1"
+    assert snapshot["point_count"] == 2
+    assert snapshot["points"][0]["latitude"] == 52.5
+    assert snapshot["points"][0]["altitude"] == 45.0
+    assert snapshot["points"][1]["speed"] == 3.1
+    assert snapshot["distance"] == 2.75
+    assert snapshot["duration"] == 42.0
+    assert snapshot["end_time"] == "2025-01-02T04:05:06+00:00"
+    assert "last_point_time" not in snapshot
+
+
+def test_ensure_gps_payload_removes_invalid_current_route_and_keeps_active_route() -> (
+    None
+):
+    """Payload normalisation should drop invalid and build active routes."""
+    payload = types.ensure_gps_payload({
+        "current_route": [],
+        "active_route": {
+            "id": "walk-1",
+            "points": [{"latitude": 50, "longitude": 8}],
+        },
+        "status": None,
+    })
+
+    assert payload is not None
+    assert "current_route" not in payload
+    assert payload["active_route"]["id"] == "walk-1"
+    assert payload["active_route"]["point_count"] == 1
+    assert payload["status"] == "unknown"
+
+
+def test_ensure_gps_payload_null_satellites_and_trimmed_last_seen() -> None:
+    """Explicit satellite nulls and blank timestamps should normalize consistently."""
+    payload = types.ensure_gps_payload({
+        "satellites": None,
+        "last_seen": "   ",
+        "latitude": "48.1",
+    })
+
+    assert payload is not None
+    assert payload["satellites"] is None
+    assert payload["last_seen"] is None
+    assert payload["latitude"] == 48.1
 
 
 def test_cache_diagnostics_snapshot_from_mapping_uses_mapping_and_typed_instances() -> (
@@ -325,3 +450,85 @@ def test_validate_dog_weight_for_size_ranges(
 ) -> None:
     """Weight validation should enforce known ranges and ignore unknown sizes."""
     assert types.validate_dog_weight_for_size(weight, size) is expected
+
+
+def test_cache_repair_aggregate_from_mapping_coerces_totals_and_collections() -> None:
+    """Aggregate parsing should normalize totals and mixed collection payloads."""
+    aggregate = types.CacheRepairAggregate.from_mapping({
+        "total_caches": "7.0",
+        "anomaly_count": True,
+        "severity": "high",
+        "generated_at": "2026-03-01T00:00:00+00:00",
+        "caches_with_errors": ("cache_a", "cache_b", 1),
+        "caches_with_override_flags": {"cache_c", "cache_d", 4},
+        "totals": {
+            "entries": "15.9",
+            "hits": 8,
+            "misses": False,
+            "expired_entries": "bad",
+            "active_override_flags": "3",
+            "overall_hit_rate": "0.73",
+        },
+        "issues": [{"cache": "cache_a", "reason": "expired"}, "invalid"],
+    })
+
+    assert aggregate.total_caches == 7
+    assert aggregate.anomaly_count == 1
+    assert aggregate.caches_with_errors == ["cache_a", "cache_b"]
+    assert sorted(aggregate.caches_with_override_flags or []) == [
+        "cache_c",
+        "cache_d",
+    ]
+    assert aggregate.totals is not None
+    assert aggregate.totals.entries == 15
+    assert aggregate.totals.misses == 0
+    assert aggregate.totals.expired_entries == 0
+    assert aggregate.totals.active_override_flags == 3
+    assert aggregate.totals.overall_hit_rate == 0.73
+    assert aggregate.issues == [{"cache": "cache_a", "reason": "expired"}]
+
+
+def test_cache_repair_aggregate_to_mapping_omits_empty_optional_sections() -> None:
+    """Mapping export should keep required fields and skip empty optional payloads."""
+    aggregate = types.CacheRepairAggregate(
+        total_caches=0,
+        anomaly_count=0,
+        severity="normal",
+        generated_at="2026-03-01T00:00:00+00:00",
+        caches_with_low_hit_rate=[],
+        issues=[],
+    )
+
+    exported = aggregate.to_mapping()
+
+    assert exported == {
+        "total_caches": 0,
+        "anomaly_count": 0,
+        "severity": "normal",
+        "generated_at": "2026-03-01T00:00:00+00:00",
+    }
+
+
+def test_ensure_dog_options_entry_prefers_payload_dog_id_and_normalizes_notifications(
+) -> None:
+    """Options entry should prefer payload dog_id and apply notification defaults."""
+    entry = types.ensure_dog_options_entry(
+        {
+            types.DOG_ID_FIELD: "dog-in-payload",
+            types.CONF_NOTIFICATIONS: {
+                "quiet_hours": "off",
+            },
+            types.DOG_MODULES_FIELD: {
+                "feeding": 1,
+            },
+        },
+        dog_id="dog-from-arg",
+    )
+
+    assert entry["dog_id"] == "dog-in-payload"
+    assert entry["notifications"][types.NOTIFICATION_QUIET_HOURS_FIELD] is False
+    assert (
+        entry["notifications"][types.NOTIFICATION_REMINDER_REPEAT_FIELD]
+        == types.DEFAULT_REMINDER_REPEAT_MIN
+    )
+    assert entry["modules"]["feeding"] is True

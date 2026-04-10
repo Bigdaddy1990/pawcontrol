@@ -3,6 +3,9 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import importlib
+from pathlib import Path
+import runpy
+import sys
 
 import pytest
 
@@ -125,3 +128,25 @@ def test_module_reload_syncs_parent_utils_re_exports() -> None:
         parent.serialize_entity_attributes
         is reloaded_module.serialize_entity_attributes
     )
+
+
+def test_module_reload_skips_re_export_when_parent_module_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Module execution should succeed when the parent utils module is absent."""
+    monkeypatch.delitem(
+        sys.modules,
+        "custom_components.pawcontrol.utils",
+        raising=False,
+    )
+    namespace = runpy.run_path(
+        str(
+            Path(__file__).resolve().parents[3]
+            / "custom_components"
+            / "pawcontrol"
+            / "utils"
+            / "serialize.py"
+        )
+    )
+
+    assert namespace["serialize_datetime"] is not None

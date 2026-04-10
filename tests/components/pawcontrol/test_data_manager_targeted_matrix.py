@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock
 
 from homeassistant.exceptions import HomeAssistantError
@@ -74,6 +75,56 @@ async def test_async_get_module_history_handles_inconsistent_entries(
     assert len(history) == 3
     assert history[0]["distance"] == 2.0
     assert sorted(item["distance"] for item in history[1:]) == [1.0, 3.0]
+
+
+@pytest.mark.asyncio
+async def test_async_get_module_history_returns_empty_for_unknown_module_or_profile(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+
+    assert await manager.async_get_module_history("unknown", "buddy") == []
+    assert await manager.async_get_module_history("feeding", "missing-dog") == []
+
+
+@pytest.mark.asyncio
+async def test_async_get_module_history_returns_empty_when_profile_payload_not_list(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+    profile = manager._dog_profiles["buddy"]
+    profile.feeding_history = cast(list[dict[str, object]], "not-a-list")
+
+    history = await manager.async_get_module_history("feeding", "buddy")
+
+    assert history == []
+
+
+@pytest.mark.asyncio
+async def test_async_get_module_history_filters_bad_entries_with_bounds(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+    profile = manager._dog_profiles["buddy"]
+    profile.feeding_history = [
+        {"timestamp": "2026-01-04T09:00:00+00:00", "portion_size": 45},
+        {"timestamp": "not-a-date", "portion_size": 15},
+        {"timestamp": None, "portion_size": 10},
+    ]
+
+    history = await manager.async_get_module_history(
+        "feeding",
+        "buddy",
+        since="2026-01-03T00:00:00+00:00",
+        until="2026-01-05T00:00:00+00:00",
+    )
+
+    assert history == [
+        {"timestamp": "2026-01-04T09:00:00+00:00", "portion_size": 45},
+    ]
 
 
 @pytest.mark.asyncio
@@ -169,6 +220,35 @@ async def test_async_generate_report_tolerates_adapter_exceptions_and_persists(
     assert isinstance(reports_namespace, dict)
     reports_dump = json.dumps(reports_namespace)
     assert '"report_type": "weekly"' in reports_dump
+
+
+@pytest.mark.asyncio
+async def test_async_export_data_all_allow_partial_captures_homeassistant_and_io_errors(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._dog_profiles["buddy"].feeding_history = [
+        {"timestamp": "2026-01-02T08:00:00+00:00", "portion_size": 10.0},
+    ]
+    manager._get_runtime_data = lambda: SimpleNamespace(  # type: ignore[method-assign]
+        gps_geofence_manager=SimpleNamespace(
+            async_export_routes=AsyncMock(side_effect=OSError("disk offline")),
+        ),
+    )
+
+    manifest_path = await manager.async_export_data(
+        "buddy",
+        "all",
+        allow_partial=True,
+    )
+
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert payload["data_type"] == "all"
+    assert "feeding" in payload["exports"]
+    assert "walks" in payload["exports"]
+    assert payload["errors"]["garden"] == "Garden manager not available for export"
+    assert payload["errors"]["routes"].startswith("I/O error: disk offline")
 
 
 def test_cache_repair_summary_classifies_normal_corrupt_and_error_states(

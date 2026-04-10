@@ -40,6 +40,19 @@ def test_resolve_cache_snapshot_class_falls_back_on_import_error(
     assert pem._resolve_cache_snapshot_class() is pem.CacheDiagnosticsSnapshot
 
 
+def test_resolve_cache_snapshot_class_falls_back_when_attribute_is_not_type(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Resolver should ignore dynamic attributes that are not classes."""
+    monkeypatch.setattr(
+        pem,
+        "import_module",
+        lambda _name: SimpleNamespace(CacheDiagnosticsSnapshot="not-a-class"),
+    )
+
+    assert pem._resolve_cache_snapshot_class() is pem.CacheDiagnosticsSnapshot
+
+
 def test_person_notification_cache_store_lookup_and_snapshot() -> None:
     """Cache entries should deduplicate targets and expose stale metadata."""
     cache: pem.PersonNotificationCache[dict[str, object]] = (
@@ -61,6 +74,21 @@ def test_person_notification_cache_store_lookup_and_snapshot() -> None:
 
     cache.clear()
     assert len(cache) == 0
+
+
+def test_person_notification_cache_snapshot_clamps_negative_age() -> None:
+    """Snapshot age should never be negative when generated_at is in the future."""
+    cache: pem.PersonNotificationCache[dict[str, object]] = (
+        pem.PersonNotificationCache()
+    )
+    now = dt_util.utcnow()
+    generated_at = now + timedelta(seconds=30)
+    cache.store("future", ["notify.future"], generated_at)
+
+    snapshot = cache.snapshot(now=now, ttl=60)
+
+    assert snapshot["future"]["age_seconds"] == 0.0
+    assert snapshot["future"]["stale"] is False
 
 
 def test_person_entity_info_to_from_dict_and_state_normalization() -> None:

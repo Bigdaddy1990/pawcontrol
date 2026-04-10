@@ -224,6 +224,50 @@ def test_format_expires_in_hours_error_boundary_cases() -> None:
     )
 
 
+def test_format_expires_in_hours_error_out_of_range_without_bounds() -> None:
+    """Out-of-range errors without explicit bounds should stay user friendly."""
+    error = services.ValidationError(
+        field="expires_in_hours",
+        value=999,
+        constraint="expires_in_hours_out_of_range",
+    )
+
+    assert (
+        services._format_expires_in_hours_error(error)
+        == "expires_in_hours is out of range"
+    )
+
+
+def test_format_expires_in_hours_error_not_numeric_constraint() -> None:
+    """Dedicated numeric constraint should force the numeric validation text."""
+    error = services.ValidationError(
+        field="expires_in_hours",
+        value="invalid",
+        constraint="expires_in_hours_not_numeric",
+    )
+
+    assert (
+        services._format_expires_in_hours_error(error)
+        == "expires_in_hours must be a number"
+    )
+
+
+def test_format_gps_validation_error_for_interval_range_branch() -> None:
+    """Range constraints should include bounds and units for interval validation."""
+    error = services.ValidationError(
+        field="gps_update_interval",
+        value=0,
+        constraint="gps_update_interval_out_of_range",
+        min_value=5,
+        max_value=3600,
+    )
+
+    assert (
+        services._format_gps_validation_error(error, unit="s")
+        == "gps_update_interval must be between 5 and 3600s"
+    )
+
+
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
@@ -257,6 +301,43 @@ def test_coerce_service_bool_rejects_numeric_non_boolean_values() -> None:
     """Integer-like payloads other than 0/1 must be rejected explicitly."""
     with pytest.raises(ServiceValidationError, match="got int"):
         services._coerce_service_bool(2, field="enabled")
+
+
+@pytest.mark.parametrize(
+    ("min_value", "max_value", "expected"),
+    [
+        (
+            1.5,
+            3.5,
+            "expires_in_hours must be between 1.5 and 3.5",
+        ),
+        (
+            None,
+            None,
+            "expires_in_hours is out of range",
+        ),
+    ],
+)
+def test_format_expires_in_hours_error_out_of_range_variants(
+    min_value: float | None,
+    max_value: float | None,
+    expected: str,
+) -> None:
+    """Out-of-range expiry errors should render all supported bound combinations."""
+    error = services.ValidationError(
+        field="expires_in_hours",
+        value=0.5,
+        constraint="expires_in_hours_out_of_range",
+        min_value=min_value,
+        max_value=max_value,
+    )
+
+    assert services._format_expires_in_hours_error(error) == expected
+
+
+def test_format_numeric_value_preserves_non_integral_float_text() -> None:
+    """Numeric formatter should keep decimal precision when needed."""
+    assert services._format_numeric_value(2.75) == "2.75"
 
 
 @pytest.mark.parametrize(
