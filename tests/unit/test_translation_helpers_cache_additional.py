@@ -73,7 +73,9 @@ async def test_async_get_component_translations_uses_bundled_fallback_on_excepti
 
 @pytest.mark.asyncio
 @pytest.mark.unit
-async def test_async_get_component_translation_lookup_reuses_same_mapping_for_en() -> None:
+async def test_async_get_component_translation_lookup_reuses_same_mapping_for_en() -> (
+    None
+):
     hass = SimpleNamespace(data={})
 
     first = await helpers.async_get_component_translations(hass, "en")
