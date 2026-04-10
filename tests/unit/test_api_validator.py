@@ -11,6 +11,7 @@ from custom_components.pawcontrol.api_validator import (
     APIValidationResult,
     APIValidator,
     JSONValue,
+    _extract_api_version,
     _extract_capabilities,
 )
 
@@ -530,3 +531,32 @@ async def test_async_validate_api_connection_handles_unexpected_error(
 def test_extract_capabilities_returns_none_for_non_mapping_payloads() -> None:
     """Capability extraction should ignore non-dictionary payloads."""
     assert _extract_capabilities(cast(dict[str, JSONValue], ["status"])) is None
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        ({"version": "2026.4.0"}, "2026.4.0"),
+        ({"version": 3}, None),
+        ({}, None),
+    ],
+)
+def test_extract_api_version_handles_supported_payload_shapes(
+    payload: object,
+    expected: str | None,
+) -> None:
+    """Version extraction should only accept string values from mappings."""
+    assert _extract_api_version(cast(dict[str, JSONValue], payload)) == expected
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "status,metrics",
+        b"status",
+        bytearray(b"status"),
+    ],
+)
+def test_extract_capabilities_rejects_string_like_sequences(payload: object) -> None:
+    """String-like sequences should not be treated as capability collections."""
+    assert _extract_capabilities({"capabilities": cast(JSONValue, payload)}) is None
