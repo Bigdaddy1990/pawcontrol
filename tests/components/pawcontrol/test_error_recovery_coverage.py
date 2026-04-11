@@ -1,5 +1,6 @@
 """Additional coverage tests for ``error_recovery`` runtime paths."""
 
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 from homeassistant.core import HomeAssistant
@@ -159,3 +160,63 @@ async def test_async_setup_registers_defaults_and_reset_stats(
 
     coordinator.reset_stats()
     assert coordinator.get_stats() == {}
+
+
+@pytest.mark.asyncio
+async def test_handle_error_without_pattern_or_fallback_tracks_unrecovered_once(
+    hass: HomeAssistant,
+) -> None:
+    """Unknown errors without fallback should still record a single failure."""
+    coordinator = ErrorRecoveryCoordinator(hass)
+
+    result = await coordinator.handle_error(RuntimeError("no pattern"))
+
+    assert result["recovered"] is False
+    assert result["fallback_used"] is False
+    assert result["repair_issue_created"] is False
+
+    stats = coordinator.get_stats()["RuntimeError"]
+    assert stats.total_count == 1
+    assert stats.unrecovered_count == 1
+    assert stats.recovery_rate == 0.0
+
+
+@pytest.mark.asyncio
+async def test_create_repair_issue_failure_is_swallowed(
+    hass: HomeAssistant,
+) -> None:
+    """Repair issue creation errors should be handled without bubbling up."""
+    coordinator = ErrorRecoveryCoordinator(hass)
+    pattern = ErrorPattern(
+        exception_type=AuthenticationError,
+        create_repair_issue=True,
+        severity="critical",
+    )
+
+    with patch(
+        "custom_components.pawcontrol.error_recovery.ir.async_create_issue",
+        side_effect=RuntimeError("registry unavailable"),
+    ):
+        await coordinator._create_repair_issue(
+            AuthenticationError("token expired"),
+            pattern,
+            {"path": "reauth"},
+        )
+
+
+def test_error_stats_to_dict_serializes_last_occurrence() -> None:
+    """ErrorStats should expose a stable dictionary snapshot for diagnostics."""
+    stats = ErrorStats(exception_type="NetworkError")
+
+    empty = stats.to_dict()
+    assert empty["last_occurrence"] is None
+    assert empty["recovery_rate"] == 0.0
+
+    stats.total_count = 4
+    stats.recovery_count = 3
+    stats.unrecovered_count = 1
+    stats.last_occurrence = datetime(2026, 4, 11, 12, 0, 0)
+
+    snapshot = stats.to_dict()
+    assert snapshot["recovery_rate"] == 0.75
+    assert snapshot["last_occurrence"] == "2026-04-11T12:00:00"
