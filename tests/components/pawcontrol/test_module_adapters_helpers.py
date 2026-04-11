@@ -100,6 +100,24 @@ def test_expiring_cache_cleanup_and_clear(monkeypatch) -> None:
     assert cache.metadata() == {"ttl_seconds": 10.0}
 
 
+def test_expiring_cache_cleanup_reports_last_cleanup_when_nothing_expires(
+    monkeypatch,
+) -> None:
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    monkeypatch.setattr(module_adapters, "dt_util", _FrozenTime(start))
+    cache = _ExpiringCache[str](ttl=timedelta(seconds=10))
+    cache.set("fresh", "value")
+
+    expired = cache.cleanup(start + timedelta(seconds=5))
+
+    assert expired == 0
+    assert cache.metadata() == {
+        "ttl_seconds": 10.0,
+        "last_cleanup": start + timedelta(seconds=5),
+        "last_expired_count": 0,
+    }
+
+
 def test_expiring_cache_get_evicts_expired_entries(monkeypatch) -> None:
     start = datetime(2026, 1, 1, tzinfo=UTC)
     cache = _ExpiringCache[str](ttl=timedelta(seconds=5))
@@ -152,6 +170,22 @@ def test_base_module_adapter_snapshot_sets_ttl_metadata(monkeypatch) -> None:
         "stats": {"entries": 1, "hits": 0, "misses": 0, "hit_rate": 0.0},
         "metadata": {"ttl_seconds": 30.0},
     }
+
+
+def test_base_module_adapter_snapshot_keeps_existing_ttl_metadata(monkeypatch) -> None:
+    adapter = _DummyAdapter(ttl=timedelta(seconds=30))
+    assert adapter._cache is not None
+
+    monkeypatch.setattr(
+        module_adapters._ExpiringCache,
+        "snapshot",
+        lambda self: {
+            "stats": {"entries": 1, "hits": 0, "misses": 0, "hit_rate": 0.0},
+            "metadata": {"ttl_seconds": 5.0},
+        },
+    )
+
+    assert adapter.cache_snapshot()["metadata"]["ttl_seconds"] == 5.0
 
 
 def test_normalise_health_alert_defaults_and_details() -> None:
