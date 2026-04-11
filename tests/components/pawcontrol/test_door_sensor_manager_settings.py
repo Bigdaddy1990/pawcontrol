@@ -1,7 +1,5 @@
 """Coverage tests for door sensor settings normalization and diagnostics helpers."""
 
-from __future__ import annotations
-
 from datetime import timedelta
 from types import SimpleNamespace
 
