@@ -289,6 +289,22 @@ def test_cache_entry_ttl_remaining_is_never_negative() -> None:
     assert entry.ttl_remaining == 0.0
 
 
+def test_cache_entry_mark_accessed_tracks_hits_and_timestamp() -> None:
+    """Marking access should increment hits and refresh last-access time."""
+    entry = cache_module.CacheEntry(
+        value="fresh",
+        timestamp=time.time(),
+        ttl_seconds=30.0,
+        last_access=1.0,
+    )
+
+    before = entry.last_access
+    entry.mark_accessed()
+
+    assert entry.hit_count == 1
+    assert entry.last_access >= before
+
+
 @pytest.mark.asyncio
 async def test_persistent_cache_load_failure_marks_cache_loaded(
     monkeypatch: pytest.MonkeyPatch,
@@ -316,6 +332,28 @@ async def test_persistent_cache_save_failure_is_swallowed(
     await persistent.async_save()
 
     assert persistent.get_stats().size == 1
+
+
+@pytest.mark.asyncio
+async def test_cached_decorator_kwargs_order_uses_stable_cache_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keyword order should not create duplicate cache entries."""
+    monkeypatch.setattr(cache_module, "Store", _FakeStore)
+    cache = cache_module.TwoLevelCache[int](hass=object(), name="paw")
+    calls: list[tuple[int, int]] = []
+
+    @cache_module.cached(cache, "stable-key", ttl=15)
+    async def combine(*, left: int, right: int) -> int:
+        calls.append((left, right))
+        return left + right
+
+    first = await combine(left=2, right=5)
+    second = await combine(right=5, left=2)
+
+    assert first == 7
+    assert second == 7
+    assert calls == [(2, 5)]
 
 
 @pytest.mark.asyncio
