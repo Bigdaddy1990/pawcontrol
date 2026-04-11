@@ -222,6 +222,19 @@ def test_coordinator_data_proxy_access_tracking() -> None:
     assert proxy.access_count == 2
 
 
+def test_coordinator_data_proxy_getitem_logs_when_enabled() -> None:
+    """Proxy __getitem__ should emit debug logs when access logging is enabled."""
+    proxy = CoordinatorDataProxy({"buddy": {"name": "Buddy"}}, "sensor.paw")
+
+    with patch(
+        "custom_components.pawcontrol.coordinator_access_enforcement._LOGGER"
+    ) as logger:
+        assert proxy["buddy"] == {"name": "Buddy"}
+
+    assert proxy.access_count == 1
+    logger.debug.assert_called_once()
+
+
 def test_coordinator_data_proxy_without_logging() -> None:
     """Proxy should support access counting even when debug logging is disabled."""
     proxy = CoordinatorDataProxy(
@@ -275,6 +288,71 @@ def test_validate_coordinator_usage_without_warnings_in_normal_state() -> None:
     assert result == {"has_issues": False, "issue_count": 0, "issues": []}
     logger.warning.assert_not_called()
     logger.debug.assert_not_called()
+
+
+def test_validate_coordinator_usage_logs_optional_manager_hint() -> None:
+    """Validation should log debug hint when feeding manager is missing."""
+    runtime_managers = SimpleNamespace(
+        data_manager=object(),
+        feeding_manager=None,
+    )
+    coordinator = SimpleNamespace(data={"buddy": {}}, runtime_managers=runtime_managers)
+
+    with patch(
+        "custom_components.pawcontrol.coordinator_access_enforcement._LOGGER"
+    ) as logger:
+        result = validate_coordinator_usage(coordinator, log_warnings=True)
+
+    assert result == {"has_issues": False, "issue_count": 0, "issues": []}
+    logger.debug.assert_called_once_with(
+        "Feeding manager not attached (may be intentional)"
+    )
+    logger.warning.assert_not_called()
+
+
+def test_validate_coordinator_usage_skips_adaptive_polling_without_hook() -> None:
+    """Validation should ignore adaptive polling objects without diagnostics hook."""
+    runtime_managers = SimpleNamespace(
+        data_manager=object(),
+        feeding_manager=object(),
+    )
+    coordinator = SimpleNamespace(
+        data={"buddy": {}},
+        runtime_managers=runtime_managers,
+        _adaptive_polling=SimpleNamespace(),
+    )
+
+    with patch(
+        "custom_components.pawcontrol.coordinator_access_enforcement._LOGGER"
+    ) as logger:
+        result = validate_coordinator_usage(coordinator, log_warnings=True)
+
+    assert result == {"has_issues": False, "issue_count": 0, "issues": []}
+    logger.warning.assert_not_called()
+
+
+def test_validate_coordinator_usage_does_not_warn_below_saturation_threshold() -> None:
+    """Validation should avoid warnings when saturation remains under threshold."""
+    adaptive_polling = SimpleNamespace(
+        as_diagnostics=lambda: {"entity_saturation": 0.9}
+    )
+    runtime_managers = SimpleNamespace(
+        data_manager=object(),
+        feeding_manager=object(),
+    )
+    coordinator = SimpleNamespace(
+        data={"buddy": {}},
+        runtime_managers=runtime_managers,
+        _adaptive_polling=adaptive_polling,
+    )
+
+    with patch(
+        "custom_components.pawcontrol.coordinator_access_enforcement._LOGGER"
+    ) as logger:
+        result = validate_coordinator_usage(coordinator, log_warnings=True)
+
+    assert result == {"has_issues": False, "issue_count": 0, "issues": []}
+    logger.warning.assert_not_called()
 
 
 def test_create_coordinator_access_guard_strict_mode_logs_info() -> None:
