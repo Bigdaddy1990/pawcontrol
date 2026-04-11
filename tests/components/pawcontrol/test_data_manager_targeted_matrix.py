@@ -251,6 +251,41 @@ async def test_async_export_data_all_allow_partial_captures_homeassistant_and_io
     assert payload["errors"]["routes"].startswith("I/O error: disk offline")
 
 
+@pytest.mark.asyncio
+async def test_async_export_data_all_allow_partial_raises_when_every_export_fails(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    """allow_partial should still fail when no export artifact can be produced."""
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._get_runtime_data = lambda: SimpleNamespace()  # type: ignore[method-assign]
+    manager._async_add_executor_job = AsyncMock(  # type: ignore[method-assign]
+        side_effect=OSError("disk full"),
+    )
+
+    with pytest.raises(
+        HomeAssistantError,
+        match="Failed to export any data type while allow_partial=True",
+    ):
+        await manager.async_export_data(
+            "buddy",
+            "all",
+            allow_partial=True,
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_export_data_rejects_unsupported_data_type(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    """Unknown export types should raise a user-facing validation error."""
+    manager = await _create_manager(mock_hass, tmp_path)
+
+    with pytest.raises(HomeAssistantError, match="Unsupported export data type"):
+        await manager.async_export_data("buddy", "sleeping")
+
+
 def test_cache_repair_summary_classifies_normal_corrupt_and_error_states(
     mock_hass: object,
     tmp_path: Path,
