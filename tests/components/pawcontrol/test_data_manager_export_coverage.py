@@ -21,6 +21,16 @@ async def _create_manager(mock_hass: object, tmp_path: Path) -> PawControlDataMa
     )
     manager._async_load_storage = AsyncMock(return_value={})  # type: ignore[method-assign]
     manager._write_storage = AsyncMock()  # type: ignore[method-assign]
+
+    async def _executor_job(func: object, *args: object) -> object:
+        if callable(func):
+            result = func(*args)
+            if hasattr(result, "__await__"):
+                return await result  # type: ignore[no-any-return]
+            return result
+        raise TypeError("Executor job target must be callable")
+
+    manager._async_add_executor_job = _executor_job  # type: ignore[method-assign]
     await manager.async_initialize()
     return manager
 
@@ -331,6 +341,40 @@ async def test_async_export_data_all_allow_partial_raises_when_every_export_fail
         match="Failed to export any data type while allow_partial=True",
     ):
         await manager.async_export_data("buddy", "all", allow_partial=True)
+
+
+@pytest.mark.asyncio
+async def test_async_export_data_all_allow_partial_collects_oserror_details(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._dog_profiles["buddy"].feeding_history = [
+        {"timestamp": "2026-01-05T07:30:00+00:00", "portion_size": 10.0},
+    ]
+    manager._dog_profiles["buddy"].walk_history = []
+    manager._dog_profiles["buddy"].health_history = []
+    manager._dog_profiles["buddy"].medication_history = []
+    manager._get_runtime_data = lambda: SimpleNamespace(  # type: ignore[method-assign]
+        garden_manager=SimpleNamespace(
+            async_export_sessions=AsyncMock(
+                return_value=tmp_path / DOMAIN / "exports" / "garden.json",
+            ),
+        ),
+        gps_geofence_manager=SimpleNamespace(
+            async_export_routes=AsyncMock(side_effect=OSError("routes read-only")),
+        ),
+    )
+
+    manifest_path = await manager.async_export_data(
+        "buddy",
+        "all",
+        allow_partial=True,
+    )
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert payload["errors"]["routes"] == "I/O error: routes read-only"
+    assert "feeding" in payload["exports"]
 
 
 @pytest.mark.asyncio

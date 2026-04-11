@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from aiohttp import ClientError
 import pytest
 
 from custom_components.pawcontrol.device_api import (
@@ -160,6 +161,37 @@ async def test_async_get_json_maps_invalid_json_to_network_error() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_get_json_rejects_non_mapping_payloads() -> None:
+    """List/primitive JSON responses should fail with a stable network error."""
+    client = PawControlDeviceClient(
+        _Session(_Response(status=200, payload=["unexpected"])),
+        endpoint="https://device.local",
+    )
+
+    with pytest.raises(NetworkError, match="unexpected response payload"):
+        await client.async_get_json("/api/status")
+
+
+@pytest.mark.asyncio
+async def test_async_get_json_coerces_mapping_payload_to_mutable_copy() -> None:
+    """Mapping payloads should be returned as a detached mutable dict."""
+
+    class _ReadOnlyMapping(dict[str, Any]):
+        pass
+
+    payload = _ReadOnlyMapping({"status": "ok"})
+    client = PawControlDeviceClient(
+        _Session(_Response(status=200, payload=payload)),
+        endpoint="https://device.local",
+    )
+
+    result = await client.async_get_json("/api/status")
+
+    assert result == {"status": "ok"}
+    assert result is not payload
+
+
+@pytest.mark.asyncio
 async def test_async_get_json_uses_resilience_manager_when_available() -> None:
     response = _Response(status=200, payload={"status": "ok"})
     session = _Session(response)
@@ -185,6 +217,45 @@ async def test_async_get_json_uses_resilience_manager_when_available() -> None:
     assert payload == {"status": "ok"}
     assert resilience.calls == [("_async_request_protected", "GET", "/api/status")]
     assert session.calls == []
+
+
+@pytest.mark.asyncio
+async def test_async_request_without_api_key_omits_authorization_header() -> None:
+    """Requests without API keys should not send an Authorization header."""
+    session = _Session(_Response(status=200, payload={"ok": True}))
+    client = PawControlDeviceClient(session, endpoint="https://device.local")
+
+    await client._async_request("GET", "/api/status")
+
+    _, _, _, headers = session.calls[0]
+    assert headers is None
+
+
+@pytest.mark.asyncio
+async def test_async_request_uses_default_retry_after_when_missing() -> None:
+    """429 responses without Retry-After should default to 60 seconds."""
+    client = PawControlDeviceClient(
+        _Session(_Response(status=429, headers={})),
+        endpoint="https://device.local",
+    )
+
+    with pytest.raises(RateLimitError) as err:
+        await client._async_request("GET", "/api/status")
+
+    assert err.value.retry_after == 60
+
+
+@pytest.mark.asyncio
+async def test_async_request_maps_client_and_os_errors_to_network_error() -> None:
+    """Transport-level client and socket errors should normalize to NetworkError."""
+    for error in (ClientError("broken"), OSError("offline")):
+        client = PawControlDeviceClient(
+            _Session(error),
+            endpoint="https://device.local",
+        )
+
+        with pytest.raises(NetworkError):
+            await client._async_request("GET", "/api/status")
 
 
 @pytest.mark.asyncio
