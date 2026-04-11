@@ -60,3 +60,22 @@ def test_normalize_language_ignores_blank_supported_entries() -> None:
 
     assert normalize_language("en-GB", supported=supported, default="fr") == "en"
     assert normalize_language("it", supported=supported, default="fr") == "fr"
+
+
+def test_normalize_language_accepts_values_when_supported_missing() -> None:
+    """Without a supported set, normalized values should pass through."""
+    assert normalize_language("  ES-mx  ", supported=None, default="en") == "es"
+
+
+def test_normalize_language_rejects_language_not_in_normalized_supported_set() -> None:
+    """Normalized supported values should enforce the fallback when unmatched."""
+    supported = {" _ ", "DE_de"}
+
+    assert normalize_language("pt-BR", supported=supported, default="en-US") == "en"
+
+
+def test_normalize_language_handles_none_entries_inside_supported_collection() -> None:
+    """Non-string supported entries that normalize empty should be ignored."""
+    supported: set[str | None] = {None, "fr-FR"}
+
+    assert normalize_language("fr-CA", supported=supported, default="en") == "fr"
