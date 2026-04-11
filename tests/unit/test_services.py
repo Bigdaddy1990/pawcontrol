@@ -1867,6 +1867,88 @@ async def test_async_setup_services_replaces_listener_and_invalidates_on_domain_
 
 
 @pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_setup_services_propagates_dispatcher_connection_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Service setup should fail fast when dispatcher hookup crashes."""
+    coordinator = _CoordinatorStub(SimpleNamespace())
+    runtime_data = SimpleNamespace(performance_stats={})
+    hass = SimpleNamespace(
+        services=_ServiceRegistryStub(),
+        data={},
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
+        bus=_BusStub(),
+    )
+    hass.config_entries = SimpleNamespace(async_entries=lambda _domain: [])
+    coordinator.hass = hass
+
+    monkeypatch.setattr(
+        services,
+        "_coordinator_resolver",
+        lambda _hass: _ResolverStub(coordinator),
+    )
+    monkeypatch.setattr(
+        services,
+        "async_dispatcher_connect",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("dispatcher boom")),
+    )
+    monkeypatch.setattr(
+        services, "async_track_time_change", lambda *args, **kwargs: lambda: None
+    )
+    monkeypatch.setattr(services, "get_runtime_data", lambda *_args: runtime_data)
+
+    with pytest.raises(RuntimeError, match="dispatcher boom"):
+        await services.async_setup_services(hass)  # type: ignore[arg-type]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_setup_services_propagates_registration_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Service setup should surface registration errors from hass service API."""
+
+    class _FailingServiceRegistry(_ServiceRegistryStub):
+        def async_register(
+            self,
+            domain: str,
+            service: str,
+            handler: Callable[..., Awaitable[None]],
+            schema: object | None = None,
+        ) -> None:
+            if service == services.SERVICE_SEND_NOTIFICATION:
+                raise RuntimeError("register boom")
+            super().async_register(domain, service, handler, schema)
+
+    coordinator = _CoordinatorStub(SimpleNamespace())
+    runtime_data = SimpleNamespace(performance_stats={})
+    hass = SimpleNamespace(
+        services=_FailingServiceRegistry(),
+        data={},
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
+        bus=_BusStub(),
+    )
+    hass.config_entries = SimpleNamespace(async_entries=lambda _domain: [])
+    coordinator.hass = hass
+
+    monkeypatch.setattr(
+        services,
+        "_coordinator_resolver",
+        lambda _hass: _ResolverStub(coordinator),
+    )
+    monkeypatch.setattr(
+        services, "async_dispatcher_connect", lambda *args, **kwargs: lambda: None
+    )
+    monkeypatch.setattr(
+        services, "async_track_time_change", lambda *args, **kwargs: lambda: None
+    )
+    monkeypatch.setattr(services, "get_runtime_data", lambda *_args: runtime_data)
+
+    with pytest.raises(RuntimeError, match="register boom"):
+        await services.async_setup_services(hass)  # type: ignore[arg-type]
+
+@pytest.mark.unit
 def test_capture_cache_diagnostics_returns_snapshot() -> None:
     """Helper should normalise diagnostics payloads provided by the data manager."""
     payload = {
