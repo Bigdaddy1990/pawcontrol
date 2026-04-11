@@ -226,3 +226,52 @@ def test_service_guard_snapshot_accumulate_coerces_invalid_numeric_strings() -> 
 def test_normalise_guard_history_rejects_bytearray_payload() -> None:
     """History normalization should reject bytearray payloads like bytes."""
     assert normalise_guard_history(bytearray(b"invalid-bytearray")) == []
+
+
+def test_service_guard_snapshot_accumulate_handles_non_mapping_reason_snapshot() -> (
+    None
+):
+    """Accumulate should return an empty reason map when metrics rejects reason writes."""
+
+    class _ReasonWriteRejectingMetrics(dict[str, object]):
+        def __setitem__(self, key: str, value: object) -> None:
+            if key == "reasons":
+                super().__setitem__(key, "rejected")
+                return
+            super().__setitem__(key, value)
+
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("light", "turn_on", False, reason="quiet_hours")
+    ])
+    metrics = _ReasonWriteRejectingMetrics(
+        {
+            "executed": 0,
+            "skipped": 0,
+            "reasons": "invalid",
+        }
+    )
+
+    accumulated = snapshot.accumulate(metrics)
+
+    assert accumulated["executed"] == 0
+    assert accumulated["skipped"] == 1
+    assert accumulated["reasons"] == {}
+
+
+def test_service_guard_snapshot_accumulate_coerces_non_numeric_objects_to_zero() -> (
+    None
+):
+    """Accumulate should treat unsupported numeric payload types as zero."""
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult("notify", "mobile_app", True),
+    ])
+    metrics: dict[str, object] = {
+        "executed": object(),
+        "skipped": object(),
+        "reasons": {},
+    }
+
+    accumulated = snapshot.accumulate(metrics)
+
+    assert accumulated["executed"] == 1
+    assert accumulated["skipped"] == 0

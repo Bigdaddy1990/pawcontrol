@@ -38,6 +38,7 @@ def _valid_dog_input() -> dict[str, object]:
 def test_validate_dog_id_and_coercion_helpers_cover_error_paths() -> None:
     """Dog id and coercion helpers should map low-level coercion errors."""
     assert _validate_dog_id(123) == ("", "invalid_dog_id_format")
+    assert _validate_dog_id("   ") == ("", "invalid_dog_id_format")
     assert _validate_dog_id("a") == ("a", "dog_id_too_short")
     assert _validate_dog_id("x" * 31) == ("x" * 31, "dog_id_too_long")
     assert _validate_dog_id("bad!id") == ("bad!id", "invalid_dog_id_format")
@@ -153,6 +154,54 @@ def test_validate_dog_setup_input_success_includes_optional_breed() -> None:
     assert validated["dog_breed"] == "Labrador"
 
 
+def test_validate_dog_setup_input_reports_weight_size_mismatch() -> None:
+    """Setup validation should reject inconsistent weight/size combinations."""
+    payload = {
+        **_valid_dog_input(),
+        CONF_DOG_WEIGHT: 70,
+        CONF_DOG_SIZE: "small",
+    }
+
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_setup_input(
+            payload,
+            existing_ids=set(),
+            existing_names=set(),
+            current_dog_count=0,
+            max_dogs=5,
+        )
+
+    assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_size_mismatch"
+
+
+def test_validate_dog_setup_input_maps_invalid_breed_to_generic_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup validation should map non-length breed errors to invalid_dog_breed."""
+
+    def _raise_value_error(_: str) -> str:
+        raise ValueError("invalid")
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.flow_validation.HealthMetrics._validate_breed",
+        _raise_value_error,
+    )
+
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_setup_input(
+            {
+                **_valid_dog_input(),
+                CONF_DOG_BREED: "bad-breed",
+            },
+            existing_ids=set(),
+            existing_names=set(),
+            current_dog_count=0,
+            max_dogs=5,
+        )
+
+    assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
+
+
 def test_validate_dog_config_payload_reports_base_and_modules_errors() -> None:
     """Config payload validation should enforce max dog count and module mapping."""
     with pytest.raises(FlowValidationError) as err:
@@ -168,6 +217,34 @@ def test_validate_dog_config_payload_reports_base_and_modules_errors() -> None:
 
     assert err.value.base_errors == ["max_dogs_reached"]
     assert err.value.field_errors[CONF_MODULES] == "dog_invalid_modules"
+
+
+def test_validate_dog_config_payload_propagates_update_field_errors() -> None:
+    """Config payload validation should surface update validation errors."""
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_config_payload(
+            {
+                CONF_DOG_ID: "luna_cfg",
+                CONF_DOG_NAME: "Milo",
+            },
+            existing_names={"milo"},
+        )
+
+    assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"
+
+
+def test_validate_dog_config_payload_omits_modules_when_absent() -> None:
+    """Config payloads without module overrides should not emit module keys."""
+    validated = validate_dog_config_payload(
+        {
+            CONF_DOG_ID: "luna_nomod",
+            CONF_DOG_NAME: "Luna NoMod",
+        }
+    )
+
+    assert validated[CONF_DOG_ID] == "luna_nomod"
+    assert validated[CONF_DOG_NAME] == "Luna NoMod"
+    assert CONF_MODULES not in validated
 
 
 def test_validate_dog_config_payload_normalizes_optional_fields_and_modules() -> None:
@@ -278,6 +355,45 @@ def test_validate_dog_update_input_reports_breed_length_and_weight_range_errors(
 
     assert err.value.field_errors[CONF_DOG_BREED] == "breed_name_too_long"
     assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_out_of_range"
+
+
+def test_validate_dog_update_input_maps_invalid_breed_type_to_field_error() -> None:
+    """Update validation should map non-string breeds to invalid_dog_breed."""
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_update_input(
+            {
+                CONF_DOG_ID: "luna",
+                CONF_DOG_NAME: "Luna",
+                CONF_DOG_WEIGHT: 20,
+                CONF_DOG_SIZE: "medium",
+            },
+            {
+                CONF_DOG_BREED: 123,
+            },
+        )
+
+    assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
+
+
+def test_validate_dog_update_input_reports_weight_size_mismatch_for_valid_range() -> (
+    None
+):
+    """Update validation should report mismatch when weight/size are both present."""
+    with pytest.raises(FlowValidationError) as err:
+        validate_dog_update_input(
+            {
+                CONF_DOG_ID: "luna",
+                CONF_DOG_NAME: "Luna",
+                CONF_DOG_WEIGHT: 20,
+                CONF_DOG_SIZE: "medium",
+            },
+            {
+                CONF_DOG_WEIGHT: 70,
+                CONF_DOG_SIZE: "small",
+            },
+        )
+
+    assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_size_mismatch"
 
 
 def test_validate_dog_import_input_rejects_unexpected_and_invalid_modules() -> None:
