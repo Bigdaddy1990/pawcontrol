@@ -176,3 +176,64 @@ def test_ensure_settings_returns_defaults_for_none() -> None:
     """No overrides should return the canonical default settings object."""
     settings = ensure_door_sensor_settings_config(None)
     assert settings == DEFAULT_DOOR_SENSOR_SETTINGS
+
+
+def test_ensure_settings_accepts_settings_object_overrides() -> None:
+    """Settings dataclass overrides should round-trip through normalization."""
+    base = DoorSensorSettingsConfig(
+        walk_detection_timeout=450,
+        minimum_walk_duration=180,
+        maximum_walk_duration=1200,
+        door_closed_delay=10,
+        require_confirmation=True,
+        auto_end_walks=False,
+        confidence_threshold=0.4,
+    )
+    overrides = DoorSensorSettingsConfig(
+        walk_detection_timeout=1200,
+        minimum_walk_duration=600,
+        maximum_walk_duration=480,
+        door_closed_delay=25,
+        require_confirmation=False,
+        auto_end_walks=True,
+        confidence_threshold=0.75,
+    )
+
+    normalized = ensure_door_sensor_settings_config(overrides, base=base)
+
+    # maximum_walk_duration is clamped to minimum_walk_duration.
+    assert normalized.walk_detection_timeout == 1200
+    assert normalized.minimum_walk_duration == 600
+    assert normalized.maximum_walk_duration == 600
+    assert normalized.door_closed_delay == 25
+    assert normalized.require_confirmation is False
+    assert normalized.auto_end_walks is True
+    assert normalized.confidence_threshold == 0.75
+
+
+def test_cache_monitor_accessors_return_consistent_payload_without_anomalies() -> None:
+    """Accessor helpers should expose consistent stats and diagnostics snapshots."""
+    config = DoorSensorConfig(
+        entity_id="binary_sensor.side_door",
+        dog_id="dog-beta",
+        dog_name="Beta",
+    )
+    manager = SimpleNamespace(
+        _sensor_configs={"dog-beta": config},
+        _detection_states={},
+        _detection_stats={},
+        _last_activity=None,
+        _cleanup_task=None,
+    )
+    monitor = _DoorSensorManagerCacheMonitor(manager)
+
+    snapshot = monitor.coordinator_snapshot()
+    stats = monitor.get_stats()
+    diagnostics = monitor.get_diagnostics()
+
+    assert snapshot.stats["configured_sensors"] == 1
+    assert snapshot.stats["active_detections"] == 0
+    assert stats["configured_sensors"] == 1
+    assert stats["active_detections"] == 0
+    assert diagnostics["cleanup_task_active"] is False
+    assert "timestamp_anomalies" not in diagnostics
