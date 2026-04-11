@@ -172,6 +172,24 @@ def test_module_coverage_percent_accepts_normalized_filename(tmp_path: Path) -> 
     assert percent == Decimal("95.00")
 
 
+def test_module_branch_percent_accepts_normalized_filename(tmp_path: Path) -> None:
+    report = _write_coverage_xml(
+        tmp_path,
+        line_rate="0.90",
+        class_rates={
+            "coordinator.py": ("0.95", "0.81"),
+        },
+    )
+
+    root = enforce_coverage_gates._coverage_root(report)
+    percent = enforce_coverage_gates._module_branch_percent(
+        root,
+        "custom_components/pawcontrol/coordinator.py",
+    )
+
+    assert percent == Decimal("81.00")
+
+
 def test_overall_coverage_percent_requires_line_rate_attribute(tmp_path: Path) -> None:
     report = tmp_path / "coverage.xml"
     report.write_text(
@@ -224,6 +242,30 @@ def test_load_branch_exceptions_rejects_missing_rationale(tmp_path: Path) -> Non
     )
 
     with pytest.raises(SystemExit, match="string values"):
+        enforce_coverage_gates._load_branch_exceptions(exceptions_file)
+
+
+def test_load_branch_exceptions_returns_empty_mapping_for_missing_file(
+    tmp_path: Path,
+) -> None:
+    exceptions = enforce_coverage_gates._load_branch_exceptions(
+        tmp_path / "missing-exceptions.json",
+    )
+
+    assert exceptions == {}
+
+
+def test_load_branch_exceptions_rejects_invalid_minimum_branch_percent(
+    tmp_path: Path,
+) -> None:
+    exceptions_file = tmp_path / "exceptions.json"
+    exceptions_file.write_text(
+        '[{"path":"custom_components/pawcontrol/coordinator.py",'
+        '"minimum_branch_percent":"not-a-number","rationale":"legacy"}]',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(SystemExit, match="invalid numeric value"):
         enforce_coverage_gates._load_branch_exceptions(exceptions_file)
 
 
