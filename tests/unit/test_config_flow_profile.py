@@ -18,6 +18,14 @@ def test_validate_profile_selection_accepts_known_profile() -> None:
     )
 
 
+def test_validate_profile_selection_defaults_when_missing() -> None:
+    """Missing profile selections should resolve to the configured default."""
+    assert (
+        config_flow_profile.validate_profile_selection({})
+        == config_flow_profile.DEFAULT_PROFILE
+    )
+
+
 def test_validate_profile_selection_rejects_unknown_profile() -> None:
     """Unknown profiles should raise a normalized voluptuous error."""
     with pytest.raises(vol.Invalid, match="invalid_profile"):

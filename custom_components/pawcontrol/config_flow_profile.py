@@ -61,7 +61,8 @@ def validate_profile_selection(user_input: ProfileSelectionInput) -> str:
     except vol.Invalid as err:  # pragma: no cover - exercised by HA UI
         raise vol.Invalid("invalid_profile") from err
 
-    profile = cast(str, profile_data["entity_profile"])
+    selected_profile = profile_data.get("entity_profile", DEFAULT_PROFILE)
+    profile = cast(str, selected_profile)
     if profile not in ENTITY_PROFILES:
         # This should never happen because of the schema, but keeping this
         # guard makes mypy and future refactors happier.

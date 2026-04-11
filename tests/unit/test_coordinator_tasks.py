@@ -1555,3 +1555,75 @@ async def test_shutdown_skips_unsubscribe_when_not_registered() -> None:
     coordinator.logger.info.assert_called_once_with(
         "Coordinator shutdown completed successfully"
     )
+
+
+def test_merge_rejection_metric_values_prefers_first_source_and_normalises() -> None:
+    """Merge helper should keep first source precedence and coerce payload types."""
+    target: dict[str, object] = {}
+
+    tasks.merge_rejection_metric_values(
+        target,
+        {
+            "rejected_call_count": "5",
+            "open_breakers": ("alpha", " "),
+            "failure_reasons": {"timeout": "3", "": 8, "negative": -4},
+        },
+        {
+            "rejected_call_count": 99,
+            "open_breakers": ["beta"],
+            "failure_reasons": {"ignored": 1},
+        },
+    )
+
+    assert target["rejected_call_count"] == "5"
+    assert target["open_breakers"] == ["alpha", " "]
+    assert target["failure_reasons"] == {"timeout": 3, "negative": 0}
+    assert target["unknown_breakers"] == []
+
+
+def test_merge_rejection_metric_values_resets_invalid_sequence_and_mapping() -> None:
+    """Invalid collection payloads should degrade to empty diagnostics structures."""
+    target: dict[str, object] = {}
+
+    tasks.merge_rejection_metric_values(
+        target,
+        {
+            "open_breakers": "not-a-sequence",
+            "failure_reasons": "also-invalid",
+        },
+    )
+
+    assert target["open_breakers"] == []
+    assert target["failure_reasons"] == {}
+
+
+def test_resolve_service_guard_metrics_clamps_negative_values() -> None:
+    """Guard metrics should clamp negative counters and reason values to zero."""
+    payload = {
+        "service_guard_metrics": {
+            "executed": -3,
+            "skipped": "2",
+            "reasons": {"invalid": -8, "ok": "4"},
+            "last_results": ["a"],
+        }
+    }
+
+    result = tasks.resolve_service_guard_metrics(payload)
+
+    assert result["executed"] == 0
+    assert result["skipped"] == 2
+    assert result["reasons"] == {"ok": 4}
+    assert payload["service_guard_metrics"]["executed"] == 0
+
+
+def test_normalise_entity_budget_summary_defaults_for_non_mapping() -> None:
+    """Entity budget summary helper should emit baseline values for invalid payloads."""
+    assert tasks._normalise_entity_budget_summary("bad") == {
+        "active_dogs": 0,
+        "total_capacity": 0,
+        "total_allocated": 0,
+        "total_remaining": 0,
+        "average_utilization": 0.0,
+        "peak_utilization": 0.0,
+        "denied_requests": 0,
+    }
