@@ -558,3 +558,85 @@ async def test_async_check_feeding_compliance_returns_domain_issues(hass) -> Non
     assert (
         "Underfed by 50.0% (100g vs 200g)" in result["compliance_issues"][0]["issues"]
     )
+
+
+def test_build_health_metrics_falls_back_when_age_or_activity_invalid() -> None:
+    """Invalid age/activity values should not break health metric generation."""
+    config = FeedingConfig(
+        dog_id="luna",
+        dog_weight=18.0,
+        age_months=36,
+        breed_size="medium",
+        activity_level="teleporting",
+    )
+
+    with patch.object(
+        HealthCalculator,
+        "calculate_life_stage",
+        side_effect=ValueError("bad-age"),
+    ):
+        metrics = config._build_health_metrics()
+
+    assert metrics.current_weight == pytest.approx(18.0)
+    assert metrics.life_stage is None
+    assert metrics.activity_level is None
+
+
+def test_get_health_summary_handles_calorie_calculation_failures() -> None:
+    """Health summary should still return payload when calories cannot be derived."""
+    config = FeedingConfig(
+        dog_id="buddy",
+        dog_weight=20.0,
+        age_months=48,
+        activity_level=ActivityLevel.MODERATE.value,
+    )
+
+    with patch.object(
+        HealthCalculator,
+        "calculate_daily_calories",
+        side_effect=RuntimeError("calc-failed"),
+    ):
+        summary = config.get_health_summary()
+
+    assert summary["daily_calorie_requirement"] is None
+    assert summary["current_weight"] == pytest.approx(20.0)
+
+
+@pytest.mark.asyncio
+async def test_async_update_health_data_returns_false_on_conversion_error(hass) -> None:
+    """Health updates should fail safely when coercion of numeric fields fails."""
+    manager = FeedingManager(hass)
+    manager._configs["dog-1"] = FeedingConfig(dog_id="dog-1")
+
+    result = await manager.async_update_health_data(
+        "dog-1",
+        {"age_months": "unknown"},
+    )
+
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_async_update_diet_validation_returns_false_when_update_raises(
+    hass,
+) -> None:
+    """Diet validation update should report False when config update crashes."""
+    manager = FeedingManager(hass)
+    config = FeedingConfig(dog_id="dog-1")
+    manager._configs["dog-1"] = config
+    validation = {
+        "valid": True,
+        "conflicts": [],
+        "warnings": [],
+        "recommended_vet_consultation": False,
+        "total_diets": 1,
+    }
+
+    with patch.object(
+        config,
+        "update_diet_validation",
+        side_effect=RuntimeError("save-failed"),
+    ):
+        result = await manager.async_update_diet_validation("dog-1", validation)
+
+    assert result is False
