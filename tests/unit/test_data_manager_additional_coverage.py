@@ -98,3 +98,24 @@ async def test_async_get_module_history_filters_sorts_and_limits() -> None:
 
     assert await manager.async_get_module_history("unknown", "buddy") == []
     assert await manager.async_get_module_history("health", "missing") == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_get_module_history_handles_unix_timestamp_overflow() -> None:
+    """History sorting should tolerate overflowing numeric timestamps."""
+    manager = object.__new__(PawControlDataManager)
+
+    manager._dog_profiles = {
+        "buddy": SimpleNamespace(
+            walk_history=[
+                {"end_time": 1e20, "distance": 1.0},
+                {"end_time": 1_700_000_000, "distance": 2.0},
+                {"end_time": "2024-01-01T00:00:00+00:00", "distance": 3.0},
+            ]
+        )
+    }
+
+    history = await manager.async_get_module_history("walk", "buddy")
+
+    assert [entry["distance"] for entry in history] == [3.0, 2.0, 1.0]
