@@ -906,6 +906,49 @@ def test_record_service_result_replaces_non_list_service_results() -> None:
     }
 
 
+def test_record_service_result_returns_early_when_perf_stats_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Service result recording should no-op when perf stats helper returns None."""
+    runtime_data = SimpleNamespace(performance_stats={"service_results": []})
+    monkeypatch.setattr(services, "get_runtime_performance_stats", lambda _data: None)
+
+    services._record_service_result(
+        runtime_data,
+        service="send_notification",
+        status="success",
+    )
+
+    assert runtime_data.performance_stats == {"service_results": []}
+
+
+def test_record_service_result_keeps_existing_guard_details_payload() -> None:
+    """Pre-existing guard detail payloads should not be overwritten."""
+    runtime_data = SimpleNamespace(
+        performance_stats={"service_results": [], "service_guard_metrics": {}},
+        resilience_summary=None,
+    )
+    guard_result = services.ServiceGuardResult(
+        "notify",
+        "mobile_app",
+        executed=False,
+        reason="dog-not-found",
+    )
+
+    services._record_service_result(
+        runtime_data,
+        service="send_notification",
+        status="error",
+        guard=[guard_result],
+        details={"guard": {"executed": 999}},
+    )
+
+    recorded = runtime_data.performance_stats["last_service_result"]
+    assert recorded["details"]["guard"] == {"executed": 999}
+    assert "diagnostics" not in recorded
+    assert recorded["guard"]["executed"] == 0
+
+
 def test_coordinator_resolver_raises_when_runtime_data_not_ready() -> None:
     entry = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="id-1")
     hass = SimpleNamespace(config_entries=_FakeConfigEntries([entry]))
