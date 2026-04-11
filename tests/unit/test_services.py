@@ -1948,6 +1948,7 @@ async def test_async_setup_services_propagates_registration_failures(
     with pytest.raises(RuntimeError, match="register boom"):
         await services.async_setup_services(hass)  # type: ignore[arg-type]
 
+
 @pytest.mark.unit
 def test_capture_cache_diagnostics_returns_snapshot() -> None:
     """Helper should normalise diagnostics payloads provided by the data manager."""
