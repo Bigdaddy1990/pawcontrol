@@ -123,3 +123,22 @@ def test_main_reports_when_already_synced(tmp_path: Path, monkeypatch, capsys) -
     output = capsys.readouterr().out
     assert result == 0
     assert "already match" in output
+
+
+def test_main_check_mode_reports_when_already_synced(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """Check mode should still return success for already-synced guides."""
+    canonical = tmp_path / "canonical.md"
+    target = tmp_path / "target.md"
+    _write(canonical, "new text\n")
+    _write(target, "<!-- SYNC:START -->\nnew text\n<!-- SYNC:END -->\n")
+    monkeypatch.setattr(sync_contributor_guides, "CANONICAL_SOURCE", canonical)
+    monkeypatch.setattr(sync_contributor_guides, "TARGETS", [target])
+    monkeypatch.setattr("sys.argv", ["sync_contributor_guides.py", "--check"])
+
+    result = sync_contributor_guides.main()
+
+    output = capsys.readouterr().out
+    assert result == 0
+    assert "already match" in output
