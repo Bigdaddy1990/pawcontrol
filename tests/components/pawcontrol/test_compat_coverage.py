@@ -94,3 +94,46 @@ def test_build_subentries_normalizes_defaults_and_raw_values() -> None:
     assert second.subentry_type == "dog"
     assert second.title == "Bravo"
     assert second.unique_id == "42"
+
+
+def test_notify_callbacks_ignores_callback_failures() -> None:
+    """Callback fanout should continue even if one callback raises."""
+    events: list[dict[str, type[Exception]]] = []
+
+    def _capture(mapping: dict[str, type[Exception]]) -> None:
+        events.append(mapping)
+
+    def _explode(_: dict[str, type[Exception]]) -> None:
+        raise RuntimeError("boom")
+
+    unregister_capture = compat.register_exception_rebind_callback(_capture)
+    compat._EXCEPTION_REBIND_CALLBACKS.append(_explode)
+
+    compat._notify_exception_callbacks()
+
+    assert events
+    compat._EXCEPTION_REBIND_CALLBACKS.remove(_explode)
+    unregister_capture()
+
+
+def test_bind_exception_alias_skips_when_source_missing() -> None:
+    """Alias binding should leave target untouched when source key is absent."""
+    module_name = "test_bind_exception_alias_missing_source"
+    module = ModuleType(module_name)
+    module.AliasError = RuntimeError
+    sys.modules[module_name] = module
+
+    unregister = compat.bind_exception_alias(
+        "ConfigEntryError",
+        module=module,
+        attr="AliasError",
+    )
+
+    callbacks = list(compat._EXCEPTION_REBIND_CALLBACKS)
+    assert callbacks
+
+    callbacks[-1]({})
+    assert module.AliasError is compat.ConfigEntryError
+
+    unregister()
+    sys.modules.pop(module_name, None)
