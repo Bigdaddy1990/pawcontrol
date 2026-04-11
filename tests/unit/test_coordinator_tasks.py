@@ -1627,3 +1627,94 @@ def test_normalise_entity_budget_summary_defaults_for_non_mapping() -> None:
         "peak_utilization": 0.0,
         "denied_requests": 0,
     }
+
+
+def test_fetch_cache_repair_summary_returns_none_for_missing_runtime_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cache repair summary should fail closed when runtime hooks are unavailable."""
+    coordinator = _build_coordinator()
+
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: None)
+    assert tasks._fetch_cache_repair_summary(coordinator) is None
+
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: SimpleNamespace())
+    assert tasks._fetch_cache_repair_summary(coordinator) is None
+
+    runtime_data = SimpleNamespace(
+        data_manager=SimpleNamespace(cache_repair_summary=None)
+    )
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    assert tasks._fetch_cache_repair_summary(coordinator) is None
+
+
+def test_fetch_reconfigure_summary_falls_back_to_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reconfigure summary should fall back to options when runtime data is absent."""
+    coordinator = _build_coordinator(options={"profile": "watchdog"})
+
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: None)
+    monkeypatch.setattr(
+        tasks, "summarise_reconfigure_options", lambda opts: {"source": opts}
+    )
+
+    assert tasks._fetch_reconfigure_summary(coordinator) == {
+        "source": {"profile": "watchdog"}
+    }
+
+
+def test_build_runtime_store_summary_adds_history_and_mapping_assessment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runtime store summary should include history and mapping assessments."""
+    coordinator = _build_coordinator()
+    snapshot = {"status": "current"}
+    history = {
+        "checks": 2,
+        "assessment": {"level": "ok", "message": "stable"},
+    }
+
+    monkeypatch.setattr(tasks, "describe_runtime_store_status", lambda *_: snapshot)
+    monkeypatch.setattr(
+        tasks, "update_runtime_store_health", lambda *_args, **_kwargs: history
+    )
+
+    summary = tasks._build_runtime_store_summary(
+        coordinator,
+        runtime_data=SimpleNamespace(),
+        record_event=True,
+    )
+
+    assert summary == {
+        "snapshot": snapshot,
+        "history": history,
+        "assessment": {"level": "ok", "message": "stable"},
+    }
+
+
+def test_build_runtime_store_summary_omits_non_mapping_assessment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runtime store summary should skip invalid assessment payloads."""
+    coordinator = _build_coordinator()
+
+    monkeypatch.setattr(
+        tasks, "describe_runtime_store_status", lambda *_: {"status": "watch"}
+    )
+    monkeypatch.setattr(
+        tasks,
+        "update_runtime_store_health",
+        lambda *_args, **_kwargs: {"checks": 1, "assessment": "invalid"},
+    )
+
+    summary = tasks._build_runtime_store_summary(
+        coordinator,
+        runtime_data=SimpleNamespace(),
+        record_event=False,
+    )
+
+    assert summary == {
+        "snapshot": {"status": "watch"},
+        "history": {"checks": 1, "assessment": "invalid"},
+    }
