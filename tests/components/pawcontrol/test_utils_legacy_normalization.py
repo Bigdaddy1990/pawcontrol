@@ -1,7 +1,5 @@
 """Coverage tests for legacy utility normalization helpers."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
