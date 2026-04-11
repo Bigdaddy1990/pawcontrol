@@ -152,6 +152,16 @@ def test_validate_time_window_uses_defaults_and_required_constraints() -> None:
         )
 
 
+def test_validate_time_window_accepts_native_time_objects() -> None:
+    """Native ``datetime.time`` inputs should be serialized without errors."""
+    assert validate_time_window(
+        dt_time(6, 5),
+        dt_time(22, 45),
+        start_field="start",
+        end_field="end",
+    ) == ("06:05:00", "22:45:00")
+
+
 def test_validate_name_and_float_constraint_helpers() -> None:
     """Name and float coercion helpers should normalize and map constraints."""
     assert validate_name("  Buddy  ") == "Buddy"
@@ -224,3 +234,17 @@ def test_validate_dog_name_rejects_length_and_type_errors() -> None:
 
     with pytest.raises(ValidationError, match="dog_name_too_long"):
         validate_dog_name("A" * 65)
+
+
+def test_validate_dog_name_rejects_untrimmed_payload_exceeding_max_length() -> None:
+    """Inputs exceeding max length before trimming should still fail deterministically."""
+    with pytest.raises(ValidationError, match="dog_name_too_long"):
+        validate_dog_name(f"{'A' * 63}   ")
+
+
+def test_validate_notification_targets_treats_bytes_payload_as_scalar() -> None:
+    """Byte payloads should go through the scalar fallback and be marked invalid."""
+    parsed = validate_notification_targets(b"push", enum_type=_Target)
+
+    assert parsed.targets == []
+    assert parsed.invalid == ["b'push'"]
