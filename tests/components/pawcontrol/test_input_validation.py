@@ -418,3 +418,40 @@ def test_validate_dict_handles_float_and_url_rules() -> None:
     assert result.is_valid is False
     assert "threshold: Value 10.5 > maximum 5.0" in result.errors
     assert result.sanitized_value == {"endpoint": "https://example.com"}
+
+
+def test_given_dispatch_mapping_to_noncallable_when_validating_then_fallback_to_raw_value() -> (
+    None
+):
+    """Validation dispatch should gracefully fall back when mapping is not callable."""
+    validator = InputValidator()
+    validator._validator_dispatch["custom"] = "validate_missing"
+    schema = {"meta": {"type": "custom"}}
+
+    result = validator.validate_dict({"meta": {"source": "manual"}}, schema)
+
+    assert result.is_valid is True
+    assert result.errors == []
+    assert result.sanitized_value == {"meta": {"source": "manual"}}
+
+
+def test_given_validator_kwargs_when_normalized_then_only_supported_keys_are_forwarded() -> (
+    None
+):
+    """Validator kwargs normalization should drop unsupported schema attributes."""
+    validator = InputValidator()
+    schema = {
+        "count": {
+            "type": "int",
+            "min_value": 1,
+            "max_value": 5,
+            "required": True,
+            "description": "ignored metadata",
+        }
+    }
+
+    result = validator.validate_dict({"count": "3"}, schema)
+
+    assert result.is_valid is True
+    assert result.errors == []
+    assert result.sanitized_value == {"count": 3}
