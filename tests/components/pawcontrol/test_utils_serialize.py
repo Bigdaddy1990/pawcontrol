@@ -150,3 +150,26 @@ def test_module_reload_skips_re_export_when_parent_module_missing(
     )
 
     assert namespace["serialize_datetime"] is not None
+
+
+def test_utils_package_getattr_resolves_serialize_helpers() -> None:
+    """Utils package should lazily expose serialize helpers via __getattr__."""
+    utils_module = importlib.import_module("custom_components.pawcontrol.utils")
+    serialize_module = importlib.import_module(
+        "custom_components.pawcontrol.utils.serialize"
+    )
+
+    assert utils_module.__getattr__("serialize_datetime") is (
+        serialize_module.serialize_datetime
+    )
+    assert utils_module.__getattr__("serialize_timedelta") is (
+        serialize_module.serialize_timedelta
+    )
+
+
+def test_utils_package_getattr_raises_for_unknown_attributes() -> None:
+    """Utils package should raise AttributeError for unsupported names."""
+    utils_module = importlib.import_module("custom_components.pawcontrol.utils")
+
+    with pytest.raises(AttributeError, match="not_a_real_export"):
+        utils_module.__getattr__("not_a_real_export")
