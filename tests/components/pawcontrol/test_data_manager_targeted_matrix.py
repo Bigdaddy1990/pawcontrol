@@ -282,7 +282,7 @@ async def test_async_export_data_rejects_unsupported_data_type(
     """Unknown export types should raise a user-facing validation error."""
     manager = await _create_manager(mock_hass, tmp_path)
 
-    with pytest.raises(HomeAssistantError, match="Unsupported export data type"):
+    with pytest.raises(HomeAssistantError, match=r"^Unsupported export data type: sleeping$"):
         await manager.async_export_data("buddy", "sleeping")
 
 
