@@ -84,6 +84,15 @@ def test_get_module_data_missing_dog_returns_typed_or_untyped_fallback() -> None
     assert coordinator.get_module_data("unknown", "notifications") == {}
 
 
+def test_get_module_data_handles_empty_runtime_payload_for_known_dog() -> None:
+    """Known dogs with empty runtime payloads still use deterministic fallbacks."""
+    coordinator = _DummyCoordinator()
+    coordinator._data["alpha"] = cast(Any, {})
+
+    assert coordinator.get_module_data("alpha", "gps") == {"status": "unknown"}
+    assert coordinator.get_module_data("alpha", "notifications") == {}
+
+
 def test_get_module_data_validates_payload_shape_for_typed_and_untyped_modules() -> (
     None
 ):
