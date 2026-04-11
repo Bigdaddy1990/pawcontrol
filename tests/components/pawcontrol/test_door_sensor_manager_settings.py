@@ -5,16 +5,15 @@ from __future__ import annotations
 from datetime import timedelta
 from types import SimpleNamespace
 
-import pytest
-
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.pawcontrol.door_sensor_manager import (
     DoorSensorConfig,
     WalkDetectionState,
-    _DoorSensorManagerCacheMonitor,
     _apply_settings_to_config,
     _classify_timestamp,
+    _DoorSensorManagerCacheMonitor,
     _settings_to_payload,
     ensure_door_sensor_settings_config,
 )
