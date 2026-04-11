@@ -39,6 +39,16 @@ from custom_components.pawcontrol.utils._legacy import (
 )
 
 
+class _ToMappingPayload:
+    def to_mapping(self) -> dict[str, object]:
+        return {"api_token": "secret", "count": 2}
+
+
+class _ToDictPayload:
+    def to_dict(self) -> dict[str, object]:
+        return {"name": "Luna", "weight": 12.5}
+
+
 def test_build_error_context_prefers_error_message_over_reason() -> None:
     """The context message should mirror the error string when provided."""
     error = ValueError("invalid profile")
@@ -141,6 +151,22 @@ def test_normalise_json_value_handles_dataclass_and_recursion() -> None:
     assert normalised["recursive"] == {"self": None}
 
 
+def test_normalise_json_value_supports_to_mapping_to_dict_and_object_dict() -> None:
+    """Normalization should support common object payload-export hooks."""
+
+    class _ObjectPayload:
+        def __init__(self) -> None:
+            self.value = "ok"
+
+    mapped = normalise_json_value(_ToMappingPayload())
+    serialised = normalise_json_value(_ToDictPayload())
+    object_payload = normalise_json_value(_ObjectPayload())
+
+    assert mapped == {"api_token": "secret", "count": 2}
+    assert serialised == {"name": "Luna", "weight": 12.5}
+    assert object_payload == {"value": "ok"}
+
+
 def test_normalise_mapping_and_entity_attributes_default_to_empty_dict() -> None:
     """Mapping helpers should return empty dicts for missing payloads."""
     assert normalise_json_mapping(None) == {}
@@ -168,6 +194,12 @@ def test_validate_time_and_weight_helpers_cover_common_formats() -> None:
     assert parse_weight("22 lb") == 22 * 0.453592
     assert parse_weight(-5) is None
     assert parse_weight("n/a") is None
+
+
+def test_validate_time_string_rejects_out_of_range_values() -> None:
+    """Invalid clock values should be rejected by the parser."""
+    assert validate_time_string("25:10") is None
+    assert validate_time_string("09:61:00") is None
 
 
 def test_format_helpers_and_math_helpers() -> None:
@@ -237,6 +269,17 @@ def test_bmi_and_portion_validation_cover_boundaries() -> None:
         "Meals per day is not positive" in small_with_invalid_meal_count["warnings"][0]
     )
     assert "very small" in small_with_invalid_meal_count["warnings"][-1]
+
+
+def test_validate_portion_size_rejects_non_numeric_and_invalid_daily_amount() -> None:
+    """Validation should fail with actionable messages for invalid inputs."""
+    not_numeric = validate_portion_size("invalid", 120)  # type: ignore[arg-type]
+    bad_daily = validate_portion_size(20, 0)
+
+    assert not not_numeric["valid"]
+    assert "Portion must be a real number" in not_numeric["warnings"]
+    assert not bad_daily["valid"]
+    assert "must be positive" in bad_daily["warnings"][0]
 
 
 def test_collection_and_configuration_helpers_cover_edge_cases() -> None:
