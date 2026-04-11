@@ -45,3 +45,19 @@ def test_classify_error_reason_handles_exception_error_and_unknown_reason() -> N
     """Unknown reasons with exception objects should still use error hints."""
     error = ConnectionError("Device offline")
     assert classify_error_reason("unmapped", error=error) == "device_unreachable"
+
+
+@pytest.mark.parametrize(
+    ("reason", "expected"),
+    [
+        ("missing_services_api", "missing_service"),
+        ("service_not_executed", "guard_skipped"),
+        (None, "unknown"),
+    ],
+)
+def test_classify_error_reason_supports_explicit_reason_mappings(
+    reason: str | None,
+    expected: str,
+) -> None:
+    """Mapped reasons should resolve without relying on free-form error hints."""
+    assert classify_error_reason(reason, error=None) == expected
