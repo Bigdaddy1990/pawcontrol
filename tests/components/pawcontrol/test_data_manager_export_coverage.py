@@ -363,3 +363,39 @@ async def test_async_export_data_all_allow_partial_still_surfaces_manifest_io_fa
 
     with pytest.raises(OSError, match="manifest read-only"):
         await manager.async_export_data("buddy", "all", allow_partial=True)
+
+
+@pytest.mark.asyncio
+async def test_async_get_module_history_handles_infinite_numeric_timestamps(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    """Non-finite numeric timestamps should be tolerated during history sorting."""
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._dog_profiles["buddy"].health_history = [
+        {"timestamp": float("inf"), "status": "future"},
+        {"timestamp": "2026-01-05T07:30:00+00:00", "status": "ok"},
+    ]
+
+    history = await manager.async_get_module_history("health", "buddy")
+
+    assert len(history) == 2
+    assert {entry["status"] for entry in history} == {"future", "ok"}
+
+
+@pytest.mark.asyncio
+async def test_async_get_module_history_handles_nan_numeric_timestamps(
+    mock_hass: object,
+    tmp_path: Path,
+) -> None:
+    """NaN timestamps should fall back to an empty sort key instead of crashing."""
+    manager = await _create_manager(mock_hass, tmp_path)
+    manager._dog_profiles["buddy"].health_history = [
+        {"timestamp": float("nan"), "status": "unknown"},
+        {"timestamp": "2026-01-05T07:30:00+00:00", "status": "ok"},
+    ]
+
+    history = await manager.async_get_module_history("health", "buddy")
+
+    assert len(history) == 2
+    assert {entry["status"] for entry in history} == {"unknown", "ok"}
