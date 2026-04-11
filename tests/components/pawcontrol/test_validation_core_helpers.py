@@ -163,6 +163,41 @@ def test_validate_name_and_float_constraint_helpers() -> None:
         _coerce_float_with_constraint("weight", "not-a-number", "must_be_numeric")
 
 
+def test_validate_name_rejects_required_too_short_and_too_long_values() -> None:
+    """Name validation should raise dedicated constraints for length failures."""
+    with pytest.raises(ValidationError, match="name_required"):
+        validate_name("   ")
+
+    with pytest.raises(ValidationError, match="name_too_short"):
+        validate_name("A")
+
+    with pytest.raises(ValidationError, match="name_too_long"):
+        validate_name("A" * 80)
+
+
+def test_validate_time_window_reports_invalid_default_constraints() -> None:
+    """Time windows should bubble default parsing issues via configured constraints."""
+    with pytest.raises(ValidationError, match="start_invalid"):
+        validate_time_window(
+            None,
+            "09:00",
+            start_field="start",
+            end_field="end",
+            default_start="bad-default",
+            invalid_start_constraint="start_invalid",
+        )
+
+    with pytest.raises(ValidationError, match="end_invalid"):
+        validate_time_window(
+            "07:00",
+            None,
+            start_field="start",
+            end_field="end",
+            default_end="bad-default",
+            invalid_end_constraint="end_invalid",
+        )
+
+
 @pytest.mark.parametrize(
     ("name", "kwargs", "expected"),
     [
