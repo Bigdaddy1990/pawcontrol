@@ -328,3 +328,58 @@ def test_main_reports_passed_gates(
     output = capsys.readouterr().out
     assert result == 0
     assert "Coverage gates passed." in output
+
+
+def test_load_branch_exceptions_parses_valid_payload(tmp_path: Path) -> None:
+    """Valid exception entries should be parsed into typed records."""
+    exceptions_file = tmp_path / "exceptions.json"
+    exceptions_file.write_text(
+        '[{"path":"custom_components/pawcontrol/coordinator.py",'
+        '"minimum_branch_percent":"87.5","rationale":"  deterministic branch  "}]',
+        encoding="utf-8",
+    )
+
+    exceptions = enforce_coverage_gates._load_branch_exceptions(exceptions_file)
+
+    entry = exceptions["custom_components/pawcontrol/coordinator.py"]
+    assert entry.path == "custom_components/pawcontrol/coordinator.py"
+    assert entry.minimum_branch_percent == Decimal("87.5")
+    assert entry.rationale == "deterministic branch"
+
+
+def test_main_reports_failure_and_existing_exception_file(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """CLI should surface failures and acknowledge existing exceptions file."""
+    report = _write_coverage_xml(
+        tmp_path,
+        line_rate="0.80",
+        class_rates={
+            "custom_components/pawcontrol/coordinator.py": ("0.95", "1"),
+            "custom_components/pawcontrol/config_flow.py": ("0.95", "1"),
+            "custom_components/pawcontrol/services.py": ("0.95", "1"),
+            "custom_components/pawcontrol/data_manager.py": ("0.95", "1"),
+        },
+    )
+    exceptions_file = tmp_path / "exceptions.json"
+    exceptions_file.write_text("[]", encoding="utf-8")
+
+    from unittest.mock import patch
+
+    with patch(
+        "sys.argv",
+        [
+            "enforce_coverage_gates.py",
+            "--coverage-xml",
+            str(report),
+            "--exceptions-file",
+            str(exceptions_file),
+        ],
+    ):
+        result = enforce_coverage_gates.main()
+
+    output = capsys.readouterr().out
+    assert result == 1
+    assert f"Branch coverage exceptions file: {exceptions_file}" in output
+    assert "ERROR: overall coverage gate failed" in output
