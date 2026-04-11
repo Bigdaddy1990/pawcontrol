@@ -289,20 +289,22 @@ def test_cache_entry_ttl_remaining_is_never_negative() -> None:
     assert entry.ttl_remaining == 0.0
 
 
-def test_cache_entry_mark_accessed_tracks_hits_and_timestamp() -> None:
+def test_cache_entry_mark_accessed_tracks_hits_and_timestamp(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Marking access should increment hits and refresh last-access time."""
+    monkeypatch.setattr(time, "time", lambda: 100.0)
     entry = cache_module.CacheEntry(
         value="fresh",
-        timestamp=time.time(),
+        timestamp=50.0,
         ttl_seconds=30.0,
-        last_access=1.0,
     )
 
-    before = entry.last_access
+    monkeypatch.setattr(time, "time", lambda: 200.0)
     entry.mark_accessed()
 
     assert entry.hit_count == 1
-    assert entry.last_access >= before
+    assert entry.last_access == 200.0
 
 
 @pytest.mark.asyncio
