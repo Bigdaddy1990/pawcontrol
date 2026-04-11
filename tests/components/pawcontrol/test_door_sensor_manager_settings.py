@@ -83,6 +83,43 @@ def test_ensure_door_sensor_settings_config_rejects_non_mapping_inputs() -> None
         ensure_door_sensor_settings_config(["bad-input"])  # type: ignore[arg-type]
 
 
+@pytest.mark.parametrize(
+    ("timeout_override", "expected_timeout"),
+    [
+        (True, DEFAULT_DOOR_SENSOR_SETTINGS.walk_detection_timeout),
+        (False, DEFAULT_DOOR_SENSOR_SETTINGS.walk_detection_timeout),
+        ("true", DEFAULT_DOOR_SENSOR_SETTINGS.walk_detection_timeout),
+    ],
+)
+def test_ensure_settings_timeout_ignores_boolean_like_overrides(
+    timeout_override: object,
+    expected_timeout: int,
+) -> None:
+    """Boolean-like timeout overrides should fall back to safe defaults."""
+    settings = ensure_door_sensor_settings_config({
+        "walk_detection_timeout": timeout_override,
+        "minimum_walk_duration": True,
+    })
+
+    assert settings.walk_detection_timeout == expected_timeout
+    assert (
+        settings.minimum_walk_duration
+        == DEFAULT_DOOR_SENSOR_SETTINGS.minimum_walk_duration
+    )
+
+
+def test_ensure_settings_ignores_non_string_mapping_keys() -> None:
+    """Only string mapping keys should be considered during normalization."""
+    settings = ensure_door_sensor_settings_config({
+        1: "15",  # ignored: non-string key
+        "walk_detection_timeout": "75",
+        "CONFIDENCE": "0.2",
+    })
+
+    assert settings.walk_detection_timeout == 75
+    assert settings.confidence_threshold == 0.2
+
+
 def test_apply_settings_to_config_and_payload_roundtrip() -> None:
     """Applying settings should update the runtime config and payload serialization."""
     config = DoorSensorConfig(
