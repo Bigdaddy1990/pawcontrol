@@ -18,6 +18,7 @@ from custom_components.pawcontrol.exceptions import (
     HomeAssistantError,
     ServiceValidationError,
 )
+from custom_components.pawcontrol.service_guard import ServiceGuardResult
 
 
 async def _register_services_and_get_handler(
@@ -391,6 +392,48 @@ def test_given_record_service_result_when_rejections_exist_then_include_details(
     result = runtime_data.performance_stats["last_service_result"]
     assert result["details"]["resilience"]["rejected_call_count"] == 2
     assert result["status"] == "error"
+
+
+def test_given_record_service_result_when_performance_stats_missing_then_noop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When runtime performance stats are unavailable the helper should no-op."""
+    runtime_data = SimpleNamespace(performance_stats={"sentinel": True})
+    monkeypatch.setattr(services, "get_runtime_performance_stats", lambda _: None)
+
+    services._record_service_result(
+        runtime_data,
+        service="send_notification",
+        status="error",
+        details={"source": "test"},
+    )
+
+    assert runtime_data.performance_stats == {"sentinel": True}
+
+
+def test_record_service_result_ignores_non_guard_entries() -> None:
+    """Guard metrics should only count ServiceGuardResult entries."""
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    services._record_service_result(
+        runtime_data,
+        service="send_notification",
+        status="success",
+        guard=[
+            ServiceGuardResult(
+                domain="notify",
+                service="mobile_app",
+                executed=False,
+                reason="missing_service",
+            ),
+            "not-a-guard-entry",
+        ],
+    )
+
+    result = runtime_data.performance_stats["last_service_result"]
+    assert result["guard"]["executed"] == 0
+    assert result["guard"]["skipped"] == 1
+    assert result["details"]["guard"]["reasons"]["missing_service"] == 1
 
 
 @pytest.mark.parametrize(
