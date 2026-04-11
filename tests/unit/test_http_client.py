@@ -137,6 +137,19 @@ class _AsyncClassRequestWithSyncInstanceOverride:
         return "ok"
 
 
+class _SyncRequestWithoutCoroutineFallback:
+    """Session-like object lacking async request and _request callables."""
+
+    def __init__(self) -> None:
+        self.closed = False
+
+    def request(self, *args: object, **kwargs: object) -> str:
+        return "sync"
+
+    def _request(self, *args: object, **kwargs: object) -> str:
+        return "sync"
+
+
 @pytest.mark.unit
 def test_ensure_shared_client_session_accepts_wrapped_request(
     http_client_module: ModuleType,
@@ -200,5 +213,18 @@ def test_ensure_shared_client_session_rejects_sync_instance_override(
 
     with pytest.raises(ValueError) as excinfo:
         ensure_shared(_AsyncClassRequestWithSyncInstanceOverride(), owner="TestHelper")
+
+    assert "aiohttp-compatible 'request' coroutine" in str(excinfo.value)
+
+
+@pytest.mark.unit
+def test_ensure_shared_client_session_rejects_sync_request_without_fallback(
+    http_client_module: ModuleType,
+) -> None:
+    """Sync ``request`` must have an async ``_request`` fallback to be accepted."""
+    ensure_shared = http_client_module.ensure_shared_client_session
+
+    with pytest.raises(ValueError) as excinfo:
+        ensure_shared(_SyncRequestWithoutCoroutineFallback(), owner="TestHelper")
 
     assert "aiohttp-compatible 'request' coroutine" in str(excinfo.value)

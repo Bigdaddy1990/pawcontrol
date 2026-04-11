@@ -1,6 +1,9 @@
 """Regression tests for the Home Assistant selector compatibility shim."""
 
-from types import SimpleNamespace
+import importlib.util
+from pathlib import Path
+import sys
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -137,3 +140,58 @@ def test_supports_selector_callables_rejects_invalid_module() -> None:
         TextSelectorConfig=lambda: {},
     )
     assert not selector_shim._supports_selector_callables(exploding_module)
+
+
+def test_selector_passthrough_branch_uses_homeassistant_selector(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Load the shim in an environment where Home Assistant selectors are present."""
+
+    class _DummySelector:
+        def __init__(self, _config: object) -> None:
+            pass
+
+        def __call__(self, value: object) -> object:
+            return value
+
+    def _selector_factory(config: object) -> object:
+        return {"wrapped": config}
+
+    fake_selector_module = ModuleType("homeassistant.helpers.selector")
+    fake_selector_module.selector = _selector_factory  # type: ignore[attr-defined]
+    fake_selector_module.TextSelector = _DummySelector  # type: ignore[attr-defined]
+    fake_selector_module.TextSelectorConfig = lambda: {}  # type: ignore[attr-defined]
+
+    fake_helpers_module = ModuleType("homeassistant.helpers")
+    fake_helpers_module.selector = fake_selector_module  # type: ignore[attr-defined]
+
+    fake_homeassistant_module = ModuleType("homeassistant")
+    fake_homeassistant_module.helpers = fake_helpers_module  # type: ignore[attr-defined]
+
+    monkeypatch.setitem(sys.modules, "homeassistant", fake_homeassistant_module)
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers", fake_helpers_module)
+    monkeypatch.setitem(
+        sys.modules,
+        "homeassistant.helpers.selector",
+        fake_selector_module,
+    )
+
+    module_path = (
+        Path(__file__).resolve().parents[2]
+        / "custom_components"
+        / "pawcontrol"
+        / "selector_shim.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "pawcontrol.selector_shim_passthrough_test",
+        module_path,
+    )
+    assert spec and spec.loader
+    passthrough_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(passthrough_module)
+
+    assert passthrough_module.ha_selector is fake_selector_module
+    assert passthrough_module.selector.TextSelector is _DummySelector
+    assert passthrough_module.selector({"kind": "test"}) == {
+        "wrapped": {"kind": "test"}
+    }
