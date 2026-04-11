@@ -145,7 +145,7 @@ def test_build_runtime_store_assessment_escalates_on_future_incompatible_status(
         "divergence_detected": False,
     }
 
-    assessment = telemetry._build_runtime_store_assessment(  # noqa: SLF001
+    assessment = telemetry._build_runtime_store_assessment(
         snapshot,
         history,
         recorded=True,
@@ -179,7 +179,7 @@ def test_build_runtime_store_assessment_segments_uses_duration_fallback_for_last
         },
     ]
 
-    segments = telemetry._build_runtime_store_assessment_segments(events)  # noqa: SLF001
+    segments = telemetry._build_runtime_store_assessment_segments(events)
 
     assert len(segments) == 2
     assert segments[0]["duration_seconds"] == 600.0
