@@ -126,6 +126,19 @@ class FlakySession(DummySession):
         return super().get(*args, **kwargs)
 
 
+class AlwaysFailingClientSession:
+    """Session stub whose GET requests always fail with aiohttp.ClientError."""
+
+    closed = False
+
+    async def request(self, *args: object, **kwargs: object) -> DummyResponse:
+        context = self.get(*args, **kwargs)
+        return await context
+
+    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:
+        raise aiohttp.ClientError("unreachable endpoint")
+
+
 @pytest.mark.asyncio
 async def test_async_validate_api_connection_filters_capabilities(
     hass: HomeAssistant,
@@ -336,6 +349,20 @@ async def test_test_endpoint_reachability_respects_ssl_override(
 
 
 @pytest.mark.asyncio
+async def test_test_endpoint_reachability_keeps_default_ssl_settings(
+    hass: HomeAssistant,
+) -> None:
+    """Default validator settings should not inject an explicit ssl argument."""
+    session = CapturingSession([DummyResponse(200)])
+    validator = APIValidator(hass, cast(ClientSession, session))
+
+    reachable = await validator._test_endpoint_reachability("https://example.test")
+
+    assert reachable is True
+    assert session.calls[0][1] == {"allow_redirects": True}
+
+
+@pytest.mark.asyncio
 async def test_test_authentication_handles_non_mapping_json_payload(
     hass: HomeAssistant,
 ) -> None:
@@ -433,6 +460,22 @@ async def test_test_authentication_handles_unexpected_errors(
     validator = APIValidator(
         hass, cast(ClientSession, RaisingSession(RuntimeError("boom")))
     )
+
+    result = await validator._test_authentication("https://example.test", "token")
+
+    assert result == {
+        "authenticated": False,
+        "api_version": None,
+        "capabilities": None,
+    }
+
+
+@pytest.mark.asyncio
+async def test_test_authentication_returns_false_when_all_endpoints_fail(
+    hass: HomeAssistant,
+) -> None:
+    """Auth probe should return unauthenticated when all endpoints reject."""
+    validator = APIValidator(hass, cast(ClientSession, AlwaysFailingClientSession()))
 
     result = await validator._test_authentication("https://example.test", "token")
 
