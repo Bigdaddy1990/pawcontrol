@@ -83,7 +83,6 @@ line-ending = "lf"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 skip-magic-trailing-comma = false
-line-length = 88
 
 [tool.ruff.lint]
 preview = true
