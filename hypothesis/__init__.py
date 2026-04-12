@@ -6,8 +6,16 @@ from typing import Any
 
 class HealthCheck:
     function_scoped_fixture = "function_scoped_fixture"
+    differing_executors = "differing_executors"
     too_slow = "too_slow"
     filter_too_much = "filter_too_much"
+
+
+class Verbosity:
+    quiet = 0
+    normal = 1
+    verbose = 2
+    debug = 3
 
 
 class _Strategy:
@@ -32,6 +40,15 @@ def given(
 
 class _Settings:
     _profiles: dict[str, object] = {}
+    _current_profile = "default"
+
+    class _DefaultProfile:
+        verbosity = Verbosity.normal
+
+        def show_changed(self) -> str:
+            return ""
+
+    default = _DefaultProfile()
 
     def __call__(
         self, *_args: Any, **_kwargs: Any
@@ -44,11 +61,36 @@ class _Settings:
     def register_profile(self, name: str, value: object) -> None:
         self._profiles[name] = value
 
-    def load_profile(self, _name: str) -> None:
-        return None
+    def load_profile(self, name: str) -> None:
+        self._current_profile = name
+        profile = self._profiles.get(name)
+        if (
+            profile is not None
+            and hasattr(profile, "verbosity")
+            and hasattr(profile, "show_changed")
+        ):
+            self.default = profile
+        else:
+            self.default = self._DefaultProfile()
+
+    def get_current_profile_name(self) -> str:
+        return self._current_profile
 
 
 settings = _Settings()
+
+
+class Phase:
+    explain = "explain"
+
+
+class _CoreCompat:
+    global_force_seed: Any = None
+    pytest_shows_exceptiongroups = False
+    running_under_pytest = False
+
+
+core = _CoreCompat()
 
 
 class _Strategies:
@@ -65,4 +107,20 @@ class _Strategies:
 strategies = _Strategies()
 st = strategies
 
-__all__ = ["HealthCheck", "given", "settings", "strategies", "st"]
+
+def is_hypothesis_test(_func: object) -> bool:
+    """Compatibility helper expected by pytest-hypothesis plugin."""
+    return False
+
+
+__all__ = [
+    "HealthCheck",
+    "Phase",
+    "Verbosity",
+    "core",
+    "given",
+    "is_hypothesis_test",
+    "settings",
+    "strategies",
+    "st",
+]
