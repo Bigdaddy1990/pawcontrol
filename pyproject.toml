@@ -73,7 +73,7 @@ output-format= "github"
 detect-string-imports = true
 direction = "dependencies"
 string-imports-min-dots = 2
-type-checking-imports: true
+type-checking-imports = true
 
 [tool.ruff.format]
 preview = true
@@ -83,7 +83,6 @@ line-ending = "lf"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 skip-magic-trailing-comma = false
-line-length = 88
 
 [tool.ruff.lint]
 preview = true

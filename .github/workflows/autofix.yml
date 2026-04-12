@@ -54,8 +54,12 @@ jobs:
           uv pip install --system --upgrade pre-commit ruff pyupgrade flake8-type-checking reorder-python-imports
           uv cache prune --ci
       - uses: astral-sh/ruff-action@v3
-      - run: ruff check --fix || true
-      - run: ruff format || true
+        with:
+         version: ">=0.4.0"
+      - run: ruff check --fix
+      - run: ruff format
+      - uses: pre-commit-ci/lite-action@v1.1.0
+        if: always()
       - name: Run pre-commit with fixes
         run: |
           ruff check . --fix || true
@@ -64,11 +68,11 @@ jobs:
           ruff check . --extend-select RUF100 || true
           ruff check . --preview || true
           ruff check . --output-format=github || true
-          ruff format || true
+          ruff format
           python scripts/enforce_docstring_baseline.py --update
           python -m scripts.sync_contributor_guides
           pre-commit run --all-files || true
-          pre-commit run --hook-stage manual python-typing-update --all-files || true
+          pre-commit run --hook-stage manual python-typing-update --all-files
 
       - name: Verify contributor guides
         run: |
@@ -80,7 +84,3 @@ jobs:
           python -m scripts.sync_localization_flags \
             --allowlist scripts/sync_localization_flags.allowlist \
             --check
-
-      - name: pre-commit-ci-lite
-        uses: pre-commit-ci/lite-action@v1.1.0
-        if: always()
