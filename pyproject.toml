@@ -82,7 +82,7 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 docstring-code-format = true
-docstring-code-line-length = "dynamic"
+#docstring-code-line-length = "dynamic"
 skip-magic-trailing-comma = false
 
 [tool.ruff.lint]
@@ -92,7 +92,7 @@ ignore = []
 fixable = ["ALL"]
 unfixable = ["F401"]
 extend-unsafe-fixes = ["E", "F401"]
-future-annotations = true
+future-annotations = false
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403", "E402"]
