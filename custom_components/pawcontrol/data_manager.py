@@ -1778,9 +1778,7 @@ class PawControlDataManager:
             caches_with_pending_expired_entries=caches_with_pending or None,
             caches_with_override_flags=caches_with_override_flags or None,
             caches_with_low_hit_rate=caches_with_low_hit_rate or None,
-            caches_with_timestamp_anomalies=(
-                caches_with_timestamp_anomalies or None
-            ),
+            caches_with_timestamp_anomalies=(caches_with_timestamp_anomalies or None),
             issues=issues or None,
         )
 
