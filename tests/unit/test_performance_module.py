@@ -616,7 +616,7 @@ def test_record_maintenance_result_skips_metadata_injection_for_coordinator_task
 def test_batch_calls_process_batch_returns_when_pending_is_drained(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Queued batch task should no-op when pending calls are cleared before execution."""
+    """Queued batch task should no-op when pending calls are cleared."""
 
     async def _exercise() -> None:
         executed: list[int] = []

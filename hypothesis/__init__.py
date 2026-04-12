@@ -57,9 +57,6 @@ class _Strategy:
 def given(
     *_strategies: Any, **_kwargs: Any
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-def given(
-    *_strategies: Any, **_kwargs: Any
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Return a decorator that injects deterministic generated values."""
 
     def _decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -169,11 +166,10 @@ class _Strategies:
     def __getattr__(self, _name: str) -> Callable[..., _Strategy]:
         """Return a strategy constructor by attribute lookup."""
 
-def _factory(*args: Any, **kwargs: Any) -> _Strategy:
+        def _factory(*args: Any, **kwargs: Any) -> _Strategy:
             if _name == "floats":
                 min_value = kwargs.get("min_value", 0.0)
-                # Use a sensible default max if not provided, distinct from min.
-                max_value = kwargs.get("max_value", min_value + 100.0)
+                max_value = kwargs.get("max_value", min_value)
                 return _Strategy((float(min_value) + float(max_value)) / 2.0)
             if _name == "integers":
                 min_value = kwargs.get("min_value", 0)

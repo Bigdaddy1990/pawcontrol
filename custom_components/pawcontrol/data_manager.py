@@ -1080,8 +1080,8 @@ class PawControlDataManager:
         async with lock:
             namespace_state = getattr(self, "_namespace_state", None)
             if namespace_state is None:
-                self._namespace_state = namespace_state = {}
-
+                namespace_state = {}
+                self._namespace_state = namespace_state
             existing_state = namespace_state.get(namespace)
             data = dict(await self._get_namespace_data(namespace))
             current = data.get(dog_id)

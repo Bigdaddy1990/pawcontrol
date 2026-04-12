@@ -64,9 +64,8 @@ def test_ensure_dog_config_data_normalises_optional_fields_and_trims_sensor() ->
     assert normalised["walk"] == {"enabled": True}
 
 
-def test_ensure_dog_config_data_includes_text_and_non_default_door_sensor_settings() -> (
-    None
-):
+def test_ensure_dog_config_data_includes_text_and_non_default_door_sensor_settings(
+) -> None:
     """Dog config should include text snapshots and non-default door settings."""
     payload = {
         types.DOG_ID_FIELD: "dog-9",
@@ -565,9 +564,8 @@ def test_daily_stats_from_dict_falls_back_to_utcnow_for_invalid_date(
     assert parsed.feedings_count == 2
 
 
-def test_ensure_dog_options_entry_prefers_payload_dog_id_and_normalizes_notifications() -> (
-    None
-):
+def test_ensure_dog_options_entry_prefers_payload_dog_id_and_normalizes_notifications(
+) -> None:
     """Options entry should prefer payload dog_id and apply notification defaults."""
     entry = types.ensure_dog_options_entry(
         {

@@ -131,7 +131,7 @@ async def test_async_set_visitor_mode_propagates_homeassistant_error(
 async def test_async_initialize_continues_when_namespace_preload_fails(
     hass: SimpleNamespace,
 ) -> None:
-    """Initialization should continue when namespace preload raises HomeAssistantError."""
+    """Initialization should continue if namespace preload raises HA error."""
     manager = _build_manager(hass)
     manager._async_load_storage = AsyncMock(return_value={})
     manager._get_namespace_data = AsyncMock(
@@ -168,7 +168,7 @@ async def test_async_shutdown_ignores_save_errors_for_each_profile(
 async def test_module_history_handles_unix_timestamp_parse_failures(
     hass: SimpleNamespace,
 ) -> None:
-    """History sorting should tolerate ValueError/OverflowError timestamp conversion failures."""
+    """History sorting should tolerate timestamp conversion failures."""
     manager = _build_manager(hass)
     profile = DogProfile.from_storage(manager._dogs_config["buddy"], None)
     profile.walk_history.append({"end_time": 10**40, "distance": 1.0})
@@ -188,7 +188,7 @@ async def test_module_history_handles_unix_timestamp_parse_failures(
 async def test_generate_report_skips_entries_with_invalid_timestamps(
     hass: SimpleNamespace,
 ) -> None:
-    """Report generation should ignore entries that cannot be deserialized to datetimes."""
+    """Report generation should ignore entries that cannot parse as datetimes."""
     manager = _build_manager(hass)
     profile = DogProfile.from_storage(manager._dogs_config["buddy"], None)
     profile.feeding_history.append({"timestamp": "not-a-date", "portion_size": 120.0})
