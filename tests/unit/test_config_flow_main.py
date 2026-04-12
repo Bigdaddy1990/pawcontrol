@@ -916,7 +916,7 @@ def test_async_get_options_flow_initializes_from_config_entry(
     entry = MockConfigEntry(domain=DOMAIN, data={})
     seen: dict[str, object] = {}
 
-    def _initialize(self, config_entry):  # type: ignore[no-untyped-def]
+    def _initialize(self, config_entry) -> None:  # type: ignore[no-untyped-def]
         seen["entry"] = config_entry
 
     monkeypatch.setattr(
