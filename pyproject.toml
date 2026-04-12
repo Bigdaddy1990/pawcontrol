@@ -73,7 +73,8 @@ output-format= "github"
 detect-string-imports = true
 direction = "dependencies"
 string-imports-min-dots = 2
-include-type-checking-imports = true
+type-checking-imports = true
+include-dependencies = true
 
 [tool.ruff.format]
 preview = true
