@@ -148,6 +148,7 @@ class _Strategies:
 
     def __getattr__(self, _name: str) -> Callable[..., _Strategy]:
         """Return a strategy constructor by attribute lookup."""
+
         def _factory(*args: Any, **kwargs: Any) -> _Strategy:
             if _name == "floats":
                 min_value = kwargs.get("min_value", 0.0)
@@ -175,6 +176,7 @@ class _Strategies:
 
     def composite(self, function: Callable[..., Any]) -> Callable[..., _Strategy]:
         """Wrap composite strategy callables with deterministic draw support."""
+
         def _wrapper(*args: Any, **kwargs: Any) -> _Strategy:
             def _draw(strategy: _Strategy) -> Any:
                 return strategy.example()
