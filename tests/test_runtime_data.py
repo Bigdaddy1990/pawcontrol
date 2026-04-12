@@ -1118,3 +1118,157 @@ def test_normalise_store_entry_respects_minimum_compatibility_override(
 
     assert normalized.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
     assert normalized.created_version == minimum
+
+
+def test_as_store_entry_preserves_explicit_created_version(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """Explicit created_version should not be overwritten during coercion."""
+
+    class _LegacyStorePayload:
+        pass
+
+    _LegacyStorePayload.__name__ = "DomainRuntimeStoreEntry"
+    _LegacyStorePayload.__module__ = DomainRuntimeStoreEntryType.__module__
+
+    payload = _LegacyStorePayload()
+    payload.runtime_data = runtime_data
+    payload.version = DomainRuntimeStoreEntryType.MINIMUM_COMPATIBLE_VERSION
+    payload.created_version = DomainRuntimeStoreEntryType.CURRENT_VERSION
+
+    store_entry = _as_store_entry(payload)
+
+    assert store_entry is not None
+    assert store_entry.created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
+
+
+def test_cleanup_domain_store_keeps_non_empty_store() -> None:
+    """Cleanup should keep domain data when entries are still present."""
+    hass = _build_hass(data={DOMAIN: {"entry": "value"}})
+
+    _cleanup_domain_store(hass, hass.data[DOMAIN])
+
+    assert DOMAIN in hass.data
+    assert hass.data[DOMAIN]["entry"] == "value"
+
+
+def test_detach_runtime_from_entry_without_runtime_attribute() -> None:
+    """Detaching should tolerate entries without a runtime_data attribute."""
+
+    class _EntryWithoutRuntime:
+        entry_id = "without-runtime"
+
+    entry = _EntryWithoutRuntime()
+    setattr(entry, "_pawcontrol_runtime_store_version", 1)
+    setattr(entry, "_pawcontrol_runtime_store_created_version", 1)
+
+    _detach_runtime_from_entry(cast(PawControlConfigEntryType, entry))
+
+    assert not hasattr(entry, "runtime_data")
+    assert entry._pawcontrol_runtime_store_version is None
+    assert entry._pawcontrol_runtime_store_created_version is None
+
+
+def test_get_runtime_data_store_only_payload_when_entry_missing(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """Store-only payloads should resolve even when no config entry is loaded."""
+    entry_id = "store-only"
+    hass = _build_hass(
+        entries={},
+        data={
+            DOMAIN: {
+                entry_id: DomainRuntimeStoreEntryType(runtime_data=runtime_data),
+            }
+        },
+    )
+
+    assert get_runtime_data(hass, entry_id) is runtime_data
+
+
+def test_get_runtime_data_missing_store_key_keeps_existing_store() -> None:
+    """Looking up a missing key should not mutate unrelated store entries."""
+    hass = _build_hass(data={DOMAIN: {"other": "value"}}, entries={})
+
+    assert get_runtime_data(hass, "missing") is None
+    assert DOMAIN in hass.data
+    assert hass.data[DOMAIN] == {"other": "value"}
+
+
+def test_get_runtime_data_entry_path_handles_missing_created_store(
+    runtime_data: PawControlRuntimeDataType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Entry fallback should still return runtime data when store creation fails."""
+    entry = _entry("no-created-store")
+    entry.runtime_data = runtime_data
+    hass = _build_hass(entries={entry.entry_id: entry}, data={})
+
+    monkeypatch.setattr(
+        runtime_module,
+        "_get_domain_store",
+        lambda _hass, *, create: None if create else {},
+    )
+
+    assert get_runtime_data(hass, entry.entry_id) is runtime_data
+
+
+def test_get_runtime_data_handles_entry_branch_without_resolved_entry(
+    runtime_data: PawControlRuntimeDataType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Coverage guard for synthetic entry-store payloads without resolved entries."""
+    monkeypatch.setattr(
+        runtime_module,
+        "_get_store_entry_from_entry",
+        lambda _entry: DomainRuntimeStoreEntryType(runtime_data=runtime_data),
+    )
+    hass = _build_hass(entries={}, data={})
+
+    assert get_runtime_data(hass, "orphaned") is runtime_data
+
+
+def test_get_runtime_data_incompatible_store_without_matching_key(
+    runtime_data: PawControlRuntimeDataType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Incompatible synthetic store entries should not require key removal success."""
+    future_version = DomainRuntimeStoreEntryType.CURRENT_VERSION + 1
+    monkeypatch.setattr(
+        runtime_module,
+        "_as_store_entry",
+        lambda _value: DomainRuntimeStoreEntryType(
+            runtime_data=runtime_data,
+            version=future_version,
+            created_version=future_version,
+        ),
+    )
+    hass = _build_hass(data={DOMAIN: {"other": "value"}}, entries={})
+
+    assert get_runtime_data(hass, "ghost") is None
+    assert DOMAIN in hass.data
+    assert hass.data[DOMAIN] == {"other": "value"}
+
+
+def test_pop_runtime_data_entry_runtime_when_store_missing_entry_key(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """Entry-backed runtime data should pop even when store lacks that key."""
+    entry = _entry("entry-runtime-only")
+    entry.runtime_data = runtime_data
+    hass = _build_hass(
+        entries={entry.entry_id: entry},
+        data={DOMAIN: {"other": DomainRuntimeStoreEntryType(runtime_data=runtime_data)}},
+    )
+
+    assert pop_runtime_data(hass, entry) is runtime_data
+    assert DOMAIN in hass.data
+    assert "other" in hass.data[DOMAIN]
+
+
+def test_pop_runtime_data_invalid_store_payload_returns_none() -> None:
+    """Invalid store payloads should be discarded and return no runtime data."""
+    hass = _build_hass(data={DOMAIN: {"broken": object()}}, entries={})
+
+    assert pop_runtime_data(hass, "broken") is None
+    assert DOMAIN not in hass.data
