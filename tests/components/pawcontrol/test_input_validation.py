@@ -270,8 +270,9 @@ def test_given_non_string_for_string_field_when_validating_then_return_type_erro
     assert "Expected text input" in result.errors[0]
 
 
-def test_given_incompatible_validator_args_when_validating_then_capture_dispatch_error(
-) -> None:
+def test_given_incompatible_validator_args_when_validating_then_capture_dispatch_error() -> (
+    None
+):
     """Validation dispatch should convert argument/type failures into field errors."""
     validator = InputValidator()
     schema = {
@@ -289,8 +290,9 @@ def test_given_incompatible_validator_args_when_validating_then_capture_dispatch
     assert "rejected provided arguments" in result.errors[0]
 
 
-def test_given_validator_raises_value_error_when_validating_then_capture_dispatch_error(
-) -> None:
+def test_given_validator_raises_value_error_when_validating_then_capture_dispatch_error() -> (
+    None
+):
     """Validation dispatch should map validator-raised ValueError to field errors."""
     validator = InputValidator()
     schema = {"count": {"type": "int"}}
@@ -432,8 +434,9 @@ def test_given_dispatch_mapping_to_noncallable_when_validating_then_fallback_to_
     assert result.sanitized_value == {"meta": {"source": "manual"}}
 
 
-def test_given_validator_kwargs_when_normalized_then_only_supported_keys_are_forwarded(
-) -> None:
+def test_given_validator_kwargs_when_normalized_then_only_supported_keys_are_forwarded() -> (
+    None
+):
     """Validator kwargs normalization should drop unsupported schema attributes."""
     validator = InputValidator()
     schema = {
