@@ -1078,7 +1078,11 @@ class PawControlDataManager:
         """Update ``namespace`` payload for ``dog_id`` using ``updater``."""
         lock = self._get_namespace_lock(namespace)
         async with lock:
-            existing_state = self._namespace_state.get(namespace)
+            namespace_state = getattr(self, "_namespace_state", None)
+            if namespace_state is None:
+                namespace_state = {}
+                self._namespace_state = namespace_state
+            existing_state = namespace_state.get(namespace)
             data = dict(await self._get_namespace_data(namespace))
             current = data.get(dog_id)
             updated = updater(current)
@@ -1089,9 +1093,9 @@ class PawControlDataManager:
             try:
                 await self._save_namespace(namespace, data)
             except Exception:
-                self._namespace_state.pop(namespace, None)
+                namespace_state.pop(namespace, None)
                 if existing_state not in (None, {}):
-                    self._namespace_state[namespace] = existing_state
+                    namespace_state[namespace] = existing_state
                 raise
             return updated
 
