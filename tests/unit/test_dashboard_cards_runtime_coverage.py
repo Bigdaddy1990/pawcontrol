@@ -1,7 +1,5 @@
 """Runtime-heavy coverage tests for ``dashboard_cards.py``."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Mapping
 from types import SimpleNamespace

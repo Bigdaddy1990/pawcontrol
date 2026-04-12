@@ -5308,9 +5308,7 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
             ),
             "caches_with_override_flags": self.caches_with_override_flags,
             "caches_with_low_hit_rate": self.caches_with_low_hit_rate,
-            "caches_with_timestamp_anomalies": (
-                self.caches_with_timestamp_anomalies
-            ),
+            "caches_with_timestamp_anomalies": (self.caches_with_timestamp_anomalies),
         }
         if self.totals is not None:
             payload["totals"] = self.totals.as_dict()
