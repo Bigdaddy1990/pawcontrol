@@ -1,7 +1,5 @@
 """Runtime-heavy coverage tests for ``dashboard_generator.py``."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from contextlib import suppress
