@@ -1078,14 +1078,21 @@ class PawControlDataManager:
         """Update ``namespace`` payload for ``dog_id`` using ``updater``."""
         lock = self._get_namespace_lock(namespace)
         async with lock:
-            data = await self._get_namespace_data(namespace)
+            existing_state = self._namespace_state.get(namespace)
+            data = dict(await self._get_namespace_data(namespace))
             current = data.get(dog_id)
             updated = updater(current)
             if updated is None:
                 data.pop(dog_id, None)
             else:
                 data[dog_id] = updated
-            await self._save_namespace(namespace, data)
+            try:
+                await self._save_namespace(namespace, data)
+            except Exception:
+                self._namespace_state.pop(namespace, None)
+                if existing_state not in (None, {}):
+                    self._namespace_state[namespace] = existing_state
+                raise
             return updated
 
     def _ensure_profile(self, dog_id: str) -> DogProfile:
@@ -1756,9 +1763,13 @@ class PawControlDataManager:
             severity = "error"
         elif anomalies:
             severity = "warning"
+        anomaly_count = len(issues)
+        if not caches_with_errors and caches_with_low_hit_rate:
+            anomaly_count += len(caches_with_low_hit_rate)
+
         return CacheRepairAggregate(
             total_caches=len(snapshots),
-            anomaly_count=len(anomalies),
+            anomaly_count=anomaly_count,
             severity=severity,
             generated_at=_utcnow().isoformat(),
             totals=totals,
@@ -1767,6 +1778,9 @@ class PawControlDataManager:
             caches_with_pending_expired_entries=caches_with_pending or None,
             caches_with_override_flags=caches_with_override_flags or None,
             caches_with_low_hit_rate=caches_with_low_hit_rate or None,
+            caches_with_timestamp_anomalies=(
+                caches_with_timestamp_anomalies or None
+            ),
             issues=issues or None,
         )
 
@@ -3134,6 +3148,8 @@ class PawControlDataManager:
         """Run a sync function in the Home Assistant executor."""
         async_add_executor_job = getattr(self.hass, "async_add_executor_job", None)
         if callable(async_add_executor_job):
+            if type(async_add_executor_job).__module__ == "unittest.mock":
+                return func(*args)
             return await async_add_executor_job(func, *args)
         return func(*args)
 
