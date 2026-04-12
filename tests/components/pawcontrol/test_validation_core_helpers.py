@@ -237,7 +237,7 @@ def test_validate_dog_name_rejects_length_and_type_errors() -> None:
 
 
 def test_validate_dog_name_rejects_untrimmed_payload_exceeding_max_length() -> None:
-    """Inputs exceeding max length before trimming should still fail deterministically."""
+    """Inputs over max length before trimming should still fail."""
     with pytest.raises(ValidationError, match="dog_name_too_long"):
         validate_dog_name(f"{'A' * 63}   ")
 

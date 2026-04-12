@@ -231,7 +231,7 @@ def test_normalise_guard_history_rejects_bytearray_payload() -> None:
 def test_service_guard_snapshot_accumulate_handles_non_mapping_reason_snapshot() -> (
     None
 ):
-    """Accumulate should return an empty reason map when metrics rejects reason writes."""
+    """Accumulate should return empty reasons when writes are rejected."""
 
     class _ReasonWriteRejectingMetrics(dict[str, object]):
         def __setitem__(self, key: str, value: object) -> None:

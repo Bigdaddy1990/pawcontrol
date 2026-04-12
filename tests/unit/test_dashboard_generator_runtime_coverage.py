@@ -536,9 +536,11 @@ async def test_runtime_track_task_scheduling_and_error_paths(
         generator._track_task(_quick(), name="runtime-error")
 
     coro = _quick()
-    with patch.object(dg.asyncio, "create_task", return_value=None):
-        with pytest.raises(RuntimeError, match="Unable to schedule"):
-            generator._track_task(coro, name="none-task")
+    with (
+        patch.object(dg.asyncio, "create_task", return_value=None),
+        pytest.raises(RuntimeError, match="Unable to schedule"),
+    ):
+        generator._track_task(coro, name="none-task")
     coro.close()
 
     generator.hass = None
@@ -1047,7 +1049,7 @@ async def test_runtime_update_dashboard_all_type_paths(
     config_entry_factory: Callable[..., Any],
     local_tmp_dir: Path,
 ) -> None:
-    """Cover update branches for missing, main, dog, weather, unsupported, and errors."""
+    """Cover update branches for missing/main/dog/weather/unsupported/errors."""
     generator = _build_generator(
         hass,
         config_entry_factory(entry_id="coverage-update"),
@@ -1205,7 +1207,7 @@ async def test_runtime_update_file_delete_batch_and_save_paths(
     config_entry_factory: Callable[..., Any],
     local_tmp_dir: Path,
 ) -> None:
-    """Cover update-file I/O, delete paths, batch update aggregation, and metadata save."""
+    """Cover update-file I/O, delete paths, aggregation, and metadata save."""
     generator = _build_generator(
         hass,
         config_entry_factory(entry_id="coverage-update-delete-batch"),
@@ -1322,7 +1324,7 @@ async def test_runtime_performance_cleanup_and_template_init_paths(
     config_entry_factory: Callable[..., Any],
     local_tmp_dir: Path,
 ) -> None:
-    """Cover metrics updates, failed cleanup fallback, full cleanup, and template init."""
+    """Cover metrics updates, cleanup fallback, full cleanup, and template init."""
     generator = _build_generator(
         hass,
         config_entry_factory(entry_id="coverage-cleanup"),

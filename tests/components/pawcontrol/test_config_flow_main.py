@@ -158,7 +158,7 @@ async def test_validate_import_config_valid_path_keeps_warnings_empty(
 async def test_validate_import_config_accepts_non_string_id_name_from_validator(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Validator output with non-string id/name should still be passed through safely."""
+    """Validator output with non-string id/name should pass through safely."""
     flow = PawControlConfigFlow()
 
     def _validate_dog_import_input(*args, **kwargs):  # type: ignore[no-untyped-def]

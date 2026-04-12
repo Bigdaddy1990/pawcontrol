@@ -641,7 +641,7 @@ def test_resolve_binding_module_raises_when_stack_has_no_registered_module(
 def test_resolve_binding_module_skips_unregistered_frame_modules(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Caller-module resolution should continue when an intermediate frame is unregistered."""
+    """Caller-module resolution should continue with unregistered frames."""
 
     class _Frame:
         def __init__(self, module_name: str | None, back: _Frame | None = None) -> None:

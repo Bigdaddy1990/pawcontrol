@@ -252,7 +252,7 @@ async def test_handle_existing_discovery_entry_uses_abort_helper(
 async def test_handle_existing_discovery_entry_updates_only_when_reload_enabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Discovery updates should persist only when updates are required and reload is on."""
+    """Discovery updates should persist only when needed and reload is on."""
     flow = PawControlConfigFlow()
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={"host": "1.1.1.1"})
 
@@ -1102,7 +1102,7 @@ async def test_final_setup_profile_compatibility_warning_branch(
 
 
 def test_profile_compatibility_and_discovery_option_branches() -> None:
-    """Compatibility and discovery options should cover fallback endpoint/token branches."""
+    """Compatibility/discovery options should cover endpoint/token fallbacks."""
     flow = PawControlConfigFlow()
     flow._dogs = [
         {
@@ -1343,7 +1343,7 @@ def test_discovery_update_loop_and_unknown_module_continue_branch(
 
 
 def test_merge_dog_entry_skips_non_string_name_value() -> None:
-    """Merge should ignore non-string ``dog_name`` values without changing existing name."""
+    """Merge should ignore non-string ``dog_name`` values."""
     flow = PawControlConfigFlow()
     merged = {
         "buddy": {
@@ -1370,7 +1370,7 @@ def test_merge_dog_entry_skips_non_string_name_value() -> None:
 async def test_reconfigure_unhealthy_without_issues_skips_issue_warning(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Reconfigure should continue when health is unhealthy but no issue list is present."""
+    """Reconfigure should continue with unhealthy status and no issue list."""
     flow = PawControlConfigFlow()
     entry = MockConfigEntry(
         domain=DOMAIN,
