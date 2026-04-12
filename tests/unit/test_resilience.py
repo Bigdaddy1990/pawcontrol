@@ -115,6 +115,39 @@ async def test_circuit_breaker_context_manager_success() -> None:
     assert stats.total_successes == 1
 
 
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_circuit_breaker_record_handlers_ignore_open_state_branches() -> None:
+    """Record helpers should no-op branch transitions when state stays OPEN."""
+    breaker = CircuitBreaker("open_record_paths")
+    stats = breaker.get_stats()
+    stats.state = CircuitState.OPEN
+    stats.failure_count = 7
+
+    await breaker._record_success()
+    assert stats.total_successes == 1
+    assert stats.failure_count == 7
+    assert stats.state is CircuitState.OPEN
+
+    await breaker._record_failure()
+    assert stats.total_failures == 1
+    assert stats.failure_count == 8
+    assert stats.state is CircuitState.OPEN
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_circuit_breaker_aexit_skips_failures_for_excluded_exceptions() -> None:
+    """Excluded exceptions in context exit should not increment failure metrics."""
+    breaker = CircuitBreaker("excluded_aexit")
+    stats = breaker.get_stats()
+
+    await breaker.__aexit__(RateLimitError, RateLimitError("excluded"), None)
+
+    assert stats.total_failures == 0
+    assert stats.failure_count == 0
+
+
 # ---------------------------------------------------------------------------
 # CircuitBreaker — failure → OPEN transition
 # ---------------------------------------------------------------------------

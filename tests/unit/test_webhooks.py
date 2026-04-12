@@ -321,6 +321,18 @@ async def test_handle_webhook_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     assert failed.status == 409
 
+    process_fail_without_dog = AsyncMock(
+        return_value={"ok": False, "status": 422, "error": "stale"}
+    )
+    monkeypatch.setattr(webhooks, "async_process_gps_push", process_fail_without_dog)
+    failed_without_dog = await webhooks._handle_webhook(
+        hass,
+        "id-1",
+        _DummyRequest(json.dumps({}).encode()),
+    )
+    assert failed_without_dog.status == 422
+    assert "dog_id" not in json.loads(failed_without_dog.body.decode())
+
 
 @pytest.mark.asyncio
 async def test_handle_webhook_requires_secret_when_signatures_enabled() -> None:

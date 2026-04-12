@@ -1,5 +1,6 @@
 """Regression tests for the shared config flow helpers."""
 
+import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -188,6 +189,33 @@ def test_format_dogs_list_and_module_summary_include_special_config() -> None:
     assert summary == "• Luna: feeding, gps"
 
 
+def test_format_dogs_list_without_special_configs_uses_explicit_breed() -> None:
+    """Formatted output keeps explicit breed text and omits special config badges."""
+    flow = _TestFlow()
+    flow._dogs = [
+        {
+            DOG_ID_FIELD: "buddy",
+            DOG_NAME_FIELD: "Buddy",
+            DOG_BREED_FIELD: "Beagle",
+            DOG_SIZE_FIELD: "small",
+            DOG_AGE_FIELD: 5,
+            DOG_WEIGHT_FIELD: 12,
+            DOG_MODULES_FIELD: {
+                MODULE_GPS: False,
+                MODULE_FEEDING: False,
+                MODULE_HEALTH: False,
+            },
+        },
+    ]
+
+    formatted = flow._format_dogs_list()
+
+    assert "Beagle" in formatted
+    assert "📍 GPS" not in formatted
+    assert "🍽️ Feeding" not in formatted
+    assert "🏥 Health" not in formatted
+
+
 def test_dashboard_setup_info_reports_enabled_modules_and_multi_dog() -> None:
     """Dashboard setup details include optional module blocks and dog count hints."""
     flow = _TestFlow()
@@ -218,6 +246,28 @@ def test_dashboard_setup_info_reports_enabled_modules_and_multi_dog() -> None:
     assert "🍽️ Feeding schedules and meal tracking" in setup_info
     assert "📈 Health charts and medication reminders" in setup_info
     assert "🐕 Individual dashboards for 2 dogs available" in setup_info
+
+
+def test_dashboard_helpers_without_optional_features_for_single_dog() -> None:
+    """Single-dog baseline keeps dashboard helper text free of optional sections."""
+    flow = _TestFlow()
+    flow._dogs = [
+        {
+            DOG_ID_FIELD: "solo",
+            DOG_NAME_FIELD: "Solo",
+            DOG_MODULES_FIELD: {},
+        },
+    ]
+
+    features = flow._get_dashboard_features_string(has_gps=False)
+    assert "GPS Maps" not in features
+    assert "Multi-Dog Overview" not in features
+
+    setup_info = flow._get_dashboard_setup_info()
+    assert "🗺️ GPS maps and location tracking" not in setup_info
+    assert "🍽️ Feeding schedules and meal tracking" not in setup_info
+    assert "📈 Health charts and medication reminders" not in setup_info
+    assert "🐕 Individual dashboards" not in setup_info
 
 
 @pytest.mark.asyncio
@@ -263,6 +313,38 @@ async def test_breed_and_id_suggestions_handle_name_patterns_and_conflicts() -> 
         == "sirbal"
     )
     assert await flow._generate_smart_dog_id_suggestion(None) == ""
+
+
+@pytest.mark.asyncio
+async def test_suggest_dog_breed_handles_empty_size_bucket() -> None:
+    """When the selected size bucket is empty, breed suggestion falls back to empty."""
+    flow = _TestFlow()
+
+    def _trace(frame: object, event: str, _arg: object):
+        if event == "line":
+            code = getattr(frame, "f_code", None)
+            lineno = getattr(frame, "f_lineno", None)
+            if (
+                code is not None
+                and lineno == 418
+                and getattr(code, "co_name", "") == "_suggest_dog_breed"
+            ):
+                local_values = getattr(frame, "f_locals", {})
+                size_breeds = local_values.get("size_breeds")
+                if isinstance(size_breeds, dict):
+                    size_breeds["toy"] = []
+        return _trace
+
+    previous_trace = sys.gettrace()
+    sys.settrace(_trace)
+    try:
+        suggestion = await flow._suggest_dog_breed(
+            {DOG_NAME_FIELD: "Mystery", DOG_SIZE_FIELD: "toy"}
+        )
+    finally:
+        sys.settrace(previous_trace)
+
+    assert suggestion == ""
 
 
 @pytest.mark.asyncio
@@ -320,9 +402,17 @@ def test_entity_and_service_discovery_filters_invalid_sources() -> None:
     flow = _TestFlow()
 
     flow.hass.states.async_entity_ids.side_effect = lambda domain: {
-        "device_tracker": ["device_tracker.phone", "device_tracker.home_assistant_app"],
+        "device_tracker": [
+            "device_tracker.phone",
+            "device_tracker.home_assistant_app",
+            "device_tracker.offline",
+        ],
         "person": ["person.alex", "person.sam"],
-        "binary_sensor": ["binary_sensor.front_door", "binary_sensor.motion"],
+        "binary_sensor": [
+            "binary_sensor.front_door",
+            "binary_sensor.motion",
+            "binary_sensor.missing",
+        ],
     }[domain]
     flow.hass.states.get.side_effect = lambda entity_id: {
         "device_tracker.phone": SimpleNamespace(
@@ -332,6 +422,10 @@ def test_entity_and_service_discovery_filters_invalid_sources() -> None:
         "device_tracker.home_assistant_app": SimpleNamespace(
             state="home",
             attributes={"friendly_name": "App Tracker"},
+        ),
+        "device_tracker.offline": SimpleNamespace(
+            state="unavailable",
+            attributes={"friendly_name": "Offline Tracker"},
         ),
         "person.alex": SimpleNamespace(
             state="home", attributes={"friendly_name": "Alex"}
@@ -345,6 +439,7 @@ def test_entity_and_service_discovery_filters_invalid_sources() -> None:
             state="off",
             attributes={"device_class": "motion", "friendly_name": "Motion"},
         ),
+        "binary_sensor.missing": None,
     }.get(entity_id)
     flow.hass.services.async_services.return_value = {
         "notify": {"mobile_app_pixel": object(), "persistent_notification": object()}

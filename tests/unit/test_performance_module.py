@@ -519,3 +519,139 @@ def test_debounce_cancels_pending_task_before_latest_call_runs() -> None:
         assert calls == ["first", "third"]
 
     asyncio.run(_exercise())
+
+
+def test_performance_monitor_singleton_reuse_and_get_instance_paths() -> None:
+    """Singleton helpers should reuse the existing monitor instance."""
+    first = performance.PerformanceMonitor()
+    second = performance.PerformanceMonitor()
+    from_get_instance = performance.PerformanceMonitor.get_instance()
+
+    assert first is second
+    assert second is from_get_instance
+
+
+def test_performance_monitor_record_reuses_existing_metric_instance() -> None:
+    """Recording the same metric twice should not allocate a second metric object."""
+    monitor = performance.PerformanceMonitor.get_instance()
+    monitor._metrics = {}
+    monitor.enable()
+
+    monitor.record("repeat_metric", 10.0)
+    monitor.record("repeat_metric", 25.0)
+
+    metric = monitor.get_metric("repeat_metric")
+    assert metric is not None
+    assert len(monitor._metrics) == 1
+    assert metric.call_count == 2
+
+
+def test_capture_cache_diagnostics_skips_non_callable_summary_method() -> None:
+    """Snapshot diagnostics should skip repair summary when hook is not callable."""
+
+    class _DataManagerNoSummaryCallable:
+        cache_repair_summary = "not-callable"
+
+        def cache_snapshots(self) -> dict[str, object]:
+            return {"primary": {"entries": 4}}
+
+    runtime_data = SimpleNamespace(data_manager=_DataManagerNoSummaryCallable())
+
+    assert performance.capture_cache_diagnostics(runtime_data) == {
+        "snapshots": {"primary": {"entries": 4}}
+    }
+
+
+def test_ensure_runtime_performance_store_without_known_attributes() -> None:
+    """Store helper should return an ephemeral dict when runtime has no store attrs."""
+    runtime_data = object()
+
+    store = performance._ensure_runtime_performance_store(runtime_data)
+
+    assert store == {}
+
+
+def test_record_maintenance_result_handles_non_list_legacy_history() -> None:
+    """Legacy history should be ignored when it is not list-shaped."""
+    runtime_data = SimpleNamespace(
+        performance_stats={
+            "maintenance_history": {"legacy": "invalid"},
+            "maintenance_results": [],
+        }
+    )
+
+    performance.record_maintenance_result(
+        runtime_data,
+        task="cleanup",
+        status="ok",
+        max_entries=5,
+    )
+
+    history = runtime_data.performance_stats["maintenance_results"]
+    assert runtime_data.performance_stats["maintenance_history"] is history
+    assert isinstance(history, list)
+    assert len(history) == 1
+    assert history[0]["task"] == "cleanup"
+
+
+def test_record_maintenance_result_skips_metadata_injection_for_coordinator_task() -> (
+    None
+):
+    """Coordinator maintenance events should not inject metadata into diagnostics."""
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    performance.record_maintenance_result(
+        runtime_data,
+        task="coordinator_maintenance",
+        status="ok",
+        diagnostics={"source": "scheduler"},
+        metadata={"window": "night"},
+    )
+
+    entry = runtime_data.performance_stats["last_maintenance_result"]
+    assert entry["metadata"] == {"window": "night"}
+    assert entry["diagnostics"] == {"source": "scheduler"}
+
+
+def test_batch_calls_process_batch_returns_when_pending_is_drained(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Queued batch task should no-op when pending calls are cleared before execution."""
+
+    async def _exercise() -> None:
+        executed: list[int] = []
+        queued_batches: list[asyncio.coroutines] = []
+
+        class _TaskStub:
+            def done(self) -> bool:
+                return False
+
+        def _capture_batch(coro):
+            queued_batches.append(coro)
+            return _TaskStub()
+
+        async def _fast_sleep(_delay: float) -> None:
+            return None
+
+        monkeypatch.setattr(performance.asyncio, "create_task", _capture_batch)
+        monkeypatch.setattr(performance.asyncio, "sleep", _fast_sleep)
+
+        @performance.batch_calls(max_batch_size=2, max_wait_ms=1.0)
+        async def batch_target(value: int) -> None:
+            executed.append(value)
+
+        await batch_target(1)
+        assert len(queued_batches) == 1
+
+        pending_calls = next(
+            cell.cell_contents
+            for cell in batch_target.__closure__ or ()
+            if isinstance(cell.cell_contents, list)
+            and (not cell.cell_contents or isinstance(cell.cell_contents[0], tuple))
+        )
+        pending_calls.clear()
+
+        await queued_batches[0]
+        assert executed == []
+
+    asyncio.run(_exercise())

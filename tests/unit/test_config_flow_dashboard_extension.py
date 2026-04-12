@@ -124,6 +124,21 @@ async def test_dashboard_step_shows_form_with_localized_placeholders() -> None:
     assert "Standortkarten" in placeholders["features"]
 
 
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_dashboard_step_shows_form_without_hass_context() -> None:
+    """Form rendering should also work when ``hass`` is unavailable."""
+    flow = _DashboardFlowHarness(dog_count=1)
+
+    result = await flow.async_step_configure_dashboard()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "configure_dashboard"
+    placeholders = result["description_placeholders"]
+    assert placeholders["dog_count"] == 1
+    assert "GPS maps will be shown" in placeholders["dashboard_info"]
+
+
 @pytest.mark.unit
 def test_translated_dashboard_info_line_uses_english_fallback_for_unknown_language() -> (  # noqa: E501
     None

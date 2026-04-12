@@ -221,6 +221,8 @@ def test_fallback_config_entry_adds_to_hass_and_runs_unload_callbacks() -> None:
         assert _listener in entry.update_listeners
         remove_listener()
         assert _listener not in entry.update_listeners
+        remove_listener()
+        assert _listener not in entry.update_listeners
 
         unload_calls: list[str] = []
 

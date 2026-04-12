@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from types import SimpleNamespace
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 import pytest
 
 from custom_components.pawcontrol import discovery as discovery_module
@@ -23,6 +24,7 @@ from custom_components.pawcontrol.discovery import (
     async_get_discovery_manager,
     async_shutdown_discovery_manager,
 )
+from custom_components.pawcontrol.exceptions import PawControlError
 
 
 @pytest.mark.asyncio
@@ -434,3 +436,525 @@ async def test_discover_registry_devices_builds_expected_metadata(
         "configuration_url": "https://pawcontrol.local/device-123",
         "area_id": "garden",
     }
+
+
+def _build_discovered_device(
+    *,
+    device_id: str,
+    category: DiscoveryCategory = "gps_tracker",
+    connection_info: DiscoveryConnectionInfo | None = None,
+    confidence: float = 0.8,
+) -> DiscoveredDevice:
+    return DiscoveredDevice(
+        device_id=device_id,
+        name=f"Device {device_id}",
+        category=category,
+        manufacturer="PawControl",
+        model="Model",
+        connection_type="network",
+        connection_info=connection_info or {},
+        capabilities=["gps"],
+        discovered_at="2026-01-01T00:00:00+00:00",
+        confidence=confidence,
+        metadata={},
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_success_path_sets_registries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Initialization should set registries, scan once, and register listeners."""
+    hass = SimpleNamespace(data={})
+    discovery = PawControlDiscovery(hass)
+
+    fake_device_registry = SimpleNamespace(devices={})
+    fake_entity_registry = SimpleNamespace(entities={})
+
+    monkeypatch.setattr(
+        discovery_module.dr,
+        "async_get",
+        lambda _hass: fake_device_registry,
+    )
+    monkeypatch.setattr(
+        discovery_module.er,
+        "async_get",
+        lambda _hass: fake_entity_registry,
+    )
+
+    discover_calls: list[bool] = []
+    register_calls = 0
+
+    async def _discover_devices(
+        categories: Iterable[DiscoveryCategory] | None = None,
+        quick_scan: bool = False,
+    ) -> list[DiscoveredDevice]:
+        del categories
+        discover_calls.append(quick_scan)
+        return []
+
+    async def _register_listeners() -> None:
+        nonlocal register_calls
+        register_calls += 1
+
+    monkeypatch.setattr(discovery, "async_discover_devices", _discover_devices)
+    monkeypatch.setattr(
+        discovery,
+        "_register_discovery_listeners",
+        _register_listeners,
+    )
+
+    await discovery.async_initialize()
+
+    assert discovery._device_registry is fake_device_registry
+    assert discovery._entity_registry is fake_entity_registry
+    assert discover_calls == [True]
+    assert register_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_raises_home_assistant_error_on_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Initialization errors should be wrapped in HomeAssistantError."""
+    discovery = PawControlDiscovery(SimpleNamespace(data={}))
+
+    def _raise_registry_error(_hass: object) -> object:
+        raise RuntimeError("registry unavailable")
+
+    monkeypatch.setattr(discovery_module.dr, "async_get", _raise_registry_error)
+
+    with pytest.raises(HomeAssistantError, match="Discovery initialization failed"):
+        await discovery.async_initialize()
+
+
+@pytest.mark.asyncio
+async def test_async_discover_devices_waits_when_scan_already_active(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Active scans should wait first, then merge and store unique devices."""
+    discovery = PawControlDiscovery(SimpleNamespace(data={}))
+    discovery._scan_active = True
+    wait_calls = 0
+
+    async def _wait() -> None:
+        nonlocal wait_calls
+        wait_calls += 1
+        discovery._scan_active = False
+
+    expected = _build_discovered_device(device_id="discovered-1")
+
+    async def _discover_registry(
+        categories: list[DiscoveryCategory],
+    ) -> list[DiscoveredDevice]:
+        assert categories == ["gps_tracker"]
+        return [expected]
+
+    monkeypatch.setattr(discovery, "_wait_for_scan_completion", _wait)
+    monkeypatch.setattr(discovery, "_discover_registry_devices", _discover_registry)
+
+    devices = await discovery.async_discover_devices(categories=("gps_tracker",))
+
+    assert wait_calls == 1
+    assert devices == [expected]
+    assert discovery._discovered_devices == {expected.device_id: expected}
+
+
+@pytest.mark.asyncio
+async def test_async_discover_devices_wraps_unexpected_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected failures should be raised as PawControlError."""
+    discovery = PawControlDiscovery(SimpleNamespace(data={}))
+
+    async def _discover_registry(
+        _categories: list[DiscoveryCategory],
+    ) -> list[DiscoveredDevice]:
+        return [_build_discovered_device(device_id="result")]
+
+    def _raise_deduplicate(
+        _devices: Iterable[DiscoveredDevice],
+    ) -> list[DiscoveredDevice]:
+        raise RuntimeError("deduplicate failed")
+
+    monkeypatch.setattr(discovery, "_discover_registry_devices", _discover_registry)
+    monkeypatch.setattr(discovery, "_deduplicate_devices", _raise_deduplicate)
+
+    with pytest.raises(PawControlError, match="Device discovery failed"):
+        await discovery.async_discover_devices()
+
+
+@pytest.mark.asyncio
+async def test_discover_usb_devices_returns_empty_list(
+    hass: HomeAssistant,
+) -> None:
+    """USB discovery helper currently returns an empty placeholder payload."""
+    discovery = PawControlDiscovery(hass)
+    assert await discovery._discover_usb_devices(["gps_tracker"]) == []
+
+
+@pytest.mark.asyncio
+async def test_discover_registry_devices_filters_unclassified_and_unrequested(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Registry discovery should skip unknown and out-of-scope categories."""
+    discovery = PawControlDiscovery(hass)
+
+    device_skip_none = SimpleNamespace(
+        id="skip-none",
+        name_by_user=None,
+        name="Skip None",
+        manufacturer="PawControl",
+        model="Tracker",
+        hw_version=None,
+        sw_version=None,
+        connections=set(),
+        identifiers={("pawcontrol", "skip-none")},
+        via_device_id=None,
+        configuration_url=None,
+        area_id=None,
+    )
+    device_skip_category = SimpleNamespace(
+        id="skip-category",
+        name_by_user=None,
+        name="Skip Category",
+        manufacturer="PawControl",
+        model="Tracker",
+        hw_version=None,
+        sw_version=None,
+        connections=set(),
+        identifiers={("pawcontrol", "skip-category")},
+        via_device_id=None,
+        configuration_url=None,
+        area_id=None,
+    )
+    device_match = SimpleNamespace(
+        id="match",
+        name_by_user=None,
+        name="Matched",
+        manufacturer="PawControl",
+        model="Tracker",
+        hw_version=None,
+        sw_version="1.0",
+        connections=set(),
+        identifiers={("pawcontrol", "match")},
+        via_device_id=None,
+        configuration_url=None,
+        area_id=None,
+    )
+
+    discovery._device_registry = SimpleNamespace(
+        devices={
+            device_skip_none.id: device_skip_none,
+            device_skip_category.id: device_skip_category,
+            device_match.id: device_match,
+        }
+    )
+    discovery._entity_registry = SimpleNamespace(entities={})
+
+    def _classify(
+        device_entry: object,
+        _entity_registry: object,
+    ) -> tuple[DiscoveryCategory, DiscoveryCapabilityList, float] | None:
+        device_id = str(getattr(device_entry, "id", ""))
+        if device_id == "skip-none":
+            return None
+        if device_id == "skip-category":
+            return ("camera", ["camera_stream"], 0.6)
+        return ("gps_tracker", ["gps"], 0.9)
+
+    monkeypatch.setattr(discovery, "_classify_device", _classify)
+    monkeypatch.setattr(
+        discovery,
+        "_connection_details",
+        lambda _device: ("unknown", {}),
+    )
+
+    devices = await discovery._discover_registry_devices(["gps_tracker"])
+
+    assert [device.device_id for device in devices] == ["match"]
+    assert "configuration_url" not in devices[0].metadata
+    assert "area_id" not in devices[0].metadata
+
+
+def test_classify_device_covers_feeder_and_health_branches(
+    hass: HomeAssistant,
+) -> None:
+    """Classifier should evaluate feeder and health keyword branches."""
+    discovery = PawControlDiscovery(hass)
+    device_entry = SimpleNamespace(
+        id="device-branch",
+        manufacturer="Unknown",
+        model="Unknown",
+        connections=[],
+    )
+    entity_registry = SimpleNamespace(
+        entities={
+            "switch.feeder": SimpleNamespace(
+                device_id="device-branch",
+                domain="switch",
+                entity_id="switch.feeder",
+                original_name="Smart feeder portion",
+            ),
+            "sensor.health": SimpleNamespace(
+                device_id="device-branch",
+                domain="sensor",
+                entity_id="sensor.health",
+                original_name="Health weight",
+            ),
+        }
+    )
+
+    result = discovery._classify_device(device_entry, entity_registry)
+
+    assert result is not None
+    category, capabilities, _confidence = result
+    assert category == "smart_feeder"
+    assert capabilities == CATEGORY_CAPABILITIES["smart_feeder"]
+
+
+def test_classify_device_falls_back_when_priority_order_empty(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Classifier fallback should use an arbitrary matched category if needed."""
+    discovery = PawControlDiscovery(hass)
+    device_entry = SimpleNamespace(
+        id="device-fallback",
+        manufacturer="Tractive",
+        model="Tracker",
+        connections=[],
+    )
+    entity_registry = SimpleNamespace(entities={})
+
+    monkeypatch.setattr(discovery_module, "CATEGORY_PRIORITY", ())
+
+    result = discovery._classify_device(device_entry, entity_registry)
+
+    assert result is not None
+    category, _capabilities, _confidence = result
+    assert category == "gps_tracker"
+
+
+def test_connection_details_ignores_unknown_connection_types(
+    hass: HomeAssistant,
+) -> None:
+    """Unknown connection tuples should not modify the discovery payload."""
+    discovery = PawControlDiscovery(hass)
+    device_entry = SimpleNamespace(
+        connections=[("zigbee", "abcd")],
+        configuration_url=None,
+        via_device_id=None,
+    )
+
+    connection_type, connection_info = discovery._connection_details(device_entry)
+
+    assert connection_type == "unknown"
+    assert connection_info == {}
+
+
+class _ListenerRegistry:
+    """Minimal registry listener harness for discovery callback tests."""
+
+    def __init__(self) -> None:
+        self.callbacks: list[object] = []
+
+    def async_listen(self, callback_obj):
+        self.callbacks.append(callback_obj)
+
+        def _unsubscribe() -> None:
+            if callback_obj in self.callbacks:
+                self.callbacks.remove(callback_obj)
+
+        return _unsubscribe
+
+
+@pytest.mark.asyncio
+async def test_register_discovery_listeners_registers_and_triggers_callbacks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Listener registration should attach callbacks and trigger quick scans."""
+    created_tasks: list[asyncio.Task[object]] = []
+
+    class _TaskHass:
+        data: dict[str, object] = {}
+
+        def async_create_task(self, coro):
+            task = asyncio.create_task(coro)
+            created_tasks.append(task)
+            return task
+
+    hass = _TaskHass()
+    discovery = PawControlDiscovery(hass)
+    device_registry = _ListenerRegistry()
+    entity_registry = _ListenerRegistry()
+
+    monkeypatch.setattr(discovery_module.dr, "async_get", lambda _hass: device_registry)
+    monkeypatch.setattr(discovery_module.er, "async_get", lambda _hass: entity_registry)
+
+    scan_calls: list[bool] = []
+
+    async def _discover_devices(
+        categories: Iterable[DiscoveryCategory] | None = None,
+        quick_scan: bool = False,
+    ) -> list[DiscoveredDevice]:
+        del categories
+        scan_calls.append(quick_scan)
+        return []
+
+    monkeypatch.setattr(discovery, "async_discover_devices", _discover_devices)
+
+    await discovery._register_discovery_listeners()
+
+    assert len(discovery._listeners) == 2
+    assert len(device_registry.callbacks) == 1
+    assert len(entity_registry.callbacks) == 1
+
+    device_callback = device_registry.callbacks[0]
+    entity_callback = entity_registry.callbacks[0]
+    device_callback(SimpleNamespace(action="create", device_id="dev-1"))
+    entity_callback(SimpleNamespace(action="create", entity_id="sensor.dev_1"))
+
+    if created_tasks:
+        await asyncio.gather(*created_tasks)
+    assert scan_calls == [True, True]
+
+    # Active scans should skip scheduling follow-up discovery tasks.
+    discovery._scan_active = True
+    device_callback(SimpleNamespace(action="update", device_id="dev-1"))
+    entity_callback(SimpleNamespace(action="update", entity_id="sensor.dev_1"))
+    assert scan_calls == [True, True]
+    assert len(created_tasks) == 2
+
+
+@pytest.mark.asyncio
+async def test_wait_for_scan_completion_warns_when_still_active(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Wait helper should eventually give up when scans never complete."""
+    discovery = PawControlDiscovery(SimpleNamespace(data={}))
+    discovery._scan_active = True
+
+    async def _fast_sleep(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(discovery_module.asyncio, "sleep", _fast_sleep)
+
+    await discovery._wait_for_scan_completion()
+
+    assert discovery._scan_active is True
+
+
+@pytest.mark.asyncio
+async def test_wait_for_scan_completion_returns_when_scan_finishes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Wait helper should stop polling once scan state flips to inactive."""
+    discovery = PawControlDiscovery(SimpleNamespace(data={}))
+    discovery._scan_active = True
+
+    async def _finish_scan(_seconds: float) -> None:
+        discovery._scan_active = False
+
+    monkeypatch.setattr(discovery_module.asyncio, "sleep", _finish_scan)
+
+    await discovery._wait_for_scan_completion()
+
+    assert discovery._scan_active is False
+
+
+@pytest.mark.asyncio
+async def test_async_shutdown_invokes_listener_callbacks(
+    hass: HomeAssistant,
+) -> None:
+    """Shutdown should call all listener unsubscribers and clear runtime state."""
+    discovery = PawControlDiscovery(hass)
+    calls: list[str] = []
+
+    def _listener() -> None:
+        calls.append("unsubscribed")
+
+    discovery._listeners = [_listener]
+    discovery._discovered_devices = {
+        "device": _build_discovered_device(device_id="device")
+    }
+
+    await discovery.async_shutdown()
+
+    assert calls == ["unsubscribed"]
+    assert discovery._listeners == []
+    assert discovery._discovered_devices == {}
+
+
+def test_deduplicate_devices_keeps_existing_when_new_confidence_is_lower(
+    hass: HomeAssistant,
+) -> None:
+    """Deduplication should keep the first entry when the replacement is weaker."""
+    discovery = PawControlDiscovery(hass)
+    high = _build_discovered_device(device_id="dup", confidence=0.9)
+    low = _build_discovered_device(device_id="dup", confidence=0.5)
+
+    deduplicated = discovery._deduplicate_devices([high, low])
+
+    assert deduplicated == [high]
+
+
+@pytest.mark.asyncio
+async def test_async_get_discovered_devices_maps_usb_without_optional_keys(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Legacy conversion should include USB while skipping absent optional fields."""
+
+    async def _initialize(self: PawControlDiscovery) -> None:
+        return None
+
+    async def _discover(
+        self: PawControlDiscovery,
+        categories: Iterable[DiscoveryCategory] | None = None,
+        quick_scan: bool = False,
+    ) -> list[DiscoveredDevice]:
+        del categories, quick_scan
+        return [
+            _build_discovered_device(
+                device_id="usb-device",
+                category="smart_feeder",
+                connection_info={"usb": "usb-2"},
+            )
+        ]
+
+    async def _shutdown(self: PawControlDiscovery) -> None:
+        return None
+
+    monkeypatch.setattr(PawControlDiscovery, "async_initialize", _initialize)
+    monkeypatch.setattr(PawControlDiscovery, "async_discover_devices", _discover)
+    monkeypatch.setattr(PawControlDiscovery, "async_shutdown", _shutdown)
+
+    devices = await async_get_discovered_devices(hass)
+
+    assert devices == [
+        {
+            "source": "network",
+            "data": {
+                "device_id": "usb-device",
+                "name": "Device usb-device",
+                "manufacturer": "PawControl",
+                "category": "smart_feeder",
+                "usb": "usb-2",
+            },
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_async_start_discovery_returns_true() -> None:
+    """Legacy start helper should remain a constant True response."""
+    assert await discovery_module.async_start_discovery() is True
+
+
+@pytest.mark.asyncio
+async def test_async_shutdown_discovery_manager_noops_when_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Shutdown helper should no-op when no singleton manager exists."""
+    monkeypatch.setattr(discovery_module, "_discovery_manager", None)
+
+    await async_shutdown_discovery_manager()

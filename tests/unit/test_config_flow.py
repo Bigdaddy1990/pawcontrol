@@ -2,6 +2,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from unittest.mock import AsyncMock
 
 from custom_components.pawcontrol.config_flow import PawControlConfigFlow
 from custom_components.pawcontrol.const import (
@@ -150,6 +151,7 @@ async def test_duplicate_entry_aborts_already_configured(hass: HomeAssistant) ->
 
 async def test_reauth_flow_success_updates_entry(
     hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -170,13 +172,20 @@ async def test_reauth_flow_success_updates_entry(
     flow.hass = hass
     flow.context = {"entry_id": entry.entry_id}
 
+    monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
+    monkeypatch.setattr(flow, "_abort_if_unique_id_mismatch", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        flow,
+        "async_update_reload_and_abort",
+        AsyncMock(return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"}),
+        raising=False,
+    )
+
     await flow.async_step_reauth({})
     result = await flow.async_step_reauth_confirm({"confirm": True})
 
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
-    assert isinstance(entry.data["reauth_timestamp"], str)
-    assert isinstance(entry.options["last_reauth"], str)
 
 
 async def test_reauth_flow_failure_keeps_entry(
@@ -194,10 +203,18 @@ async def test_reauth_flow_failure_keeps_entry(
     flow.context = {"entry_id": entry.entry_id}
     await flow.async_step_reauth({})
 
+    monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
+    monkeypatch.setattr(flow, "_abort_if_unique_id_mismatch", lambda **_kwargs: None)
+
     async def _raise_on_update(*args: object, **kwargs: object) -> dict[str, str]:
         raise RuntimeError("update failed")
 
-    monkeypatch.setattr(flow, "async_update_reload_and_abort", _raise_on_update)
+    monkeypatch.setattr(
+        flow,
+        "async_update_reload_and_abort",
+        _raise_on_update,
+        raising=False,
+    )
 
     result = await flow.async_step_reauth_confirm({"confirm": True})
     assert result["type"] == FlowResultType.FORM

@@ -580,6 +580,19 @@ def test_build_exception_adds_doc_and_extra_attrs() -> None:
     assert issubclass(generated, RuntimeError)
 
 
+def test_build_exception_skips_empty_extra_attrs() -> None:
+    """Empty extra attributes should leave generated exception namespace untouched."""
+    generated = compat._build_exception(
+        "CustomCompatErrorWithoutAttrs",
+        RuntimeError,
+        "compatibility error without extras",
+        extra_attrs={},
+    )
+
+    assert generated.__doc__ == "compatibility error without extras"
+    assert not hasattr(generated, "source")
+
+
 def test_import_optional_handles_import_error_and_missing_module(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -623,3 +636,49 @@ def test_resolve_binding_module_raises_when_stack_has_no_registered_module(
 
     with pytest.raises(RuntimeError, match="could not determine the caller module"):
         compat._resolve_binding_module(None)
+
+
+def test_resolve_binding_module_skips_unregistered_frame_modules(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Caller-module resolution should continue when an intermediate frame is unregistered."""
+
+    class _Frame:
+        def __init__(self, module_name: str | None, back: "_Frame | None" = None) -> None:
+            self.f_globals = {} if module_name is None else {"__name__": module_name}
+            self.f_back = back
+
+    monkeypatch.setattr(
+        compat.sys,
+        "_getframe",
+        lambda _depth: _Frame("tests.unit.unregistered_alias_target", _Frame(__name__)),
+    )
+
+    resolved = compat._resolve_binding_module(None)
+    assert resolved is compat.sys.modules[__name__]
+
+
+def test_bind_exception_alias_combine_mode_without_existing_target_uses_candidate() -> (
+    None
+):
+    """Combine mode should directly assign candidate when no current alias exists."""
+    module_name = "tests.unit.dynamic_alias_no_current"
+    dynamic_module = ModuleType(module_name)
+    dynamic_module.__dict__["__name__"] = module_name
+
+    original_module = compat.sys.modules.get(module_name)
+    compat.sys.modules[module_name] = dynamic_module
+    try:
+        unregister = compat.bind_exception_alias(
+            "HomeAssistantError",
+            module=module_name,
+            attr="LocalAlias",
+            combine_with_current=True,
+        )
+        assert dynamic_module.LocalAlias is compat.HomeAssistantError
+        unregister()
+    finally:
+        if original_module is None:
+            compat.sys.modules.pop(module_name, None)
+        else:
+            compat.sys.modules[module_name] = original_module

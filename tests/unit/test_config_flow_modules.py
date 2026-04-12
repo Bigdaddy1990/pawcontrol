@@ -234,6 +234,19 @@ def test_get_feeding_summary_handles_empty_and_long_lists() -> None:
     assert many_summary == "Feeding configuration for: Buddy, Luna, Milo, ...and 1 more"
 
 
+def test_get_feeding_summary_three_dogs_omits_overflow_suffix() -> None:
+    """Feeding summary should not append overflow text for up to three dogs."""
+    flow = _ModuleFlowHarness(dogs=[])
+
+    summary = flow._get_feeding_summary([
+        cast(DogConfigData, {"dog_name": "Buddy"}),
+        cast(DogConfigData, {"dog_name": "Luna"}),
+        cast(DogConfigData, {"dog_name": "Milo"}),
+    ])
+
+    assert summary == "Feeding configuration for: Buddy, Luna, Milo"
+
+
 def test_get_dogs_module_summary_handles_empty_and_overflow() -> None:
     """Dog module summary should include overflow information after three dogs."""
     empty_flow = _ModuleFlowHarness(dogs=[])
@@ -276,6 +289,61 @@ def test_get_dogs_module_summary_handles_empty_and_overflow() -> None:
     assert flow._get_dogs_module_summary() == (
         "Buddy: 2 modules | Luna: 1 modules | Milo: 0 modules | ...and 1 more"
     )
+
+
+def test_get_dogs_module_summary_three_dogs_without_overflow() -> None:
+    """Dog module summary should omit overflow text for up to three dogs."""
+    flow = _ModuleFlowHarness(
+        dogs=[
+            cast(
+                DogConfigData,
+                {
+                    "dog_name": "Buddy",
+                    "modules": cast(DogModulesConfig, {MODULE_GPS: True}),
+                },
+            ),
+            cast(
+                DogConfigData,
+                {
+                    "dog_name": "Luna",
+                    "modules": cast(DogModulesConfig, {}),
+                },
+            ),
+            cast(
+                DogConfigData,
+                {
+                    "dog_name": "Milo",
+                    "modules": cast(
+                        DogModulesConfig,
+                        {MODULE_HEALTH: True, MODULE_FEEDING: True},
+                    ),
+                },
+            ),
+        ]
+    )
+
+    assert flow._get_dogs_module_summary() == (
+        "Buddy: 1 modules | Luna: 0 modules | Milo: 2 modules"
+    )
+
+
+def test_get_dashboard_features_string_single_dog_excludes_multi_dog_feature() -> None:
+    """Single-dog dashboard features should not include multi-dog overview text."""
+    flow = _ModuleFlowHarness(
+        dogs=[
+            cast(
+                DogConfigData,
+                {
+                    "dog_name": "Solo",
+                    "modules": cast(DogModulesConfig, {}),
+                },
+            )
+        ]
+    )
+
+    features = flow._get_dashboard_features_string(has_gps=False)
+
+    assert features == "status cards, activity tracking, quick actions"
 
 
 class _ModuleFlowHarness(ModuleConfigurationMixin):

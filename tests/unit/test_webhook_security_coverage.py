@@ -93,3 +93,17 @@ def test_rate_limiter_reset_source() -> None:
     # After reset, source should be cleared — no error expected
     stats = limiter.get_stats()
     assert isinstance(stats, dict)
+
+
+@pytest.mark.unit
+def test_rate_limiter_reset_unknown_source_is_noop() -> None:
+    """Resetting an unknown source should not mutate limiter state."""
+    limiter = WebhookRateLimiter()
+    limiter.check_limit("192.168.1.51")
+
+    before = limiter.get_stats()
+    limiter.reset_source("192.168.1.99")
+    after = limiter.get_stats()
+
+    assert after["total_sources"] == before["total_sources"]
+    assert after["total_requests"] == before["total_requests"]

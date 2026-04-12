@@ -239,6 +239,29 @@ async def test_zeroconf_supported_device_includes_optional_metadata() -> None:
 
 
 @pytest.mark.asyncio
+async def test_zeroconf_supported_device_skips_missing_optional_metadata() -> None:
+    """Zeroconf payload omits optional fields when values are not provided."""
+    flow = _DiscoveryFlowHarness()
+
+    result = await flow.async_step_zeroconf(
+        SimpleNamespace(
+            hostname="paw.local",
+            properties={"id": "tracker"},
+            host="192.0.2.11",
+            port=None,
+            type="",
+            name="",
+        )
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    payload = flow.prepared_payloads[0][0]
+    assert "port" not in payload
+    assert "type" not in payload
+    assert "name" not in payload
+
+
+@pytest.mark.asyncio
 async def test_usb_discovery_continues_to_confirmation_form() -> None:
     """USB discovery proceeds to confirmation when no existing entry matches."""
     flow = _DiscoveryFlowHarness()
@@ -280,6 +303,20 @@ async def test_usb_payload_stringifies_missing_vid_pid() -> None:
     assert flow.prepared_payloads[0][0]["vid"] == ""
     assert flow.prepared_payloads[0][0]["pid"] == ""
     assert "device" not in flow.prepared_payloads[0][0]
+
+
+@pytest.mark.asyncio
+async def test_dhcp_payload_omits_ip_when_missing() -> None:
+    """DHCP payload should skip the optional IP field when not available."""
+    flow = _DiscoveryFlowHarness()
+
+    result = await flow.async_step_dhcp(
+        SimpleNamespace(hostname="paw.local", macaddress="AA:BB", ip="")
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert flow.prepared_payloads[0][1] == "dhcp"
+    assert "ip" not in flow.prepared_payloads[0][0]
 
 
 @pytest.mark.asyncio

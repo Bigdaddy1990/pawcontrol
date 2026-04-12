@@ -192,6 +192,18 @@ def test_print_compliance_report_defaults_to_module_logger() -> None:
     logger.info.assert_called()
 
 
+def test_print_compliance_report_without_issues_logs_summary_only() -> None:
+    """Issue-free reports should skip issue-detail logging."""
+    report = ComplianceReport("clean")
+    logger = Mock(spec=logging.Logger)
+
+    print_compliance_report(report, logger=logger)
+
+    logger.info.assert_called_once()
+    logger.warning.assert_not_called()
+    logger.error.assert_not_called()
+
+
 def test_get_compliance_level_thresholds() -> None:
     """All compliance bands should resolve to the right labels."""
     assert get_compliance_level(95) == "platinum"
