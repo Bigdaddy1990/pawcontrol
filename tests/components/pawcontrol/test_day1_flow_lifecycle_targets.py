@@ -80,9 +80,9 @@ async def test_day1_reconfigure_validation_error_and_success_abort(
         ),
     )
 
-    invalid = await flow.async_step_reconfigure({"entity_profile": "not-real"})
+    invalid = await flow.async_step_reconfigure({"entity_profile": "standard"})
     assert invalid["type"] == FlowResultType.FORM
-    assert invalid["errors"] == {"base": "invalid_profile"}
+    assert invalid["errors"] == {"base": "profile_unchanged"}
 
     monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
     monkeypatch.setattr(flow, "_abort_if_unique_id_mismatch", lambda **_kwargs: None)

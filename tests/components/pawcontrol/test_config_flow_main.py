@@ -1,17 +1,21 @@
 """Tests for ``config_flow_main`` helpers and validation paths."""
 
 from collections.abc import Mapping
+from unittest.mock import AsyncMock
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.exceptions import ConfigEntryNotReady
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+import voluptuous as vol
 
 from custom_components.pawcontrol import config_flow_main
 from custom_components.pawcontrol.config_flow_main import PawControlConfigFlow
 from custom_components.pawcontrol.const import CONF_DOGS, DOMAIN
 from custom_components.pawcontrol.exceptions import (
     ConfigurationError,
+    FlowValidationError,
     PawControlSetupError,
     ValidationError,
 )
@@ -75,6 +79,112 @@ async def test_validate_import_config_uses_profile_fallback_and_warnings(
     assert any("may not be optimal" in warning for warning in warnings)
     assert result["options"]["dashboard_enabled"] is False
     assert result["options"]["dashboard_auto_create"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "raised_error",
+    [
+        FlowValidationError(field_errors={"dog_name": "invalid_name"}),
+        ValidationError("dog_name", constraint="invalid_name"),
+    ],
+)
+async def test_validate_import_config_collects_dog_validation_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    raised_error: Exception,
+) -> None:
+    """Per-dog validation failures should be aggregated with position metadata."""
+    flow = PawControlConfigFlow()
+
+    def _raise_validation(*args, **kwargs):  # type: ignore[no-untyped-def]
+        raise raised_error
+
+    monkeypatch.setattr(
+        config_flow_main,
+        "validate_dog_import_input",
+        _raise_validation,
+    )
+
+    with pytest.raises(ValidationError, match="Dog validation failed at position 1"):
+        await flow._validate_import_config_enhanced({CONF_DOGS: [{"dog_id": "buddy"}]})
+
+
+@pytest.mark.asyncio
+async def test_validate_import_config_requires_at_least_one_valid_dog() -> None:
+    """Empty dog imports should raise a dedicated no-valid-dogs validation error."""
+    flow = PawControlConfigFlow()
+
+    with pytest.raises(
+        ValidationError,
+        match="No valid dogs found in import configuration",
+    ):
+        await flow._validate_import_config_enhanced({CONF_DOGS: []})
+
+
+@pytest.mark.asyncio
+async def test_validate_import_config_valid_path_keeps_warnings_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Valid imports with compatible profiles should not emit import warnings."""
+    flow = PawControlConfigFlow()
+
+    def _validate_dog_import_input(*args, **kwargs):  # type: ignore[no-untyped-def]
+        return {
+            DOG_ID_FIELD: "buddy",
+            DOG_NAME_FIELD: "Buddy",
+        }
+
+    monkeypatch.setattr(
+        config_flow_main,
+        "validate_dog_import_input",
+        _validate_dog_import_input,
+    )
+    monkeypatch.setattr(
+        flow._entity_factory,
+        "validate_profile_for_modules",
+        lambda profile, modules: True,
+    )
+
+    result = await flow._validate_import_config_enhanced({
+        CONF_DOGS: [{"dog_id": "buddy", "dog_name": "Buddy"}],
+        "entity_profile": "standard",
+    })
+
+    assert result["data"]["import_warnings"] == []
+    assert result["data"]["entity_profile"] == "standard"
+
+
+@pytest.mark.asyncio
+async def test_validate_import_config_accepts_non_string_id_name_from_validator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validator output with non-string id/name should still be passed through safely."""
+    flow = PawControlConfigFlow()
+
+    def _validate_dog_import_input(*args, **kwargs):  # type: ignore[no-untyped-def]
+        return {
+            DOG_ID_FIELD: 7,
+            DOG_NAME_FIELD: None,
+        }
+
+    monkeypatch.setattr(
+        config_flow_main,
+        "validate_dog_import_input",
+        _validate_dog_import_input,
+    )
+    monkeypatch.setattr(
+        flow._entity_factory,
+        "validate_profile_for_modules",
+        lambda profile, modules: True,
+    )
+
+    result = await flow._validate_import_config_enhanced({
+        CONF_DOGS: [{"any": "payload"}],
+        "entity_profile": "standard",
+    })
+
+    assert result["data"]["dogs"][0][DOG_ID_FIELD] == 7
+    assert result["data"]["dogs"][0][DOG_NAME_FIELD] is None
 
 
 def test_normalise_discovery_metadata_normalises_fields() -> None:
@@ -256,6 +366,125 @@ def test_string_list_normalisation_and_module_aggregation() -> None:
     assert modules["gps"] is True
     assert modules["health"] is True
     assert modules["feeding"] is False
+
+
+def test_abort_if_unique_id_mismatch_raises_for_mismatched_reauth_entry() -> None:
+    """Reauth unique-id mismatch should raise ``ConfigEntryNotReady``."""
+    flow = PawControlConfigFlow()
+    flow.reauth_entry = MockConfigEntry(domain=DOMAIN, unique_id="entry-user", data={})
+    flow.unique_id = "different-user"  # type: ignore[attr-defined]
+
+    with pytest.raises(ConfigEntryNotReady, match="wrong_account"):
+        flow._abort_if_unique_id_mismatch(reason="wrong_account")
+
+
+def test_abort_if_unique_id_mismatch_noops_for_equal_or_missing_ids() -> None:
+    """Missing or equal IDs should not interrupt the reauth flow."""
+    flow = PawControlConfigFlow()
+
+    flow.reauth_entry = MockConfigEntry(domain=DOMAIN, unique_id="entry-user", data={})
+    flow.unique_id = "entry-user"  # type: ignore[attr-defined]
+    flow._abort_if_unique_id_mismatch(reason="wrong_account")
+
+    flow.reauth_entry = None
+    flow._abort_if_unique_id_mismatch(reason="wrong_account")
+
+
+@pytest.mark.asyncio
+async def test_async_step_user_returns_form_when_name_validation_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid integration names should keep the user on the initial form."""
+    flow = PawControlConfigFlow()
+
+    monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
+    monkeypatch.setattr(flow, "_abort_if_unique_id_configured", lambda **_kwargs: None)
+
+    result = await flow.async_step_user({"name": ""})
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"name": "integration_name_required"}
+
+
+@pytest.mark.asyncio
+async def test_async_step_import_creates_entry_from_validated_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Import step should create a config entry from validated data/options."""
+    flow = PawControlConfigFlow()
+
+    monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
+    monkeypatch.setattr(flow, "_abort_if_unique_id_configured", lambda **_kwargs: None)
+
+    async def _validated(_config):
+        return {"data": {"dogs": []}, "options": {"entity_profile": "standard"}}
+
+    monkeypatch.setattr(flow, "_validate_import_config_enhanced", _validated)
+
+    result = await flow.async_step_import({"dogs": []})
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["title"] == "PawControl (Imported)"
+    assert result["data"] == {"dogs": []}
+    assert result["options"] == {"entity_profile": "standard"}
+
+
+@pytest.mark.asyncio
+async def test_async_step_import_wraps_vol_invalid_in_config_entry_not_ready(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Voluptuous import parsing failures should surface as config-entry errors."""
+    flow = PawControlConfigFlow()
+
+    monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
+    monkeypatch.setattr(flow, "_abort_if_unique_id_configured", lambda **_kwargs: None)
+
+    async def _raise_invalid(_config):
+        raise vol.Invalid("bad format")
+
+    monkeypatch.setattr(flow, "_validate_import_config_enhanced", _raise_invalid)
+
+    with pytest.raises(ConfigEntryNotReady, match="Invalid import configuration format"):
+        await flow.async_step_import({"dogs": []})
+
+
+@pytest.mark.asyncio
+async def test_async_step_import_wraps_validation_error_in_config_entry_not_ready(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validation failures should propagate as typed config-entry errors."""
+    flow = PawControlConfigFlow()
+
+    monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
+    monkeypatch.setattr(flow, "_abort_if_unique_id_configured", lambda **_kwargs: None)
+
+    async def _raise_validation(_config):
+        raise ValidationError("invalid dogs")
+
+    monkeypatch.setattr(flow, "_validate_import_config_enhanced", _raise_validation)
+
+    with pytest.raises(
+        ConfigEntryNotReady,
+        match="Import validation failed: Validation failed for 'invalid dogs'",
+    ):
+        await flow.async_step_import({"dogs": []})
+
+
+@pytest.mark.asyncio
+async def test_validate_import_config_wrapper_delegates_to_enhanced(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy wrapper should return the enhanced validator result unchanged."""
+    flow = PawControlConfigFlow()
+    expected = {"data": {"dogs": []}, "options": {"entity_profile": "standard"}}
+
+    async def _validated(_config):
+        return expected
+
+    monkeypatch.setattr(flow, "_validate_import_config_enhanced", _validated)
+
+    assert await flow._validate_import_config({"dogs": []}) == expected
 
 
 @pytest.mark.asyncio

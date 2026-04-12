@@ -563,13 +563,16 @@ async def test_async_step_reauth_wraps_validation_error(
         (
             ValidationError("entry_dogs", constraint="invalid modules"),
             (
-                "Entry validation failed: Validation failed for entry_dogs: "
-                "invalid modules"
+                r"Entry validation failed: Validation failed for '?entry_dogs'?: "
+                r"invalid modules"
             ),
         ),
         (
             ValidationError("entry_dogs", constraint="missing id"),
-            ("Entry validation failed: Validation failed for entry_dogs: missing id"),
+            (
+                r"Entry validation failed: Validation failed for '?entry_dogs'?: "
+                r"missing id"
+            ),
         ),
     ],
 )
@@ -859,6 +862,38 @@ async def test_validate_reauth_entry_enhanced_allows_invalid_profile(
 
 
 @pytest.mark.asyncio
+async def test_validate_reauth_entry_enhanced_allows_partially_invalid_dogs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reauth validation should continue when only some dog payloads are invalid."""
+    entry = MockConfigEntry(
+        domain="pawcontrol",
+        data={
+            CONF_DOGS: [
+                {DOG_ID_FIELD: "buddy", CONF_MODULES: {"feeding": True}},
+                {DOG_ID_FIELD: "luna", CONF_MODULES: {"walk": True}},
+            ]
+        },
+        options={"entity_profile": "standard"},
+    )
+    flow = _Flow(entry)
+
+    def _validate(
+        dog: Mapping[str, object],
+        *,
+        existing_ids: object,
+        existing_names: object,
+    ) -> None:
+        del existing_ids, existing_names
+        if dog.get(DOG_ID_FIELD) == "luna":
+            raise FlowValidationError(field_errors={"dog_name": "missing"})
+
+    monkeypatch.setattr(config_flow_reauth, "validate_dog_config_payload", _validate)
+
+    await flow._validate_reauth_entry_enhanced(entry)
+
+
+@pytest.mark.asyncio
 async def test_async_step_reauth_confirm_logs_unhealthy_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -884,6 +919,46 @@ async def test_async_step_reauth_confirm_logs_unhealthy_summary(
 
 
 @pytest.mark.asyncio
+async def test_async_step_reauth_confirm_reuses_existing_summary_after_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When update fails after health summary creation, form rendering should reuse it."""
+    entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
+    flow = _Flow(entry)
+    health_calls = 0
+
+    async def _healthy(_entry: MockConfigEntry) -> dict[str, object]:
+        nonlocal health_calls
+        health_calls += 1
+        return {
+            "healthy": True,
+            "issues": [],
+            "warnings": [],
+            "validated_dogs": 0,
+            "total_dogs": 0,
+        }
+
+    async def _raise_update_failure(
+        entry: MockConfigEntry,
+        *,
+        data_updates: Mapping[str, object] | None = None,
+        options_updates: Mapping[str, object] | None = None,
+        reason: str,
+    ) -> dict[str, object]:
+        del entry, data_updates, options_updates, reason
+        raise RuntimeError("update failed")
+
+    monkeypatch.setattr(flow, "_check_config_health_enhanced", _healthy)
+    monkeypatch.setattr(flow, "async_update_reload_and_abort", _raise_update_failure)
+
+    result = await flow.async_step_reauth_confirm({"confirm": True})
+
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"] == {"base": "reauth_failed"}
+    assert health_calls == 1
+
+
+@pytest.mark.asyncio
 async def test_async_step_reauth_confirm_uses_status_check_warning_on_form(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -903,3 +978,44 @@ async def test_async_step_reauth_confirm_uses_status_check_warning_on_form(
         "Status check failed: display boom"
         in result["description_placeholders"]["health_status"]
     )
+
+
+@pytest.mark.asyncio
+async def test_check_config_health_enhanced_skips_none_or_empty_modules_payloads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """None/empty module payloads should not be flagged as invalid module warnings."""
+    entry = MockConfigEntry(
+        domain="pawcontrol",
+        data={
+            CONF_DOGS: [
+                {DOG_ID_FIELD: "buddy", CONF_MODULES: {}},
+                {DOG_ID_FIELD: "luna", CONF_MODULES: None},
+            ]
+        },
+        options={"entity_profile": "standard"},
+    )
+    flow = _Flow(entry)
+
+    monkeypatch.setattr(
+        _Flow,
+        "_is_dog_config_valid_for_reauth",
+        staticmethod(lambda _dog: True),
+    )
+
+    class _FakeFactory:
+        def __init__(self, _hass: object) -> None:
+            pass
+
+        async def estimate_entity_count_async(
+            self,
+            _profile: str,
+            _modules: Mapping[str, bool],
+        ) -> int:
+            return 1
+
+    monkeypatch.setattr(config_flow_reauth, "EntityFactory", _FakeFactory)
+
+    summary = await flow._check_config_health_enhanced(entry)
+
+    assert not any("Modules payload invalid" in warning for warning in summary["warnings"])

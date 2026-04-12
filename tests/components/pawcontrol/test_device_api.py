@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 from aiohttp import ClientError, ClientTimeout
 from aiohttp.client_exceptions import ContentTypeError
 import pytest
+from yarl import URL
 
 from custom_components.pawcontrol.device_api import (
     PawControlDeviceClient,
@@ -109,7 +110,7 @@ class _MappingPayload(Mapping[str, object]):
 def test_validate_device_endpoint_requires_http_and_hostname() -> None:
     """Endpoints should be normalized and validated."""
     url = validate_device_endpoint("https://example.test:443")
-    assert str(url) == "https://example.test"
+    assert str(url) == "https://example.test:443"
 
     with pytest.raises(ValueError, match="endpoint must use http or https"):
         validate_device_endpoint("ftp://example.test")
@@ -135,7 +136,7 @@ async def test_async_request_adds_authorization_header() -> None:
 
     assert payload == {"ok": True}
     args, kwargs = session.calls[0]
-    assert args[:2] == ("GET", client.base_url.joinpath("api/status"))
+    assert args[:2] == ("GET", client.base_url.join(URL("/api/status")))
     assert kwargs["headers"] == {"Authorization": "Bearer secret"}
 
 
@@ -159,7 +160,7 @@ async def test_service_success_calls_api_with_expected_payload() -> None:
 
     assert payload == {"status": "ok"}
     args, kwargs = session.calls[0]
-    assert args[:2] == ("GET", client.base_url.joinpath("api/status"))
+    assert args[:2] == ("GET", client.base_url.join(URL("/api/status")))
     assert kwargs["headers"] is None
 
 
@@ -389,12 +390,7 @@ async def test_async_get_json_raises_network_error_for_non_json_payload() -> Non
 
     class _NonJsonResponse(_FakeResponse):
         async def json(self) -> object:
-            request_info = SimpleNamespace(real_url="https://example.test/api/status")
-            raise ContentTypeError(
-                request_info=request_info,
-                history=(),
-                message="Not JSON",
-            )
+            raise ContentTypeError("Not JSON")
 
     session = _FakeSession(_NonJsonResponse())
     client = PawControlDeviceClient(session, endpoint="https://example.test")

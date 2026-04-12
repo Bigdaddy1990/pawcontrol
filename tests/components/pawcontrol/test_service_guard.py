@@ -243,11 +243,13 @@ def test_service_guard_snapshot_accumulate_handles_non_mapping_reason_snapshot()
     snapshot = ServiceGuardSnapshot.from_sequence([
         ServiceGuardResult("light", "turn_on", False, reason="quiet_hours")
     ])
-    metrics = _ReasonWriteRejectingMetrics({
-        "executed": 0,
-        "skipped": 0,
-        "reasons": "invalid",
-    })
+    metrics = _ReasonWriteRejectingMetrics(
+        {
+            "executed": 0,
+            "skipped": 0,
+            "reasons": "invalid",
+        }
+    )
 
     accumulated = snapshot.accumulate(metrics)
 

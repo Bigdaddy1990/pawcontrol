@@ -84,6 +84,16 @@ def test_extract_capabilities_normalizes_capability_sequences(
     assert _extract_capabilities(payload) == expected
 
 
+def test_extract_api_version_rejects_non_mapping_payloads() -> None:
+    """Version extraction should return ``None`` for non-mapping payloads."""
+    assert _extract_api_version(["2026.4.0"]) is None
+
+
+def test_extract_capabilities_rejects_non_string_non_empty_sequences() -> None:
+    """Non-empty capability lists without strings should return ``None``."""
+    assert _extract_capabilities({"capabilities": [1, 2, 3]}) is None
+
+
 @pytest.mark.parametrize(
     ("validation", "token", "expected_status"),
     [
@@ -123,3 +133,37 @@ def test_async_test_api_health_maps_status_from_validation_result(
     assert result["status"] == expected_status
     assert result["healthy"] is validation.valid
     assert result["reachable"] is validation.reachable
+
+
+@pytest.mark.asyncio
+async def test_async_validate_api_connection_without_token_skips_authentication(
+    validator: APIValidator,
+) -> None:
+    """Validation without token should skip auth probe and remain unauthenticated."""
+    validator._test_endpoint_reachability = AsyncMock(return_value=True)
+    validator._test_authentication = AsyncMock(  # type: ignore[method-assign]
+        return_value={
+            "authenticated": True,
+            "api_version": "ignored",
+            "capabilities": ["ignored"],
+        }
+    )
+
+    result = await validator.async_validate_api_connection("https://example.com", None)
+
+    assert result.valid is True
+    assert result.reachable is True
+    assert result.authenticated is False
+    assert result.api_version is None
+    assert result.capabilities is None
+    validator._test_authentication.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_close_noops_for_already_closed_session() -> None:
+    """Closing a validator with an already-closed shared session should no-op."""
+    session = _FakeSession()
+    closed_validator = APIValidator(SimpleNamespace(), session)
+    session.closed = True
+
+    await closed_validator.async_close()

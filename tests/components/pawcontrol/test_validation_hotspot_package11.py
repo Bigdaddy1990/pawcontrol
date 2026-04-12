@@ -4,7 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.pawcontrol.exceptions import ValidationError
+from custom_components.pawcontrol.exceptions import (
+    InvalidCoordinatesError,
+    ValidationError,
+)
 from custom_components.pawcontrol.validation import (
     clamp_float_range,
     clamp_int_range,
@@ -197,6 +200,17 @@ def test_validate_sensor_entity_id_checks_domain_and_device_class() -> None:
     """Sensor entity validation should enforce domain and class constraints."""
     state = SimpleNamespace(state="on", attributes={"device_class": "motion"})
     hass = _build_hass(states={"binary_sensor.door": state})
+
+    assert (
+        validate_sensor_entity_id(
+            hass,
+            "binary_sensor.door",
+            field="door_sensor",
+            domain="binary_sensor",
+            required=True,
+        )
+        == "binary_sensor.door"
+    )
 
     assert (
         validate_sensor_entity_id(
@@ -429,6 +443,9 @@ def test_validate_gps_coordinates_covers_fast_path_and_error_translation() -> No
     """GPS coordinate helper should fast-path numerics and wrap validation errors."""
     assert validate_gps_coordinates(48.1, 11.5) == (48.1, 11.5)
     assert validate_gps_coordinates("48.1", "11.5") == (48.1, 11.5)
+
+    with pytest.raises(InvalidCoordinatesError):
+        validate_gps_coordinates(200.0, 11.5)
 
     with pytest.raises(TypeError, match="'<=' not supported"):
         validate_gps_coordinates("invalid", "payload")

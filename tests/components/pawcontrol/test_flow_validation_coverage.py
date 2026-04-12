@@ -235,10 +235,12 @@ def test_validate_dog_config_payload_propagates_update_field_errors() -> None:
 
 def test_validate_dog_config_payload_omits_modules_when_absent() -> None:
     """Config payloads without module overrides should not emit module keys."""
-    validated = validate_dog_config_payload({
-        CONF_DOG_ID: "luna_nomod",
-        CONF_DOG_NAME: "Luna NoMod",
-    })
+    validated = validate_dog_config_payload(
+        {
+            CONF_DOG_ID: "luna_nomod",
+            CONF_DOG_NAME: "Luna NoMod",
+        }
+    )
 
     assert validated[CONF_DOG_ID] == "luna_nomod"
     assert validated[CONF_DOG_NAME] == "Luna NoMod"

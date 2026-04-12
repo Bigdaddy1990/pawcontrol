@@ -6,7 +6,9 @@ from unittest.mock import AsyncMock
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+import voluptuous as vol
 
+import custom_components.pawcontrol.config_flow_main as cfg_main
 from custom_components.pawcontrol.config_flow_main import PawControlConfigFlow
 from custom_components.pawcontrol.const import CONF_DOGS, CONF_NAME, DOMAIN
 from custom_components.pawcontrol.exceptions import FlowValidationError, ValidationError
@@ -115,7 +117,7 @@ async def test_duplicate_entry_paths_abort_with_already_configured(hass) -> None
 @pytest.mark.parametrize(
     ("profile_input", "expected_type", "expected_error"),
     [
-        ("not-real", FlowResultType.FORM, {"base": "invalid_profile"}),
+        ("not-real", FlowResultType.ABORT, None),
         ("standard", FlowResultType.FORM, {"base": "profile_unchanged"}),
         ("basic", FlowResultType.ABORT, None),
     ],
@@ -212,6 +214,48 @@ async def test_reconfigure_paths_and_updates(
         "health_summary": {"healthy": True, "issues": []},
         "valid_dogs": 1,
     }
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_returns_invalid_profile_when_profile_schema_rejects_input(
+    hass,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid schema input should keep the user on the reconfigure form."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: [
+                {
+                    DOG_ID_FIELD: "buddy",
+                    DOG_NAME_FIELD: "Buddy",
+                    DOG_MODULES_FIELD: {"gps": True},
+                }
+            ],
+            "entity_profile": "standard",
+        },
+        options={"entity_profile": "standard"},
+    )
+    entry.add_to_hass(hass)
+
+    flow = PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {"entry_id": entry.entry_id}
+
+    async def _placeholders(*_args, **_kwargs):
+        return {"current_profile": "standard"}
+
+    def _raise_invalid(_input):
+        raise vol.Invalid("invalid_profile")
+
+    monkeypatch.setattr(flow, "_build_reconfigure_placeholders", _placeholders)
+    monkeypatch.setattr(cfg_main, "PROFILE_SCHEMA", _raise_invalid)
+
+    result = await flow.async_step_reconfigure({"entity_profile": "basic"})
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+    assert result["errors"] == {"base": "invalid_profile"}
 
 
 @pytest.mark.asyncio

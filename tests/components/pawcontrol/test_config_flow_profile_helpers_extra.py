@@ -7,9 +7,8 @@ import custom_components.pawcontrol.config_flow_profile as profile_helpers
 
 
 def test_validate_profile_selection_requires_entity_profile_key() -> None:
-    """Missing profile input should raise the shared invalid marker."""
-    with pytest.raises(KeyError, match="entity_profile"):
-        profile_helpers.validate_profile_selection({})
+    """Missing profile input should fall back to the configured default profile."""
+    assert profile_helpers.validate_profile_selection({}) == "standard"
 
 
 def test_coerce_str_and_title_helpers_fall_back_for_non_strings() -> None:

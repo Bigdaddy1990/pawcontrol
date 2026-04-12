@@ -14,6 +14,7 @@ from custom_components.pawcontrol.const import (
 from custom_components.pawcontrol.migrations import (
     _coerce_legacy_toggle,
     _coerce_modules_payload,
+    _migrate_v1_to_v2,
     _normalize_dog_entry,
     _normalize_dog_options,
     _resolve_dog_identifier,
@@ -306,3 +307,115 @@ def test_resolve_dog_identifier_returns_raw_fallback_on_normalize_error(
 
     candidate = {"name": "No Identifier"}
     assert _resolve_dog_identifier(candidate, "  Raw Fallback  ") == "Raw Fallback"
+
+
+def test_resolve_dog_identifier_skips_empty_normalized_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Identifier resolution should continue when normalization returns empty."""
+
+    def _normalize(raw_value: object) -> str:
+        text = str(raw_value).strip().lower()
+        if text == "primary":
+            return ""
+        return text
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.migrations.normalize_dog_id",
+        _normalize,
+    )
+
+    candidate = {"id": "primary", "dogId": "secondary"}
+    assert _resolve_dog_identifier(candidate, None) == "secondary"
+
+
+def test_normalize_dog_options_mapping_skips_falsy_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mapping options should ignore entries that coerce into empty payloads."""
+
+    def _normalize_entry(
+        entry: dict[str, object],
+        *,
+        dog_id: str | None = None,
+    ) -> dict[str, object]:
+        if entry.get("skip"):
+            return {}
+        return {"dog_id": dog_id or "fallback", "gps_settings": {}}
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.migrations.ensure_dog_options_entry",
+        _normalize_entry,
+    )
+
+    payload = {
+        "Skip": {"skip": True},
+        "Keep": {"gps_settings": {"gps_update_interval": 3}},
+    }
+    assert _normalize_dog_options(payload) == {
+        "keep": {"dog_id": "keep", "gps_settings": {}}
+    }
+
+
+def test_normalize_dog_options_sequence_skips_entries_without_dog_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Sequence options should ignore normalized entries missing dog identifiers."""
+
+    def _normalize_entry(
+        entry: dict[str, object],
+        *,
+        dog_id: str | None = None,
+    ) -> dict[str, object]:
+        return {"gps_settings": dict(entry.get("gps_settings", {}))}
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.migrations.ensure_dog_options_entry",
+        _normalize_entry,
+    )
+
+    payload = [{DOG_ID_FIELD: "Buddy", "gps_settings": {"gps_update_interval": 4}}]
+    assert _normalize_dog_options(payload) == {}
+
+
+def test_migrate_v1_to_v2_skips_unusable_dog_payload_shapes() -> None:
+    """Migration should tolerate non-normalizable dog payload formats."""
+    mapping_data = {CONF_DOGS: {"buddy": "not-a-mapping"}}
+    migrated_mapping_data, _ = _migrate_v1_to_v2(mapping_data, {})
+    assert migrated_mapping_data[CONF_DOGS] == {"buddy": "not-a-mapping"}
+
+    sequence_data = {CONF_DOGS: ["not-a-mapping"]}
+    migrated_sequence_data, _ = _migrate_v1_to_v2(sequence_data, {})
+    assert migrated_sequence_data[CONF_DOGS] == ["not-a-mapping"]
+
+    scalar_data = {CONF_DOGS: "legacy-string", CONF_MODULES: {"gps": True}}
+    migrated_scalar_data, _ = _migrate_v1_to_v2(scalar_data, {})
+    assert migrated_scalar_data[CONF_DOGS] == "legacy-string"
+    assert CONF_MODULES not in migrated_scalar_data
+
+
+@pytest.mark.asyncio
+async def test_async_migrate_entry_noops_when_entry_is_already_current(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Current-version entries should return success without update callbacks."""
+    entry = ConfigEntry(
+        domain=DOMAIN,
+        version=CONFIG_ENTRY_VERSION,
+        data={},
+        options={},
+    )
+    entry.add_to_hass(hass)
+
+    updates: list[dict[str, object]] = []
+
+    def _capture_update(*_args: object, **kwargs: object) -> None:
+        updates.append(dict(kwargs))
+
+    monkeypatch.setattr(hass.config_entries, "async_update_entry", _capture_update)
+
+    result = await async_migrate_entry(hass, entry)
+
+    assert result is True
+    assert updates == []
