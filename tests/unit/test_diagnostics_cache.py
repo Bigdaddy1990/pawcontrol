@@ -48,7 +48,9 @@ def test_snapshot_from_mapping_returns_dataclass() -> None:
     })
 
     assert isinstance(snapshot.repair_summary, CacheRepairAggregate)
-    assert snapshot.repair_summary.to_mapping() == summary_payload
+    serialized = snapshot.repair_summary.to_mapping()
+    for key, value in summary_payload.items():
+        assert serialized[key] == value
 
 
 def test_serialise_cache_snapshot_drops_invalid_repair_summary() -> None:

@@ -218,7 +218,7 @@ async def test_runtime_main_job_config_optional_metrics_branches(
 async def test_runtime_module_and_settings_views_cover_false_branches(
     renderer: dr.DashboardRenderer,
 ) -> None:
-    """Module/settings rendering should handle empty modules and notification-disabled dogs."""
+    """Module/settings rendering should handle empty modules and disabled alerts."""
     empty_module_views = await renderer._render_module_views(
         {"dog_id": "buddy", "dog_name": "Buddy", "modules": {}},
         {},
@@ -251,7 +251,7 @@ async def test_runtime_write_dashboard_file_success_and_failure_paths(
     local_tmp_dir: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """File writing should succeed with default metadata and clean up on replace failure."""
+    """File writing should clean up correctly when replace fails."""
     output = local_tmp_dir / "dashboards" / "buddy.json"
     original_replace = dr.os.replace
 

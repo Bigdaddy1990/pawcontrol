@@ -159,9 +159,8 @@ def test_build_runtime_store_assessment_escalates_on_future_incompatible_status(
     assert assessment["recommended_action"] is not None
 
 
-def test_build_runtime_store_assessment_segments_uses_duration_fallback_for_last_event() -> (
-    None
-):
+def test_build_runtime_store_assessment_segments_uses_duration_fallback_for_last_event(
+) -> None:
     """Segment builder should use current-level fallback duration for final events."""
     events = [
         {

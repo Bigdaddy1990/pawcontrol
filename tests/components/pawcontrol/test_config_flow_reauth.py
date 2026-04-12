@@ -922,7 +922,7 @@ async def test_async_step_reauth_confirm_logs_unhealthy_summary(
 async def test_async_step_reauth_confirm_reuses_existing_summary_after_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """When update fails after health summary creation, form rendering should reuse it."""
+    """If update fails, form rendering should reuse the health summary."""
     entry = MockConfigEntry(domain="pawcontrol", data={CONF_DOGS: []}, options={})
     flow = _Flow(entry)
     health_calls = 0

@@ -1350,9 +1350,8 @@ def test_collect_health_conditions_handles_empty_tokens_and_skin_alias_defaults(
     assert "joint_pain" in conditions
 
 
-def test_collect_health_conditions_without_other_conditions_skips_alias_processing() -> (
-    None
-):
+def test_collect_health_conditions_without_other_conditions_skips_alias_processing(
+) -> None:
     """No free-text conditions should keep only mapped checkbox flags."""
     flow = _flow()
     conditions = flow._collect_health_conditions({"has_diabetes": True})
@@ -1400,7 +1399,9 @@ async def test_get_diet_compatibility_guidance_covers_senior_branch() -> None:
             {
                 "config.error.diet_guidance_multiple_prescription": "Rx guidance",
                 "config.error.diet_guidance_raw_diets": "Raw guidance",
-                "config.error.diet_guidance_prescription_overrides": "Override guidance",
+                "config.error.diet_guidance_prescription_overrides": (
+                    "Override guidance"
+                ),
                 "config.error.diet_guidance_none": "None",
             },
         )
@@ -1441,9 +1442,8 @@ async def test_async_step_configure_modules_persists_input_and_routes_forward(
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_minimal_for_simple_setup() -> (
-    None
-):
+async def test_async_step_configure_modules_form_suggests_minimal_for_simple_setup(
+) -> None:
     """Single-dog setup should suggest minimal performance profile."""
     flow = _flow()
     flow._dogs = [
@@ -1461,9 +1461,8 @@ async def test_async_step_configure_modules_form_suggests_minimal_for_simple_set
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_balanced_for_mid_complexity() -> (
-    None
-):
+async def test_async_step_configure_modules_form_suggests_balanced_for_mid_complexity(
+) -> None:
     """Three-dog setup should suggest balanced performance and auto-backup."""
     flow = _flow()
     flow._dogs = [
@@ -1478,9 +1477,8 @@ async def test_async_step_configure_modules_form_suggests_balanced_for_mid_compl
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_full_for_high_complexity() -> (
-    None
-):
+async def test_async_step_configure_modules_form_suggests_full_for_high_complexity(
+) -> None:
     """Very large setups should now elevate recommendation to full performance."""
     flow = _flow()
     flow._dogs = [

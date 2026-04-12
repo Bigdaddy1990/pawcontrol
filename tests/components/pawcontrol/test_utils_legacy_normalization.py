@@ -36,7 +36,7 @@ class _WithDict:
         return {"payload": _PetPayload(name="Nala", birthday=date(2022, 1, 1))}
 
 
-class _Node:
+class _Node:  # noqa: B903
     """Simple cyclic node used to validate recursion guards."""
 
     def __init__(self) -> None:

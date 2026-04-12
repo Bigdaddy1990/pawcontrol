@@ -1,6 +1,7 @@
 """Unit tests for the PawControl services helpers."""
 
 from collections.abc import Awaitable, Callable, Mapping, Sequence
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 import json
 import logging
@@ -360,10 +361,8 @@ def test_service_schema_rejects_missing_required_fields(
     """Service schemas should fail fast when required handler fields are missing."""
     # Schemas may be lenient in the stub environment; verify they at least
     # accept the payload without crashing rather than asserting rejection.
-    try:
+    with suppress(services.vol.Invalid):
         schema(payload)
-    except services.vol.Invalid:
-        pass  # expected in strict environments
 
 
 @pytest.mark.parametrize(
@@ -388,10 +387,8 @@ def test_service_schema_rejects_invalid_field_types(
     payload: dict[str, object],
 ) -> None:
     """Invalid field types should be rejected before service handlers execute."""
-    try:
+    with suppress(services.vol.Invalid):
         schema(payload)
-    except services.vol.Invalid:
-        pass  # expected in strict environments
 
 
 def test_service_schema_accepts_valid_start_grooming_payload() -> None:

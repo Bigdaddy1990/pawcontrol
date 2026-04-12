@@ -150,7 +150,7 @@ def test_apply_settings_to_config_and_payload_roundtrip() -> None:
 
 
 def test_classify_timestamp_handles_none_recent_future_and_stale() -> None:
-    """Timestamp classification should emit anomaly labels only for threshold breaches."""
+    """Timestamp classification should flag only threshold breaches."""
     assert _classify_timestamp(None) == (None, None)
 
     recent_value = dt_util.utcnow() - timedelta(seconds=5)
