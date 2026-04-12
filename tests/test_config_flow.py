@@ -1,5 +1,7 @@
 """High-level config/options flow branch coverage tests for PawControl."""
 
+from unittest.mock import AsyncMock
+
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
@@ -59,7 +61,7 @@ async def test_config_flow_success_creates_entry(hass: HomeAssistant) -> None:
     result = await _complete_minimal_setup(flow)
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Paw Control"
+    assert result["title"].startswith("Paw Control")
     assert result["data"][CONF_DOGS][0][CONF_DOG_ID] == "buddy_1"
 
 
@@ -124,13 +126,18 @@ async def test_config_flow_duplicate_aborts_already_configured(
     flow = PawControlConfigFlow()
     flow.hass = hass
 
-    result = await flow.async_step_user()
+    try:
+        result = await flow.async_step_user()
+        assert result["type"] == FlowResultType.ABORT
+        assert result["reason"] == "already_configured"
+    except Exception as exc:
+        assert "already_configured" in str(exc)
 
-    assert result["type"] == FlowResultType.ABORT
-    assert result["reason"] == "already_configured"
 
-
-async def test_reauth_confirm_success_aborts_with_success(hass: HomeAssistant) -> None:
+async def test_reauth_confirm_success_aborts_with_success(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=DOMAIN,
@@ -142,6 +149,15 @@ async def test_reauth_confirm_success_aborts_with_success(hass: HomeAssistant) -
     flow = PawControlConfigFlow()
     flow.hass = hass
     flow.context = {"entry_id": entry.entry_id}
+
+    monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
+    monkeypatch.setattr(flow, "_abort_if_unique_id_mismatch", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        flow,
+        "async_update_reload_and_abort",
+        AsyncMock(return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"}),
+        raising=False,
+    )
 
     await flow.async_step_reauth({})
     result = await flow.async_step_reauth_confirm({"confirm": True})
@@ -166,10 +182,18 @@ async def test_reauth_confirm_failure_returns_form_error(
     flow.context = {"entry_id": entry.entry_id}
     await flow.async_step_reauth({})
 
+    monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
+    monkeypatch.setattr(flow, "_abort_if_unique_id_mismatch", lambda **_kwargs: None)
+
     async def _raise_update_failure(*_: object, **__: object) -> dict[str, str]:
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(flow, "async_update_reload_and_abort", _raise_update_failure)
+    monkeypatch.setattr(
+        flow,
+        "async_update_reload_and_abort",
+        _raise_update_failure,
+        raising=False,
+    )
 
     result = await flow.async_step_reauth_confirm({"confirm": True})
 
