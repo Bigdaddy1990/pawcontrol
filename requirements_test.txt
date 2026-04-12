@@ -17,3 +17,4 @@ pytest-xdist>=3.8.0
 pytest_cov
 pyyaml
 voluptuous>=0.15.2
+yarl
