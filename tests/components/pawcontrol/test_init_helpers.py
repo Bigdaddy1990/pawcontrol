@@ -147,6 +147,21 @@ def test_enable_debug_logging_returns_false_when_disabled(
     assert logger.level == logging.WARNING
 
 
+def test_enable_debug_logging_reuses_existing_entry(
+    _reset_global_state: None,
+) -> None:
+    """Re-enabling debug logging for the same entry should be a no-op."""
+    logger = logging.getLogger("custom_components.pawcontrol")
+    logger.setLevel(logging.INFO)
+
+    entry = _DummyEntry("entry-repeat", {"debug_logging": True})
+
+    assert _enable_debug_logging(entry) is True
+    assert _enable_debug_logging(entry) is True
+    assert _DEBUG_LOGGER_ENTRIES == {"entry-repeat"}
+    assert logger.level == logging.DEBUG
+
+
 def test_disable_debug_logging_ignores_unknown_entry(
     _reset_global_state: None,
 ) -> None:

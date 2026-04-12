@@ -314,6 +314,18 @@ def test_notification_mixins_normalise_legacy_and_per_dog_payloads() -> None:
     assert mutable[DOG_OPTIONS_FIELD]["dog-1"]["notifications"]["quiet_hours"] is True
 
 
+def test_notification_current_options_without_dog_id_uses_legacy_payload() -> None:
+    """When dog_id is omitted, notification options should use legacy global config."""
+    flow = _NotificationFlow(
+        options={CONF_NOTIFICATIONS: {"quiet_hours": True}},
+        dog_options={},
+    )
+
+    current = flow._current_notification_options()
+
+    assert current["quiet_hours"] is True
+
+
 def test_notification_normaliser_returns_none_when_notifications_missing() -> None:
     """Notification normaliser should no-op if notifications key is absent."""
     flow = _NotificationFlow(options={}, dog_options={})
@@ -322,6 +334,40 @@ def test_notification_normaliser_returns_none_when_notifications_missing() -> No
     normalised = flow._normalise_notification_options(mutable)
 
     assert normalised is None
+
+
+def test_notification_normaliser_handles_non_mapping_dog_options() -> None:
+    """Normalizer should keep working when dog options payload is not a mapping."""
+    flow = _NotificationFlow(options={}, dog_options={})
+    mutable: dict[str, Any] = {
+        CONF_NOTIFICATIONS: {"quiet_hours": True},
+        DOG_OPTIONS_FIELD: "invalid-payload",
+    }
+
+    normalised = flow._normalise_notification_options(mutable)
+
+    assert normalised is not None
+    assert mutable[DOG_OPTIONS_FIELD] == "invalid-payload"
+    assert mutable["notifications"]["quiet_hours"] is True
+
+
+def test_notification_normaliser_preserves_existing_per_dog_notifications() -> None:
+    """Existing per-dog notifications should not be overwritten by legacy defaults."""
+    flow = _NotificationFlow(options={}, dog_options={})
+    mutable: dict[str, Any] = {
+        CONF_NOTIFICATIONS: {"quiet_hours": False},
+        DOG_OPTIONS_FIELD: {
+            "dog-1": {
+                "dog_id": "dog-1",
+                "notifications": {"quiet_hours": True},
+            }
+        },
+    }
+
+    normalised = flow._normalise_notification_options(mutable)
+
+    assert normalised is not None
+    assert mutable[DOG_OPTIONS_FIELD]["dog-1"]["notifications"]["quiet_hours"] is True
 
 
 def test_notification_options_mixin_prefers_per_dog_notification_entry() -> None:
@@ -460,6 +506,45 @@ async def test_notification_flow_notifications_step_handles_success_and_errors()
     assert failed["errors"] == {"base": "update_failed"}
 
 
+@pytest.mark.asyncio
+async def test_notification_flow_notifications_step_skips_non_matching_dog_options_entry() -> (
+    None
+):
+    """Non-empty dog_options for another dog should not create a new per-dog entry."""
+    flow = _NotificationAsyncFlow(
+        options={CONF_NOTIFICATIONS: {"quiet_hours": False}},
+        dog_options={
+            "other-dog": {
+                "dog_id": "other-dog",
+                "notifications": {"quiet_hours": True},
+            }
+        },
+    )
+    flow._build_notification_settings = lambda *_: {
+        "quiet_hours": False,
+        "quiet_start": "22:00:00",
+        "quiet_end": "07:00:00",
+        "reminder_repeat_min": 60,
+        "priority_notifications": False,
+        "mobile_notifications": True,
+    }
+
+    result = await flow.async_step_notifications(
+        {
+            "quiet_hours": False,
+            "quiet_start": "22:00",
+            "quiet_end": "07:00",
+            "reminder_repeat": 60,
+            "priority_notifications": False,
+            "mobile_notifications": True,
+        }
+    )
+
+    assert result["type"] == "create_entry"
+    assert DOG_OPTIONS_FIELD not in result["data"]
+    assert result["data"]["notifications"]["mobile_notifications"] is True
+
+
 def test_notification_flow_build_notification_settings_wrapper() -> None:
     """Wrapper should delegate to the class-level payload builder."""
     flow = _NotificationAsyncFlow(options={}, dog_options={})
@@ -558,6 +643,36 @@ async def test_dog_health_step_with_input_updates_health_and_feeding() -> None:
 
 
 @pytest.mark.asyncio
+async def test_dog_health_step_skips_empty_medications_and_non_dict_feeding_config() -> (
+    None
+):
+    """Medication and feeding enrichment should be skipped for empty/non-dict inputs."""
+    current_dog = {
+        DOG_NAME_FIELD: "Luna",
+        DOG_ID_FIELD: "dog-4",
+        DOG_AGE_FIELD: 5,
+        DOG_SIZE_FIELD: "medium",
+        DOG_WEIGHT_FIELD: 18.0,
+        "modules": {MODULE_MEDICATION: True},
+        DOG_FEEDING_CONFIG_FIELD: "invalid-feeding-config",
+    }
+    flow = _DogHealthFlow(current_dog=current_dog)
+
+    result = await flow.async_step_dog_health(
+        {
+            "special_diet_requirements": [],
+            "health_conditions": [],
+            "with_meals": False,
+        }
+    )
+
+    assert result == {"type": "add_another"}
+    stored_dog = flow._dogs[0]
+    assert "medications" not in stored_dog[DOG_HEALTH_CONFIG_FIELD]
+    assert stored_dog[DOG_FEEDING_CONFIG_FIELD] == "invalid-feeding-config"
+
+
+@pytest.mark.asyncio
 async def test_dog_health_step_with_optional_dates_and_vaccinations() -> None:
     """Health input should persist optional visit/checkup and vaccinations."""
     current_dog = {
@@ -652,6 +767,30 @@ async def test_health_options_selection_and_submit_paths() -> None:
         result["data"][DOG_OPTIONS_FIELD]["dog-1"]["health_settings"]["health_alerts"]
         is False
     )
+
+
+@pytest.mark.asyncio
+async def test_health_options_submit_without_matching_dog_options_entry() -> None:
+    """Non-empty dog options for another dog should not create a new per-dog entry."""
+    flow = _HealthOptionsFlow(
+        options={},
+        dog_options={"dog-x": {"health_settings": {"weight_tracking": True}}},
+        dogs=[{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Rex"}],
+    )
+
+    result = await flow.async_step_health_settings(
+        {
+            "weight_tracking": True,
+            "medication_reminders": False,
+            "vet_reminders": True,
+            "grooming_reminders": False,
+            "health_alerts": True,
+        }
+    )
+
+    assert result["type"] == "create_entry"
+    assert DOG_OPTIONS_FIELD not in result["data"]
+    assert result["data"]["health_settings"]["weight_tracking"] is True
 
 
 @pytest.mark.asyncio

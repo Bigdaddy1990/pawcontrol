@@ -1,5 +1,6 @@
 """Lifecycle coverage tests for PawControl config-entry orchestration."""
 
+import asyncio
 import importlib
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
@@ -97,6 +98,263 @@ async def test_async_setup_entry_success_forwards_platform_setup(
 
     assert await pawcontrol_init.async_setup_entry(hass, entry) is True
     setup_platforms.assert_awaited_once_with(hass, entry, runtime_data)
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_optional_setup_starts_background_health_monitoring(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-mocked environments should run optional scheduler/task health setup."""
+    start_background_tasks = Mock()
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(async_start_background_tasks=start_background_tasks),
+        helper_manager=SimpleNamespace(get_helper_count=lambda: 0),
+        door_sensor_manager=SimpleNamespace(get_configured_dogs=lambda: []),
+        geofencing_manager=SimpleNamespace(is_enabled=lambda: False),
+        daily_reset_unsub=None,
+        background_monitor_task=None,
+    )
+    entry = SimpleNamespace(entry_id="entry-id", options={}, data={})
+    hass = SimpleNamespace(async_create_task=lambda coro: asyncio.create_task(coro))
+    check_for_issues = AsyncMock()
+    monitor_calls: list[object] = []
+
+    async def _monitor(runtime: object) -> None:
+        monitor_calls.append(runtime)
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        AsyncMock(return_value=([{"id": "dog-1"}], "standard", [])),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_should_skip_optional_setup",
+        lambda _hass: False,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_initialize_managers",
+        AsyncMock(return_value=runtime_data),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "store_runtime_data",
+        lambda *_: None,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_platforms",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_cleanup",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_daily_reset_scheduler",
+        AsyncMock(return_value="reset-token"),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_async_monitor_background_tasks",
+        _monitor,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_check_for_issues",
+        check_for_issues,
+    )
+
+    assert await pawcontrol_init.async_setup_entry(hass, entry) is True
+    assert runtime_data.daily_reset_unsub == "reset-token"
+    start_background_tasks.assert_called_once_with()
+    check_for_issues.assert_awaited_once_with(hass, entry)
+    assert runtime_data.background_monitor_task is not None
+    await runtime_data.background_monitor_task
+    assert monitor_calls == [runtime_data]
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_optional_daily_reset_failure_is_non_critical(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Optional scheduler failures should not fail the overall setup."""
+    start_background_tasks = Mock()
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(async_start_background_tasks=start_background_tasks),
+        helper_manager=SimpleNamespace(get_helper_count=lambda: 0),
+        door_sensor_manager=SimpleNamespace(get_configured_dogs=lambda: []),
+        geofencing_manager=SimpleNamespace(is_enabled=lambda: False),
+        daily_reset_unsub=None,
+        background_monitor_task=None,
+    )
+    entry = SimpleNamespace(entry_id="entry-id", options={}, data={})
+    hass = SimpleNamespace(async_create_task=lambda coro: asyncio.create_task(coro))
+    check_for_issues = AsyncMock()
+
+    async def _monitor(_: object) -> None:
+        return None
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        AsyncMock(return_value=([{"id": "dog-1"}], "standard", [])),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_should_skip_optional_setup",
+        lambda _hass: False,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_initialize_managers",
+        AsyncMock(return_value=runtime_data),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "store_runtime_data",
+        lambda *_: None,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_platforms",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_cleanup",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_daily_reset_scheduler",
+        AsyncMock(side_effect=RuntimeError("scheduler failed")),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_async_monitor_background_tasks",
+        _monitor,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_check_for_issues",
+        check_for_issues,
+    )
+
+    assert await pawcontrol_init.async_setup_entry(hass, entry) is True
+    assert runtime_data.daily_reset_unsub is None
+    start_background_tasks.assert_called_once_with()
+    check_for_issues.assert_awaited_once_with(hass, entry)
+    assert runtime_data.background_monitor_task is not None
+    await runtime_data.background_monitor_task
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_optional_daily_reset_none_does_not_store_unsub(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A missing unsubscribe callback should skip runtime storage gracefully."""
+    start_background_tasks = Mock()
+    runtime_data = SimpleNamespace(
+        coordinator=SimpleNamespace(async_start_background_tasks=start_background_tasks),
+        helper_manager=SimpleNamespace(get_helper_count=lambda: 0),
+        door_sensor_manager=SimpleNamespace(get_configured_dogs=lambda: []),
+        geofencing_manager=SimpleNamespace(is_enabled=lambda: False),
+        daily_reset_unsub=None,
+        background_monitor_task=None,
+    )
+    entry = SimpleNamespace(entry_id="entry-id", options={}, data={})
+    hass = SimpleNamespace(async_create_task=lambda coro: asyncio.create_task(coro))
+    check_for_issues = AsyncMock()
+
+    async def _monitor(_: object) -> None:
+        return None
+
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_validate_entry_config",
+        AsyncMock(return_value=([{"id": "dog-1"}], "standard", [])),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_should_skip_optional_setup",
+        lambda _hass: False,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_initialize_managers",
+        AsyncMock(return_value=runtime_data),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "store_runtime_data",
+        lambda *_: None,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_webhook",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_entry_mqtt",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_platforms",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_register_cleanup",
+        AsyncMock(),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_setup_daily_reset_scheduler",
+        AsyncMock(return_value=None),
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "_async_monitor_background_tasks",
+        _monitor,
+    )
+    monkeypatch.setitem(
+        pawcontrol_init.async_setup_entry.__globals__,
+        "async_check_for_issues",
+        check_for_issues,
+    )
+
+    assert await pawcontrol_init.async_setup_entry(hass, entry) is True
+    assert runtime_data.daily_reset_unsub is None
+    start_background_tasks.assert_called_once_with()
+    check_for_issues.assert_awaited_once_with(hass, entry)
+    assert runtime_data.background_monitor_task is not None
+    await runtime_data.background_monitor_task
 
 
 @pytest.mark.asyncio
