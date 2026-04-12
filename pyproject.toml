@@ -73,8 +73,7 @@ output-format= "github"
 detect-string-imports = true
 direction = "dependencies"
 string-imports-min-dots = 2
-# type-checking-imports removed: not a valid field in ruff ≤0.12.x
-# Re-enable when ruff gains this option in a stable release.
+type-checking-imports: true
 
 [tool.ruff.format]
 preview = true
@@ -82,8 +81,9 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 docstring-code-format = true
-#docstring-code-line-length = "dynamic"
+docstring-code-line-length = "dynamic"
 skip-magic-trailing-comma = false
+line-length = 88
 
 [tool.ruff.lint]
 preview = true
