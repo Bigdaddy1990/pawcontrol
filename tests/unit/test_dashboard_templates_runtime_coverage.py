@@ -1,7 +1,5 @@
 """Runtime-heavy coverage tests for ``dashboard_templates.py``."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from types import SimpleNamespace
