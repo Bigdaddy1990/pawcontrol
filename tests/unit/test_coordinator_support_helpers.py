@@ -13,6 +13,7 @@ from custom_components.pawcontrol.const import (
     CONF_MODULES,
     CONF_WEBHOOK_ENABLED,
 )
+from custom_components.pawcontrol import coordinator_support
 from custom_components.pawcontrol.coordinator_support import (
     MANAGER_ATTRIBUTES,
     CoordinatorMetrics,
@@ -116,6 +117,25 @@ def test_ensure_cache_repair_aggregate_rejects_non_matching_object() -> None:
 def test_ensure_cache_repair_aggregate_accepts_none_input() -> None:
     """A missing repair summary should pass through as None."""
     assert ensure_cache_repair_aggregate(None) is None
+
+
+def test_ensure_cache_repair_aggregate_ignores_non_type_runtime_override(
+    monkeypatch,
+) -> None:
+    """Non-type runtime overrides should not break aggregate acceptance."""
+    summary = CacheRepairAggregate(
+        total_caches=1,
+        anomaly_count=0,
+        severity="info",
+        generated_at="2026-01-01T00:00:00+00:00",
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "custom_components.pawcontrol.types",
+        type("BadTypes", (), {"CacheRepairAggregate": "invalid"})(),
+    )
+
+    assert ensure_cache_repair_aggregate(summary) is summary
 
 
 class _BindAwareCoordinator:
@@ -238,6 +258,30 @@ def test_bind_runtime_managers_skips_optional_hooks_when_dependencies_missing() 
     ]
 
 
+def test_bind_runtime_managers_skips_non_callable_cache_registration_hook() -> None:
+    """A non-callable register method should be ignored safely."""
+    coordinator = _BindAwareCoordinator()
+    modules = _BindAwareModulesAdapter()
+    data_manager = _CacheAwareDataManager()
+    notification_manager = type(
+        "NotificationStub",
+        (),
+        {"register_cache_monitors": "not-callable"},
+    )()
+
+    bind_runtime_managers(
+        coordinator,
+        modules,
+        CoordinatorRuntimeManagers(
+            data_manager=data_manager,
+            notification_manager=notification_manager,
+        ),
+    )
+
+    assert coordinator.data_manager is data_manager
+    assert coordinator.notification_manager is notification_manager
+
+
 def test_clear_runtime_managers_resets_all_attributes_and_detaches() -> None:
     """Clearing runtime managers should null every tracked attribute."""
     coordinator = _BindAwareCoordinator()
@@ -288,6 +332,22 @@ def test_dog_config_registry_get_name_returns_none_for_blank_or_non_string() -> 
     assert registry.get_name("missing-name") is None
 
 
+def test_dog_config_registry_accepts_non_string_name_from_precoerced_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Pre-coerced candidates with non-string names should still be indexed."""
+    monkeypatch.setattr(
+        coordinator_support,
+        "ensure_dog_config_data",
+        lambda _value: {"dog_id": "buddy", "dog_name": 123},
+    )
+
+    registry = DogConfigRegistry([{"dog_id": "buddy"}])
+
+    assert registry.ids() == ["buddy"]
+    assert registry.get("buddy") is not None
+
+
 def test_coordinator_metrics_resets_consecutive_errors_after_healthy_cycle() -> None:
     """A healthy cycle should reset consecutive error counters."""
     metrics = CoordinatorMetrics(consecutive_errors=3)
@@ -323,6 +383,13 @@ def test_dog_config_registry_from_entry_and_interval_paths() -> None:
             CONF_GPS_UPDATE_INTERVAL: "450",
         })
         == 450
+    )
+    assert (
+        gps_registry.calculate_update_interval({
+            CONF_GPS_SOURCE: "webhook",
+            CONF_WEBHOOK_ENABLED: True,
+        })
+        == 300
     )
     assert gps_registry.calculate_update_interval({CONF_GPS_UPDATE_INTERVAL: 75}) == 75
 
@@ -491,6 +558,29 @@ def test_coordinator_metrics_cover_cycle_and_statistics_paths() -> None:
     assert stats["performance_metrics"]["cache_hit_rate"] == 87.65
     assert runtime_stats["repairs"]["severity"] == "warning"
     assert runtime_stats["cache_performance"]["hit_rate"] == 90.0
+
+
+def test_coordinator_metrics_statistics_omit_repairs_without_summary() -> None:
+    """Repair telemetry blocks should be omitted when no summary is provided."""
+    metrics = CoordinatorMetrics()
+
+    stats = metrics.update_statistics(
+        cache_entries=2,
+        cache_hit_rate=33.3,
+        last_update="now",
+        interval=timedelta(seconds=60),
+        repair_summary=None,
+    )
+    runtime_stats = metrics.runtime_statistics(
+        cache_metrics=ModuleCacheMetrics(hits=1, misses=2, entries=3),
+        total_dogs=1,
+        last_update="now",
+        interval=timedelta(seconds=60),
+        repair_summary=None,
+    )
+
+    assert "repairs" not in stats
+    assert "repairs" not in runtime_stats
 
 
 def test_coordinator_metrics_record_cycle_resets_consecutive_errors() -> None:

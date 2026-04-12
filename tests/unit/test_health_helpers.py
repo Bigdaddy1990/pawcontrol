@@ -68,6 +68,30 @@ def test_summarise_health_summary_defaults_for_non_mapping_and_healthy() -> None
     assert summarise_health_summary({"healthy": True}) == "Healthy"
 
 
+def test_summarise_health_summary_handles_partial_issue_warning_segments() -> None:
+    """Summary helper should render only populated segment sections."""
+    assert (
+        summarise_health_summary(
+            {
+                "healthy": True,
+                "issues": ["stiffness"],
+                "warnings": [],
+            }
+        )
+        == "Issues: stiffness"
+    )
+    assert (
+        summarise_health_summary(
+            {
+                "healthy": True,
+                "issues": [],
+                "warnings": ["late meds"],
+            }
+        )
+        == "Warnings: late meds"
+    )
+
+
 def test_build_health_settings_payload_uses_coercion_defaults() -> None:
     """Boolean settings should be resolved via coerce_bool with current fallback."""
     calls: list[tuple[Any, bool]] = []

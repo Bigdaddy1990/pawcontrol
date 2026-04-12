@@ -33,6 +33,24 @@ def test_adaptive_polling_reaches_idle_interval(cycles: int) -> None:
     assert pytest.approx(interval, rel=0.05) == 900.0
 
 
+def test_adaptive_polling_current_interval_property_reflects_runtime_state() -> None:
+    """Expose the current polling interval through the dedicated property."""
+    controller = AdaptivePollingController(
+        initial_interval_seconds=120.0,
+        min_interval_seconds=30.0,
+        max_interval_seconds=900.0,
+        idle_interval_seconds=900.0,
+        idle_grace_seconds=0.0,
+    )
+    controller.record_cycle(
+        duration=5.0,
+        success=False,
+        error_ratio=1.0,
+    )
+
+    assert controller.current_interval > 120.0
+
+
 def test_adaptive_polling_reduces_when_system_busy() -> None:
     """Fast cycles with high entity saturation should shrink the polling window.
 

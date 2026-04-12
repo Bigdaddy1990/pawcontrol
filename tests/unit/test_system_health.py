@@ -16,6 +16,7 @@ from custom_components.pawcontrol.system_health import (
     _coerce_automation_entries,
     _coerce_event_counters,
     _coerce_event_history,
+    _coerce_float,
     _coerce_int,
     _coerce_int_mapping,
     _coerce_listener_metadata,
@@ -27,8 +28,11 @@ from custom_components.pawcontrol.system_health import (
     _describe_breaker_threshold_source,
     _describe_guard_threshold_source,
     _extract_api_call_count,
+    _extract_service_execution_metrics,
+    _extract_threshold_value,
     _normalise_manual_events_snapshot,
     _resolve_indicator_thresholds,
+    _resolve_option_threshold,
     _serialize_breaker_thresholds,
     _serialize_guard_thresholds,
     _serialize_threshold,
@@ -835,3 +839,209 @@ def test_build_guard_and_breaker_helpers_cover_healthy_and_critical_paths() -> N
     assert critical_breaker["half_open_breakers"] == ["fallback"]
     assert critical_breaker["unknown_breakers"] == ["legacy"]
     assert critical_breaker["last_rejection_time"] == 123.4
+
+
+def test_attach_runtime_store_history_ignores_non_mapping_sections() -> None:
+    """Malformed assessment/timeline sections should be ignored."""
+    info: dict[str, object] = {}
+
+    _attach_runtime_store_history(
+        info,
+        {
+            "assessment": "invalid",
+            "assessment_timeline_segments": 42,
+            "assessment_timeline_summary": ["invalid"],
+        },
+    )
+
+    assert "runtime_store_assessment" not in info
+    assert "runtime_store_timeline_segments" not in info
+    assert "runtime_store_timeline_summary" not in info
+
+
+def test_extract_service_execution_metrics_handles_missing_and_invalid_rejection_metrics() -> None:
+    """Guard extraction should tolerate missing stats and invalid rejection payloads."""
+    _, _, rejection_none = _extract_service_execution_metrics(None)
+    assert rejection_none["open_breaker_count"] == 0
+
+    runtime = _make_runtime_data(
+        performance_stats={"rejection_metrics": "invalid"},
+        coordinator=_Coordinator({}),
+        script_manager=None,
+    )
+    _, _, rejection_invalid = _extract_service_execution_metrics(runtime)
+    assert rejection_invalid["open_breaker_count"] == 0
+
+
+def test_threshold_extractors_cover_none_and_root_option_paths() -> None:
+    """Threshold extraction should cover missing and root-option fallbacks."""
+    assert _extract_threshold_value({"active": 0, "default": "bad"}) == (None, None)
+    assert _resolve_option_threshold(None, "resilience_skip_threshold") == (None, None)
+    assert _resolve_option_threshold(
+        {"resilience_skip_threshold": "6"},
+        "resilience_skip_threshold",
+    ) == (6, "root_options")
+
+
+def test_resolve_option_threshold_falls_back_to_root_when_system_settings_missing_key() -> None:
+    """Root options should be used when system_settings exists but lacks a value."""
+    options = {
+        "system_settings": {"resilience_skip_threshold": "invalid"},
+        "resilience_skip_threshold": 4,
+    }
+
+    assert _resolve_option_threshold(options, "resilience_skip_threshold") == (
+        4,
+        "root_options",
+    )
+
+
+def test_resolve_indicator_thresholds_skips_invalid_script_threshold_values() -> None:
+    """Invalid script threshold entries should not override defaults."""
+
+    class _ScriptManager:
+        def get_resilience_escalation_snapshot(self) -> dict[str, object]:
+            return {
+                "thresholds": {
+                    "skip_threshold": {"active": "bad"},
+                    "breaker_threshold": {"default": "bad"},
+                }
+            }
+
+    runtime = _make_runtime_data(
+        performance_stats={},
+        coordinator=_Coordinator({}),
+        script_manager=_ScriptManager(),
+    )
+
+    guard_thresholds, breaker_thresholds = _resolve_indicator_thresholds(runtime, {})
+
+    assert guard_thresholds.source == "default_ratio"
+    assert breaker_thresholds.source == "default_counts"
+
+
+def test_resolve_indicator_thresholds_ignores_non_mapping_threshold_entries() -> None:
+    """Non-mapping threshold entries should leave defaults unchanged."""
+
+    class _ScriptManager:
+        def get_resilience_escalation_snapshot(self) -> dict[str, object]:
+            return {
+                "thresholds": {
+                    "skip_threshold": 2,
+                    "breaker_threshold": 3,
+                }
+            }
+
+    runtime = _make_runtime_data(
+        performance_stats={},
+        coordinator=_Coordinator({}),
+        script_manager=_ScriptManager(),
+    )
+
+    guard_thresholds, breaker_thresholds = _resolve_indicator_thresholds(runtime, {})
+
+    assert guard_thresholds.source == "default_ratio"
+    assert breaker_thresholds.source == "default_counts"
+
+
+def test_threshold_serializers_skip_empty_payload_sections() -> None:
+    """Serializer helpers should omit warning/critical blocks when empty."""
+    guard = _serialize_guard_thresholds(
+        GuardIndicatorThresholds(
+            warning_count=None,
+            critical_count=None,
+            warning_ratio=None,
+            critical_ratio=None,
+        ),
+    )
+    breaker = _serialize_breaker_thresholds(
+        BreakerIndicatorThresholds(warning_count=1, critical_count=None),
+    )
+
+    assert "warning" not in guard
+    assert "critical" not in guard
+    assert "warning" in breaker
+    assert "critical" not in breaker
+
+
+def test_describe_guard_threshold_source_additional_branches() -> None:
+    """Guard source labels should cover non-default script/config keys."""
+    assert (
+        _describe_guard_threshold_source(
+            GuardIndicatorThresholds(source="resilience_script", source_key="active"),
+        )
+        == "configured resilience script threshold"
+    )
+    assert (
+        _describe_guard_threshold_source(
+            GuardIndicatorThresholds(source="config_entry", source_key="custom"),
+        )
+        == "options flow threshold"
+    )
+
+
+def test_build_guard_summary_handles_non_mapping_and_non_string_reason_keys() -> None:
+    """Reason aggregation should handle malformed payloads defensively."""
+    summary_non_mapping = _build_guard_summary(
+        {"executed": 1, "skipped": 0, "reasons": ["bad"]},
+        GuardIndicatorThresholds(),
+    )
+    assert summary_non_mapping["reasons"]["missing_instance"] == 0
+
+    summary_non_string_key = _build_guard_summary(
+        {"executed": 1, "skipped": 1, "reasons": {1: 4, "valid": 2}},
+        GuardIndicatorThresholds(),
+    )
+    assert all(reason["reason"] != "1" for reason in summary_non_string_key["top_reasons"])
+
+
+def test_build_guard_summary_critical_ratio_path() -> None:
+    """Critical ratio thresholds should produce a red ratio-based indicator."""
+    summary = _build_guard_summary(
+        {"executed": 1, "skipped": 1, "reasons": {}},
+        GuardIndicatorThresholds(
+            warning_count=None,
+            critical_count=None,
+            warning_ratio=None,
+            critical_ratio=0.5,
+        ),
+    )
+
+    assert summary["indicator"]["level"] == "critical"
+    assert summary["indicator"]["threshold_type"] == "guard_skip_ratio"
+
+
+def test_coerce_float_handles_value_and_type_errors() -> None:
+    """Float coercion should fall back on both value and type conversion errors."""
+    assert _coerce_float("invalid", default=1.25) == 1.25
+    assert _coerce_float(object(), default=2.5) == 2.5
+
+
+@pytest.mark.asyncio
+async def test_system_health_info_manual_snapshot_non_callable_and_non_mapping_paths(
+    hass: Any,
+) -> None:
+    """Manual snapshot extraction should tolerate non-callable and invalid snapshots."""
+    entry = ConfigEntry(domain=DOMAIN, data={}, options={"external_api_quota": 5})
+    runtime = _make_runtime_data(
+        performance_stats={},
+        coordinator=_Coordinator({"performance_metrics": {"api_calls": 0}}),
+        script_manager=type(
+            "ScriptManagerNonCallable",
+            (),
+            {"get_resilience_escalation_snapshot": "not-callable"},
+        )(),
+    )
+    entry.runtime_data = runtime
+    _install_entry(hass, entry)
+
+    info = await system_health_info(hass)
+    assert info["service_execution"]["manual_events"]["available"] is False
+
+    class _ScriptManagerInvalidSnapshot:
+        def get_resilience_escalation_snapshot(self) -> list[str]:
+            return ["invalid"]
+
+    runtime.script_manager = _ScriptManagerInvalidSnapshot()
+    info_invalid = await system_health_info(hass)
+    assert info_invalid["service_execution"]["manual_events"]["available"] is False

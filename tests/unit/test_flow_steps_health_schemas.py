@@ -3,6 +3,7 @@
 import voluptuous as vol
 
 from custom_components.pawcontrol.const import MODULE_MEDICATION
+import custom_components.pawcontrol.flow_steps.health_schemas as health_schemas
 from custom_components.pawcontrol.flow_steps.health_schemas import (
     build_dog_health_schema,
     build_health_settings_schema,
@@ -67,3 +68,26 @@ def test_build_health_settings_schema_prefers_user_input_defaults() -> None:
     assert _find_marker(schema, "weight_tracking").default() is False
     assert _find_marker(schema, "medication_reminders").default() is False
     assert _find_marker(schema, "health_alerts").default() is True
+
+
+def test_build_dog_health_schema_skips_diets_not_in_special_options(
+    monkeypatch,
+) -> None:
+    """Diet toggles should be omitted when excluded from special option support."""
+    monkeypatch.setattr(health_schemas, "SPECIAL_DIET_OPTIONS", {"joint_support"})
+
+    schema = build_dog_health_schema(
+        dog_age=5,
+        dog_size="small",
+        suggested_ideal_weight=12.0,
+        suggested_activity="moderate",
+        modules={MODULE_MEDICATION: False},
+    )
+    marker_names = {
+        marker.schema for marker in schema.schema if isinstance(marker, vol.Marker)
+    }
+
+    assert "joint_support" in marker_names
+    assert "grain_free" not in marker_names
+    assert "senior_formula" not in marker_names
+    assert "puppy_formula" not in marker_names

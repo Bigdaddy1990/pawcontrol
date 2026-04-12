@@ -10,6 +10,7 @@ from custom_components.pawcontrol.error_decorators import (
     map_to_repair_issue,
     require_coordinator_data,
     retry_on_error,
+    validate_and_handle,
     validate_dog_exists,
 )
 from custom_components.pawcontrol.exceptions import PawControlError, ValidationError
@@ -137,3 +138,146 @@ def test_require_coordinator_data_explicit_guard_branches() -> None:
 
     with pytest.raises(PawControlError, match="coordinator attribute"):
         _NoCoordinatorAttr()._needs_data()
+
+
+@pytest.mark.asyncio
+async def test_handle_errors_async_skips_logging_when_disabled_for_pawcontrol_errors() -> None:
+    """Async wrapper should bypass error logging when ``log_errors`` is disabled."""
+
+    @handle_errors(
+        log_errors=False,
+        default_return="fallback",
+        reraise_critical=False,
+        reraise_validation_errors=False,
+    )
+    async def _failing() -> str:
+        raise PawControlError("boom", error_code="pc_async")
+
+    with patch("custom_components.pawcontrol.error_decorators._LOGGER.error") as log_error:
+        assert await _failing() == "fallback"
+    log_error.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_handle_errors_async_skips_exception_logging_when_disabled() -> None:
+    """Async wrapper should bypass exception logging when ``log_errors`` is disabled."""
+
+    @handle_errors(
+        log_errors=False,
+        default_return="fallback",
+        reraise_critical=False,
+    )
+    async def _failing() -> str:
+        raise RuntimeError("boom")
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators._LOGGER.exception"
+    ) as log_exception:
+        assert await _failing() == "fallback"
+    log_exception.assert_not_called()
+
+
+@pytest.mark.unit
+def test_handle_errors_sync_skips_logging_when_disabled_for_pawcontrol_errors() -> None:
+    """Sync wrapper should bypass error logging when ``log_errors`` is disabled."""
+
+    @handle_errors(
+        log_errors=False,
+        default_return="fallback",
+        reraise_critical=False,
+        reraise_validation_errors=False,
+    )
+    def _failing() -> str:
+        raise PawControlError("boom", error_code="pc_sync")
+
+    with patch("custom_components.pawcontrol.error_decorators._LOGGER.error") as log_error:
+        assert _failing() == "fallback"
+    log_error.assert_not_called()
+
+
+@pytest.mark.unit
+def test_handle_errors_sync_skips_exception_logging_when_disabled() -> None:
+    """Sync wrapper should bypass exception logging when ``log_errors`` is disabled."""
+
+    @handle_errors(
+        log_errors=False,
+        default_return="fallback",
+        reraise_critical=False,
+    )
+    def _failing() -> str:
+        raise RuntimeError("boom")
+
+    with patch(
+        "custom_components.pawcontrol.error_decorators._LOGGER.exception"
+    ) as log_exception:
+        assert _failing() == "fallback"
+    log_exception.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_map_to_repair_issue_async_without_args_skips_issue_creation() -> None:
+    """Async mapping should skip repair issue creation when no instance args exist."""
+
+    @map_to_repair_issue("no_hass_async")
+    async def _failing() -> None:
+        raise PawControlError("boom", error_code="no_hass_async")
+
+    with (
+        patch(
+            "custom_components.pawcontrol.error_decorators.issue_registry.async_create_issue"
+        ) as create_issue,
+        pytest.raises(PawControlError),
+    ):
+        await _failing()
+
+    create_issue.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_map_to_repair_issue_async_without_hass_or_coordinator() -> None:
+    """Async mapping should skip issue creation when instance lacks hass bindings."""
+
+    class _PlainService:
+        @map_to_repair_issue("no_hass_instance")
+        async def _failing(self) -> None:
+            raise PawControlError("boom", error_code="no_hass_instance")
+
+    with (
+        patch(
+            "custom_components.pawcontrol.error_decorators.issue_registry.async_create_issue"
+        ) as create_issue,
+        pytest.raises(PawControlError),
+    ):
+        await _PlainService()._failing()
+
+    create_issue.assert_not_called()
+
+
+@pytest.mark.unit
+def test_map_to_repair_issue_sync_without_args_skips_issue_creation() -> None:
+    """Sync mapping should skip repair issue creation when no instance args exist."""
+
+    @map_to_repair_issue("no_hass_sync")
+    def _failing() -> None:
+        raise PawControlError("boom", error_code="no_hass_sync")
+
+    with (
+        patch(
+            "custom_components.pawcontrol.error_decorators.issue_registry.async_create_issue"
+        ) as create_issue,
+        pytest.raises(PawControlError),
+    ):
+        _failing()
+
+    create_issue.assert_not_called()
+
+
+@pytest.mark.unit
+def test_validate_and_handle_skips_optional_validators_when_disabled() -> None:
+    """Composition should work when dog-id and GPS validators are both disabled."""
+
+    @validate_and_handle(dog_id_param="", gps_coords=False)
+    def _plain() -> str:
+        return "ok"
+
+    assert _plain() == "ok"

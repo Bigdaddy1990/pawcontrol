@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from homeassistant.util import dt as dt_util
 
+import custom_components.pawcontrol.health_enhancements as health_enhancements
 from custom_components.pawcontrol.health_enhancements import (
     DewormingRecord,
     DewormingType,
@@ -162,6 +163,35 @@ def test_generate_deworming_schedule_covers_puppy_and_adult_paths() -> None:
     )
 
 
+def test_generate_deworming_schedule_skips_far_future_puppy_dates(
+    monkeypatch,
+) -> None:
+    """Future puppy deworming dates beyond the horizon should be ignored."""
+    current_date = dt_util.now()
+    birth_date = current_date - timedelta(weeks=2)
+
+    original_timedelta = health_enhancements.timedelta
+
+    def _patched_timedelta(*args, **kwargs):
+        if kwargs.get("days") == 60:
+            return original_timedelta(days=1)
+        return original_timedelta(*args, **kwargs)
+
+    monkeypatch.setattr(health_enhancements, "timedelta", _patched_timedelta)
+
+    schedule = EnhancedHealthCalculator.generate_deworming_schedule(
+        birth_date=birth_date,
+        current_date=current_date,
+    )
+
+    broad_spectrum = [
+        record
+        for record in schedule
+        if record.treatment_type is DewormingType.BROAD_SPECTRUM
+    ]
+    assert len(broad_spectrum) == 1
+
+
 def test_update_health_status_handles_deworming_appointments_and_initial_checkup(
     monkeypatch,
 ) -> None:
@@ -232,6 +262,83 @@ def test_update_health_status_handles_deworming_appointments_and_initial_checkup
     ]
 
 
+def test_update_health_status_skips_unknown_due_dates_and_non_urgent_medications(
+    monkeypatch,
+) -> None:
+    """Unknown due dates should not create alerts and far doses should be ignored."""
+    now = dt_util.now()
+    profile = EnhancedHealthProfile(
+        current_weight=20.0,
+        current_medications=[
+            {"name": "Tomorrow", "next_dose": (now + timedelta(days=1)).isoformat()}
+        ],
+        last_checkup_date=now - timedelta(days=30),
+    )
+    unknown_vaccine = VaccinationRecord(
+        vaccine_type=VaccinationType.RABIES,
+        next_due_date=None,
+    )
+    unknown_deworming = DewormingRecord(
+        treatment_type=DewormingType.BROAD_SPECTRUM,
+        next_due_date=None,
+    )
+
+    monkeypatch.setattr(
+        profile,
+        "get_overdue_vaccinations",
+        lambda: [unknown_vaccine],
+    )
+    monkeypatch.setattr(
+        profile,
+        "get_due_soon_vaccinations",
+        lambda: [unknown_vaccine],
+    )
+    monkeypatch.setattr(
+        profile,
+        "get_overdue_dewormings",
+        lambda: [unknown_deworming],
+    )
+    monkeypatch.setattr(
+        profile,
+        "get_due_soon_dewormings",
+        lambda: [unknown_deworming],
+    )
+
+    snapshot = EnhancedHealthCalculator.update_health_status(profile)
+
+    assert snapshot["overall_score"] == 85
+    assert snapshot["priority_alerts"] == []
+    assert snapshot["upcoming_care"] == []
+    assert snapshot["recommendations"] == []
+
+
+def test_update_health_status_handles_no_due_soon_dewormings_branch() -> None:
+    """Empty due-soon dewormings should skip reminder generation safely."""
+    now = dt_util.now()
+    profile = EnhancedHealthProfile(
+        current_weight=22.0,
+        dewormings=[
+            DewormingRecord(
+                treatment_type=DewormingType.BROAD_SPECTRUM,
+                next_due_date=now - timedelta(days=5),
+            )
+        ],
+        veterinary_appointments=[
+            VeterinaryAppointment(
+                appointment_date=now + timedelta(days=2),
+                appointment_type="checkup",
+                purpose="Follow-up",
+            )
+        ],
+    )
+
+    snapshot = EnhancedHealthCalculator.update_health_status(profile)
+
+    assert any(alert["type"] == "deworming_overdue" for alert in snapshot["priority_alerts"])
+    assert any(item["type"] == "vet_appointment" for item in snapshot["upcoming_care"])
+    assert not any(item["type"] == "deworming_due" for item in snapshot["upcoming_care"])
+
+
 def test_record_helpers_and_condition_monitoring_recommendations() -> None:
     """Record helpers should handle missing dates and chronic-condition intervals."""
     vaccination = VaccinationRecord(vaccine_type=VaccinationType.DHPP)
@@ -253,6 +360,23 @@ def test_record_helpers_and_condition_monitoring_recommendations() -> None:
     assert recommendation["appointment_type"] == "condition_monitoring"
     assert recommendation["urgency"] == "normal"
     assert 6 <= recommendation["days_until"] <= 7
+
+
+def test_calculate_next_appointment_recommendation_keeps_age_default_for_unmatched_conditions() -> None:
+    """Non-matching chronic conditions should keep the age-based interval."""
+    now = dt_util.now()
+    recommendation = EnhancedHealthCalculator.calculate_next_appointment_recommendation(
+        EnhancedHealthProfile(
+            current_weight=24.0,
+            chronic_conditions=["skin_allergy"],
+            last_checkup_date=now,
+        ),
+        dog_age_months=48,
+    )
+
+    assert recommendation["appointment_type"] == "annual_checkup"
+    assert recommendation["urgency"] == "normal"
+    assert 364 <= recommendation["days_until"] <= 365
 
 
 def test_calculate_next_appointment_recommendation_covers_age_branches() -> None:

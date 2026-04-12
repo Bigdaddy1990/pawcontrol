@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Any, cast
+from unittest.mock import AsyncMock
 
 import pytest
 import voluptuous as vol
@@ -101,6 +102,35 @@ async def test_select_dog_step_returns_manage_when_selected_dog_is_missing() -> 
 
 
 @pytest.mark.asyncio
+async def test_select_dog_step_shows_form_when_waiting_for_selection() -> None:
+    """When dogs exist and no input is provided, a selector form should be shown."""
+    host = _DoorSensorHost(
+        [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_DOG_NAME: "Buddy"}]
+    )
+
+    result = await host.async_step_select_dog_for_door_sensor()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "select_dog_for_door_sensor"
+
+
+@pytest.mark.asyncio
+async def test_select_dog_step_routes_to_configure_when_dog_exists() -> None:
+    """Known dog selections should route into the configure step."""
+    host = _DoorSensorHost(
+        [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_DOG_NAME: "Buddy"}]
+    )
+    host.async_step_configure_door_sensor = AsyncMock(
+        return_value={"type": "form", "step_id": "configure_door_sensor"}
+    )
+
+    result = await host.async_step_select_dog_for_door_sensor({"dog_id": "buddy"})
+
+    assert result["step_id"] == "configure_door_sensor"
+    host.async_step_configure_door_sensor.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_configure_door_sensor_routes_to_manage_without_valid_current_dog() -> (
     None
 ):
@@ -125,6 +155,30 @@ async def test_configure_door_sensor_routes_to_manage_without_valid_current_dog(
 
 
 @pytest.mark.asyncio
+async def test_configure_door_sensor_shows_form_for_none_input_and_fallback_name() -> None:
+    """No input should render the form and tolerate mixed existing settings payloads."""
+    host = _DoorSensorHost(
+        [
+            {
+                DOG_ID_FIELD: "buddy",
+                DOG_NAME_FIELD: "Buddy",
+                CONF_DOG_NAME: 123,
+                CONF_DOOR_SENSOR_SETTINGS: {
+                    "door_closed_delay": 30,
+                    "invalid_list": ["skip-me"],
+                },
+            }
+        ]
+    )
+
+    result = await host.async_step_configure_door_sensor()
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "configure_door_sensor"
+    assert result["description_placeholders"]["dog_name"] == 123
+
+
+@pytest.mark.asyncio
 async def test_configure_door_sensor_returns_field_error_for_invalid_sensor(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -146,6 +200,189 @@ async def test_configure_door_sensor_returns_field_error_for_invalid_sensor(
 
     assert result["type"] == "form"
     assert result["errors"][CONF_DOOR_SENSOR] == "door_sensor_not_found"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ensure_payload", [None, ValueError("invalid payload")])
+async def test_configure_door_sensor_handles_invalid_normalized_dog_payload(
+    monkeypatch: pytest.MonkeyPatch,
+    ensure_payload: object,
+) -> None:
+    """Invalid normalization outcomes should surface a base form error."""
+    host = _DoorSensorHost(
+        [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_DOG_NAME: "Buddy"}]
+    )
+
+    monkeypatch.setattr(
+        module,
+        "validate_sensor_entity_id",
+        lambda _hass, entity_id, **_kwargs: entity_id,
+    )
+    if isinstance(ensure_payload, Exception):
+        monkeypatch.setattr(
+            module,
+            "ensure_dog_config_data",
+            lambda _payload: (_ for _ in ()).throw(ensure_payload),
+        )
+    else:
+        monkeypatch.setattr(module, "ensure_dog_config_data", lambda _payload: None)
+
+    result = await host.async_step_configure_door_sensor({CONF_DOOR_SENSOR: ""})
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "door_sensor_not_found"
+
+
+@pytest.mark.asyncio
+async def test_configure_door_sensor_persists_with_runtime_data_manager(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Changed settings should persist via runtime data manager when available."""
+    host = _DoorSensorHost(
+        [
+            {
+                DOG_ID_FIELD: "buddy",
+                DOG_NAME_FIELD: "Buddy",
+                CONF_DOG_NAME: "Buddy",
+                CONF_DOOR_SENSOR: "binary_sensor.front_door",
+                CONF_DOOR_SENSOR_SETTINGS: {"door_closed_delay": 10},
+            }
+        ]
+    )
+    data_manager = SimpleNamespace(async_update_dog_data=AsyncMock(return_value=True))
+    runtime = SimpleNamespace(data_manager=data_manager)
+
+    monkeypatch.setattr(module, "ensure_dog_config_data", lambda payload: payload)
+    monkeypatch.setattr(
+        module,
+        "validate_sensor_entity_id",
+        lambda _hass, entity_id, **_kwargs: entity_id,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resolve_require_runtime_data",
+        lambda: lambda _hass, _entry: runtime,
+    )
+
+    result = await host.async_step_configure_door_sensor(
+        {
+            CONF_DOOR_SENSOR: "binary_sensor.front_door",
+            "door_closed_delay": 99,
+            "minimum_walk_duration": 120,
+        }
+    )
+
+    assert result["step_id"] == "manage_dogs"
+    data_manager.async_update_dog_data.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_configure_door_sensor_non_runtime_resolution_error_propagates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected runtime resolver errors should be re-raised."""
+    host = _DoorSensorHost(
+        [
+            {
+                DOG_ID_FIELD: "buddy",
+                DOG_NAME_FIELD: "Buddy",
+                CONF_DOG_NAME: "Buddy",
+            }
+        ]
+    )
+
+    monkeypatch.setattr(module, "ensure_dog_config_data", lambda payload: payload)
+    monkeypatch.setattr(
+        module,
+        "validate_sensor_entity_id",
+        lambda _hass, entity_id, **_kwargs: entity_id,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resolve_require_runtime_data",
+        lambda: lambda _hass, _entry: (_ for _ in ()).throw(ValueError("boom")),
+    )
+
+    with pytest.raises(ValueError, match="boom"):
+        await host.async_step_configure_door_sensor(
+            {
+                CONF_DOOR_SENSOR: "binary_sensor.front_door",
+                "door_closed_delay": [],
+            }
+        )
+
+
+@pytest.mark.asyncio
+async def test_configure_door_sensor_handles_non_string_sensor_and_falsey_data_manager(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-string sensors and falsey non-None managers should still complete safely."""
+    host = _DoorSensorHost(
+        [
+            {
+                DOG_ID_FIELD: "buddy",
+                DOG_NAME_FIELD: "Buddy",
+                CONF_DOG_NAME: "Buddy",
+                CONF_DOOR_SENSOR: "binary_sensor.front_door",
+            }
+        ]
+    )
+    runtime = SimpleNamespace(data_manager=False)
+
+    monkeypatch.setattr(module, "ensure_dog_config_data", lambda payload: payload)
+    monkeypatch.setattr(
+        module,
+        "_resolve_require_runtime_data",
+        lambda: lambda _hass, _entry: runtime,
+    )
+
+    result = await host.async_step_configure_door_sensor(
+        {
+            CONF_DOOR_SENSOR: object(),
+            "minimum_walk_duration": 150,
+        }
+    )
+
+    assert result["step_id"] == "manage_dogs"
+
+
+@pytest.mark.asyncio
+async def test_configure_door_sensor_keeps_form_open_when_current_dog_missing_from_list(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """If the current dog cannot be found in the list, the form should stay open."""
+    host = _DoorSensorHost(
+        [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_DOG_NAME: "Buddy"}]
+    )
+    host._current_dog = {
+        DOG_ID_FIELD: "ghost",
+        DOG_NAME_FIELD: "Ghost",
+        CONF_DOG_NAME: "Ghost",
+    }
+    host._dogs = []
+    data_manager = SimpleNamespace(async_update_dog_data=AsyncMock(return_value=True))
+    runtime = SimpleNamespace(data_manager=data_manager)
+
+    monkeypatch.setattr(module, "ensure_dog_config_data", lambda payload: payload)
+    monkeypatch.setattr(
+        module,
+        "validate_sensor_entity_id",
+        lambda _hass, entity_id, **_kwargs: entity_id,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resolve_require_runtime_data",
+        lambda: lambda _hass, _entry: runtime,
+    )
+
+    result = await host.async_step_configure_door_sensor(
+        {
+            CONF_DOOR_SENSOR: "binary_sensor.front_door",
+            "door_closed_delay": 120,
+        }
+    )
+
+    assert result["step_id"] == "manage_dogs"
 
 
 @pytest.mark.asyncio

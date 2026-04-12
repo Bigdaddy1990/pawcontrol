@@ -1422,3 +1422,280 @@ async def test_reconfigure_unhealthy_without_issues_skips_issue_warning(
 
     result = await flow.async_step_reconfigure({"entity_profile": "advanced"})
     assert result["reason"] == "reconfigure_successful"
+
+
+@pytest.mark.asyncio
+async def test_async_step_user_shows_form_and_routes_after_valid_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """User step should render on empty input and continue after valid naming."""
+    flow = PawControlConfigFlow()
+    monkeypatch.setattr(flow, "async_set_unique_id", AsyncMock())
+    monkeypatch.setattr(
+        flow,
+        "_abort_if_unique_id_configured",
+        lambda **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        flow,
+        "_async_validate_integration_name",
+        AsyncMock(return_value={"valid": True, "errors": {}}),
+    )
+    monkeypatch.setattr(
+        flow,
+        "async_step_add_dog",
+        AsyncMock(return_value={"step_id": "add_dog"}),
+    )
+
+    initial = await flow.async_step_user()
+    assert initial["type"] == FlowResultType.FORM
+    assert initial["step_id"] == "user"
+
+    routed = await flow.async_step_user({"name": " Paw Control Home "})
+    assert routed["step_id"] == "add_dog"
+    assert flow._integration_name == "Paw Control Home"
+
+
+@pytest.mark.asyncio
+async def test_validate_import_config_wraps_unexpected_errors_as_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected import errors should be wrapped as ValidationError."""
+    flow = PawControlConfigFlow()
+    monkeypatch.setattr(
+        config_flow_main,
+        "validate_dog_import_input",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+
+    with pytest.raises(ValidationError, match="Import configuration validation failed"):
+        await flow._validate_import_config_enhanced(
+            {CONF_DOGS: [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}]},
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_step_add_dog_covers_none_and_exception_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Add-dog flow should handle no-input, validation, and unknown-error branches."""
+    flow = PawControlConfigFlow()
+
+    no_input_result = await flow.async_step_add_dog()
+    assert no_input_result["type"] == FlowResultType.FORM
+
+    monkeypatch.setattr(
+        flow,
+        "_validate_dog_input_cached",
+        AsyncMock(side_effect=FlowValidationError(field_errors={"dog_id": "invalid"})),
+    )
+    validation_error_result = await flow.async_step_add_dog({"dog_id": "buddy"})
+    assert validation_error_result["errors"]["dog_id"] == "invalid"
+
+    monkeypatch.setattr(
+        flow,
+        "_validate_dog_input_cached",
+        AsyncMock(side_effect=FlowValidationError(field_errors={"base": "invalid_dog"})),
+    )
+    base_error_result = await flow.async_step_add_dog({"dog_id": "buddy"})
+    assert base_error_result["errors"]["base"] == "invalid_dog"
+
+    monkeypatch.setattr(
+        flow,
+        "_validate_dog_input_cached",
+        AsyncMock(side_effect=RuntimeError("boom")),
+    )
+    unknown_error_result = await flow.async_step_add_dog({"dog_id": "buddy"})
+    assert unknown_error_result["errors"]["base"] == "unknown_error"
+
+    monkeypatch.setattr(
+        flow,
+        "_validate_dog_input_cached",
+        AsyncMock(return_value={"dog_id": "buddy", "dog_name": "Buddy", "dog_weight": 1}),
+    )
+    monkeypatch.setattr(
+        flow,
+        "_create_dog_config",
+        AsyncMock(return_value={DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}),
+    )
+    monkeypatch.setattr(
+        flow,
+        "async_step_dog_modules",
+        AsyncMock(return_value={"step_id": "dog_modules"}),
+    )
+    success = await flow.async_step_add_dog({"dog_id": "buddy"})
+    assert success["step_id"] == "dog_modules"
+    assert "buddy" in flow._existing_dog_ids
+
+
+@pytest.mark.asyncio
+async def test_create_dog_config_non_string_breed_and_missing_discovery_info() -> None:
+    """Dog config creation should drop non-string breed values and discovery payload."""
+    flow = PawControlConfigFlow()
+    flow._discovery_info = {}
+
+    config = await flow._create_dog_config(
+        {
+            "dog_id": "buddy",
+            "dog_name": "Buddy",
+            "dog_breed": 123,
+        },
+    )
+
+    assert "dog_breed" not in config
+    assert "discovery_info" not in config
+
+
+@pytest.mark.asyncio
+async def test_async_step_dog_modules_toggle_and_form_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dog modules should support flag-mapping input and render form on empty input."""
+    flow = PawControlConfigFlow()
+    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}]
+
+    toggle_key = next(iter(config_flow_main.MODULE_TOGGLE_FLAG_BY_KEY.values()))
+    monkeypatch.setattr(config_flow_main, "MODULES_SCHEMA", lambda value: value)
+    monkeypatch.setattr(
+        config_flow_main,
+        "dog_modules_from_flow_input",
+        lambda _raw, existing=None: {MODULE_GPS: True},
+    )
+    monkeypatch.setattr(
+        flow,
+        "async_step_add_another_dog",
+        AsyncMock(return_value={"step_id": "add_another"}),
+    )
+
+    toggled = await flow.async_step_dog_modules({toggle_key: True})
+    assert toggled["step_id"] == "add_another"
+
+    form_flow = PawControlConfigFlow()
+    form_flow._dogs = [{DOG_ID_FIELD: "max", DOG_NAME_FIELD: "Max", CONF_MODULES: {}}]
+    form_result = await form_flow.async_step_dog_modules()
+    assert form_result["type"] == FlowResultType.FORM
+    assert form_result["step_id"] == "dog_modules"
+
+
+@pytest.mark.asyncio
+async def test_validation_profile_and_config_builder_success_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validation and config builders should cover successful branch fallbacks."""
+    flow = PawControlConfigFlow()
+    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}]
+    flow._entity_profile = "standard"
+    flow._is_dog_config_valid_for_flow = lambda _dog: True  # type: ignore[method-assign]
+    flow._estimate_total_entities_cached = AsyncMock(return_value=25)
+
+    validation = await flow._perform_comprehensive_validation()
+    assert validation["valid"] is True
+    assert validation["errors"] == []
+
+    flow._entity_factory.validate_profile_for_modules = lambda *_args, **_kwargs: True
+    assert flow._validate_profile_compatibility() is True
+
+    flow._integration_name = "Paw Control"
+    flow._global_settings = {}
+    flow._external_entities = {}
+    flow._discovery_info = None
+    config_data, options_data = flow._build_config_entry_data()
+    assert "discovery_info" not in config_data
+    assert "api_endpoint" not in options_data
+
+
+@pytest.mark.asyncio
+async def test_configure_modules_and_dashboard_delegate_to_mixins(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Configure-steps should update state and delegate to mixin handlers."""
+    flow = PawControlConfigFlow()
+    monkeypatch.setattr(flow, "_aggregate_enabled_modules", lambda: {MODULE_GPS: True})
+    monkeypatch.setattr(
+        config_flow_main.ModuleConfigurationMixin,
+        "async_step_configure_modules",
+        AsyncMock(return_value={"step_id": "configure_modules"}),
+    )
+    monkeypatch.setattr(
+        config_flow_main.DashboardFlowMixin,
+        "async_step_configure_dashboard",
+        AsyncMock(return_value={"step_id": "configure_dashboard"}),
+    )
+
+    modules_result = await flow.async_step_configure_modules({"gps": True})
+    dashboard_result = await flow.async_step_configure_dashboard({"dashboard": True})
+
+    assert modules_result["step_id"] == "configure_modules"
+    assert dashboard_result["step_id"] == "configure_dashboard"
+    assert flow._enabled_modules == {MODULE_GPS: True}
+
+
+@pytest.mark.asyncio
+async def test_async_step_reconfigure_covers_form_invalid_profile_and_metadata_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reconfigure should cover form display, schema errors, unchanged, and no-UID flow."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="entry-recfg",
+        unique_id=None,
+        data={
+            CONF_DOGS: [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}],
+            "entity_profile": "standard",
+        },
+        options={},
+    )
+    flow = PawControlConfigFlow()
+    flow.context["entry_id"] = "entry-recfg"
+    flow.hass = type(
+        "HassStub",
+        (),
+        {
+            "config_entries": type(
+                "EntriesStub",
+                (),
+                {"async_get_entry": staticmethod(lambda _entry_id: entry)},
+            )()
+        },
+    )()
+
+    initial_form = await flow.async_step_reconfigure()
+    assert initial_form["type"] == FlowResultType.FORM
+    assert initial_form["step_id"] == "reconfigure"
+
+    monkeypatch.setattr(
+        config_flow_main,
+        "PROFILE_SCHEMA",
+        lambda _value: (_ for _ in ()).throw(vol.Invalid("bad profile")),
+    )
+    invalid_profile = await flow.async_step_reconfigure({"entity_profile": "advanced"})
+    assert invalid_profile["errors"]["base"] == "invalid_profile"
+
+    monkeypatch.setattr(config_flow_main, "PROFILE_SCHEMA", lambda value: value)
+    unchanged = await flow.async_step_reconfigure({"entity_profile": "standard"})
+    assert unchanged["errors"]["base"] == "profile_unchanged"
+
+    monkeypatch.setattr(
+        flow,
+        "_check_profile_compatibility",
+        lambda *_args: {"compatible": True, "warnings": []},
+    )
+    monkeypatch.setattr(
+        flow,
+        "_check_config_health_enhanced",
+        AsyncMock(return_value={"healthy": True, "issues": ["ignored"]}),
+    )
+    monkeypatch.setattr(
+        flow,
+        "_estimate_entities_for_reconfigure",
+        AsyncMock(return_value=3),
+    )
+    monkeypatch.setattr(
+        flow,
+        "async_update_reload_and_abort",
+        AsyncMock(return_value={"type": FlowResultType.ABORT, "reason": "reconfigure_successful"}),
+        raising=False,
+    )
+
+    updated = await flow.async_step_reconfigure({"entity_profile": "advanced"})
+    assert updated["reason"] == "reconfigure_successful"

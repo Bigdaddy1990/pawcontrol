@@ -39,6 +39,17 @@ def test_resolve_require_runtime_data_falls_back_on_invalid_override(
     assert module._resolve_require_runtime_data() is module.require_runtime_data
 
 
+def test_resolve_require_runtime_data_handles_import_failure(monkeypatch: Any) -> None:
+    """Import failures should fall back to the module default runtime helper."""
+
+    def _raise(_: str) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(module, "import_module", _raise)
+
+    assert module._resolve_require_runtime_data() is module.require_runtime_data
+
+
 def test_resolve_async_create_issue_handles_import_failure(monkeypatch: Any) -> None:
     """Import failures should gracefully return the default async issue helper."""
 

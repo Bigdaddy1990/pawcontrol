@@ -385,3 +385,92 @@ async def test_async_setup_scripts_swallows_notification_errors(
         SimpleNamespace(), SimpleNamespace(), runtime_data
     )
     notify.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_async_forward_platforms_accepts_non_awaitable_result() -> None:
+    """Forwarding should succeed when HA helper returns a non-awaitable."""
+    forward = MagicMock(return_value=None)
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_forward_entry_setups=forward),
+    )
+
+    await platform_setup._async_forward_platforms(hass, SimpleNamespace())
+
+    forward.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_forward_platforms_handles_empty_retry_range(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Branch-guard test for an empty retry iterator."""
+    forward = MagicMock()
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_forward_entry_setups=forward),
+    )
+    monkeypatch.setattr(platform_setup, "range", lambda *_: [], raising=False)
+
+    await platform_setup._async_forward_platforms(hass, SimpleNamespace())
+
+    forward.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_setup_helpers_skips_notification_when_no_helpers_created() -> None:
+    """No notification should be sent when helper count is zero."""
+    create_helpers = AsyncMock(return_value={"buddy": []})
+    notify = AsyncMock()
+    runtime_data = SimpleNamespace(
+        helper_manager=SimpleNamespace(async_create_helpers_for_dogs=create_helpers),
+        dogs=[{"dog_id": "buddy", "dog_name": "Buddy"}],
+        config_entry_options={"enabled_modules": ["gps"]},
+        notification_manager=SimpleNamespace(async_send_notification=notify),
+    )
+
+    await platform_setup._async_setup_helpers(
+        SimpleNamespace(), SimpleNamespace(), runtime_data
+    )
+
+    notify.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_setup_scripts_skips_notification_when_no_scripts_created() -> None:
+    """No notification should be sent when no scripts are generated."""
+    generate_scripts = AsyncMock(return_value={"buddy": [], "__entry__": []})
+    notify = AsyncMock()
+    runtime_data = SimpleNamespace(
+        script_manager=SimpleNamespace(
+            async_generate_scripts_for_dogs=generate_scripts
+        ),
+        dogs=[{"dog_id": "buddy", "dog_name": "Buddy"}],
+        config_entry_options={"enabled_modules": {"gps": True}},
+        notification_manager=SimpleNamespace(async_send_notification=notify),
+    )
+
+    await platform_setup._async_setup_scripts(
+        SimpleNamespace(), SimpleNamespace(), runtime_data
+    )
+
+    notify.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_setup_scripts_with_scripts_and_without_notification_manager() -> None:
+    """Script generation should succeed even when notifications are unavailable."""
+    generate_scripts = AsyncMock(return_value={"buddy": ["script.one"]})
+    runtime_data = SimpleNamespace(
+        script_manager=SimpleNamespace(
+            async_generate_scripts_for_dogs=generate_scripts
+        ),
+        dogs=[{"dog_id": "buddy", "dog_name": "Buddy"}],
+        config_entry_options={"enabled_modules": {"gps": True}},
+        notification_manager=None,
+    )
+
+    await platform_setup._async_setup_scripts(
+        SimpleNamespace(), SimpleNamespace(), runtime_data
+    )
+
+    generate_scripts.assert_awaited_once()

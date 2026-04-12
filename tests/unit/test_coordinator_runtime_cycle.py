@@ -346,6 +346,72 @@ class TestCoordinatorRuntimeExecuteCycle:
         runtime._logger.error.assert_called()
 
     @pytest.mark.asyncio
+    async def test_execute_cycle_rate_limit_error_uses_cached_payload(self) -> None:
+        runtime = self._make_runtime()
+        runtime._resilience.execute_with_resilience = AsyncMock(
+            side_effect=[
+                RateLimitError("feeding", limit="10/min", retry_after=15),
+                {"dog_info": {"dog_id": "max"}, "status": "online"},
+            ]
+        )
+        runtime._metrics.record_cycle.return_value = (0.5, False)
+
+        payload, info = await runtime.execute_cycle(
+            ["rex", "max"],
+            {"rex": {"dog_info": {"dog_id": "rex"}, "status": "cached"}},
+            empty_payload_factory=dict,
+        )
+
+        assert payload["rex"]["status"] == "cached"
+        assert payload["max"]["status"] == "online"
+        assert info.errors == 1
+        runtime._logger.warning.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_execute_cycle_generic_error_uses_cached_payload(self) -> None:
+        runtime = self._make_runtime()
+        runtime._resilience.execute_with_resilience = AsyncMock(
+            side_effect=[
+                RuntimeError("boom"),
+                {"dog_info": {"dog_id": "max"}, "status": "online"},
+            ]
+        )
+        runtime._metrics.record_cycle.return_value = (0.5, False)
+
+        payload, info = await runtime.execute_cycle(
+            ["rex", "max"],
+            {"rex": {"dog_info": {"dog_id": "rex"}, "status": "cached"}},
+            empty_payload_factory=dict,
+        )
+
+        assert payload["rex"]["status"] == "cached"
+        assert payload["max"]["status"] == "online"
+        assert info.errors == 1
+        runtime._logger.error.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_execute_cycle_warns_on_low_success_rate(self) -> None:
+        runtime = self._make_runtime()
+        runtime._resilience.execute_with_resilience = AsyncMock(
+            side_effect=[
+                {"dog_info": {"dog_id": "rex"}, "status": "online"},
+                {"dog_info": {"dog_id": "max"}, "status": "online"},
+            ]
+        )
+        runtime._metrics.record_cycle.return_value = (0.49, False)
+
+        payload, info = await runtime.execute_cycle(
+            ["rex", "max"],
+            {},
+            empty_payload_factory=dict,
+        )
+
+        assert payload["rex"]["status"] == "online"
+        assert payload["max"]["status"] == "online"
+        assert info.success_rate == pytest.approx(0.49)
+        runtime._logger.warning.assert_called()
+
+    @pytest.mark.asyncio
     async def test_fetch_dog_data_returns_payload_without_module_tasks(self) -> None:
         runtime = self._make_runtime()
 
