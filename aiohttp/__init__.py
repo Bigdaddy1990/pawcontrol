@@ -8,6 +8,8 @@ from .client_exceptions import ClientError, ContentTypeError
 
 @dataclass(slots=True)
 class ClientTimeout:
+    """Compatibility timeout container for test-only HTTP calls."""
+
     total: float | None = None
 
 
@@ -18,12 +20,15 @@ class ClientResponse:
     headers: dict[str, str]
 
     def __init__(self) -> None:
+        """Initialise a default successful response shell."""
         self.headers = {}
 
     async def json(self) -> Any:
+        """Return an empty JSON payload for shimmed responses."""
         return {}
 
     async def text(self) -> str:
+        """Return an empty textual payload for shimmed responses."""
         return ""
 
 
@@ -33,6 +38,7 @@ class ClientSession:
     closed = False
 
     async def request(self, *_args: Any, **_kwargs: Any) -> ClientResponse:
+        """Return a generic successful response for all request calls."""
         return ClientResponse()
 
 

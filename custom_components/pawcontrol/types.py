@@ -5290,6 +5290,7 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
     caches_with_pending_expired_entries: list[str] | None = None
     caches_with_override_flags: list[str] | None = None
     caches_with_low_hit_rate: list[str] | None = None
+    caches_with_timestamp_anomalies: list[str] | None = None
     totals: CacheRepairTotals | None = None
     issues: list[CacheRepairIssue] | None = None
 
@@ -5300,25 +5301,17 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
             "anomaly_count": self.anomaly_count,
             "severity": self.severity,
             "generated_at": self.generated_at,
+            "caches_with_errors": self.caches_with_errors,
+            "caches_with_expired_entries": self.caches_with_expired_entries,
+            "caches_with_pending_expired_entries": (
+                self.caches_with_pending_expired_entries
+            ),
+            "caches_with_override_flags": self.caches_with_override_flags,
+            "caches_with_low_hit_rate": self.caches_with_low_hit_rate,
+            "caches_with_timestamp_anomalies": (
+                self.caches_with_timestamp_anomalies
+            ),
         }
-        if self.caches_with_errors:
-            payload["caches_with_errors"] = list(self.caches_with_errors)
-        if self.caches_with_expired_entries:
-            payload["caches_with_expired_entries"] = list(
-                self.caches_with_expired_entries,
-            )
-        if self.caches_with_pending_expired_entries:
-            payload["caches_with_pending_expired_entries"] = list(
-                self.caches_with_pending_expired_entries,
-            )
-        if self.caches_with_override_flags:
-            payload["caches_with_override_flags"] = list(
-                self.caches_with_override_flags,
-            )
-        if self.caches_with_low_hit_rate:
-            payload["caches_with_low_hit_rate"] = list(
-                self.caches_with_low_hit_rate,
-            )
         if self.totals is not None:
             payload["totals"] = self.totals.as_dict()
         if self.issues:
@@ -5417,6 +5410,9 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
                 "caches_with_override_flags",
             ),
             caches_with_low_hit_rate=_string_list("caches_with_low_hit_rate"),
+            caches_with_timestamp_anomalies=_string_list(
+                "caches_with_timestamp_anomalies",
+            ),
             totals=totals,
             issues=issues,
         )
