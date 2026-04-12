@@ -18,7 +18,9 @@ import pytest
 
 from custom_components.pawcontrol import dashboard_generator as dg
 from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS, MODULE_WEATHER
-from custom_components.pawcontrol.dashboard_generator import PawControlDashboardGenerator
+from custom_components.pawcontrol.dashboard_generator import (
+    PawControlDashboardGenerator,
+)
 from custom_components.pawcontrol.types import (
     DOG_BREED_FIELD,
     DOG_ID_FIELD,
@@ -379,7 +381,9 @@ def test_runtime_view_normalisation_edge_cases() -> None:
                 return ["skip", {"path": "custom", "title": "Custom", "cards": []}]
             raise KeyError(key)
 
-    summaries = PawControlDashboardGenerator._summarise_dashboard_views(_NonMappingConfig())
+    summaries = PawControlDashboardGenerator._summarise_dashboard_views(
+        _NonMappingConfig()
+    )
     assert summaries == [
         {
             "path": "custom",
@@ -446,7 +450,9 @@ async def test_runtime_track_task_scheduling_and_error_paths(
     generator._cleanup_tasks = set()
 
     class _LoopFallback:
-        def create_task(self, awaitable: Awaitable[Any], name: str | None = None) -> Any:
+        def create_task(
+            self, awaitable: Awaitable[Any], name: str | None = None
+        ) -> Any:
             if name is not None:
                 raise TypeError("no name support")
             return asyncio.create_task(awaitable)
@@ -504,7 +510,9 @@ async def test_runtime_track_task_scheduling_and_error_paths(
         raise RuntimeError("boom")
 
     with patch.object(dg, "_unwrap_async_result", side_effect=_capture_unwrap):
-        failing = generator._track_task(_raises(), name="failing-task", log_exceptions=True)
+        failing = generator._track_task(
+            _raises(), name="failing-task", log_exceptions=True
+        )
         with suppress(RuntimeError):
             await failing
         await asyncio.sleep(0)
@@ -517,13 +525,15 @@ async def test_runtime_track_task_scheduling_and_error_paths(
     assert unwrap_calls == ["Unhandled error in failing-task"]
 
     generator.hass = SimpleNamespace()
-    with patch.object(
-        dg.asyncio,
-        "create_task",
-        side_effect=RuntimeError("closed-loop"),
+    with (
+        patch.object(
+            dg.asyncio,
+            "create_task",
+            side_effect=RuntimeError("closed-loop"),
+        ),
+        pytest.raises(RuntimeError, match="Unable to schedule"),
     ):
-        with pytest.raises(RuntimeError, match="Unable to schedule"):
-            generator._track_task(_quick(), name="runtime-error")
+        generator._track_task(_quick(), name="runtime-error")
 
     coro = _quick()
     with patch.object(dg.asyncio, "create_task", return_value=None):
@@ -559,9 +569,14 @@ async def test_runtime_load_dashboard_config_variants(local_tmp_dir: Path) -> No
     assert await generator._load_dashboard_config(invalid_json) is None
     assert await generator._load_dashboard_config(non_mapping) is None
     assert await generator._load_dashboard_config(missing_config) is None
-    assert await generator._load_dashboard_config(local_tmp_dir / "does-not-exist.json") is None
+    assert (
+        await generator._load_dashboard_config(local_tmp_dir / "does-not-exist.json")
+        is None
+    )
 
-    with patch("custom_components.pawcontrol.dashboard_generator.aiofiles.open") as mocked_open:
+    with patch(
+        "custom_components.pawcontrol.dashboard_generator.aiofiles.open"
+    ) as mocked_open:
         mocked_open.side_effect = OSError("io-failure")
         assert await generator._load_dashboard_config(valid_file) is None
 
@@ -591,17 +606,21 @@ async def test_runtime_initialization_paths(
         initialized=False,
     )
     timeout_generator._renderer_async_initialize = AsyncMock(return_value=None)
-    timeout_generator._dashboard_templates_async_initialize = AsyncMock(return_value=None)
+    timeout_generator._dashboard_templates_async_initialize = AsyncMock(
+        return_value=None
+    )
     timeout_generator._load_stored_data = AsyncMock(return_value=None)
     timeout_generator._cleanup_failed_initialization = AsyncMock(return_value=None)
 
-    with patch.object(
-        dg.asyncio,
-        "wait_for",
-        side_effect=TimeoutError,
+    with (
+        patch.object(
+            dg.asyncio,
+            "wait_for",
+            side_effect=TimeoutError,
+        ),
+        pytest.raises(HomeAssistantError, match="initialization timeout"),
     ):
-        with pytest.raises(HomeAssistantError, match="initialization timeout"):
-            await timeout_generator.async_initialize()
+        await timeout_generator.async_initialize()
     timeout_generator._cleanup_failed_initialization.assert_awaited_once()
 
     fallback_generator = _build_generator(
@@ -613,7 +632,9 @@ async def test_runtime_initialization_paths(
     fallback_generator._renderer_async_initialize = AsyncMock(
         side_effect=RuntimeError("init-failure"),
     )
-    fallback_generator._dashboard_templates_async_initialize = AsyncMock(return_value=None)
+    fallback_generator._dashboard_templates_async_initialize = AsyncMock(
+        return_value=None
+    )
     fallback_generator._load_stored_data = AsyncMock(return_value=None)
     fallback_generator._dashboards = {"kept": {"url": "kept"}}
 
@@ -682,7 +703,9 @@ async def test_runtime_load_store_validation_and_cleanup_paths(
         local_tmp_dir,
         initialized=True,
     )
-    error_generator._store.async_load = AsyncMock(side_effect=RuntimeError("load-error"))
+    error_generator._store.async_load = AsyncMock(
+        side_effect=RuntimeError("load-error")
+    )
     await error_generator._load_stored_data()
     assert error_generator._dashboards == {}
 
@@ -724,7 +747,9 @@ async def test_runtime_branch_fillers_for_scheduler_initialization_and_batches(
             _ = awaitable, name
             raise RuntimeError("loop-closed")
 
-    generator.hass = SimpleNamespace(async_create_task="not-callable", loop=_RuntimeErrorLoop())
+    generator.hass = SimpleNamespace(
+        async_create_task="not-callable", loop=_RuntimeErrorLoop()
+    )
 
     async def _quick() -> None:
         await asyncio.sleep(0)
@@ -771,7 +796,9 @@ async def test_runtime_branch_fillers_for_scheduler_initialization_and_batches(
         initialized=False,
     )
     slow_init_generator._renderer_async_initialize = AsyncMock(return_value=None)
-    slow_init_generator._dashboard_templates_async_initialize = AsyncMock(return_value=None)
+    slow_init_generator._dashboard_templates_async_initialize = AsyncMock(
+        return_value=None
+    )
     slow_init_generator._load_stored_data = AsyncMock(return_value=None)
     slow_init_generator._monotonic_time = MagicMock(
         side_effect=[0.0, dg.PERFORMANCE_LOG_THRESHOLD + 0.1],
@@ -802,7 +829,9 @@ async def test_runtime_branch_fillers_for_scheduler_initialization_and_batches(
     slow_create_generator._monotonic_time = MagicMock(
         side_effect=[0.0, 0.1, dg.PERFORMANCE_LOG_THRESHOLD + 1.0],
     )
-    await slow_create_generator.async_create_dashboard([_dog("slow", "Slow")], {"url": "slow"})
+    await slow_create_generator.async_create_dashboard(
+        [_dog("slow", "Slow")], {"url": "slow"}
+    )
 
     update_needs_init = _build_generator(
         hass,
@@ -813,7 +842,10 @@ async def test_runtime_branch_fillers_for_scheduler_initialization_and_batches(
     update_needs_init.async_initialize = AsyncMock(
         side_effect=lambda: setattr(update_needs_init, "_initialized", True),
     )
-    assert await update_needs_init.async_update_dashboard("missing", [_dog("id", "Name")]) is False
+    assert (
+        await update_needs_init.async_update_dashboard("missing", [_dog("id", "Name")])
+        is False
+    )
 
     batch_needs_init = _build_generator(
         hass,
@@ -891,7 +923,9 @@ async def test_runtime_create_dashboard_optimized_and_file_io_error_paths(
 
     dashboard_url = "coverage-main-dashboard"
     dashboard_config = {
-        "views": [{"path": "overview", "title": "Overview", "icon": "mdi:home", "cards": []}]
+        "views": [
+            {"path": "overview", "title": "Overview", "icon": "mdi:home", "cards": []}
+        ]
     }
     created_path = await generator._create_dashboard_file_async(
         dashboard_url,
@@ -908,7 +942,12 @@ async def test_runtime_create_dashboard_optimized_and_file_io_error_paths(
         str(created_path),
         {
             "views": [
-                {"path": "overview", "title": "Overview", "icon": "mdi:home", "cards": []},
+                {
+                    "path": "overview",
+                    "title": "Overview",
+                    "icon": "mdi:home",
+                    "cards": [],
+                },
                 {
                     "path": MODULE_NOTIFICATIONS,
                     "title": "Notifications",
@@ -941,7 +980,9 @@ async def test_runtime_create_dashboard_optimized_and_file_io_error_paths(
         local_tmp_dir,
         initialized=True,
     )
-    with patch("custom_components.pawcontrol.dashboard_generator.aiofiles.open") as mocked_open:
+    with patch(
+        "custom_components.pawcontrol.dashboard_generator.aiofiles.open"
+    ) as mocked_open:
         mocked_open.side_effect = OSError("disk-full")
         with pytest.raises(HomeAssistantError, match="Dashboard file creation failed"):
             await file_error_generator._create_dashboard_file_async(
@@ -1086,11 +1127,25 @@ async def test_runtime_update_dashboard_all_type_paths(
     ]
 
     assert await generator.async_update_dashboard("missing", dogs, {}) is False
-    assert await generator.async_update_dashboard("main", dogs, {"show_in_sidebar": True}) is True
-    assert await generator.async_update_dashboard("dog", dogs, {"show_in_sidebar": False}) is True
-    assert await generator.async_update_dashboard("weather_missing_id", dogs, {}) is False
-    assert await generator.async_update_dashboard("weather_missing_name", dogs, {}) is False
-    assert await generator.async_update_dashboard("weather", dogs, {"theme": "night"}) is True
+    assert (
+        await generator.async_update_dashboard("main", dogs, {"show_in_sidebar": True})
+        is True
+    )
+    assert (
+        await generator.async_update_dashboard("dog", dogs, {"show_in_sidebar": False})
+        is True
+    )
+    assert (
+        await generator.async_update_dashboard("weather_missing_id", dogs, {}) is False
+    )
+    assert (
+        await generator.async_update_dashboard("weather_missing_name", dogs, {})
+        is False
+    )
+    assert (
+        await generator.async_update_dashboard("weather", dogs, {"theme": "night"})
+        is True
+    )
     assert await generator.async_update_dashboard("unsupported", dogs, {}) is False
     assert await generator.async_update_dashboard("main", dogs, None) is True
     assert generator._dashboards["weather"]["theme"] == "modern"
@@ -1102,7 +1157,9 @@ async def test_runtime_update_dashboard_all_type_paths(
     )
     assert missing_dog_result is False
 
-    generator._update_dashboard_file_async = AsyncMock(side_effect=RuntimeError("update-file-fail"))
+    generator._update_dashboard_file_async = AsyncMock(
+        side_effect=RuntimeError("update-file-fail")
+    )
     assert await generator.async_update_dashboard("main", dogs, {}) is False
     assert generator._performance_metrics["errors"] >= 1
 
@@ -1130,8 +1187,12 @@ async def test_runtime_update_dashboard_all_type_paths(
         },
     }
     no_weather_generator._has_weather_module = lambda dogs: False  # type: ignore[method-assign]
-    no_weather_generator._add_weather_components_to_dashboard = AsyncMock(return_value=None)
-    no_weather_generator._add_weather_components_to_dog_dashboard = AsyncMock(return_value=None)
+    no_weather_generator._add_weather_components_to_dashboard = AsyncMock(
+        return_value=None
+    )
+    no_weather_generator._add_weather_components_to_dog_dashboard = AsyncMock(
+        return_value=None
+    )
     assert await no_weather_generator.async_update_dashboard("main", dogs, {}) is True
     assert await no_weather_generator.async_update_dashboard("dog", dogs, {}) is True
     no_weather_generator._add_weather_components_to_dashboard.assert_not_awaited()
@@ -1168,7 +1229,9 @@ async def test_runtime_update_file_delete_batch_and_save_paths(
     assert payload["data"]["config"]["title"] == "Updated"
     assert generator._performance_metrics["file_operations"] == 1
 
-    with patch("custom_components.pawcontrol.dashboard_generator.aiofiles.open") as mocked_open:
+    with patch(
+        "custom_components.pawcontrol.dashboard_generator.aiofiles.open"
+    ) as mocked_open:
         mocked_open.side_effect = OSError("cannot-write")
         with pytest.raises(HomeAssistantError, match="Dashboard file update failed"):
             await generator._update_dashboard_file_async(
@@ -1200,7 +1263,9 @@ async def test_runtime_update_file_delete_batch_and_save_paths(
             "options": {},
         },
     }
-    generator.hass.async_add_executor_job = AsyncMock(side_effect=RuntimeError("delete-fail"))
+    generator.hass.async_add_executor_job = AsyncMock(
+        side_effect=RuntimeError("delete-fail")
+    )
     assert await generator.async_delete_dashboard("delete-error") is False
     assert generator._performance_metrics["errors"] >= 1
 
@@ -1281,7 +1346,9 @@ async def test_runtime_performance_cleanup_and_template_init_paths(
     }
     await generator._cleanup_failed_dashboard("cleanup-url")
     assert "cleanup-url" not in generator._dashboards
-    generator.hass.async_add_executor_job = AsyncMock(side_effect=RuntimeError("executor-fail"))
+    generator.hass.async_add_executor_job = AsyncMock(
+        side_effect=RuntimeError("executor-fail")
+    )
     await generator._cleanup_failed_dashboard("cleanup-url")
 
     pending = asyncio.create_task(asyncio.sleep(10))
@@ -1313,7 +1380,9 @@ async def test_runtime_performance_cleanup_and_template_init_paths(
         initialized=True,
     )
     await template_generator._dashboard_templates_async_initialize()
-    template_generator._dashboard_templates = SimpleNamespace(cleanup=AsyncMock(return_value=None))
+    template_generator._dashboard_templates = SimpleNamespace(
+        cleanup=AsyncMock(return_value=None)
+    )
     await template_generator._dashboard_templates_async_initialize()
 
     no_template_generator = _build_generator(
@@ -1322,7 +1391,7 @@ async def test_runtime_performance_cleanup_and_template_init_paths(
         local_tmp_dir,
         initialized=True,
     )
-    delattr(no_template_generator, "_dashboard_templates")
+    del no_template_generator._dashboard_templates
     await no_template_generator.async_cleanup()
 
     no_renderer_generator = _build_generator(
@@ -1331,7 +1400,7 @@ async def test_runtime_performance_cleanup_and_template_init_paths(
         local_tmp_dir,
         initialized=True,
     )
-    delattr(no_renderer_generator, "_renderer")
+    del no_renderer_generator._renderer
     await no_renderer_generator.async_cleanup()
 
 
@@ -1356,7 +1425,12 @@ async def test_runtime_validation_and_getter_paths(
                 "data": {
                     "config": {
                         "views": [
-                            {"path": "overview", "title": "Overview", "icon": "mdi:home", "cards": []},
+                            {
+                                "path": "overview",
+                                "title": "Overview",
+                                "icon": "mdi:home",
+                                "cards": [],
+                            },
                             {
                                 "path": MODULE_NOTIFICATIONS,
                                 "title": "Notifications",
@@ -1392,7 +1466,12 @@ async def test_runtime_validation_and_getter_paths(
         "created": "2024-01-01T00:00:00+00:00",
         "type": "main",
         "views": [
-            {"path": MODULE_NOTIFICATIONS, "title": "N", "icon": "mdi:bell", "card_count": "1"},
+            {
+                "path": MODULE_NOTIFICATIONS,
+                "title": "N",
+                "icon": "mdi:bell",
+                "card_count": "1",
+            },
         ],
         "has_notifications_view": False,
     }
@@ -1412,7 +1491,9 @@ async def test_runtime_validation_and_getter_paths(
     assert dashboard_info_for_normalisation["has_notifications_view"] is True
 
     # Exception branch in single validation
-    generator._load_dashboard_config = AsyncMock(side_effect=RuntimeError("load-failed"))
+    generator._load_dashboard_config = AsyncMock(
+        side_effect=RuntimeError("load-failed")
+    )
     exception_result = await generator._validate_single_dashboard(
         "exception",
         {
@@ -1449,7 +1530,9 @@ async def test_runtime_validation_and_getter_paths(
     assert stats["dashboards_count"] == len(generator._dashboards)
     assert "renderer" in stats
 
-    generator._renderer.get_render_stats = MagicMock(side_effect=RuntimeError("stats-failed"))
+    generator._renderer.get_render_stats = MagicMock(
+        side_effect=RuntimeError("stats-failed")
+    )
     stats_without_renderer = generator.get_performance_stats()
     assert "renderer" not in stats_without_renderer
 
@@ -1487,8 +1570,18 @@ async def test_runtime_validation_and_getter_paths(
         initialized=True,
     )
     gather_generator._dashboards = {
-        "none-result": {"path": str(valid_file), "title": "N", "created": "x", "type": "main"},
-        "bool-result": {"path": str(valid_file), "title": "B", "created": "x", "type": "main"},
+        "none-result": {
+            "path": str(valid_file),
+            "title": "N",
+            "created": "x",
+            "type": "main",
+        },
+        "bool-result": {
+            "path": str(valid_file),
+            "title": "B",
+            "created": "x",
+            "type": "main",
+        },
     }
     gather_generator._validate_single_dashboard = AsyncMock(  # type: ignore[method-assign]
         side_effect=[RuntimeError("boom"), True],
@@ -1504,7 +1597,12 @@ async def test_runtime_validation_and_getter_paths(
         initialized=True,
     )
     unchanged_generator._dashboards = {
-        "stable": {"path": str(valid_file), "title": "S", "created": "x", "type": "main"},
+        "stable": {
+            "path": str(valid_file),
+            "title": "S",
+            "created": "x",
+            "type": "main",
+        },
     }
     unchanged_generator._validate_single_dashboard = AsyncMock(  # type: ignore[method-assign]
         return_value=(True, False),
@@ -1530,13 +1628,24 @@ async def test_runtime_weather_dashboard_and_component_paths(
     generator.async_initialize = AsyncMock(
         side_effect=lambda: setattr(generator, "_initialized", True),
     )
+
     def _ensure_weather_modules(dog: Any) -> dict[str, bool]:
         if not isinstance(dog, Mapping):
             return {MODULE_WEATHER: False}
         dog_id = dog.get(DOG_ID_FIELD)
         if not isinstance(dog_id, str):
             return {MODULE_WEATHER: False}
-        enabled_ids = {"weather-dog", "fail-weather", "ok", "bad", "a", "b", "c", "d", "e"}
+        enabled_ids = {
+            "weather-dog",
+            "fail-weather",
+            "ok",
+            "bad",
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+        }
         return {MODULE_WEATHER: dog_id in enabled_ids}
 
     generator._ensure_modules_config = _ensure_weather_modules  # type: ignore[method-assign]
@@ -1544,7 +1653,9 @@ async def test_runtime_weather_dashboard_and_component_paths(
     with pytest.raises(ValueError, match="invalid"):
         await generator.async_create_weather_dashboard({"dog_id": "missing"})
     with pytest.raises(ValueError, match="Weather module not enabled"):
-        await generator.async_create_weather_dashboard(_dog("no-weather", "NoWeather", weather=False))
+        await generator.async_create_weather_dashboard(
+            _dog("no-weather", "NoWeather", weather=False)
+        )
 
     weather_url = await generator.async_create_weather_dashboard(
         _dog("weather-dog", "Storm", breed="Husky", weather=True),
@@ -1560,8 +1671,10 @@ async def test_runtime_weather_dashboard_and_component_paths(
         initialized=True,
     )
     failing_generator._ensure_modules_config = generator._ensure_modules_config  # type: ignore[assignment]
-    failing_generator._dashboard_templates.get_weather_dashboard_layout_template = AsyncMock(
-        side_effect=RuntimeError("template-failed"),
+    failing_generator._dashboard_templates.get_weather_dashboard_layout_template = (
+        AsyncMock(
+            side_effect=RuntimeError("template-failed"),
+        )
     )
     with pytest.raises(HomeAssistantError, match="Weather dashboard creation failed"):
         await failing_generator.async_create_weather_dashboard(
@@ -1579,7 +1692,9 @@ async def test_runtime_weather_dashboard_and_component_paths(
         {"theme": "modern"},
     )
     assert overview_payload["views"][-1]["path"] == "weather-overview"
-    assert overview_payload["views"][-1]["cards"][0]["entity"] == "sensor.weather_status"
+    assert (
+        overview_payload["views"][-1]["cards"][0]["entity"] == "sensor.weather_status"
+    )
 
     overview_payload_many: dict[str, Any] = {"views": []}
     await generator._add_weather_components_to_dashboard(
@@ -1604,7 +1719,9 @@ async def test_runtime_weather_dashboard_and_component_paths(
         ],
         {"theme": "modern"},
     )
-    assert overview_payload_medium["views"][-1]["cards"][0]["type"] == "horizontal-stack"
+    assert (
+        overview_payload_medium["views"][-1]["cards"][0]["type"] == "horizontal-stack"
+    )
 
     no_weather_payload: dict[str, Any] = {"views": []}
     await generator._add_weather_components_to_dashboard(
@@ -1708,16 +1825,21 @@ async def test_runtime_weather_dashboard_and_component_paths(
         local_tmp_dir,
         initialized=True,
     )
-    batch_generator_missing_id._ensure_modules_config = lambda dog: {MODULE_WEATHER: True}  # type: ignore[method-assign]
+    batch_generator_missing_id._ensure_modules_config = lambda dog: {
+        MODULE_WEATHER: True
+    }  # type: ignore[method-assign]
     batch_generator_missing_id._ensure_dog_configs = lambda dogs: [  # type: ignore[method-assign]
         {
             DOG_NAME_FIELD: "MissingId",
             DOG_MODULES_FIELD: {MODULE_WEATHER: True},
         }
     ]
-    assert await batch_generator_missing_id.async_batch_create_weather_dashboards(
-        [_dog("ignored", "Ignored", weather=True)],
-    ) == {}
+    assert (
+        await batch_generator_missing_id.async_batch_create_weather_dashboards(
+            [_dog("ignored", "Ignored", weather=True)],
+        )
+        == {}
+    )
 
     batch_generator._dashboards = {
         "weather-ok": {"type": "weather", "dog_id": "ok", "url": "weather-ok"},

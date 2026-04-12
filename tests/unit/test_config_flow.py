@@ -1,8 +1,9 @@
+from unittest.mock import AsyncMock
+
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from unittest.mock import AsyncMock
 
 from custom_components.pawcontrol.config_flow import PawControlConfigFlow
 from custom_components.pawcontrol.const import (
@@ -177,7 +178,9 @@ async def test_reauth_flow_success_updates_entry(
     monkeypatch.setattr(
         flow,
         "async_update_reload_and_abort",
-        AsyncMock(return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"}),
+        AsyncMock(
+            return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"}
+        ),
         raising=False,
     )
 

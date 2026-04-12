@@ -445,7 +445,9 @@ async def test_async_step_import_wraps_vol_invalid_in_config_entry_not_ready(
 
     monkeypatch.setattr(flow, "_validate_import_config_enhanced", _raise_invalid)
 
-    with pytest.raises(ConfigEntryNotReady, match="Invalid import configuration format"):
+    with pytest.raises(
+        ConfigEntryNotReady, match="Invalid import configuration format"
+    ):
         await flow.async_step_import({"dogs": []})
 
 

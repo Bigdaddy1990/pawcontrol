@@ -1,7 +1,7 @@
 """Tests for dog-management flow helpers and branches."""
 
-import importlib
 from collections.abc import Mapping
+import importlib
 from types import MappingProxyType, SimpleNamespace
 from typing import Any
 
@@ -13,13 +13,13 @@ import voluptuous as vol
 import custom_components.pawcontrol.config_flow_dogs as cfd_mod
 from custom_components.pawcontrol.config_flow_dogs import (
     DogManagementMixin,
-    _HealthConditions,
     _build_add_another_summary_placeholders,
     _build_add_dog_placeholders,
     _build_dog_feeding_placeholders,
     _build_dog_modules_placeholders,
     _build_module_setup_placeholders,
     _coerce_bool,
+    _HealthConditions,
 )
 from custom_components.pawcontrol.const import (
     CONF_DOG_AGE,
@@ -1055,7 +1055,9 @@ async def test_async_step_dog_feeding_form_uses_existing_weight_and_size() -> No
 
 
 @pytest.mark.asyncio
-async def test_async_step_dog_feeding_form_falls_back_for_invalid_weight_and_size() -> None:
+async def test_async_step_dog_feeding_form_falls_back_for_invalid_weight_and_size() -> (
+    None
+):
     """Invalid weight/size should fallback to medium defaults in feeding form."""
     flow = _flow()
     flow._current_dog_config = {
@@ -1207,7 +1209,9 @@ def test_create_cache_key_serializes_missing_fields_as_none() -> None:
 
 
 @pytest.mark.asyncio
-async def test_validation_cache_helpers_cover_miss_stale_valid_and_invalid_cases() -> None:
+async def test_validation_cache_helpers_cover_miss_stale_valid_and_invalid_cases() -> (
+    None
+):
     """Cache helper should reject stale/invalid entries and accept fresh valid ones."""
     flow = _flow()
     now = cfd_mod.asyncio.get_running_loop().time()
@@ -1252,7 +1256,9 @@ async def test_update_validation_cache_stores_result_and_timestamp() -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_dog_config_defaults_optional_fields_when_types_do_not_match() -> None:
+async def test_create_dog_config_defaults_optional_fields_when_types_do_not_match() -> (
+    None
+):
     """Non-numeric age/weight and non-string size should be omitted from config."""
     flow = _flow()
     config = await flow._create_dog_config(
@@ -1328,7 +1334,9 @@ def test_build_medication_entries_handles_missing_slot_and_optional_fields() -> 
     assert entry["with_meals"] is False
 
 
-def test_collect_health_conditions_handles_empty_tokens_and_skin_alias_defaults() -> None:
+def test_collect_health_conditions_handles_empty_tokens_and_skin_alias_defaults() -> (
+    None
+):
     """Empty tokens should be ignored and skin issues should inject helper aliases."""
     flow = _flow()
     conditions = flow._collect_health_conditions(
@@ -1342,7 +1350,9 @@ def test_collect_health_conditions_handles_empty_tokens_and_skin_alias_defaults(
     assert "joint_pain" in conditions
 
 
-def test_collect_health_conditions_without_other_conditions_skips_alias_processing() -> None:
+def test_collect_health_conditions_without_other_conditions_skips_alias_processing() -> (
+    None
+):
     """No free-text conditions should keep only mapped checkbox flags."""
     flow = _flow()
     conditions = flow._collect_health_conditions({"has_diabetes": True})
@@ -1431,7 +1441,9 @@ async def test_async_step_configure_modules_persists_input_and_routes_forward(
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_minimal_for_simple_setup() -> None:
+async def test_async_step_configure_modules_form_suggests_minimal_for_simple_setup() -> (
+    None
+):
     """Single-dog setup should suggest minimal performance profile."""
     flow = _flow()
     flow._dogs = [
@@ -1449,7 +1461,9 @@ async def test_async_step_configure_modules_form_suggests_minimal_for_simple_set
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_balanced_for_mid_complexity() -> None:
+async def test_async_step_configure_modules_form_suggests_balanced_for_mid_complexity() -> (
+    None
+):
     """Three-dog setup should suggest balanced performance and auto-backup."""
     flow = _flow()
     flow._dogs = [
@@ -1464,11 +1478,17 @@ async def test_async_step_configure_modules_form_suggests_balanced_for_mid_compl
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_full_for_high_complexity() -> None:
+async def test_async_step_configure_modules_form_suggests_full_for_high_complexity() -> (
+    None
+):
     """Very large setups should now elevate recommendation to full performance."""
     flow = _flow()
     flow._dogs = [
-        {DOG_ID_FIELD: f"dog_{idx}", DOG_NAME_FIELD: f"Dog {idx}", DOG_MODULES_FIELD: {}}
+        {
+            DOG_ID_FIELD: f"dog_{idx}",
+            DOG_NAME_FIELD: f"Dog {idx}",
+            DOG_MODULES_FIELD: {},
+        }
         for idx in range(6)
     ]
 

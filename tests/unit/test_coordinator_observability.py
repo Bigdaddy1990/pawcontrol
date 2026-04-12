@@ -1,7 +1,7 @@
 """Unit tests for coordinator observability helpers."""
 
-import sys
 from datetime import UTC, datetime, timezone
+import sys
 from typing import Any, cast
 
 import pytest

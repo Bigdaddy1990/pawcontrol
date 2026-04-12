@@ -644,7 +644,7 @@ def test_resolve_binding_module_skips_unregistered_frame_modules(
     """Caller-module resolution should continue when an intermediate frame is unregistered."""
 
     class _Frame:
-        def __init__(self, module_name: str | None, back: "_Frame | None" = None) -> None:
+        def __init__(self, module_name: str | None, back: _Frame | None = None) -> None:
             self.f_globals = {} if module_name is None else {"__name__": module_name}
             self.f_back = back
 

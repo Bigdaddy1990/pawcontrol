@@ -623,8 +623,7 @@ async def test_async_add_activity_success_and_error_paths(hass: HomeAssistant) -
 
     manager._active_sessions["dog-1"] = _new_session("dog-1")
     assert (
-        await manager.async_add_activity("dog-1", "play", duration_seconds=15)
-        is True
+        await manager.async_add_activity("dog-1", "play", duration_seconds=15) is True
     )
 
     assert await manager.async_add_activity("dog-1", "not-a-type") is False

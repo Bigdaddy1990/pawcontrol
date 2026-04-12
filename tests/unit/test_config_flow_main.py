@@ -1,7 +1,7 @@
 """Focused regression tests for config_flow_main helper logic."""
 
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock
 
 from homeassistant.data_entry_flow import FlowResultType
@@ -233,7 +233,9 @@ async def test_handle_existing_discovery_entry_uses_abort_helper(
         captured.update(kwargs)
         return {"type": FlowResultType.ABORT, "reason": "already_configured"}
 
-    monkeypatch.setattr(flow, "_abort_if_unique_id_configured", _abort_if_unique_id_configured)
+    monkeypatch.setattr(
+        flow, "_abort_if_unique_id_configured", _abort_if_unique_id_configured
+    )
 
     result = await flow._handle_existing_discovery_entry(
         updates={"host": "2.2.2.2"},
@@ -259,7 +261,9 @@ async def test_handle_existing_discovery_entry_updates_only_when_reload_enabled(
         "_async_get_entry_for_unique_id",
         AsyncMock(return_value=entry),
     )
-    monkeypatch.setattr(flow, "_discovery_update_required", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(
+        flow, "_discovery_update_required", lambda *_args, **_kwargs: True
+    )
 
     update_reload = AsyncMock(
         return_value={"type": FlowResultType.ABORT, "reason": "already_configured"}
@@ -307,7 +311,7 @@ async def test_validate_dog_input_cached_uses_cache_then_revalidates(
     flow = PawControlConfigFlow()
 
     def _fixed_now() -> datetime:
-        return datetime(2026, 1, 1, tzinfo=timezone.utc)
+        return datetime(2026, 1, 1, tzinfo=UTC)
 
     monkeypatch.setattr(config_flow_main.dt_util, "utcnow", _fixed_now)
 
@@ -426,7 +430,9 @@ async def test_validate_dog_input_optimized_builds_existing_names(
         observed["max_dogs"] = max_dogs
         return {"dog_id": "new-id", "dog_name": "New Name", "dog_weight": 1}
 
-    monkeypatch.setattr(config_flow_main, "validate_dog_setup_input", _validate_dog_setup_input)
+    monkeypatch.setattr(
+        config_flow_main, "validate_dog_setup_input", _validate_dog_setup_input
+    )
 
     result = await flow._validate_dog_input_optimized(
         {"dog_id": "new-id", "dog_name": "New Name", "dog_weight": 1},
@@ -651,7 +657,9 @@ def test_build_config_entry_data_and_profile_resolution() -> None:
     )
     assert flow._resolve_entry_profile(entry_options) == "standard"
     assert flow._resolve_entry_profile(entry_data) == "advanced"
-    assert flow._resolve_entry_profile(entry_default) == config_flow_main.DEFAULT_PROFILE
+    assert (
+        flow._resolve_entry_profile(entry_default) == config_flow_main.DEFAULT_PROFILE
+    )
 
 
 def test_history_placeholders_merge_helpers_and_extract_entry_dogs(
@@ -683,7 +691,7 @@ def test_history_placeholders_merge_helpers_and_extract_entry_dogs(
     assert "warn-a" in history_with_telemetry["reconfigure_warnings"]
     assert "one" in history_with_telemetry["reconfigure_merge_notes"]
 
-    monkeypatch.setattr(config_flow_main.dt_util, "UTC", timezone.utc, raising=False)
+    monkeypatch.setattr(config_flow_main.dt_util, "UTC", UTC, raising=False)
     monkeypatch.setattr(config_flow_main.dt_util, "as_local", lambda value: value)
     assert flow._format_local_timestamp("2025-01-05T12:30:00").startswith("2025-01-05")
     assert flow._sequence_requests_removal([{_LIST_REMOVE_DIRECTIVE: True}]) is True
@@ -847,7 +855,9 @@ async def test_candidate_toggle_and_reconfigure_compatibility_helpers(
     }
     estimate_mock = AsyncMock(return_value=4)
     flow._entity_factory.estimate_entity_count_async = estimate_mock
-    estimated = await flow._estimate_entities_for_reconfigure([valid_dog, {}], "standard")
+    estimated = await flow._estimate_entities_for_reconfigure(
+        [valid_dog, {}], "standard"
+    )
     assert estimated == 4
     assert estimate_mock.await_count == 1
 
@@ -884,8 +894,12 @@ async def test_candidate_toggle_and_reconfigure_compatibility_helpers(
         {CONF_MODULES: {key: True for key in config_flow_main.MODULE_TOGGLE_KEYS}}
         for _ in range(4)
     ]
-    assert "Many modules enabled" in flow._get_compatibility_info("standard", module_heavy)
-    assert "supports all profiles" in flow._get_compatibility_info("standard", [valid_dog])
+    assert "Many modules enabled" in flow._get_compatibility_info(
+        "standard", module_heavy
+    )
+    assert "supports all profiles" in flow._get_compatibility_info(
+        "standard", [valid_dog]
+    )
 
     monkeypatch.setattr(
         flow,
@@ -934,7 +948,9 @@ def test_discovery_helpers_cover_remaining_branch_paths() -> None:
     assert "port" not in normalized
     assert normalized["properties"]["number"] == 7
 
-    updates, _comparison = flow._prepare_discovery_updates({"source": "dhcp"}, source="dhcp")
+    updates, _comparison = flow._prepare_discovery_updates(
+        {"source": "dhcp"}, source="dhcp"
+    )
     assert "host" not in updates
     assert "device" not in updates
     assert "address" not in updates
@@ -991,7 +1007,9 @@ async def test_casefold_lookup_and_abort_when_discovery_updates_are_unchanged(
         "_async_get_entry_for_unique_id",
         AsyncMock(return_value=casefold_match),
     )
-    monkeypatch.setattr(flow, "_discovery_update_required", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(
+        flow, "_discovery_update_required", lambda *_args, **_kwargs: False
+    )
     result = await flow._handle_existing_discovery_entry(
         updates={"host": "1.1.1.1"},
         comparison={},
@@ -1018,12 +1036,16 @@ async def test_add_dog_and_modules_steps_cover_remaining_edge_paths(
     monkeypatch.setattr(
         flow,
         "_validate_dog_input_cached",
-        AsyncMock(return_value={"dog_id": "buddy", "dog_name": "Buddy", "dog_weight": 1}),
+        AsyncMock(
+            return_value={"dog_id": "buddy", "dog_name": "Buddy", "dog_weight": 1}
+        ),
     )
     monkeypatch.setattr(
         flow,
         "_create_dog_config",
-        AsyncMock(return_value={DOG_ID_FIELD: 42, DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}),
+        AsyncMock(
+            return_value={DOG_ID_FIELD: 42, DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}
+        ),
     )
     monkeypatch.setattr(
         flow,
@@ -1035,7 +1057,9 @@ async def test_add_dog_and_modules_steps_cover_remaining_edge_paths(
     assert flow._existing_dog_ids == set()
 
     modules_flow = PawControlConfigFlow()
-    modules_flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}]
+    modules_flow._dogs = [
+        {DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}
+    ]
     monkeypatch.setattr(
         config_flow_main,
         "coerce_dog_modules_config",
@@ -1080,7 +1104,13 @@ async def test_final_setup_profile_compatibility_warning_branch(
 def test_profile_compatibility_and_discovery_option_branches() -> None:
     """Compatibility and discovery options should cover fallback endpoint/token branches."""
     flow = PawControlConfigFlow()
-    flow._dogs = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {MODULE_GPS: True}}]
+    flow._dogs = [
+        {
+            DOG_ID_FIELD: "buddy",
+            DOG_NAME_FIELD: "Buddy",
+            CONF_MODULES: {MODULE_GPS: True},
+        }
+    ]
     flow._entity_factory.validate_profile_for_modules = lambda *_args, **_kwargs: False
     assert flow._validate_profile_compatibility() is False
 
@@ -1123,7 +1153,9 @@ async def test_reconfigure_success_telemetry_captures_warning_and_merge_notes(
         entry_id="entry-1",
         unique_id="uid-1",
         data={
-            CONF_DOGS: [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}],
+            CONF_DOGS: [
+                {DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}
+            ],
             "entity_profile": "standard",
         },
         options={
@@ -1163,7 +1195,9 @@ async def test_reconfigure_success_telemetry_captures_warning_and_merge_notes(
     update_abort = AsyncMock(
         return_value={"type": FlowResultType.ABORT, "reason": "reconfigure_successful"},
     )
-    monkeypatch.setattr(flow, "async_update_reload_and_abort", update_abort, raising=False)
+    monkeypatch.setattr(
+        flow, "async_update_reload_and_abort", update_abort, raising=False
+    )
 
     result = await flow.async_step_reconfigure({"entity_profile": "advanced"})
     assert result["reason"] == "reconfigure_successful"
@@ -1242,7 +1276,9 @@ def test_payload_candidate_identifier_and_compatibility_edge_branches(
             return value.strip()
         return None
 
-    monkeypatch.setattr(config_flow_main, "validate_flow_dog_name", _validate_flow_dog_name)
+    monkeypatch.setattr(
+        config_flow_main, "validate_flow_dog_name", _validate_flow_dog_name
+    )
     candidate = flow._build_dog_candidate(
         {
             DOG_ID_FIELD: "buddy",
@@ -1375,7 +1411,12 @@ async def test_reconfigure_unhealthy_without_issues_skips_issue_warning(
     monkeypatch.setattr(
         flow,
         "async_update_reload_and_abort",
-        AsyncMock(return_value={"type": FlowResultType.ABORT, "reason": "reconfigure_successful"}),
+        AsyncMock(
+            return_value={
+                "type": FlowResultType.ABORT,
+                "reason": "reconfigure_successful",
+            }
+        ),
         raising=False,
     )
 

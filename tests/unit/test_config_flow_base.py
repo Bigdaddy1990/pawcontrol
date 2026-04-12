@@ -338,9 +338,10 @@ async def test_suggest_dog_breed_handles_empty_size_bucket() -> None:
     previous_trace = sys.gettrace()
     sys.settrace(_trace)
     try:
-        suggestion = await flow._suggest_dog_breed(
-            {DOG_NAME_FIELD: "Mystery", DOG_SIZE_FIELD: "toy"}
-        )
+        suggestion = await flow._suggest_dog_breed({
+            DOG_NAME_FIELD: "Mystery",
+            DOG_SIZE_FIELD: "toy",
+        })
     finally:
         sys.settrace(previous_trace)
 

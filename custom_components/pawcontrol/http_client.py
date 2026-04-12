@@ -49,11 +49,15 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
             f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",  # noqa: E501
         )
 
-    if not _is_coroutine(request) and not _is_coroutine(request_attr) and (
-        not callable(request_attr)
-        or (
-            not _is_coroutine(getattr(session, "_request", None))
-            and not _is_coroutine(getattr(type(session), "_request", None))
+    if (
+        not _is_coroutine(request)
+        and not _is_coroutine(request_attr)
+        and (
+            not callable(request_attr)
+            or (
+                not _is_coroutine(getattr(session, "_request", None))
+                and not _is_coroutine(getattr(type(session), "_request", None))
+            )
         )
     ):
         # ``aiohttp.ClientSession.request`` is a thin synchronous wrapper around the
