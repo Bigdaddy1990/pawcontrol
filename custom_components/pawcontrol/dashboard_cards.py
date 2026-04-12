@@ -872,7 +872,8 @@ class OverviewCardGenerator(BaseCardGenerator):
         }
         actions.append(reset_card)
 
-        if not actions:
+        # Defensive branch: reset action is always appended above.
+        if not actions:  # pragma: no cover
             return None
         stack_card: CardConfig = {
             "type": "horizontal-stack",
