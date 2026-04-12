@@ -358,6 +358,29 @@ async def test_async_register_cleanup_ignores_non_callable_unsub() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_register_cleanup_without_async_on_unload_hook() -> None:
+    """register_cleanup should store callable unsub even if unload hook is absent."""
+    hass = MagicMock()
+    reload_unsub = MagicMock()
+
+    class _RuntimeData:
+        pass
+
+    class _EntryNoUnload:
+        entry_id = "entry-1"
+
+        def add_update_listener(self, _listener):
+            return reload_unsub
+
+    runtime_data = _RuntimeData()
+    entry = _EntryNoUnload()
+
+    await async_register_cleanup(hass, entry, runtime_data)
+
+    assert runtime_data.reload_unsub is reload_unsub
+
+
+@pytest.mark.asyncio
 async def test_reload_wrapper_calls_async_reload_entry() -> None:
     """Reload wrapper should proxy through to integration async_reload_entry."""
     hass = MagicMock()

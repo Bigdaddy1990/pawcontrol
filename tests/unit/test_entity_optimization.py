@@ -261,6 +261,30 @@ def test_entity_update_scheduler_unregister_missing_entity_is_noop() -> None:
     assert scheduler.get_stats() == {"total_entities": 0, "intervals": {}}
 
 
+def test_entity_update_scheduler_skips_missing_entities_and_continues_iteration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Scheduler callback should continue iterating when some entries have no entity."""
+    callbacks: dict[int, object] = {}
+
+    def _fake_track_time_interval(hass: object, action: object, interval: object):
+        callbacks[int(interval.total_seconds())] = action
+        return lambda: None
+
+    monkeypatch.setattr(eo, "async_track_time_interval", _fake_track_time_interval)
+
+    scheduler = eo.EntityUpdateScheduler(hass=object())
+    ok_entity = _FakeEntity()
+    scheduler._entities["sensor.ok"] = {"entity": ok_entity}
+    scheduler._intervals[10] = {"sensor.missing_a", "sensor.missing_b", "sensor.ok"}
+    scheduler._setup_interval(10)
+
+    callback = callbacks[10]
+    callback(datetime.now())
+
+    assert ok_entity.calls == 1
+
+
 async def test_entity_update_batcher_async_setup_logs_initialization(
     caplog: pytest.LogCaptureFixture,
 ) -> None:

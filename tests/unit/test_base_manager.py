@@ -177,6 +177,18 @@ class TestBaseManager:
         with pytest.raises(ManagerLifecycleError):
             manager._require_ready()
 
+    def test_require_ready_defensive_not_ready_branch_without_shutdown(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Cover defensive _require_ready path when readiness is externally forced."""
+        manager = DummyManager(MagicMock())
+        manager._is_setup = True
+        manager._is_shutdown = False
+        monkeypatch.setattr(DummyManager, "is_ready", property(lambda _self: False))
+
+        manager._require_ready()
+
     def test_require_coordinator_with_coordinator(self) -> None:
         """Test require_coordinator with coordinator present."""
         mock_hass = MagicMock()

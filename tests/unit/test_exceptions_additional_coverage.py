@@ -3,9 +3,11 @@ import pytest
 """Additional branch coverage for ``custom_components.pawcontrol.exceptions``."""
 
 from custom_components.pawcontrol.exceptions import (
+    DataExportError,
     DataImportError,
     ErrorSeverity,
     FlowValidationError,
+    InvalidWeightError,
     NetworkError,
     NotificationError,
     PawControlError,
@@ -95,6 +97,20 @@ def test_data_import_error_includes_line_number_when_available() -> None:
 
     assert "at line 27" in str(with_line)
     assert "at line" not in str(without_line)
+
+
+def test_optional_reason_and_context_fields_use_default_messages() -> None:
+    """Optional exception inputs should keep default message/context branches."""
+    default_weight = InvalidWeightError(2.5)
+    unavailable_without_service = ServiceUnavailableError("service offline")
+    export_without_reason = DataExportError("history")
+    import_without_reason = DataImportError("history")
+
+    assert "weight" in str(default_weight)
+    assert "Weight must be a positive number" in str(default_weight)
+    assert "service_name" not in unavailable_without_service.context
+    assert str(export_without_reason) == "Failed to export history data"
+    assert str(import_without_reason) == "Failed to import history data"
 
 
 def test_reconfiguration_related_errors_have_expected_codes() -> None:

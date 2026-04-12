@@ -247,8 +247,9 @@ def test_coordinator_data_proxy_without_logging() -> None:
         "custom_components.pawcontrol.coordinator_access_enforcement._LOGGER"
     ) as logger:
         assert proxy.get("buddy") == {"name": "Buddy"}
+        assert proxy["buddy"] == {"name": "Buddy"}
 
-    assert proxy.access_count == 1
+    assert proxy.access_count == 2
     logger.debug.assert_not_called()
 
 

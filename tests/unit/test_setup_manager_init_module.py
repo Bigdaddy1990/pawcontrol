@@ -290,6 +290,30 @@ async def test_async_create_optional_managers_skips_gps_managers_when_disabled(
 
 
 @pytest.mark.asyncio
+async def test_async_create_optional_managers_tolerates_missing_script_manager(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Optional manager creation should continue when script manager is unavailable."""
+    monkeypatch.setattr(
+        manager_init, "PawControlHelperManager", lambda _h, _e: object()
+    )
+    monkeypatch.setattr(manager_init, "PawControlScriptManager", lambda _h, _e: None)
+    monkeypatch.setattr(manager_init, "DoorSensorManager", lambda _h, _id: object())
+    monkeypatch.setattr(manager_init, "GardenManager", lambda _h, _id: object())
+    monkeypatch.setattr(manager_init, "WeatherHealthManager", lambda _h: object())
+
+    result = await manager_init._async_create_optional_managers(
+        SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=MagicMock())),
+        SimpleNamespace(entry_id="entry-1", options={}, data={}),
+        [{"dog_id": "buddy", "modules": {"gps": False}}],
+        {"notification_manager": object()},
+        skip_optional_setup=False,
+    )
+
+    assert result["script_manager"] is None
+
+
+@pytest.mark.asyncio
 async def test_async_create_core_managers_returns_expected_instances(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -464,6 +488,41 @@ async def test_async_initialize_all_managers_reraises_task_exceptions(
 
 
 @pytest.mark.asyncio
+async def test_async_initialize_all_managers_skips_optional_without_initializer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Optional managers without async_initialize should be ignored."""
+    called: list[str] = []
+
+    async def _capture(manager_name: str, coro: object, **_: object) -> None:
+        called.append(manager_name)
+        await coro
+
+    monkeypatch.setattr(
+        manager_init,
+        "_async_initialize_manager_with_timeout",
+        _capture,
+    )
+
+    core_managers = {
+        "dog_ids": ["buddy"],
+        "data_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "notification_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "feeding_manager": SimpleNamespace(async_initialize=AsyncMock()),
+        "walk_manager": SimpleNamespace(async_initialize=AsyncMock()),
+    }
+
+    await manager_init._async_initialize_all_managers(
+        core_managers,
+        {"helper_manager": object(), "door_sensor_manager": None},
+        [{"dog_id": "buddy", "dog_name": "Buddy"}],
+        SimpleNamespace(options={}),
+    )
+
+    assert "helper_manager" not in called
+
+
+@pytest.mark.asyncio
 async def test_async_initialize_all_managers_prioritizes_auth_failures(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -555,6 +614,60 @@ async def test_async_initialize_geofencing_manager_uses_per_dog_overrides(
         enabled=True,
         use_home_location=True,
         home_zone_radius=150,
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_initialize_geofencing_manager_skips_non_numeric_radius_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-numeric per-dog radii should be ignored while scanning all dogs."""
+    geofencing_manager = SimpleNamespace(async_initialize=AsyncMock())
+
+    async def _capture_initialization(
+        _manager_name: str, coro: object, **_: object
+    ) -> None:
+        await coro
+
+    monkeypatch.setattr(
+        manager_init,
+        "_async_initialize_manager_with_timeout",
+        _capture_initialization,
+    )
+
+    entry = SimpleNamespace(
+        options={
+            "dog_options": {
+                "alpha": {
+                    "geofence_settings": {
+                        "geofencing_enabled": True,
+                        "geofence_radius_m": "bad",
+                    }
+                },
+                "beta": {
+                    "geofence_settings": {
+                        "geofencing_enabled": True,
+                        "geofence_radius_m": 120,
+                    }
+                },
+            }
+        }
+    )
+    initialization_tasks: list[asyncio.Task[None]] = []
+
+    await manager_init._async_initialize_geofencing_manager(
+        geofencing_manager,
+        ["alpha", "beta"],
+        entry,
+        initialization_tasks,
+    )
+    await asyncio.gather(*initialization_tasks)
+
+    geofencing_manager.async_initialize.assert_awaited_once_with(
+        dogs=["alpha", "beta"],
+        enabled=True,
+        use_home_location=True,
+        home_zone_radius=120,
     )
 
 
@@ -871,6 +984,35 @@ def test_attach_managers_to_coordinator_handles_missing_optional_managers() -> N
 
     coordinator.attach_runtime_managers.assert_called_once()
     assert notification_manager.resilience_manager is coordinator.resilience_manager
+
+
+def test_attach_managers_to_coordinator_handles_missing_notification_manager() -> None:
+    """Notification manager may be absent without blocking remaining manager wiring."""
+    resilience_manager = object()
+    coordinator = SimpleNamespace(
+        resilience_manager=resilience_manager,
+        attach_runtime_managers=MagicMock(),
+    )
+    weather_health_manager = SimpleNamespace(resilience_manager=None)
+
+    manager_init._attach_managers_to_coordinator(
+        coordinator,
+        {
+            "data_manager": object(),
+            "feeding_manager": object(),
+            "walk_manager": object(),
+            "notification_manager": None,
+        },
+        {
+            "gps_geofence_manager": None,
+            "geofencing_manager": None,
+            "weather_health_manager": weather_health_manager,
+            "garden_manager": None,
+        },
+    )
+
+    coordinator.attach_runtime_managers.assert_called_once()
+    assert weather_health_manager.resilience_manager is resilience_manager
 
 
 @pytest.mark.asyncio

@@ -82,6 +82,24 @@ def test_attach_runtime_managers_stores_managers(
 
 
 @pytest.mark.unit
+def test_attach_runtime_managers_without_metrics_sink_method(
+    mock_hass, mock_config_entry, mock_session
+) -> None:
+    """attach_runtime_managers should tolerate data managers without sink support."""
+    coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    data_manager = SimpleNamespace()
+
+    coord.attach_runtime_managers(
+        data_manager=data_manager,
+        feeding_manager=MagicMock(),
+        walk_manager=MagicMock(),
+        notification_manager=MagicMock(),
+    )
+
+    assert coord.runtime_managers.data_manager is data_manager
+
+
+@pytest.mark.unit
 def test_clear_runtime_managers_resets_all(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
@@ -226,6 +244,26 @@ async def test_selective_refresh_deduplicates_ids(
         dog_ids=["test_dog", "test_dog", "test_dog"]
     )
     coord._refresh_subset.assert_awaited_once_with(["test_dog"])
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_refresh_subset_skips_missing_dogs_and_continues_iteration(
+    mock_hass, mock_config_entry, mock_session
+) -> None:
+    """_refresh_subset should continue iterating when requested IDs are absent."""
+    coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coord._execute_cycle = AsyncMock(
+        return_value=({"known": {"status_snapshot": {"state": "ok"}}}, None)
+    )
+    coord._synchronize_module_states = AsyncMock()
+    coord.async_set_updated_data = MagicMock()
+
+    await coord._refresh_subset(["missing", "known"])
+
+    assert "known" in coord._data
+    assert "missing" not in coord._data
+    coord.async_set_updated_data.assert_called_once()
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -402,6 +440,30 @@ async def test_synchronize_module_states_no_garden_manager(
     data = {"test_dog": {"walk": {"walk_in_progress": True}}}
     # Should not raise
     await coord._synchronize_module_states(data)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_synchronize_module_states_ignores_non_mapping_walk_state(
+    mock_hass, mock_config_entry, mock_session
+) -> None:
+    """Non-mapping walk payloads should be skipped without ending sessions."""
+    coord = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+
+    garden_mgr = MagicMock()
+    garden_mgr.get_active_session = MagicMock(return_value={"session_id": "abc"})
+    garden_mgr.async_end_garden_session = AsyncMock()
+    garden_mgr.build_garden_snapshot = MagicMock(return_value={"status": "idle"})
+    coord.garden_manager = garden_mgr
+
+    data = {
+        "dog_skip": {"walk": "active"},
+        "dog_walk": {"walk": {"walk_in_progress": True}},
+    }
+    await coord._synchronize_module_states(data)
+
+    garden_mgr.get_active_session.assert_called_once_with("dog_walk")
+    garden_mgr.async_end_garden_session.assert_awaited_once()
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 """Unit tests for coordinator observability helpers."""
 
+import sys
 from datetime import UTC, datetime, timezone
 from typing import Any, cast
 
@@ -313,6 +314,146 @@ def test_build_performance_snapshot_defaults_rejection_metrics() -> None:
     assert performance_metrics["rejection_breaker_ids"] == []
     assert performance_metrics["rejection_breakers"] == []
     assert "resilience_summary" not in snapshot
+
+
+@pytest.mark.unit
+def test_build_performance_snapshot_skips_module_override_without_summary_function(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Telemetry module override should be ignored when helper is missing."""
+    metrics = CoordinatorMetrics(update_count=1, failed_cycles=0, consecutive_errors=0)
+    adaptive = cast(
+        AdaptivePollingDiagnostics,
+        {
+            "current_interval_ms": 90.0,
+            "target_cycle_ms": 180.0,
+            "average_cycle_ms": 0.0,
+            "history_samples": 0,
+            "error_streak": 0,
+        },
+    )
+    entity_budget = cast(
+        EntityBudgetSummary,
+        {
+            "active_dogs": 1,
+            "total_capacity": 0,
+            "total_allocated": 0,
+            "total_remaining": 0,
+            "average_utilization": 0.0,
+            "peak_utilization": 0.0,
+            "denied_requests": 0,
+        },
+    )
+    webhook_status = cast(
+        WebhookSecurityStatus,
+        {
+            "configured": True,
+            "secure": True,
+            "hmac_ready": True,
+            "insecure_configs": (),
+        },
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "custom_components.pawcontrol.telemetry",
+        object(),
+    )
+
+    reset_bool_coercion_metrics()
+    try:
+        snapshot = build_performance_snapshot(
+            metrics=metrics,
+            adaptive=adaptive,
+            entity_budget=entity_budget,
+            update_interval=2.0,
+            last_update_time=None,
+            last_update_success=True,
+            webhook_status=webhook_status,
+            resilience=None,
+        )
+    finally:
+        reset_bool_coercion_metrics()
+
+    assert snapshot["bool_coercion"]["total"] == 0
+
+
+@pytest.mark.unit
+def test_build_performance_snapshot_keeps_local_bool_summary_when_module_is_smaller(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Telemetry module summary should not replace a richer local bool summary."""
+    metrics = CoordinatorMetrics(update_count=1, failed_cycles=0, consecutive_errors=0)
+    adaptive = cast(
+        AdaptivePollingDiagnostics,
+        {
+            "current_interval_ms": 90.0,
+            "target_cycle_ms": 180.0,
+            "average_cycle_ms": 0.0,
+            "history_samples": 0,
+            "error_streak": 0,
+        },
+    )
+    entity_budget = cast(
+        EntityBudgetSummary,
+        {
+            "active_dogs": 1,
+            "total_capacity": 0,
+            "total_allocated": 0,
+            "total_remaining": 0,
+            "average_utilization": 0.0,
+            "peak_utilization": 0.0,
+            "denied_requests": 0,
+        },
+    )
+    webhook_status = cast(
+        WebhookSecurityStatus,
+        {
+            "configured": True,
+            "secure": True,
+            "hmac_ready": True,
+            "insecure_configs": (),
+        },
+    )
+
+    class _TelemetryModule:
+        @staticmethod
+        def summarise_bool_coercion_metrics() -> dict[str, Any]:
+            return {
+                "recorded": True,
+                "total": 0,
+                "reset_count": 1,
+                "reason_counts": {},
+                "samples": [],
+            }
+
+    monkeypatch.setitem(
+        sys.modules,
+        "custom_components.pawcontrol.telemetry",
+        _TelemetryModule(),
+    )
+
+    reset_bool_coercion_metrics()
+    record_bool_coercion_event(
+        value="on",
+        default=False,
+        result=True,
+        reason="truthy_string",
+    )
+    try:
+        snapshot = build_performance_snapshot(
+            metrics=metrics,
+            adaptive=adaptive,
+            entity_budget=entity_budget,
+            update_interval=2.0,
+            last_update_time=None,
+            last_update_success=True,
+            webhook_status=webhook_status,
+            resilience=None,
+        )
+    finally:
+        reset_bool_coercion_metrics()
+
+    assert snapshot["bool_coercion"]["total"] == 1
 
 
 @pytest.mark.unit

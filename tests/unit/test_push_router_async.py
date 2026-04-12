@@ -151,6 +151,42 @@ async def test_async_process_gps_push_accepts_valid_payload_and_patches_coordina
 
 
 @pytest.mark.asyncio
+async def test_async_process_gps_push_uses_fallback_when_timestamp_is_unparseable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unparseable timestamps should fall back to utcnow without rejecting payloads."""
+    hass = SimpleNamespace(data={})
+    entry = _entry(source="entity")
+    gps_manager = SimpleNamespace(async_add_gps_point=AsyncMock(return_value=True))
+    coordinator = SimpleNamespace(
+        gps_geofence_manager=None,
+        async_patch_gps_update=AsyncMock(),
+        async_refresh_dog=AsyncMock(),
+    )
+    runtime = SimpleNamespace(coordinator=coordinator, gps_geofence_manager=gps_manager)
+    monkeypatch.setattr(
+        push_router, "require_runtime_data", lambda _hass, _entry: runtime
+    )
+    monkeypatch.setattr(push_router.dt_util, "parse_datetime", lambda _value: None)
+
+    result = await push_router.async_process_gps_push(
+        hass,
+        entry,
+        payload={
+            "dog_id": "dog-1",
+            "latitude": 10.0,
+            "longitude": 20.0,
+            "timestamp": "not-a-valid-iso-timestamp",
+        },
+        source="entity",
+    )
+
+    assert result == {"ok": True, "status": 200, "dog_id": "dog-1"}
+    gps_manager.async_add_gps_point.assert_awaited_once()
+    coordinator.async_patch_gps_update.assert_awaited_once_with("dog-1")
+
+
+@pytest.mark.asyncio
 async def test_async_process_gps_push_rejects_unknown_dog_and_invalid_coordinates(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

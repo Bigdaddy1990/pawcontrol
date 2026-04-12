@@ -440,6 +440,16 @@ class TestSmartDiffTracker:
         assert diff2.has_changes
         assert "buddy" in diff2.changed_dogs
 
+    def test_smart_diff_tracker_identical_update_has_no_changes(self) -> None:
+        """Updating with identical data should produce a no-change diff."""
+        tracker = SmartDiffTracker()
+        payload = {"buddy": {"gps": {"lat": 45.0}}}
+
+        tracker.update(payload)
+        diff = tracker.update(payload)
+
+        assert diff.has_changes is False
+
     def test_smart_diff_tracker_reset(self) -> None:
         """Test tracker reset."""
         tracker = SmartDiffTracker()
@@ -526,6 +536,27 @@ class TestSmartDiffTracker:
         assert tracker.get_changed_entities(diff, dog_id="max") == frozenset({"max"})
         assert tracker.get_changed_entities(diff, dog_id="max", module="gps") == (
             frozenset({"max.gps"})
+        )
+
+    def test_smart_diff_tracker_get_changed_entities_skips_unchanged_modules(
+        self,
+    ) -> None:
+        """Only changed modules should be emitted when scanning all module keys."""
+        tracker = SmartDiffTracker()
+        diff = CoordinatorDataDiff(
+            dog_diffs={
+                "buddy": DogDataDiff(
+                    "buddy",
+                    module_diffs={
+                        "walk": DataDiff(),
+                        "gps": DataDiff(modified_keys=frozenset({"lat"})),
+                    },
+                )
+            }
+        )
+
+        assert tracker.get_changed_entities(diff, dog_id="buddy") == frozenset(
+            {"buddy.gps"}
         )
 
 
@@ -632,6 +663,21 @@ class TestLogDiffSummary:
         log_diff_summary(diff)
         assert "1 added" in caplog.text
         assert "1 removed" in caplog.text
+
+    def test_log_diff_summary_with_added_only_and_no_changed_dogs(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Added-only diffs should avoid the 'dogs changed' summary segment."""
+        caplog.set_level(
+            logging.DEBUG, logger="custom_components.pawcontrol.coordinator_diffing"
+        )
+        diff = CoordinatorDataDiff(added_dogs=frozenset({"new_dog"}))
+
+        caplog.set_level("DEBUG")
+        log_diff_summary(diff)
+
+        assert "1 added" in caplog.text
+        assert "dogs changed" not in caplog.text
 
 
 class TestEdgeCases:
