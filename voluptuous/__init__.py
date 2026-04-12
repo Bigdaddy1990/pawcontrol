@@ -25,11 +25,11 @@ class Marker:
         """Store wrapped schema metadata and resolve default provider."""
         self.schema = schema
         if default is UNDEFINED:
-            self.default = lambda: UNDEFINED
+            self.default = _undefined_default
         elif callable(default):
             self.default = default
         else:
-            self.default = lambda default=default: default
+            self.default = _constant_default(default)
 
     def __hash__(self) -> int:
         """Return a stable hash for marker identity checks."""
@@ -42,6 +42,20 @@ class Optional(Marker):
 
 class Required(Marker):
     """Required marker."""
+
+
+def _undefined_default() -> AnyType:
+    """Return voluptuous sentinel for undefined defaults."""
+    return UNDEFINED
+
+
+def _constant_default(value: AnyType) -> Callable[[], AnyType]:
+    """Create a default provider returning a fixed value."""
+
+    def _default() -> AnyType:
+        return value
+
+    return _default
 
 
 def Coerce(target_type: type[AnyType]) -> Callable[[AnyType], AnyType]:

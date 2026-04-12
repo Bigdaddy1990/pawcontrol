@@ -417,8 +417,9 @@ def test_merge_external_entity_config_updates_only_selected_keys() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_validate_external_entities_formats_notify_error_without_domain(
-) -> None:
+async def test_async_validate_external_entities_formats_notify_error_without_domain() -> (
+    None
+):
     """Notify errors without ``notify.`` prefix should still produce clear base text."""
     hass = _FakeHomeAssistant(
         states=_FakeStates({}),

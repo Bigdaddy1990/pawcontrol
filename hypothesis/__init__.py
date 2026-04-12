@@ -66,6 +66,23 @@ def given(
                 strategy.example() if isinstance(strategy, _Strategy) else None
                 for strategy in _strategies
             ]
+            # Pass generated values as positional arguments, preserving the original
+            # function's parameter count expectation.
+            return func(*args, *generated, **kwargs)
+
+        # DO NOT modify the signature. The fixture exposure issue should be
+        # solved via pytest configuration or a different shim mechanism.
+        return _wrapper
+
+    return _decorator
+
+    def _decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(func)
+        def _wrapper(*args: Any, **kwargs: Any) -> Any:
+            generated = [
+                strategy.example() if isinstance(strategy, _Strategy) else None
+                for strategy in _strategies
+            ]
             return func(*args, *generated, **kwargs)
 
         signature = inspect.signature(func)
