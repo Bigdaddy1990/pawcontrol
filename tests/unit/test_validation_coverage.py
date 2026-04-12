@@ -8,8 +8,8 @@ import pytest
 
 from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.validation import (
-    InputValidator,
     InputCoercionError,
+    InputValidator,
     _coerce_int,
     clamp_float_range,
     clamp_int_range,
@@ -132,7 +132,7 @@ def test_validate_notification_targets_type_error_branch() -> None:
         OK = "ok"
 
         @classmethod
-        def _missing_(cls, value: object) -> "_TypeErrorEnum | None":
+        def _missing_(cls, value: object) -> _TypeErrorEnum | None:
             if value == "boom":
                 raise TypeError("enum conversion failed")
             return None
@@ -164,7 +164,7 @@ def test_validate_sensor_entity_id_handles_blank_candidate_after_strip() -> None
     class _FlakyStripValue(str):
         """Return non-empty then empty on subsequent strip calls."""
 
-        def __new__(cls) -> "_FlakyStripValue":
+        def __new__(cls) -> _FlakyStripValue:
             instance = str.__new__(cls, "seed")
             instance._calls = 0
             return instance
@@ -384,7 +384,9 @@ def test_input_validator_weight_and_age_branches() -> None:
     assert InputValidator.validate_age_months(None, required=False) is None
 
     with pytest.raises(ValidationError, match="Minimum age is 2 months"):
-        InputValidator.validate_age_months(1, required=True, min_months=2, max_months=24)
+        InputValidator.validate_age_months(
+            1, required=True, min_months=2, max_months=24
+        )
 
     with pytest.raises(ValidationError, match="Maximum age is 12 months"):
         InputValidator.validate_age_months(
@@ -395,7 +397,9 @@ def test_input_validator_weight_and_age_branches() -> None:
         )
 
     assert (
-        InputValidator.validate_age_months(6, required=True, min_months=1, max_months=12)
+        InputValidator.validate_age_months(
+            6, required=True, min_months=1, max_months=12
+        )
         == 6
     )
 
@@ -469,7 +473,12 @@ def test_input_validator_portion_temperature_text_and_duration_paths() -> None:
     with pytest.raises(ValidationError, match="Duration is required"):
         InputValidator.validate_duration(None, required=True)
     assert InputValidator.validate_duration(None, required=False) is None
-    assert InputValidator.validate_duration(15, required=True, min_minutes=5, max_minutes=60) == 15
+    assert (
+        InputValidator.validate_duration(
+            15, required=True, min_minutes=5, max_minutes=60
+        )
+        == 15
+    )
 
 
 def test_input_validator_geofence_email_enum_and_error_conversion_paths() -> None:
@@ -479,10 +488,14 @@ def test_input_validator_geofence_email_enum_and_error_conversion_paths() -> Non
     assert InputValidator.validate_geofence_radius(None, required=False) is None
 
     with pytest.raises(ValidationError, match="geofence_radius_out_of_range"):
-        InputValidator.validate_geofence_radius(0.1, required=True, min_value=1.0, max_value=100.0)
+        InputValidator.validate_geofence_radius(
+            0.1, required=True, min_value=1.0, max_value=100.0
+        )
 
     with pytest.raises(ValidationError, match="geofence_radius_out_of_range"):
-        InputValidator.validate_geofence_radius(200.0, required=True, min_value=1.0, max_value=100.0)
+        InputValidator.validate_geofence_radius(
+            200.0, required=True, min_value=1.0, max_value=100.0
+        )
 
     assert (
         InputValidator.validate_geofence_radius(
@@ -513,19 +526,29 @@ def test_input_validator_geofence_email_enum_and_error_conversion_paths() -> Non
     )
 
     with pytest.raises(ValidationError, match="mode is required"):
-        InputValidator.validate_enum_value(None, "mode", {"Home", "Away"}, required=True)
-    assert InputValidator.validate_enum_value(None, "mode", {"Home", "Away"}, required=False) is None
+        InputValidator.validate_enum_value(
+            None, "mode", {"Home", "Away"}, required=True
+        )
+    assert (
+        InputValidator.validate_enum_value(
+            None, "mode", {"Home", "Away"}, required=False
+        )
+        is None
+    )
 
     assert (
-        InputValidator.validate_enum_value(1, "mode", {"1", "2"}, required=True)
-        == "1"
+        InputValidator.validate_enum_value(1, "mode", {"1", "2"}, required=True) == "1"
     )
 
     with pytest.raises(ValidationError, match="Invalid value"):
-        InputValidator.validate_enum_value("invalid", "mode", {"Home", "Away"}, required=True)
+        InputValidator.validate_enum_value(
+            "invalid", "mode", {"Home", "Away"}, required=True
+        )
 
     assert (
-        InputValidator.validate_enum_value("home", "mode", {"Home", "Away"}, required=True)
+        InputValidator.validate_enum_value(
+            "home", "mode", {"Home", "Away"}, required=True
+        )
         == "Home"
     )
 

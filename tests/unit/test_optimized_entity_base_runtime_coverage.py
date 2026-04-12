@@ -494,7 +494,7 @@ def test_generate_state_attributes_recovering_and_sparse_dog_info() -> None:
 def test_update_coordinator_availability_initializes_previous_marker() -> None:
     """When previous marker is absent, update helper should initialize it."""
     entity = _DummyEntity(_DummyCoordinator())
-    delattr(entity, "_previous_coordinator_available")
+    del entity._previous_coordinator_available
     previous = entity._update_coordinator_availability(
         entity._last_coordinator_available,
     )
@@ -1111,8 +1111,7 @@ async def test_create_optimized_entities_batched_branches(
     add_entities.assert_not_called()
 
     entities = [
-        _DummyEntity(_DummyCoordinator(), dog_id=f"dog-{idx}")
-        for idx in range(3)
+        _DummyEntity(_DummyCoordinator(), dog_id=f"dog-{idx}") for idx in range(3)
     ]
 
     await create_optimized_entities_batched(

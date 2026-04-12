@@ -51,7 +51,9 @@ def _hass(
 
 
 @pytest.mark.asyncio
-async def test_template_cache_and_formatting_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_template_cache_and_formatting_helpers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Cover template cache internals, list cloning, and formatting fallbacks."""
     clock = {"now": 1_000.0}
     monkeypatch.setattr(
@@ -122,7 +124,9 @@ async def test_dashboard_templates_parsers_and_status_paths(
     """Cover parser utilities, status templates, and cache hit branches."""
     templates = dt.DashboardTemplates(_hass(language="de"))
 
-    async def _async_lookup(*_args: object, **_kwargs: object) -> tuple[dict[str, str], dict[str, str]]:
+    async def _async_lookup(
+        *_args: object, **_kwargs: object
+    ) -> tuple[dict[str, str], dict[str, str]]:
         return ({}, {})
 
     monkeypatch.setattr(dt, "async_get_component_translation_lookup", _async_lookup)
@@ -131,11 +135,17 @@ async def test_dashboard_templates_parsers_and_status_paths(
         "get_cached_component_translation_lookup",
         lambda *_args, **_kwargs: ({}, {}),
     )
-    monkeypatch.setattr(dt, "load_bundled_component_translations_fresh", lambda _lang: {})
+    monkeypatch.setattr(
+        dt, "load_bundled_component_translations_fresh", lambda _lang: {}
+    )
 
-    assert dt.DashboardTemplates._get_base_card_template("unknown") == {"type": "unknown"}
+    assert dt.DashboardTemplates._get_base_card_template("unknown") == {
+        "type": "unknown"
+    }
     assert templates._card_mod({}) == {}
-    assert templates._ensure_card_mod({"card_mod": {"style": "x"}}, {}) == {"style": "x"}
+    assert templates._ensure_card_mod({"card_mod": {"style": "x"}}, {}) == {
+        "style": "x"
+    }
 
     assert templates._parse_int(True) == 1
     assert templates._parse_int(2.7) == 2
@@ -200,21 +210,32 @@ async def test_dashboard_templates_parsers_and_status_paths(
         MODULE_GPS: True,
         MODULE_NOTIFICATIONS: True,
     }
-    first = await templates.get_dog_status_card_template("alpha", "Alpha", modules, theme="playful")
-    second = await templates.get_dog_status_card_template("alpha", "Alpha", modules, theme="playful")
+    first = await templates.get_dog_status_card_template(
+        "alpha", "Alpha", modules, theme="playful"
+    )
+    second = await templates.get_dog_status_card_template(
+        "alpha", "Alpha", modules, theme="playful"
+    )
     assert first["type"] == "entities"
     assert second == first
 
-    modern = await templates._generate_dog_status_template("beta", "Beta", modules, theme="modern")
+    modern = await templates._generate_dog_status_template(
+        "beta", "Beta", modules, theme="modern"
+    )
     assert modern["show_state"] is True
     assert templates._get_dog_emoji("unknown") == "🐕"
 
+
 @pytest.mark.asyncio
-async def test_action_map_and_statistics_templates(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_action_map_and_statistics_templates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Cover action button rendering, map normalization, and statistics cards."""
     templates = dt.DashboardTemplates(_hass(language="en"))
 
-    async def _async_lookup(*_args: object, **_kwargs: object) -> tuple[dict[str, str], dict[str, str]]:
+    async def _async_lookup(
+        *_args: object, **_kwargs: object
+    ) -> tuple[dict[str, str], dict[str, str]]:
         return ({}, {})
 
     monkeypatch.setattr(dt, "async_get_component_translation_lookup", _async_lookup)
@@ -223,7 +244,9 @@ async def test_action_map_and_statistics_templates(monkeypatch: pytest.MonkeyPat
         "get_cached_component_translation_lookup",
         lambda *_args, **_kwargs: ({}, {}),
     )
-    monkeypatch.setattr(dt, "load_bundled_component_translations_fresh", lambda _lang: {})
+    monkeypatch.setattr(
+        dt, "load_bundled_component_translations_fresh", lambda _lang: {}
+    )
 
     modules = {
         MODULE_FEEDING: True,
@@ -261,7 +284,10 @@ async def test_action_map_and_statistics_templates(monkeypatch: pytest.MonkeyPat
     assert templates._get_button_style("minimal") == {}
     assert templates._wrap_buttons_layout([], "cards") is None
 
-    options_bad_mapping = dt.DashboardTemplates._normalise_map_options({1: "x", "unsupported": 3})
+    options_bad_mapping = dt.DashboardTemplates._normalise_map_options({
+        1: "x",
+        "unsupported": 3,
+    })
     assert options_bad_mapping["zoom"] == dt.DEFAULT_MAP_ZOOM
 
     options_iterable = dt.DashboardTemplates._normalise_map_options(
@@ -294,11 +320,15 @@ async def test_action_map_and_statistics_templates(monkeypatch: pytest.MonkeyPat
     assert nan_options["dark_mode"] is False
 
     templates._normalise_map_options = lambda _options: {"default_zoom": 8}  # type: ignore[method-assign]
-    map_from_default = await templates.get_map_card_template("alpha", None, theme="modern")
+    map_from_default = await templates.get_map_card_template(
+        "alpha", None, theme="modern"
+    )
     assert map_from_default["zoom"] == 8
 
     templates._normalise_map_options = lambda _options: {"zoom": 5}  # type: ignore[method-assign]
-    map_from_zoom = await templates.get_map_card_template("alpha", None, theme="playful")
+    map_from_zoom = await templates.get_map_card_template(
+        "alpha", None, theme="playful"
+    )
     assert map_from_zoom["default_zoom"] == 5
     assert map_from_zoom["card_mod"]
 
@@ -310,12 +340,15 @@ async def test_action_map_and_statistics_templates(monkeypatch: pytest.MonkeyPat
     )
     assert stats_card["type"] == "markdown"
 
-    assert await templates.get_statistics_graph_template(
-        "Empty",
-        [],
-        ["mean"],
-        days_to_show=7,
-    ) is None
+    assert (
+        await templates.get_statistics_graph_template(
+            "Empty",
+            [],
+            ["mean"],
+            days_to_show=7,
+        )
+        is None
+    )
 
     templates._card_mod = lambda _theme_styles: {}  # type: ignore[method-assign]
     graph_without_mod = await templates.get_statistics_graph_template(
@@ -350,7 +383,10 @@ async def test_action_map_and_statistics_templates(monkeypatch: pytest.MonkeyPat
             "last_results": [{"domain": "notify", "service": "mobile"}],
         },
     )
-    assert "Resilience" in summary_with_metrics["content"] or "metrics" in summary_with_metrics["content"]
+    assert (
+        "Resilience" in summary_with_metrics["content"]
+        or "metrics" in summary_with_metrics["content"]
+    )
 
     summary_without_coordinator_metrics = templates.get_statistics_summary_template(
         [
@@ -393,10 +429,14 @@ async def test_notification_feeding_health_and_timeline_templates(
             },
         },
     )
-    hass = _hass({"sensor.pawcontrol_notifications": notifications_state}, language="de")
+    hass = _hass(
+        {"sensor.pawcontrol_notifications": notifications_state}, language="de"
+    )
     templates = dt.DashboardTemplates(hass)
 
-    async def _async_lookup(*_args: object, **_kwargs: object) -> tuple[dict[str, str], dict[str, str]]:
+    async def _async_lookup(
+        *_args: object, **_kwargs: object
+    ) -> tuple[dict[str, str], dict[str, str]]:
         return ({}, {})
 
     monkeypatch.setattr(dt, "async_get_component_translation_lookup", _async_lookup)
@@ -407,7 +447,9 @@ async def test_notification_feeding_health_and_timeline_templates(
     )
 
     assert (
-        await templates.get_notification_settings_card_template("alpha", "Alpha", [], theme="modern")
+        await templates.get_notification_settings_card_template(
+            "alpha", "Alpha", [], theme="modern"
+        )
     ) is None
 
     settings = await templates.get_notification_settings_card_template(
@@ -418,7 +460,9 @@ async def test_notification_feeding_health_and_timeline_templates(
     )
     assert settings is not None
 
-    overview = await templates.get_notifications_overview_card_template("alpha", "Alpha", theme="modern")
+    overview = await templates.get_notifications_overview_card_template(
+        "alpha", "Alpha", theme="modern"
+    )
     assert "push" in overview["content"].lower()
 
     overview_fallback = await templates.get_notifications_overview_card_template(
@@ -426,24 +470,39 @@ async def test_notification_feeding_health_and_timeline_templates(
         "Missing",
         theme="modern",
     )
-    assert "No notifications" in overview_fallback["content"] or "notifications" in overview_fallback["content"]
+    assert (
+        "No notifications" in overview_fallback["content"]
+        or "notifications" in overview_fallback["content"]
+    )
 
-    actions = await templates.get_notifications_actions_card_template("alpha", theme="modern")
+    actions = await templates.get_notifications_actions_card_template(
+        "alpha", theme="modern"
+    )
     assert actions["type"] == "horizontal-stack"
 
-    schedule_modern = await templates.get_feeding_schedule_template("alpha", theme="modern")
+    schedule_modern = await templates.get_feeding_schedule_template(
+        "alpha", theme="modern"
+    )
     assert schedule_modern["type"] == "custom:scheduler-card"
 
-    schedule_playful = await templates.get_feeding_schedule_template("alpha", theme="playful")
+    schedule_playful = await templates.get_feeding_schedule_template(
+        "alpha", theme="playful"
+    )
     assert schedule_playful["type"] in {"horizontal-stack", "vertical-stack"}
 
-    schedule_minimal = await templates.get_feeding_schedule_template("alpha", theme="minimal")
+    schedule_minimal = await templates.get_feeding_schedule_template(
+        "alpha", theme="minimal"
+    )
     assert schedule_minimal["type"] == "entities"
 
-    controls_modern = await templates.get_feeding_controls_template("alpha", theme="modern")
+    controls_modern = await templates.get_feeding_controls_template(
+        "alpha", theme="modern"
+    )
     assert controls_modern["type"] == "vertical-stack"
 
-    controls_playful = await templates.get_feeding_controls_template("alpha", theme="playful")
+    controls_playful = await templates.get_feeding_controls_template(
+        "alpha", theme="playful"
+    )
     assert controls_playful["type"] == "horizontal-stack"
 
     health_modern = await templates.get_health_charts_template("alpha", theme="modern")
@@ -452,17 +511,24 @@ async def test_notification_feeding_health_and_timeline_templates(
     health_dark = await templates.get_health_charts_template("alpha", theme="dark")
     assert health_dark["type"] == "custom:mini-graph-card"
 
-    health_playful = await templates.get_health_charts_template("alpha", theme="playful")
+    health_playful = await templates.get_health_charts_template(
+        "alpha", theme="playful"
+    )
     assert health_playful["type"] == "horizontal-stack"
 
-    health_minimal = await templates.get_health_charts_template("alpha", theme="minimal")
+    health_minimal = await templates.get_health_charts_template(
+        "alpha", theme="minimal"
+    )
     assert health_minimal["type"] == "history-graph"
 
     timeline = await templates.get_timeline_template("alpha", "Alpha", theme="modern")
     assert timeline["type"] == "markdown"
 
+
 @pytest.mark.asyncio
-async def test_weather_templates_history_and_layout(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_weather_templates_history_and_layout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Cover weather template variants, history filtering, cleanup, and layouts."""
     states = {
         "sensor.alpha_breed_weather_advice": _state(
@@ -474,7 +540,9 @@ async def test_weather_templates_history_and_layout(monkeypatch: pytest.MonkeyPa
     }
     templates = dt.DashboardTemplates(_hass(states, language="en"))
 
-    async def _async_lookup(*_args: object, **_kwargs: object) -> tuple[dict[str, str], dict[str, str]]:
+    async def _async_lookup(
+        *_args: object, **_kwargs: object
+    ) -> tuple[dict[str, str], dict[str, str]]:
         return ({}, {})
 
     monkeypatch.setattr(dt, "async_get_component_translation_lookup", _async_lookup)
@@ -516,13 +584,19 @@ async def test_weather_templates_history_and_layout(monkeypatch: pytest.MonkeyPa
     )
     assert cached_status == full_status
 
-    alerts_modern = await templates.get_weather_alerts_card_template("alpha", "Alpha", theme="modern")
+    alerts_modern = await templates.get_weather_alerts_card_template(
+        "alpha", "Alpha", theme="modern"
+    )
     assert alerts_modern["type"] == "markdown"
 
-    alerts_playful = await templates.get_weather_alerts_card_template("alpha", "Alpha", theme="playful")
+    alerts_playful = await templates.get_weather_alerts_card_template(
+        "alpha", "Alpha", theme="playful"
+    )
     assert alerts_playful["type"] == "markdown"
 
-    alerts_minimal = await templates.get_weather_alerts_card_template("alpha", "Alpha", theme="minimal")
+    alerts_minimal = await templates.get_weather_alerts_card_template(
+        "alpha", "Alpha", theme="minimal"
+    )
     assert alerts_minimal["type"] == "markdown"
 
     recommendations_default = await templates.get_weather_recommendations_card_template(
@@ -544,16 +618,24 @@ async def test_weather_templates_history_and_layout(monkeypatch: pytest.MonkeyPa
     )
     assert "... and 2 more" in recommendations_breed["content"]
 
-    chart_health = await templates.get_weather_chart_template("alpha", chart_type="health_score", theme="modern")
+    chart_health = await templates.get_weather_chart_template(
+        "alpha", chart_type="health_score", theme="modern"
+    )
     assert chart_health["type"] == "custom:mini-graph-card"
 
-    chart_temperature = await templates.get_weather_chart_template("alpha", chart_type="temperature", theme="modern")
+    chart_temperature = await templates.get_weather_chart_template(
+        "alpha", chart_type="temperature", theme="modern"
+    )
     assert chart_temperature["type"] == "custom:mini-graph-card"
 
-    chart_activity = await templates.get_weather_chart_template("alpha", chart_type="activity", theme="modern")
+    chart_activity = await templates.get_weather_chart_template(
+        "alpha", chart_type="activity", theme="modern"
+    )
     assert chart_activity["type"] == "custom:mini-graph-card"
 
-    chart_fallback = await templates.get_weather_chart_template("alpha", chart_type="activity", theme="minimal")
+    chart_fallback = await templates.get_weather_chart_template(
+        "alpha", chart_type="activity", theme="minimal"
+    )
     assert chart_fallback["type"] == "history-graph"
 
     advisory_modern = await templates.get_weather_breed_advisory_template(
@@ -614,7 +696,11 @@ async def test_weather_templates_history_and_layout(monkeypatch: pytest.MonkeyPa
     )
     assert history_valid["type"] == "history-graph"
 
-    filtered = await templates._filter_valid_entities(["sensor.valid", "sensor.unknown", "sensor.none"])
+    filtered = await templates._filter_valid_entities([
+        "sensor.valid",
+        "sensor.unknown",
+        "sensor.none",
+    ])
     assert filtered == ["sensor.valid"]
 
     compact_layout = await templates.get_weather_dashboard_layout_template(
@@ -667,7 +753,9 @@ async def test_dashboard_templates_branch_fillers(
     }
     templates = dt.DashboardTemplates(_hass(states))
 
-    async def _async_lookup(*_args: object, **_kwargs: object) -> tuple[dict[str, str], dict[str, str]]:
+    async def _async_lookup(
+        *_args: object, **_kwargs: object
+    ) -> tuple[dict[str, str], dict[str, str]]:
         return ({}, {})
 
     monkeypatch.setattr(dt, "async_get_component_translation_lookup", _async_lookup)
@@ -678,7 +766,9 @@ async def test_dashboard_templates_branch_fillers(
     )
 
     non_dict_template: dict[str, Any] = {"card_mod": "invalid"}
-    ensured = templates._ensure_card_mod(non_dict_template, {"card_mod": {"style": "x"}})
+    ensured = templates._ensure_card_mod(
+        non_dict_template, {"card_mod": {"style": "x"}}
+    )
     assert isinstance(ensured, dict)
     assert non_dict_template["card_mod"] == ensured
 
@@ -699,7 +789,10 @@ async def test_dashboard_templates_branch_fillers(
         modules_minimal,
         theme="minimal",
     )
-    assert any("device_tracker.branchdog_location" == entity for entity in status_card["entities"])
+    assert any(
+        entity == "device_tracker.branchdog_location"
+        for entity in status_card["entities"]
+    )
 
     no_module_buttons = await templates.get_action_buttons_template(
         "empty",
@@ -742,7 +835,9 @@ async def test_dashboard_templates_branch_fillers(
         "_translated_statistics_label",
         lambda _lookup, key: key,
     )
-    monkeypatch.setattr(dt, "load_bundled_component_translations_fresh", lambda _lang: {})
+    monkeypatch.setattr(
+        dt, "load_bundled_component_translations_fresh", lambda _lang: {}
+    )
 
     summary_branch = templates.get_statistics_summary_template(
         [{"dog_id": "branchdog", "dog_name": "Branch Dog", "modules": {}}],
@@ -776,7 +871,9 @@ async def test_dashboard_templates_branch_fillers(
     )
     assert summary_guard_object_values["type"] == "markdown"
 
-    controls_minimal = await templates.get_feeding_controls_template("branchdog", theme="minimal")
+    controls_minimal = await templates.get_feeding_controls_template(
+        "branchdog", theme="minimal"
+    )
     assert controls_minimal["type"] == "vertical-stack"
 
     status_full_modern = await templates.get_weather_status_card_template(

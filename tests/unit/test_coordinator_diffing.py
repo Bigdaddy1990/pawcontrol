@@ -555,9 +555,9 @@ class TestSmartDiffTracker:
             }
         )
 
-        assert tracker.get_changed_entities(diff, dog_id="buddy") == frozenset(
-            {"buddy.gps"}
-        )
+        assert tracker.get_changed_entities(diff, dog_id="buddy") == frozenset({
+            "buddy.gps"
+        })
 
 
 class TestGetChangedFields:

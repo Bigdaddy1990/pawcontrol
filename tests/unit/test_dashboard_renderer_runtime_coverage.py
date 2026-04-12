@@ -97,15 +97,21 @@ class _DummyModuleGenerator:
     def __init__(self, hass: Any, templates: Any) -> None:
         _ = hass, templates
 
-    async def generate_feeding_cards(self, *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+    async def generate_feeding_cards(
+        self, *args: Any, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         _ = args, kwargs
         return [{"type": "feeding"}]
 
-    async def generate_walk_cards(self, *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+    async def generate_walk_cards(
+        self, *args: Any, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         _ = args, kwargs
         return [{"type": "walk"}]
 
-    async def generate_health_cards(self, *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+    async def generate_health_cards(
+        self, *args: Any, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         _ = args, kwargs
         return [{"type": "health"}]
 
@@ -117,11 +123,15 @@ class _DummyModuleGenerator:
         _ = args, kwargs
         return [{"type": "notifications"}]
 
-    async def generate_gps_cards(self, *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+    async def generate_gps_cards(
+        self, *args: Any, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         _ = args, kwargs
         return [{"type": "gps"}]
 
-    async def generate_visitor_cards(self, *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+    async def generate_visitor_cards(
+        self, *args: Any, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         _ = args, kwargs
         return [{"type": "visitor"}]
 
@@ -285,7 +295,9 @@ async def test_runtime_write_dashboard_file_success_and_failure_paths(
 
     created_temp_paths: list[Path] = []
 
-    def _failing_replace(src: os.PathLike[str] | str, dst: os.PathLike[str] | str) -> None:
+    def _failing_replace(
+        src: os.PathLike[str] | str, dst: os.PathLike[str] | str
+    ) -> None:
         created_temp_paths.append(Path(src))
         _ = dst
         raise OSError("replace failed")

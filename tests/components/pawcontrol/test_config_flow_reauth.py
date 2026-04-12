@@ -1018,4 +1018,6 @@ async def test_check_config_health_enhanced_skips_none_or_empty_modules_payloads
 
     summary = await flow._check_config_health_enhanced(entry)
 
-    assert not any("Modules payload invalid" in warning for warning in summary["warnings"])
+    assert not any(
+        "Modules payload invalid" in warning for warning in summary["warnings"]
+    )

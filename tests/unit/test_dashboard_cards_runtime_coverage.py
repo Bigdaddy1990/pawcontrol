@@ -233,7 +233,9 @@ async def test_base_generator_cache_cleanup_variants(
     """Cover cache cleanup no-op, expiry removal, and oldest-entry trimming."""
     generator = dc.BaseCardGenerator(_hass(), _TemplatesStub())
 
-    monkeypatch.setattr(dc.asyncio, "get_running_loop", lambda: SimpleNamespace(time=lambda: 500.0))
+    monkeypatch.setattr(
+        dc.asyncio, "get_running_loop", lambda: SimpleNamespace(time=lambda: 500.0)
+    )
     monkeypatch.setattr(dc, "_cache_cleanup_threshold", 100)
 
     monkeypatch.setattr(dc, "_entity_validation_cache", {"sensor.keep": (490.0, True)})
@@ -245,6 +247,7 @@ async def test_base_generator_cache_cleanup_variants(
     monkeypatch.setattr(dc, "_entity_validation_cache", large_cache)
     await generator._cleanup_validation_cache()
     assert len(dc._entity_validation_cache) <= dc.VALIDATION_CACHE_SIZE
+
 
 @pytest.mark.asyncio
 async def test_overview_generator_paths(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -276,7 +279,9 @@ async def test_overview_generator_paths(monkeypatch: pytest.MonkeyPatch) -> None
     assert await generator.generate_dogs_grid([{}], "/paw") is None
     assert await generator.generate_dogs_grid([_dog("only-id", "")], "/paw") is None
     generator._validate_entities_batch = AsyncMock(return_value=["sensor.alpha_status"])  # type: ignore[method-assign]
-    grid = await generator.generate_dogs_grid([_dog("alpha", "Alpha"), _dog("beta", "Beta")], "/paw")
+    grid = await generator.generate_dogs_grid(
+        [_dog("alpha", "Alpha"), _dog("beta", "Beta")], "/paw"
+    )
     assert grid is not None
     assert grid["type"] == "grid"
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
@@ -293,7 +298,9 @@ async def test_overview_generator_paths(monkeypatch: pytest.MonkeyPatch) -> None
     assert actions is not None
     assert len(actions["cards"]) == 3
 
-    feeding_only = [_dog("feed", "Feed", modules={MODULE_FEEDING: True, MODULE_WALK: False})]
+    feeding_only = [
+        _dog("feed", "Feed", modules={MODULE_FEEDING: True, MODULE_WALK: False})
+    ]
     generator._validate_entities_batch = AsyncMock(
         return_value=[f"button.{dc.DOMAIN}_feed_all_dogs"],
     )  # type: ignore[method-assign]
@@ -350,7 +357,10 @@ async def test_dog_generator_core_paths(monkeypatch: pytest.MonkeyPatch) -> None
 
     assert generator._build_action_button_cards(None) == []
     assert generator._build_action_button_cards([]) == []
-    built = generator._build_action_button_cards([{"type": "button"}, {"type": "conditional"}])
+    built = generator._build_action_button_cards([
+        {"type": "button"},
+        {"type": "conditional"},
+    ])
     assert built[0]["type"] == "horizontal-stack"
 
     generator = dc.DogCardGenerator(_hass(), templates)
@@ -370,11 +380,26 @@ async def test_dog_generator_core_paths(monkeypatch: pytest.MonkeyPatch) -> None
     map_card = await generator._generate_gps_map_card("gamma", {"zoom": "8"})
     assert map_card["type"] == "map"
 
-    assert await generator._generate_activity_graph_card(_dog("gamma", "Gamma"), {"show_activity_graph": False}) is None
-    assert await generator._generate_activity_graph_card({}, {"show_activity_graph": True}) is None
+    assert (
+        await generator._generate_activity_graph_card(
+            _dog("gamma", "Gamma"), {"show_activity_graph": False}
+        )
+        is None
+    )
+    assert (
+        await generator._generate_activity_graph_card({}, {"show_activity_graph": True})
+        is None
+    )
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
-    assert await generator._generate_activity_graph_card(_dog("gamma", "Gamma"), {"show_activity_graph": True}) is None
-    generator._validate_entities_batch = AsyncMock(return_value=["sensor.gamma_activity_level"])  # type: ignore[method-assign]
+    assert (
+        await generator._generate_activity_graph_card(
+            _dog("gamma", "Gamma"), {"show_activity_graph": True}
+        )
+        is None
+    )
+    generator._validate_entities_batch = AsyncMock(
+        return_value=["sensor.gamma_activity_level"]
+    )  # type: ignore[method-assign]
     activity = await generator._generate_activity_graph_card(
         _dog("gamma", "Gamma", modules={MODULE_WALK: True}),
         {"show_activity_graph": True},
@@ -420,18 +445,25 @@ async def test_health_aware_feeding_generator_paths(
 
     generator = dc.HealthAwareFeedingCardGenerator(_hass(), templates)
     generator._entity_exists_cached = AsyncMock(return_value=False)  # type: ignore[method-assign]
-    assert await generator._generate_health_feeding_status_card("dog", "Dog", {}, "en") is None
+    assert (
+        await generator._generate_health_feeding_status_card("dog", "Dog", {}, "en")
+        is None
+    )
     generator._entity_exists_cached = AsyncMock(return_value=True)  # type: ignore[method-assign]
     assert await generator._generate_health_feeding_status_card("dog", "Dog", {}, "en")
 
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
     assert await generator._generate_calorie_tracking_card("dog", {}, "en") is None
-    generator._validate_entities_batch = AsyncMock(return_value=["sensor.dog_calories_consumed_today"])  # type: ignore[method-assign]
+    generator._validate_entities_batch = AsyncMock(
+        return_value=["sensor.dog_calories_consumed_today"]
+    )  # type: ignore[method-assign]
     assert await generator._generate_calorie_tracking_card("dog", {}, "en")
 
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
     assert await generator._generate_weight_management_card("dog", {}, "en") is None
-    generator._validate_entities_batch = AsyncMock(return_value=["sensor.dog_current_weight"])  # type: ignore[method-assign]
+    generator._validate_entities_batch = AsyncMock(
+        return_value=["sensor.dog_current_weight"]
+    )  # type: ignore[method-assign]
     assert await generator._generate_weight_management_card("dog", {}, "en")
 
     generator._entity_exists_cached = AsyncMock(return_value=False)  # type: ignore[method-assign]
@@ -444,6 +476,7 @@ async def test_health_aware_feeding_generator_paths(
     assert controls
     smart = generator._generate_smart_feeding_buttons("dog", {}, "en")
     assert smart["type"] == "grid"
+
 
 @pytest.mark.asyncio
 async def test_module_generator_feeding_walk_health_notification_visitor_and_gps_paths(
@@ -496,7 +529,9 @@ async def test_module_generator_feeding_walk_health_notification_visitor_and_gps
     generator._generate_standard_feeding_cards = AsyncMock(
         return_value=[{"type": "entities", "title": "fallback"}],
     )  # type: ignore[method-assign]
-    generator._generate_feeding_history_card = AsyncMock(side_effect=RuntimeError("history failed"))  # type: ignore[method-assign]
+    generator._generate_feeding_history_card = AsyncMock(
+        side_effect=RuntimeError("history failed")
+    )  # type: ignore[method-assign]
     fallback_cards = await generator.generate_feeding_cards(
         _dog("feed2", "Feed2", modules={MODULE_FEEDING: True, MODULE_HEALTH: True}),
         {},
@@ -505,10 +540,14 @@ async def test_module_generator_feeding_walk_health_notification_visitor_and_gps
     monkeypatch.setattr(dc.asyncio, "gather", original_gather)
 
     generator = dc.ModuleCardGenerator(_hass(), templates)
-    generator._validate_entities_batch = AsyncMock(return_value=["sensor.feed_next_meal_time"])  # type: ignore[method-assign]
+    generator._validate_entities_batch = AsyncMock(
+        return_value=["sensor.feed_next_meal_time"]
+    )  # type: ignore[method-assign]
     standard_cards = await generator._generate_standard_feeding_cards("feed")
     assert standard_cards
-    templates.get_feeding_controls_template = AsyncMock(side_effect=RuntimeError("template error"))
+    templates.get_feeding_controls_template = AsyncMock(
+        side_effect=RuntimeError("template error")
+    )
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
     assert await generator._generate_standard_feeding_cards("feed") == []
 
@@ -526,19 +565,27 @@ async def test_module_generator_feeding_walk_health_notification_visitor_and_gps
         return_value=["binary_sensor.walkdog_is_walking", "sensor.walkdog_walks_today"],
     )  # type: ignore[method-assign]
     generator._generate_walk_history_card = AsyncMock(
-        return_value={"type": "history-graph", "entities": ["sensor.walkdog_walks_today"]},
+        return_value={
+            "type": "history-graph",
+            "entities": ["sensor.walkdog_walks_today"],
+        },
     )  # type: ignore[method-assign]
     walk_cards = await generator.generate_walk_cards(
         _dog("walkdog", "Walk Dog", modules={MODULE_WALK: True}),
         {},
     )
     assert walk_cards
-    generator._generate_walk_history_card = AsyncMock(side_effect=RuntimeError("walk history failed"))  # type: ignore[method-assign]
+    generator._generate_walk_history_card = AsyncMock(
+        side_effect=RuntimeError("walk history failed")
+    )  # type: ignore[method-assign]
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
-    assert await generator.generate_walk_cards(
-        _dog("walkdog", "Walk Dog", modules={MODULE_WALK: True}),
-        {},
-    ) == []
+    assert (
+        await generator.generate_walk_cards(
+            _dog("walkdog", "Walk Dog", modules={MODULE_WALK: True}),
+            {},
+        )
+        == []
+    )
 
     assert await generator.generate_health_cards({}, {}) == []
     generator._validate_entities_batch = AsyncMock(
@@ -561,7 +608,9 @@ async def test_module_generator_feeding_walk_health_notification_visitor_and_gps
         side_effect=[RuntimeError("metrics"), RuntimeError("dates")],
     )  # type: ignore[method-assign]
     generator._entity_exists_cached = AsyncMock(return_value=True)  # type: ignore[method-assign]
-    templates.get_history_graph_template = AsyncMock(side_effect=RuntimeError("weight chart failed"))
+    templates.get_history_graph_template = AsyncMock(
+        side_effect=RuntimeError("weight chart failed")
+    )
     health_error_cards = await generator.generate_health_cards(
         _dog("hdog", "Health", modules={MODULE_HEALTH: True}),
         {},
@@ -569,10 +618,13 @@ async def test_module_generator_feeding_walk_health_notification_visitor_and_gps
     assert health_error_cards
 
     assert await generator.generate_notification_cards({}, {}) == []
-    assert await generator.generate_notification_cards(
-        _dog("n1", "N1", modules={MODULE_NOTIFICATIONS: False}),
-        {},
-    ) == []
+    assert (
+        await generator.generate_notification_cards(
+            _dog("n1", "N1", modules={MODULE_NOTIFICATIONS: False}),
+            {},
+        )
+        == []
+    )
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
     templates.get_notification_settings_card_template = AsyncMock(return_value=None)
     notification_cards = await generator.generate_notification_cards(
@@ -582,10 +634,13 @@ async def test_module_generator_feeding_walk_health_notification_visitor_and_gps
     assert len(notification_cards) == 2
 
     assert await generator.generate_visitor_cards({}, {}) == []
-    assert await generator.generate_visitor_cards(
-        _dog("v1", "V1", modules={MODULE_VISITOR: False}),
-        {},
-    ) == []
+    assert (
+        await generator.generate_visitor_cards(
+            _dog("v1", "V1", modules={MODULE_VISITOR: False}),
+            {},
+        )
+        == []
+    )
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
     visitor_cards = await generator.generate_visitor_cards(
         _dog("v1", "V1", modules={MODULE_VISITOR: True}),
@@ -604,7 +659,12 @@ async def test_module_generator_feeding_walk_health_notification_visitor_and_gps
 
     assert await generator.generate_gps_cards({}, {}) == []
     generator._entity_exists_cached = AsyncMock(return_value=False)  # type: ignore[method-assign]
-    assert await generator.generate_gps_cards(_dog("g1", "G1", modules={MODULE_GPS: True}), {}) == []
+    assert (
+        await generator.generate_gps_cards(
+            _dog("g1", "G1", modules={MODULE_GPS: True}), {}
+        )
+        == []
+    )
 
     generator._entity_exists_cached = AsyncMock(return_value=True)  # type: ignore[method-assign]
     templates.get_map_card_template = AsyncMock(side_effect=RuntimeError("map failed"))
@@ -615,14 +675,19 @@ async def test_module_generator_feeding_walk_health_notification_visitor_and_gps
         ],
     )  # type: ignore[method-assign]
     templates.get_history_graph_template = AsyncMock(
-        return_value={"type": "history-graph", "entities": ["sensor.g1_distance_from_home"]},
+        return_value={
+            "type": "history-graph",
+            "entities": ["sensor.g1_distance_from_home"],
+        },
     )
     gps_cards = await generator.generate_gps_cards(
         _dog("g1", "G1", modules={MODULE_GPS: True}),
         {"zoom": "7"},
     )
     assert gps_cards
-    templates.get_history_graph_template = AsyncMock(side_effect=RuntimeError("history failed"))
+    templates.get_history_graph_template = AsyncMock(
+        side_effect=RuntimeError("history failed")
+    )
     await generator.generate_gps_cards(
         _dog("g1", "G1", modules={MODULE_GPS: True}),
         {"zoom": "7"},
@@ -642,13 +707,24 @@ async def test_weather_generator_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     generator = dc.WeatherCardGenerator(_hass(state_entries), _TemplatesStub())
 
     assert dc.WeatherCardGenerator._normalise_recommendations(None) == []
-    assert dc.WeatherCardGenerator._normalise_recommendations("a; b\nc") == ["a", "b", "c"]
-    assert dc.WeatherCardGenerator._normalise_recommendations({"items": ["x", "y"]}) == ["x", "y"]
-    assert dc.WeatherCardGenerator._normalise_recommendations(["x", {"text": "y"}]) == ["x", "y"]
+    assert dc.WeatherCardGenerator._normalise_recommendations("a; b\nc") == [
+        "a",
+        "b",
+        "c",
+    ]
+    assert dc.WeatherCardGenerator._normalise_recommendations({
+        "items": ["x", "y"]
+    }) == ["x", "y"]
+    assert dc.WeatherCardGenerator._normalise_recommendations(["x", {"text": "y"}]) == [
+        "x",
+        "y",
+    ]
     assert dc.WeatherCardGenerator._normalise_recommendations(42) == ["42"]
 
     assert generator._collect_weather_recommendations("sensor.missing") == []
-    collected = generator._collect_weather_recommendations("sensor.weatherdog_weather_recommendations")
+    collected = generator._collect_weather_recommendations(
+        "sensor.weatherdog_weather_recommendations"
+    )
     assert collected == ["Hydrate", "Shade"]
 
     assert await generator.generate_weather_overview_cards({}, {}) == []
@@ -676,10 +752,13 @@ async def test_weather_generator_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     generator._ensure_dog_config = _ensure_weather_config  # type: ignore[method-assign]
     weather_off = _dog("off", "Off")
     weather_off["weather_enabled"] = False
-    assert await generator.generate_weather_overview_cards(
-        weather_off,
-        {},
-    ) == []
+    assert (
+        await generator.generate_weather_overview_cards(
+            weather_off,
+            {},
+        )
+        == []
+    )
 
     monkeypatch.setattr(
         dc,
@@ -687,12 +766,24 @@ async def test_weather_generator_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda payload: {MODULE_WEATHER: True},
     )
 
-    generator._generate_weather_health_score_card = AsyncMock(return_value={"type": "gauge"})  # type: ignore[method-assign]
-    generator._generate_active_weather_alerts_card = AsyncMock(side_effect=RuntimeError("alerts"))  # type: ignore[method-assign]
-    generator._generate_weather_recommendations_card = AsyncMock(return_value={"type": "markdown"})  # type: ignore[method-assign]
-    generator._generate_current_weather_conditions_card = AsyncMock(return_value={"type": "entities"})  # type: ignore[method-assign]
-    generator._generate_breed_weather_advice_card = AsyncMock(return_value={"type": "markdown"})  # type: ignore[method-assign]
-    generator._generate_weather_forecast_card = AsyncMock(return_value={"type": "vertical-stack"})  # type: ignore[method-assign]
+    generator._generate_weather_health_score_card = AsyncMock(
+        return_value={"type": "gauge"}
+    )  # type: ignore[method-assign]
+    generator._generate_active_weather_alerts_card = AsyncMock(
+        side_effect=RuntimeError("alerts")
+    )  # type: ignore[method-assign]
+    generator._generate_weather_recommendations_card = AsyncMock(
+        return_value={"type": "markdown"}
+    )  # type: ignore[method-assign]
+    generator._generate_current_weather_conditions_card = AsyncMock(
+        return_value={"type": "entities"}
+    )  # type: ignore[method-assign]
+    generator._generate_breed_weather_advice_card = AsyncMock(
+        return_value={"type": "markdown"}
+    )  # type: ignore[method-assign]
+    generator._generate_weather_forecast_card = AsyncMock(
+        return_value={"type": "vertical-stack"}
+    )  # type: ignore[method-assign]
     overview_cards = await generator.generate_weather_overview_cards(
         _dog("weatherdog", "Weather Dog", modules={MODULE_WEATHER: True}),
         {"show_breed_advice": True, "show_weather_forecast": True},
@@ -716,22 +807,41 @@ async def test_weather_generator_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     generator = dc.WeatherCardGenerator(_hass(state_entries), _TemplatesStub())
     generator._ensure_dog_config = _ensure_weather_config  # type: ignore[method-assign]
     generator._entity_exists_cached = AsyncMock(return_value=False)  # type: ignore[method-assign]
-    assert await generator._generate_weather_health_score_card("weatherdog", "Weather Dog", {}) is None
+    assert (
+        await generator._generate_weather_health_score_card(
+            "weatherdog", "Weather Dog", {}
+        )
+        is None
+    )
     generator._entity_exists_cached = AsyncMock(return_value=True)  # type: ignore[method-assign]
-    assert await generator._generate_weather_health_score_card("weatherdog", "Weather Dog", {})
+    assert await generator._generate_weather_health_score_card(
+        "weatherdog", "Weather Dog", {}
+    )
 
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
-    assert await generator._generate_active_weather_alerts_card("weatherdog", "Weather Dog", {}) is None
+    assert (
+        await generator._generate_active_weather_alerts_card(
+            "weatherdog", "Weather Dog", {}
+        )
+        is None
+    )
     generator._validate_entities_batch = AsyncMock(
         return_value=[
             "binary_sensor.weatherdog_heat_stress_alert",
             "binary_sensor.weatherdog_uv_exposure_alert",
         ],
     )  # type: ignore[method-assign]
-    assert await generator._generate_active_weather_alerts_card("weatherdog", "Weather Dog", {})
+    assert await generator._generate_active_weather_alerts_card(
+        "weatherdog", "Weather Dog", {}
+    )
 
     generator._entity_exists_cached = AsyncMock(return_value=False)  # type: ignore[method-assign]
-    assert await generator._generate_weather_recommendations_card("weatherdog", "Weather Dog", {}) is None
+    assert (
+        await generator._generate_weather_recommendations_card(
+            "weatherdog", "Weather Dog", {}
+        )
+        is None
+    )
     generator._entity_exists_cached = AsyncMock(return_value=True)  # type: ignore[method-assign]
     recommendation_card = await generator._generate_weather_recommendations_card(
         "weatherdog",
@@ -741,21 +851,31 @@ async def test_weather_generator_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     assert recommendation_card is not None
 
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
-    assert await generator._generate_current_weather_conditions_card("weatherdog", "Weather Dog", {}) is None
+    assert (
+        await generator._generate_current_weather_conditions_card(
+            "weatherdog", "Weather Dog", {}
+        )
+        is None
+    )
     generator._validate_entities_batch = AsyncMock(
         return_value=[
             "sensor.weatherdog_temperature_impact",
             "sensor.weatherdog_uv_exposure_level",
         ],
     )  # type: ignore[method-assign]
-    assert await generator._generate_current_weather_conditions_card("weatherdog", "Weather Dog", {})
+    assert await generator._generate_current_weather_conditions_card(
+        "weatherdog", "Weather Dog", {}
+    )
 
     assert await generator._generate_breed_weather_advice_card({}, {}) is None
     generator._entity_exists_cached = AsyncMock(return_value=False)  # type: ignore[method-assign]
-    assert await generator._generate_breed_weather_advice_card(
-        _dog("weatherdog", "Weather Dog"),
-        {},
-    ) is None
+    assert (
+        await generator._generate_breed_weather_advice_card(
+            _dog("weatherdog", "Weather Dog"),
+            {},
+        )
+        is None
+    )
     generator._entity_exists_cached = AsyncMock(return_value=True)  # type: ignore[method-assign]
     assert await generator._generate_breed_weather_advice_card(
         _dog(
@@ -768,16 +888,24 @@ async def test_weather_generator_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     generator._entity_exists_cached = AsyncMock(return_value=False)  # type: ignore[method-assign]
-    assert await generator._generate_weather_forecast_card("weatherdog", "Weather Dog", {}) is None
+    assert (
+        await generator._generate_weather_forecast_card("weatherdog", "Weather Dog", {})
+        is None
+    )
     generator._entity_exists_cached = AsyncMock(return_value=True)  # type: ignore[method-assign]
-    assert await generator._generate_weather_forecast_card("weatherdog", "Weather Dog", {})
+    assert await generator._generate_weather_forecast_card(
+        "weatherdog", "Weather Dog", {}
+    )
 
     assert await generator.generate_weather_controls_card({}, {}) is None
     generator._entity_exists_cached = AsyncMock(return_value=False)  # type: ignore[method-assign]
-    assert await generator.generate_weather_controls_card(
-        _dog("weatherdog", "Weather Dog"),
-        {},
-    ) is None
+    assert (
+        await generator.generate_weather_controls_card(
+            _dog("weatherdog", "Weather Dog"),
+            {},
+        )
+        is None
+    )
     generator._entity_exists_cached = AsyncMock(return_value=True)  # type: ignore[method-assign]
     assert await generator.generate_weather_controls_card(
         _dog("weatherdog", "Weather Dog"),
@@ -786,10 +914,13 @@ async def test_weather_generator_paths(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert await generator.generate_weather_history_card({}, {}) is None
     generator._validate_entities_batch = AsyncMock(return_value=[])  # type: ignore[method-assign]
-    assert await generator.generate_weather_history_card(
-        _dog("weatherdog", "Weather Dog"),
-        {},
-    ) is None
+    assert (
+        await generator.generate_weather_history_card(
+            _dog("weatherdog", "Weather Dog"),
+            {},
+        )
+        is None
+    )
     generator._validate_entities_batch = AsyncMock(
         return_value=["sensor.weatherdog_weather_health_score"],
     )  # type: ignore[method-assign]
@@ -820,16 +951,29 @@ async def test_statistics_generator_and_global_helpers(
 
     assert await generator.generate_statistics_cards([], {}) == []
 
-    generator._generate_activity_statistics = AsyncMock(return_value={"type": "statistics-graph"})  # type: ignore[method-assign]
-    generator._generate_feeding_statistics = AsyncMock(side_effect=RuntimeError("feeding stats failed"))  # type: ignore[method-assign]
-    generator._generate_walk_statistics = AsyncMock(return_value={"type": "statistics-graph"})  # type: ignore[method-assign]
-    generator._generate_health_statistics = AsyncMock(return_value={"type": "statistics-graph"})  # type: ignore[method-assign]
+    generator._generate_activity_statistics = AsyncMock(
+        return_value={"type": "statistics-graph"}
+    )  # type: ignore[method-assign]
+    generator._generate_feeding_statistics = AsyncMock(
+        side_effect=RuntimeError("feeding stats failed")
+    )  # type: ignore[method-assign]
+    generator._generate_walk_statistics = AsyncMock(
+        return_value={"type": "statistics-graph"}
+    )  # type: ignore[method-assign]
+    generator._generate_health_statistics = AsyncMock(
+        return_value={"type": "statistics-graph"}
+    )  # type: ignore[method-assign]
     cards = await generator.generate_statistics_cards(
         dogs,
         {"theme": "modern"},
         coordinator_statistics={"rejection_metrics": {"rejected_call_count": 1}},
         service_execution_metrics={"rejected_call_count": 2},
-        service_guard_metrics={"executed": 1, "skipped": 0, "reasons": {}, "last_results": []},
+        service_guard_metrics={
+            "executed": 1,
+            "skipped": 0,
+            "reasons": {},
+            "last_results": [],
+        },
     )
     assert cards
     assert generator.performance_stats["errors_handled"] >= 1
@@ -845,33 +989,51 @@ async def test_statistics_generator_and_global_helpers(
     assert timeout_cards
 
     generator = dc.StatisticsCardGenerator(_hass(), templates)
-    generator._validate_entities_batch = AsyncMock(return_value=["sensor.s1_activity_level"])  # type: ignore[method-assign]
+    generator._validate_entities_batch = AsyncMock(
+        return_value=["sensor.s1_activity_level"]
+    )  # type: ignore[method-assign]
     assert await generator._generate_activity_statistics([_dog("s1", "S1")], "modern")
-    assert await generator._generate_activity_statistics(
-        [{DOG_ID_FIELD: "", DOG_NAME_FIELD: "NoId", DOG_MODULES_FIELD: {}}],
-        "modern",
-    ) is None
+    assert (
+        await generator._generate_activity_statistics(
+            [{DOG_ID_FIELD: "", DOG_NAME_FIELD: "NoId", DOG_MODULES_FIELD: {}}],
+            "modern",
+        )
+        is None
+    )
 
-    generator._validate_entities_batch = AsyncMock(return_value=["sensor.s1_meals_today"])  # type: ignore[method-assign]
+    generator._validate_entities_batch = AsyncMock(
+        return_value=["sensor.s1_meals_today"]
+    )  # type: ignore[method-assign]
     assert await generator._generate_feeding_statistics([_dog("s1", "S1")], "modern")
-    assert await generator._generate_feeding_statistics(
-        [_dog("s2", "S2", modules={MODULE_FEEDING: False})],
-        "modern",
-    ) is None
+    assert (
+        await generator._generate_feeding_statistics(
+            [_dog("s2", "S2", modules={MODULE_FEEDING: False})],
+            "modern",
+        )
+        is None
+    )
 
-    generator._validate_entities_batch = AsyncMock(return_value=["sensor.s1_walk_distance_today"])  # type: ignore[method-assign]
+    generator._validate_entities_batch = AsyncMock(
+        return_value=["sensor.s1_walk_distance_today"]
+    )  # type: ignore[method-assign]
     assert await generator._generate_walk_statistics([_dog("s1", "S1")], "modern")
-    assert await generator._generate_walk_statistics(
-        [_dog("s2", "S2", modules={MODULE_WALK: False})],
-        "modern",
-    ) is None
+    assert (
+        await generator._generate_walk_statistics(
+            [_dog("s2", "S2", modules={MODULE_WALK: False})],
+            "modern",
+        )
+        is None
+    )
 
     generator._validate_entities_batch = AsyncMock(return_value=["sensor.s1_weight"])  # type: ignore[method-assign]
     assert await generator._generate_health_statistics([_dog("s1", "S1")], "modern")
-    assert await generator._generate_health_statistics(
-        [_dog("s2", "S2", modules={MODULE_HEALTH: False})],
-        "modern",
-    ) is None
+    assert (
+        await generator._generate_health_statistics(
+            [_dog("s2", "S2", modules={MODULE_HEALTH: False})],
+            "modern",
+        )
+        is None
+    )
 
     summary = generator._generate_summary_card([_dog("s1", "S1")], "modern")
     assert summary["type"] == "markdown"
@@ -913,7 +1075,9 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
 
     # Cover cache cleanup branch that trims oldest entries after expiry pruning.
     base_generator = dc.BaseCardGenerator(_hass(), templates)
-    monkeypatch.setattr(dc.asyncio, "get_running_loop", lambda: SimpleNamespace(time=lambda: 1000.0))
+    monkeypatch.setattr(
+        dc.asyncio, "get_running_loop", lambda: SimpleNamespace(time=lambda: 1000.0)
+    )
     recent_overflow = {
         f"sensor.cache_{idx}": (999.0 + idx * 0.001, True)
         for idx in range(dc.VALIDATION_CACHE_SIZE + 5)
@@ -931,13 +1095,25 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
             DOG_MODULES_FIELD: {},
         }
     ]
-    assert await overview_generator._count_active_dogs(overview_generator._ensure_dog_configs([])) == 0
-    assert await overview_generator.generate_dogs_grid([_dog("ignored", "Ignored")], "/paw") is None
+    assert (
+        await overview_generator._count_active_dogs(
+            overview_generator._ensure_dog_configs([])
+        )
+        == 0
+    )
+    assert (
+        await overview_generator.generate_dogs_grid(
+            [_dog("ignored", "Ignored")], "/paw"
+        )
+        is None
+    )
 
     # Dog overview branches for skipped optional cards and per-task failures.
     dog_generator = dc.DogCardGenerator(_hass(), templates)
     assert await dog_generator._generate_dog_header_card({}, {}) is None
-    templates.get_action_buttons_template = AsyncMock(return_value=[{"type": "conditional"}])
+    templates.get_action_buttons_template = AsyncMock(
+        return_value=[{"type": "conditional"}]
+    )
     cards_without_optional = await dog_generator.generate_dog_overview_cards(
         _dog("minimal", "Minimal", modules={MODULE_GPS: False, MODULE_WALK: False}),
         {},
@@ -949,9 +1125,15 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
     ]
 
     erroring_dog_generator = dc.DogCardGenerator(_hass(), templates)
-    erroring_dog_generator._generate_dog_header_card = AsyncMock(side_effect=RuntimeError("header failed"))  # type: ignore[method-assign]
-    erroring_dog_generator._generate_gps_map_card = AsyncMock(return_value={"type": "map"})  # type: ignore[method-assign]
-    erroring_dog_generator._generate_activity_graph_card = AsyncMock(return_value={"type": "history-graph"})  # type: ignore[method-assign]
+    erroring_dog_generator._generate_dog_header_card = AsyncMock(
+        side_effect=RuntimeError("header failed")
+    )  # type: ignore[method-assign]
+    erroring_dog_generator._generate_gps_map_card = AsyncMock(
+        return_value={"type": "map"}
+    )  # type: ignore[method-assign]
+    erroring_dog_generator._generate_activity_graph_card = AsyncMock(
+        return_value={"type": "history-graph"}
+    )  # type: ignore[method-assign]
     templates.get_action_buttons_template = AsyncMock(return_value=[{"type": "button"}])
     errored_cards = await erroring_dog_generator.generate_dog_overview_cards(
         _dog("errdog", "Err Dog", modules={MODULE_GPS: True, MODULE_WALK: True}),
@@ -961,7 +1143,9 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
     assert errored_cards
 
     activity_generator = dc.DogCardGenerator(_hass(), templates)
-    activity_generator._validate_entities_batch = AsyncMock(return_value=["sensor.nowalk_activity_level"])  # type: ignore[method-assign]
+    activity_generator._validate_entities_batch = AsyncMock(
+        return_value=["sensor.nowalk_activity_level"]
+    )  # type: ignore[method-assign]
     activity_card = await activity_generator._generate_activity_graph_card(
         _dog("nowalk", "No Walk", modules={MODULE_WALK: False}),
         {"show_activity_graph": True},
@@ -997,7 +1181,11 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
     )
     module_generator._generate_feeding_history_card = AsyncMock(return_value=None)  # type: ignore[method-assign]
     health_path_cards = await module_generator.generate_feeding_cards(
-        _dog("modulehealth", "Module Health", modules={MODULE_FEEDING: True, MODULE_HEALTH: True}),
+        _dog(
+            "modulehealth",
+            "Module Health",
+            modules={MODULE_FEEDING: True, MODULE_HEALTH: True},
+        ),
         {},
     )
     assert health_path_cards
@@ -1005,7 +1193,9 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
     module_generator._generate_standard_feeding_cards = AsyncMock(return_value=[])  # type: ignore[method-assign]
     module_generator._generate_feeding_history_card = AsyncMock(return_value=None)  # type: ignore[method-assign]
     standard_only_cards = await module_generator.generate_feeding_cards(
-        _dog("standard", "Standard", modules={MODULE_FEEDING: True, MODULE_HEALTH: False}),
+        _dog(
+            "standard", "Standard", modules={MODULE_FEEDING: True, MODULE_HEALTH: False}
+        ),
         {},
     )
     assert standard_only_cards == []
@@ -1021,7 +1211,10 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
     assert walk_cards
 
     module_generator._validate_entities_batch = AsyncMock(
-        side_effect=[["sensor.healthfill_health_status"], ["date.healthfill_next_vet_visit"]],
+        side_effect=[
+            ["sensor.healthfill_health_status"],
+            ["date.healthfill_next_vet_visit"],
+        ],
     )  # type: ignore[method-assign]
     module_generator._entity_exists_cached = AsyncMock(return_value=False)  # type: ignore[method-assign]
     health_cards = await module_generator.generate_health_cards(
@@ -1055,7 +1248,10 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
         },
     )
     weather_generator = dc.WeatherCardGenerator(weather_states, templates)
-    assert dc.WeatherCardGenerator._normalise_recommendations("keep;; ;next") == ["keep", "next"]
+    assert dc.WeatherCardGenerator._normalise_recommendations("keep;; ;next") == [
+        "keep",
+        "next",
+    ]
     collected_fill = weather_generator._collect_weather_recommendations(
         "sensor.fill_weather_recommendations",
     )
@@ -1084,12 +1280,24 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
         DOG_NAME_FIELD: "Branch Dog",
         DOG_MODULES_FIELD: {MODULE_WEATHER: True},
     }
-    weather_generator._generate_weather_health_score_card = AsyncMock(return_value={"type": "gauge"})  # type: ignore[method-assign]
-    weather_generator._generate_active_weather_alerts_card = AsyncMock(return_value={"type": "entities"})  # type: ignore[method-assign]
-    weather_generator._generate_weather_recommendations_card = AsyncMock(return_value={"type": "markdown"})  # type: ignore[method-assign]
-    weather_generator._generate_current_weather_conditions_card = AsyncMock(return_value={"type": "entities"})  # type: ignore[method-assign]
-    weather_generator._generate_breed_weather_advice_card = AsyncMock(return_value={"type": "markdown"})  # type: ignore[method-assign]
-    weather_generator._generate_weather_forecast_card = AsyncMock(return_value={"type": "vertical-stack"})  # type: ignore[method-assign]
+    weather_generator._generate_weather_health_score_card = AsyncMock(
+        return_value={"type": "gauge"}
+    )  # type: ignore[method-assign]
+    weather_generator._generate_active_weather_alerts_card = AsyncMock(
+        return_value={"type": "entities"}
+    )  # type: ignore[method-assign]
+    weather_generator._generate_weather_recommendations_card = AsyncMock(
+        return_value={"type": "markdown"}
+    )  # type: ignore[method-assign]
+    weather_generator._generate_current_weather_conditions_card = AsyncMock(
+        return_value={"type": "entities"}
+    )  # type: ignore[method-assign]
+    weather_generator._generate_breed_weather_advice_card = AsyncMock(
+        return_value={"type": "markdown"}
+    )  # type: ignore[method-assign]
+    weather_generator._generate_weather_forecast_card = AsyncMock(
+        return_value={"type": "vertical-stack"}
+    )  # type: ignore[method-assign]
     monkeypatch.setattr(
         dc,
         "coerce_dog_modules_config",

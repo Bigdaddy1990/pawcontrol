@@ -155,7 +155,9 @@ async def test_reauth_confirm_success_aborts_with_success(
     monkeypatch.setattr(
         flow,
         "async_update_reload_and_abort",
-        AsyncMock(return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"}),
+        AsyncMock(
+            return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"}
+        ),
         raising=False,
     )
 
