@@ -1400,10 +1400,10 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         # Suggest performance mode based on complexity
         suggested_performance = "minimal"
-        if total_dogs >= 3 or has_gps_dogs >= 2:
-            suggested_performance = "balanced"
-        elif total_dogs >= 5 or has_gps_dogs >= 3:
+        if total_dogs >= 5 or has_gps_dogs >= 3:
             suggested_performance = "full"
+        elif total_dogs >= 3 or has_gps_dogs >= 2:
+            suggested_performance = "balanced"
         # Suggest auto-backup for complex setups
         suggested_backup = total_dogs >= 2 or has_health_tracking >= 1
 

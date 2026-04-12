@@ -1221,16 +1221,15 @@ class GardenManager:
         for session in dog_sessions:
             hour = session.start_time.hour
             hour_counts[hour] = hour_counts.get(hour, 0) + 1
-        if hour_counts:
-            most_active_hour = max(hour_counts.items(), key=lambda x: x[1])[0]
-            if 6 <= most_active_hour < 12:
-                stats.most_active_time_of_day = "morning"
-            elif 12 <= most_active_hour < 18:
-                stats.most_active_time_of_day = "afternoon"
-            elif 18 <= most_active_hour < 22:
-                stats.most_active_time_of_day = "evening"
-            else:
-                stats.most_active_time_of_day = "night"
+        most_active_hour = max(hour_counts.items(), key=lambda item: item[1])[0]
+        if 6 <= most_active_hour < 12:
+            stats.most_active_time_of_day = "morning"
+        elif 12 <= most_active_hour < 18:
+            stats.most_active_time_of_day = "afternoon"
+        elif 18 <= most_active_hour < 22:
+            stats.most_active_time_of_day = "evening"
+        else:
+            stats.most_active_time_of_day = "night"
 
         # Find favorite activities
         activity_counts: dict[str, int] = {}

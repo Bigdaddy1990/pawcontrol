@@ -373,13 +373,9 @@ def validate_dog_update_input(
             dog_size = None
         else:
             candidate[DOG_SIZE_FIELD] = dog_size
-    if (
-        dog_weight is not None
-        and dog_size is not None
-        and not validate_dog_weight_for_size(
-            dog_weight,
-            dog_size,
-        )
+    if dog_weight is not None and dog_size is not None and not validate_dog_weight_for_size(
+        dog_weight,
+        dog_size,
     ):
         field_errors[CONF_DOG_WEIGHT] = "weight_size_mismatch"
 
