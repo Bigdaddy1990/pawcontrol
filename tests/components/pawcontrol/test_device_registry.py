@@ -451,7 +451,9 @@ async def test_remove_config_entry_device_covers_iterator_continue_branches(
             self.options = options
             self.entry_id = "iter-branch-entry"
 
-    monkeypatch.setattr("custom_components.pawcontrol.get_runtime_data", lambda *_: None)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.get_runtime_data", lambda *_: None
+    )
 
     def _ensure_dog_config_data(candidate):  # type: ignore[no-untyped-def]
         dog_id = candidate.get(DOG_ID_FIELD)
@@ -483,7 +485,10 @@ async def test_remove_config_entry_device_covers_iterator_continue_branches(
         },
         options={},
     )
-    assert await async_remove_config_entry_device(hass, mapping_entry, orphan_device) is True
+    assert (
+        await async_remove_config_entry_device(hass, mapping_entry, orphan_device)
+        is True
+    )
 
     sequence_entry = _Entry(
         data={
@@ -513,7 +518,10 @@ async def test_remove_config_entry_device_covers_iterator_continue_branches(
             },
         },
     )
-    assert await async_remove_config_entry_device(hass, options_entry, orphan_device) is True
+    assert (
+        await async_remove_config_entry_device(hass, options_entry, orphan_device)
+        is True
+    )
 
 
 @pytest.mark.asyncio
@@ -580,7 +588,9 @@ async def test_remove_config_entry_device_covers_unsanitized_continue_paths(
         "custom_components.pawcontrol.sanitize_dog_id",
         lambda dog_id: "" if str(dog_id).startswith("bad") else sanitize_dog_id(dog_id),
     )
-    monkeypatch.setattr("custom_components.pawcontrol.get_runtime_data", lambda *_: None)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.get_runtime_data", lambda *_: None
+    )
 
     entry = ConfigEntry(
         domain=DOMAIN,
@@ -622,7 +632,9 @@ async def test_remove_config_entry_device_iterator_continue_paths_with_custom_en
     """Cover continue branches for mapping/sequence dogs and option iterators."""
 
     class _Entry:
-        def __init__(self, *, data: dict[str, object], options: dict[str, object]) -> None:
+        def __init__(
+            self, *, data: dict[str, object], options: dict[str, object]
+        ) -> None:
             self.data = data
             self.options = options
             self.entry_id = "iterator-continue-entry"
@@ -689,7 +701,9 @@ async def test_remove_config_entry_device_hits_all_unsanitized_iterator_branches
     """Force all remaining iterator continue branches with deterministic inputs."""
 
     class _Entry:
-        def __init__(self, *, data: dict[str, object], options: dict[str, object]) -> None:
+        def __init__(
+            self, *, data: dict[str, object], options: dict[str, object]
+        ) -> None:
             self.data = data
             self.options = options
             self.entry_id = "iterator-continue-all"

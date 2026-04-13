@@ -1159,8 +1159,8 @@ def test_detach_runtime_from_entry_without_runtime_attribute() -> None:
         entry_id = "without-runtime"
 
     entry = _EntryWithoutRuntime()
-    setattr(entry, "_pawcontrol_runtime_store_version", 1)
-    setattr(entry, "_pawcontrol_runtime_store_created_version", 1)
+    entry._pawcontrol_runtime_store_version = 1
+    entry._pawcontrol_runtime_store_created_version = 1
 
     _detach_runtime_from_entry(cast(PawControlConfigEntryType, entry))
 
@@ -1258,7 +1258,9 @@ def test_pop_runtime_data_entry_runtime_when_store_missing_entry_key(
     entry.runtime_data = runtime_data
     hass = _build_hass(
         entries={entry.entry_id: entry},
-        data={DOMAIN: {"other": DomainRuntimeStoreEntryType(runtime_data=runtime_data)}},
+        data={
+            DOMAIN: {"other": DomainRuntimeStoreEntryType(runtime_data=runtime_data)}
+        },
     )
 
     assert pop_runtime_data(hass, entry) is runtime_data

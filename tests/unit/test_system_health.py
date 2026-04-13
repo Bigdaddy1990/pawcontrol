@@ -859,7 +859,9 @@ def test_attach_runtime_store_history_ignores_non_mapping_sections() -> None:
     assert "runtime_store_timeline_summary" not in info
 
 
-def test_extract_service_execution_metrics_handles_missing_and_invalid_rejection_metrics() -> None:
+def test_extract_service_execution_metrics_handles_missing_and_invalid_rejection_metrics() -> (
+    None
+):
     """Guard extraction should tolerate missing stats and invalid rejection payloads."""
     _, _, rejection_none = _extract_service_execution_metrics(None)
     assert rejection_none["open_breaker_count"] == 0
@@ -883,7 +885,9 @@ def test_threshold_extractors_cover_none_and_root_option_paths() -> None:
     ) == (6, "root_options")
 
 
-def test_resolve_option_threshold_falls_back_to_root_when_system_settings_missing_key() -> None:
+def test_resolve_option_threshold_falls_back_to_root_when_system_settings_missing_key() -> (
+    None
+):
     """Root options should be used when system_settings exists but lacks a value."""
     options = {
         "system_settings": {"resilience_skip_threshold": "invalid"},
@@ -992,7 +996,9 @@ def test_build_guard_summary_handles_non_mapping_and_non_string_reason_keys() ->
         {"executed": 1, "skipped": 1, "reasons": {1: 4, "valid": 2}},
         GuardIndicatorThresholds(),
     )
-    assert all(reason["reason"] != "1" for reason in summary_non_string_key["top_reasons"])
+    assert all(
+        reason["reason"] != "1" for reason in summary_non_string_key["top_reasons"]
+    )
 
 
 def test_build_guard_summary_critical_ratio_path() -> None:
