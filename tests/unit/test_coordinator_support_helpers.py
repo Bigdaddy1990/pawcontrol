@@ -6,6 +6,7 @@ import sys
 
 import pytest
 
+from custom_components.pawcontrol import coordinator_support
 from custom_components.pawcontrol.const import (
     CONF_DOGS,
     CONF_GPS_SOURCE,
@@ -13,7 +14,6 @@ from custom_components.pawcontrol.const import (
     CONF_MODULES,
     CONF_WEBHOOK_ENABLED,
 )
-from custom_components.pawcontrol import coordinator_support
 from custom_components.pawcontrol.coordinator_support import (
     MANAGER_ATTRIBUTES,
     CoordinatorMetrics,

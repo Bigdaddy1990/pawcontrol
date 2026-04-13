@@ -141,7 +141,9 @@ def test_require_coordinator_data_explicit_guard_branches() -> None:
 
 
 @pytest.mark.asyncio
-async def test_handle_errors_async_skips_logging_when_disabled_for_pawcontrol_errors() -> None:
+async def test_handle_errors_async_skips_logging_when_disabled_for_pawcontrol_errors() -> (
+    None
+):
     """Async wrapper should bypass error logging when ``log_errors`` is disabled."""
 
     @handle_errors(
@@ -153,7 +155,9 @@ async def test_handle_errors_async_skips_logging_when_disabled_for_pawcontrol_er
     async def _failing() -> str:
         raise PawControlError("boom", error_code="pc_async")
 
-    with patch("custom_components.pawcontrol.error_decorators._LOGGER.error") as log_error:
+    with patch(
+        "custom_components.pawcontrol.error_decorators._LOGGER.error"
+    ) as log_error:
         assert await _failing() == "fallback"
     log_error.assert_not_called()
 
@@ -190,7 +194,9 @@ def test_handle_errors_sync_skips_logging_when_disabled_for_pawcontrol_errors() 
     def _failing() -> str:
         raise PawControlError("boom", error_code="pc_sync")
 
-    with patch("custom_components.pawcontrol.error_decorators._LOGGER.error") as log_error:
+    with patch(
+        "custom_components.pawcontrol.error_decorators._LOGGER.error"
+    ) as log_error:
         assert _failing() == "fallback"
     log_error.assert_not_called()
 

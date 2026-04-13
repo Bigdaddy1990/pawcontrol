@@ -529,16 +529,14 @@ async def test_notification_flow_notifications_step_skips_non_matching_dog_optio
         "mobile_notifications": True,
     }
 
-    result = await flow.async_step_notifications(
-        {
-            "quiet_hours": False,
-            "quiet_start": "22:00",
-            "quiet_end": "07:00",
-            "reminder_repeat": 60,
-            "priority_notifications": False,
-            "mobile_notifications": True,
-        }
-    )
+    result = await flow.async_step_notifications({
+        "quiet_hours": False,
+        "quiet_start": "22:00",
+        "quiet_end": "07:00",
+        "reminder_repeat": 60,
+        "priority_notifications": False,
+        "mobile_notifications": True,
+    })
 
     assert result["type"] == "create_entry"
     assert DOG_OPTIONS_FIELD not in result["data"]
@@ -658,13 +656,11 @@ async def test_dog_health_step_skips_empty_medications_and_non_dict_feeding_conf
     }
     flow = _DogHealthFlow(current_dog=current_dog)
 
-    result = await flow.async_step_dog_health(
-        {
-            "special_diet_requirements": [],
-            "health_conditions": [],
-            "with_meals": False,
-        }
-    )
+    result = await flow.async_step_dog_health({
+        "special_diet_requirements": [],
+        "health_conditions": [],
+        "with_meals": False,
+    })
 
     assert result == {"type": "add_another"}
     stored_dog = flow._dogs[0]
@@ -778,15 +774,13 @@ async def test_health_options_submit_without_matching_dog_options_entry() -> Non
         dogs=[{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Rex"}],
     )
 
-    result = await flow.async_step_health_settings(
-        {
-            "weight_tracking": True,
-            "medication_reminders": False,
-            "vet_reminders": True,
-            "grooming_reminders": False,
-            "health_alerts": True,
-        }
-    )
+    result = await flow.async_step_health_settings({
+        "weight_tracking": True,
+        "medication_reminders": False,
+        "vet_reminders": True,
+        "grooming_reminders": False,
+        "health_alerts": True,
+    })
 
     assert result["type"] == "create_entry"
     assert DOG_OPTIONS_FIELD not in result["data"]
