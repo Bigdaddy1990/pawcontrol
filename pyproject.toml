@@ -1,6 +1,6 @@
 # pyproject.toml — Tooling für die PawControl Home-Assistant-Integration
 [build-system]
-requires = ["setuptools>=80", "wheel"]
+requires = ["setuptools>=82.0.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
