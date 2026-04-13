@@ -351,7 +351,9 @@ async def test_profile_description_placeholders_cached_handles_invalid_dogs_and_
     second = await host._get_profile_description_placeholders_cached()
 
     assert second is first
-    assert "Milo modules may not be optimal for basic" in first["compatibility_warnings"]
+    assert (
+        "Milo modules may not be optimal for basic" in first["compatibility_warnings"]
+    )
 
 
 @pytest.mark.asyncio
