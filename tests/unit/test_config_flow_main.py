@@ -1495,7 +1495,9 @@ async def test_async_step_add_dog_covers_none_and_exception_paths(
     monkeypatch.setattr(
         flow,
         "_validate_dog_input_cached",
-        AsyncMock(side_effect=FlowValidationError(field_errors={"base": "invalid_dog"})),
+        AsyncMock(
+            side_effect=FlowValidationError(field_errors={"base": "invalid_dog"})
+        ),
     )
     base_error_result = await flow.async_step_add_dog({"dog_id": "buddy"})
     assert base_error_result["errors"]["base"] == "invalid_dog"
@@ -1511,12 +1513,20 @@ async def test_async_step_add_dog_covers_none_and_exception_paths(
     monkeypatch.setattr(
         flow,
         "_validate_dog_input_cached",
-        AsyncMock(return_value={"dog_id": "buddy", "dog_name": "Buddy", "dog_weight": 1}),
+        AsyncMock(
+            return_value={"dog_id": "buddy", "dog_name": "Buddy", "dog_weight": 1}
+        ),
     )
     monkeypatch.setattr(
         flow,
         "_create_dog_config",
-        AsyncMock(return_value={DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}),
+        AsyncMock(
+            return_value={
+                DOG_ID_FIELD: "buddy",
+                DOG_NAME_FIELD: "Buddy",
+                CONF_MODULES: {},
+            }
+        ),
     )
     monkeypatch.setattr(
         flow,
@@ -1640,7 +1650,9 @@ async def test_async_step_reconfigure_covers_form_invalid_profile_and_metadata_p
         entry_id="entry-recfg",
         unique_id=None,
         data={
-            CONF_DOGS: [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}],
+            CONF_DOGS: [
+                {DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy", CONF_MODULES: {}}
+            ],
             "entity_profile": "standard",
         },
         options={},
@@ -1693,7 +1705,12 @@ async def test_async_step_reconfigure_covers_form_invalid_profile_and_metadata_p
     monkeypatch.setattr(
         flow,
         "async_update_reload_and_abort",
-        AsyncMock(return_value={"type": FlowResultType.ABORT, "reason": "reconfigure_successful"}),
+        AsyncMock(
+            return_value={
+                "type": FlowResultType.ABORT,
+                "reason": "reconfigure_successful",
+            }
+        ),
         raising=False,
     )
 

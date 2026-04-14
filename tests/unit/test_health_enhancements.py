@@ -334,9 +334,13 @@ def test_update_health_status_handles_no_due_soon_dewormings_branch() -> None:
 
     snapshot = EnhancedHealthCalculator.update_health_status(profile)
 
-    assert any(alert["type"] == "deworming_overdue" for alert in snapshot["priority_alerts"])
+    assert any(
+        alert["type"] == "deworming_overdue" for alert in snapshot["priority_alerts"]
+    )
     assert any(item["type"] == "vet_appointment" for item in snapshot["upcoming_care"])
-    assert not any(item["type"] == "deworming_due" for item in snapshot["upcoming_care"])
+    assert not any(
+        item["type"] == "deworming_due" for item in snapshot["upcoming_care"]
+    )
 
 
 def test_record_helpers_and_condition_monitoring_recommendations() -> None:
@@ -362,7 +366,9 @@ def test_record_helpers_and_condition_monitoring_recommendations() -> None:
     assert 6 <= recommendation["days_until"] <= 7
 
 
-def test_calculate_next_appointment_recommendation_keeps_age_default_for_unmatched_conditions() -> None:
+def test_calculate_next_appointment_recommendation_keeps_age_default_for_unmatched_conditions() -> (
+    None
+):
     """Non-matching chronic conditions should keep the age-based interval."""
     now = dt_util.now()
     recommendation = EnhancedHealthCalculator.calculate_next_appointment_recommendation(
