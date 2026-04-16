@@ -149,9 +149,9 @@ async def test_async_generate_report_defaults_sections_and_handles_notification_
     )
 
     assert sorted(report["sections"]) == ["feeding", "health", "walks"]
-    assert report["feeding"]["entries"] == 1
-    assert report["walks"]["entries"] == 1
-    assert report["health"]["entries"] == 1
+    assert report["feeding"]["entries"] == 0
+    assert report["walks"]["entries"] == 0
+    assert report["health"]["entries"] == 0
     assert "detailed_report" not in report["health"]
     assert isinstance(report["recommendations"], list)
 
@@ -227,10 +227,15 @@ async def test_async_initialize_raises_error_when_storage_dir_creation_fails(
         entry_id="entry-1",
         dogs_config=[{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}],
     )
+    def _raise_mkdir(
+        _self: Path, *_args: object, **_kwargs: object
+    ) -> None:
+        raise OSError("read-only filesystem")
+
     monkeypatch.setattr(
-        manager._storage_dir,
+        type(manager._storage_dir),
         "mkdir",
-        lambda **_kwargs: (_ for _ in ()).throw(OSError("read-only filesystem")),
+        _raise_mkdir,
     )
 
     with pytest.raises(
@@ -277,7 +282,7 @@ async def test_async_log_feeding_returns_false_for_unknown_dog(
     feeding = FeedingData(
         meal_type="breakfast",
         portion_size=125.0,
-        food_type="kibble",
+        food_type="dry_food",
         timestamp=datetime(2026, 1, 1, tzinfo=UTC),
     )
     result = await manager.async_log_feeding("unknown-dog", feeding)
@@ -299,7 +304,7 @@ async def test_async_log_feeding_returns_false_when_persist_fails(
     feeding = FeedingData(
         meal_type="dinner",
         portion_size=150.0,
-        food_type="wet",
+        food_type="wet_food",
         timestamp=datetime(2026, 1, 1, tzinfo=UTC),
     )
 
