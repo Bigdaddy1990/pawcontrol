@@ -1444,7 +1444,8 @@ async def test_async_step_configure_modules_persists_input_and_routes_forward(
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_minimal_for_simple_setup() -> (  # noqa: E501
+async def test_async_step_configure_modules_form_suggests_minimal_for_simple_setup(
+) -> (
     None
 ):
     """Single-dog setup should suggest minimal performance profile."""
