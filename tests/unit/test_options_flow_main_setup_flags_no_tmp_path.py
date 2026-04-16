@@ -1,7 +1,5 @@
 """Setup-flag coverage tests without tmp_path fixture dependencies."""
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 import shutil
@@ -48,7 +46,9 @@ def test_setup_flag_supported_languages_defaults_to_en_without_files() -> None:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def test_setup_flag_supported_languages_includes_strings_and_translation_files() -> None:
+def test_setup_flag_supported_languages_includes_strings_and_translation_files() -> (
+    None
+):
     temp_dir = _workspace_temp_dir()
     try:
         translations_dir = temp_dir / "translations"
@@ -68,7 +68,9 @@ def test_setup_flag_supported_languages_includes_strings_and_translation_files()
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def test_setup_flag_supported_languages_uses_translation_stems_without_strings() -> None:
+def test_setup_flag_supported_languages_uses_translation_stems_without_strings() -> (
+    None
+):
     temp_dir = _workspace_temp_dir()
     try:
         translations_dir = temp_dir / "translations"
@@ -86,7 +88,9 @@ def test_setup_flag_supported_languages_uses_translation_stems_without_strings()
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def test_load_setup_flag_translations_from_mapping_handles_missing_common_and_invalid_entries() -> None:
+def test_load_setup_flag_translations_from_mapping_handles_missing_common_and_invalid_entries() -> (
+    None
+):
     assert PawControlOptionsFlow._load_setup_flag_translations_from_mapping({}) == {}
     assert (
         PawControlOptionsFlow._load_setup_flag_translations_from_mapping(
@@ -121,10 +125,14 @@ async def test_translation_loaders_handle_missing_non_mapping_and_malformed_json
         assert missing == {}
 
         non_mapping_path = temp_dir / "list.json"
-        non_mapping_path.write_text(json.dumps(["not", "a", "mapping"]), encoding="utf-8")
-        non_mapping = await PawControlOptionsFlow._load_setup_flag_translations_from_path(
-            non_mapping_path,
-            hass,
+        non_mapping_path.write_text(
+            json.dumps(["not", "a", "mapping"]), encoding="utf-8"
+        )
+        non_mapping = (
+            await PawControlOptionsFlow._load_setup_flag_translations_from_path(
+                non_mapping_path,
+                hass,
+            )
         )
         assert non_mapping == {}
 
@@ -134,9 +142,11 @@ async def test_translation_loaders_handle_missing_non_mapping_and_malformed_json
             "WARNING",
             logger="custom_components.pawcontrol.options_flow_main",
         ):
-            malformed = await PawControlOptionsFlow._load_setup_flag_translations_from_path(
-                malformed_path,
-                hass,
+            malformed = (
+                await PawControlOptionsFlow._load_setup_flag_translations_from_path(
+                    malformed_path,
+                    hass,
+                )
             )
         assert malformed == {}
         assert "Failed to parse setup flag translations" in caplog.text
@@ -157,8 +167,10 @@ async def test_translation_loaders_handle_missing_non_mapping_and_malformed_json
             "WARNING",
             logger="custom_components.pawcontrol.options_flow_main",
         ):
-            malformed_sync = PawControlOptionsFlow._load_setup_flag_translations_from_path_sync(
-                malformed_path
+            malformed_sync = (
+                PawControlOptionsFlow._load_setup_flag_translations_from_path_sync(
+                    malformed_path
+                )
             )
         assert malformed_sync == {}
     finally:
@@ -184,12 +196,16 @@ async def test_translation_loaders_return_filtered_mapping_for_valid_json() -> N
             encoding="utf-8",
         )
 
-        async_result = await PawControlOptionsFlow._load_setup_flag_translations_from_path(
-            valid_path,
-            hass,
+        async_result = (
+            await PawControlOptionsFlow._load_setup_flag_translations_from_path(
+                valid_path,
+                hass,
+            )
         )
-        sync_result = PawControlOptionsFlow._load_setup_flag_translations_from_path_sync(
-            valid_path,
+        sync_result = (
+            PawControlOptionsFlow._load_setup_flag_translations_from_path_sync(
+                valid_path,
+            )
         )
 
         assert async_result == {
@@ -202,32 +218,30 @@ async def test_translation_loaders_return_filtered_mapping_for_valid_json() -> N
 
 
 @pytest.mark.asyncio
-async def test_setup_flag_translation_lookup_merges_and_caches_without_tmp_path() -> None:
+async def test_setup_flag_translation_lookup_merges_and_caches_without_tmp_path() -> (
+    None
+):
     temp_dir = _workspace_temp_dir()
     try:
         strings_path = temp_dir / "strings.json"
         strings_path.write_text(
-            json.dumps(
-                {
-                    "common": {
-                        "setup_flags_panel_flag_ready": "Ready",
-                        "manual_event_source_badge_default": "Default",
-                    }
+            json.dumps({
+                "common": {
+                    "setup_flags_panel_flag_ready": "Ready",
+                    "manual_event_source_badge_default": "Default",
                 }
-            ),
+            }),
             encoding="utf-8",
         )
         translations_dir = temp_dir / "translations"
         translations_dir.mkdir()
         (translations_dir / "es.json").write_text(
-            json.dumps(
-                {
-                    "common": {
-                        "setup_flags_panel_flag_ready": "Listo",
-                        "setup_flags_panel_source_default": "Predeterminado",
-                    }
+            json.dumps({
+                "common": {
+                    "setup_flags_panel_flag_ready": "Listo",
+                    "setup_flags_panel_source_default": "Predeterminado",
                 }
-            ),
+            }),
             encoding="utf-8",
         )
 
@@ -243,21 +257,19 @@ async def test_setup_flag_translation_lookup_merges_and_caches_without_tmp_path(
                 mp.setattr(PawControlOptionsFlow, "_STRINGS_PATH", strings_path)
                 mp.setattr(PawControlOptionsFlow, "_TRANSLATIONS_DIR", translations_dir)
 
-                sync_translations = PawControlOptionsFlow._setup_flag_translations_for_language(
-                    "es"
+                sync_translations = (
+                    PawControlOptionsFlow._setup_flag_translations_for_language("es")
                 )
-                sync_cached = PawControlOptionsFlow._setup_flag_translations_for_language("es")
-                async_translations = (
-                    await PawControlOptionsFlow._async_setup_flag_translations_for_language(
-                        "es",
-                        _ExecutorHass(),
-                    )
+                sync_cached = (
+                    PawControlOptionsFlow._setup_flag_translations_for_language("es")
                 )
-                async_cached = (
-                    await PawControlOptionsFlow._async_setup_flag_translations_for_language(
-                        "es",
-                        _ExecutorHass(),
-                    )
+                async_translations = await PawControlOptionsFlow._async_setup_flag_translations_for_language(
+                    "es",
+                    _ExecutorHass(),
+                )
+                async_cached = await PawControlOptionsFlow._async_setup_flag_translations_for_language(
+                    "es",
+                    _ExecutorHass(),
                 )
         finally:
             PawControlOptionsFlow._SETUP_FLAG_EN_TRANSLATIONS = original_en
@@ -274,32 +286,30 @@ async def test_setup_flag_translation_lookup_merges_and_caches_without_tmp_path(
 
 
 @pytest.mark.asyncio
-async def test_async_setup_flag_translations_initializes_base_and_overlay_without_sync() -> None:
+async def test_async_setup_flag_translations_initializes_base_and_overlay_without_sync() -> (
+    None
+):
     temp_dir = _workspace_temp_dir()
     try:
         strings_path = temp_dir / "strings.json"
         strings_path.write_text(
-            json.dumps(
-                {
-                    "common": {
-                        "setup_flags_panel_flag_ready": "Ready",
-                        "manual_event_source_badge_default": "Default",
-                    }
+            json.dumps({
+                "common": {
+                    "setup_flags_panel_flag_ready": "Ready",
+                    "manual_event_source_badge_default": "Default",
                 }
-            ),
+            }),
             encoding="utf-8",
         )
         translations_dir = temp_dir / "translations"
         translations_dir.mkdir()
         (translations_dir / "pt.json").write_text(
-            json.dumps(
-                {
-                    "common": {
-                        "setup_flags_panel_flag_ready": "Pronto",
-                        "setup_flags_panel_source_default": "Padrão",
-                    }
+            json.dumps({
+                "common": {
+                    "setup_flags_panel_flag_ready": "Pronto",
+                    "setup_flags_panel_source_default": "Padrão",
                 }
-            ),
+            }),
             encoding="utf-8",
         )
 
