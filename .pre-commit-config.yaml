@@ -45,6 +45,7 @@ repos:
     hooks:
       - id: ruff-check
         args:
+          - --preview
           - --fix
           - --show-fixes
           - --unsafe-fixes
