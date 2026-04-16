@@ -47,7 +47,7 @@ async def _setup_runtime_data(
 
 
 @pytest.mark.asyncio
-async def test_default_meal_type_select_persists_config(
+async def test_default_meal_type_select_persists_config(  # noqa: D103
     mock_hass,
     mock_config_entry,
     mock_coordinator,
@@ -78,7 +78,7 @@ async def test_default_meal_type_select_persists_config(
 
 
 @pytest.mark.asyncio
-async def test_feeding_mode_select_persists_config_and_refreshes(
+async def test_feeding_mode_select_persists_config_and_refreshes(  # noqa: D103
     mock_hass,
     mock_config_entry,
     mock_coordinator,
@@ -106,7 +106,7 @@ async def test_feeding_mode_select_persists_config_and_refreshes(
 
 
 @pytest.mark.asyncio
-async def test_walk_mode_select_persists_config(
+async def test_walk_mode_select_persists_config(  # noqa: D103
     mock_hass,
     mock_config_entry,
     mock_coordinator,

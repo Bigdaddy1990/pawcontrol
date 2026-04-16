@@ -1,4 +1,4 @@
-import json
+import json  # noqa: D100
 from pathlib import Path
 
 from scripts.hassfest import run
@@ -27,20 +27,20 @@ def _build_stub_integration(tmp_path: Path, *, domain: str = "demo") -> Path:
     return integration_path
 
 
-def test_hassfest_stub_passes_for_valid_integration(tmp_path: Path) -> None:
+def test_hassfest_stub_passes_for_valid_integration(tmp_path: Path) -> None:  # noqa: D103
     integration_path = _build_stub_integration(tmp_path)
 
     assert run(["--integration-path", str(integration_path)]) == 0
 
 
-def test_hassfest_stub_reports_missing_translations(tmp_path: Path) -> None:
+def test_hassfest_stub_reports_missing_translations(tmp_path: Path) -> None:  # noqa: D103
     integration_path = _build_stub_integration(tmp_path, domain="missing")
     (integration_path / "translations" / "en.json").unlink()
 
     assert run(["--integration-path", str(integration_path)]) == 1
 
 
-def test_hassfest_stub_rejects_invalid_iot_class(tmp_path: Path) -> None:
+def test_hassfest_stub_rejects_invalid_iot_class(tmp_path: Path) -> None:  # noqa: D103
     integration_path = _build_stub_integration(tmp_path, domain="invalid_iot")
     manifest_path = integration_path / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
@@ -50,7 +50,7 @@ def test_hassfest_stub_rejects_invalid_iot_class(tmp_path: Path) -> None:
     assert run(["--integration-path", str(integration_path)]) == 1
 
 
-def test_hassfest_stub_rejects_non_object_translations(tmp_path: Path) -> None:
+def test_hassfest_stub_rejects_non_object_translations(tmp_path: Path) -> None:  # noqa: D103
     integration_path = _build_stub_integration(
         tmp_path,
         domain="invalid_translation",

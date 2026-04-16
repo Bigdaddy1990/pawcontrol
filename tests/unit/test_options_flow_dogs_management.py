@@ -71,7 +71,7 @@ class _DogManagementHost(DogManagementOptionsMixin):
 
 
 @pytest.mark.asyncio
-async def test_async_step_manage_dogs_routes_actions() -> None:
+async def test_async_step_manage_dogs_routes_actions() -> None:  # noqa: D103
     host = _DogManagementHost()
 
     assert await host.async_step_manage_dogs({"action": "add_dog"}) == {"step": "add"}
@@ -91,7 +91,7 @@ async def test_async_step_manage_dogs_routes_actions() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_step_manage_dogs_builds_placeholders_from_entry_data() -> None:
+async def test_async_step_manage_dogs_builds_placeholders_from_entry_data() -> None:  # noqa: D103
     host = _DogManagementHost()
     host._entry.data[CONF_DOGS] = [{DOG_NAME_FIELD: "Luna", DOG_ID_FIELD: "dog-1"}]
 
@@ -103,7 +103,7 @@ async def test_async_step_manage_dogs_builds_placeholders_from_entry_data() -> N
     assert "Luna (dog-1)" in placeholders["dogs_list"]
 
 
-def test_get_available_door_sensors_filters_non_door_classes() -> None:
+def test_get_available_door_sensors_filters_non_door_classes() -> None:  # noqa: D103
     host = _DogManagementHost()
     host.hass.states = _States({
         "binary_sensor.front_door": SimpleNamespace(
@@ -121,7 +121,7 @@ def test_get_available_door_sensors_filters_non_door_classes() -> None:
     }
 
 
-def test_get_module_description_placeholders_uses_profile_and_modules() -> None:
+def test_get_module_description_placeholders_uses_profile_and_modules() -> None:  # noqa: D103
     host = _DogManagementHost()
     host._entry.options["entity_profile"] = 123
     host._current_dog = {

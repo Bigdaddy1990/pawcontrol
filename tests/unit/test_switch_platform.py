@@ -90,7 +90,7 @@ def _full_modules(**overrides: bool) -> DogModulesConfig:
 class TestProfileOptimizedSwitchFactory:
     """Tests for the profile-based switch factory."""
 
-    def test_always_creates_main_power_and_dnd_switches(self) -> None:
+    def test_always_creates_main_power_and_dnd_switches(self) -> None:  # noqa: D102
         coord = _make_coordinator()
         switches = ProfileOptimizedSwitchFactory.create_switches_for_dog(
             coord, "rex", "Rex", _full_modules()
@@ -99,14 +99,14 @@ class TestProfileOptimizedSwitchFactory:
         assert "PawControlMainPowerSwitch" in types
         assert "PawControlDoNotDisturbSwitch" in types
 
-    def test_visitor_switch_created_when_visitor_module_enabled(self) -> None:
+    def test_visitor_switch_created_when_visitor_module_enabled(self) -> None:  # noqa: D102
         coord = _make_coordinator()
         switches = ProfileOptimizedSwitchFactory.create_switches_for_dog(
             coord, "rex", "Rex", _full_modules(visitor=True)
         )
         assert any(isinstance(s, PawControlVisitorModeSwitch) for s in switches)
 
-    def test_visitor_switch_created_when_no_modules_enabled(self) -> None:
+    def test_visitor_switch_created_when_no_modules_enabled(self) -> None:  # noqa: D102
         coord = _make_coordinator()
         empty_modules: DogModulesConfig = {
             "feeding": False,
@@ -124,7 +124,7 @@ class TestProfileOptimizedSwitchFactory:
         )
         assert any(isinstance(s, PawControlVisitorModeSwitch) for s in switches)
 
-    def test_module_switch_created_per_enabled_module(self) -> None:
+    def test_module_switch_created_per_enabled_module(self) -> None:  # noqa: D102
         coord = _make_coordinator()
         switches = ProfileOptimizedSwitchFactory.create_switches_for_dog(
             coord, "rex", "Rex", _full_modules(grooming=True)
@@ -132,7 +132,7 @@ class TestProfileOptimizedSwitchFactory:
         module_switches = [s for s in switches if isinstance(s, PawControlModuleSwitch)]
         assert len(module_switches) >= 1
 
-    def test_feature_switches_created_for_enabled_gps_module(self) -> None:
+    def test_feature_switches_created_for_enabled_gps_module(self) -> None:  # noqa: D102
         coord = _make_coordinator()
         switches = ProfileOptimizedSwitchFactory.create_switches_for_dog(
             coord, "rex", "Rex", _full_modules()
@@ -142,14 +142,14 @@ class TestProfileOptimizedSwitchFactory:
         ]
         assert len(feature_switches) >= 1
 
-    def test_returns_list_of_switch_instances(self) -> None:
+    def test_returns_list_of_switch_instances(self) -> None:  # noqa: D102
         coord = _make_coordinator()
         switches = ProfileOptimizedSwitchFactory.create_switches_for_dog(
             coord, "rex", "Rex", _full_modules()
         )
         assert all(isinstance(s, OptimizedSwitchBase) for s in switches)
 
-    def test_unique_ids_are_unique(self) -> None:
+    def test_unique_ids_are_unique(self) -> None:  # noqa: D102
         coord = _make_coordinator()
         switches = ProfileOptimizedSwitchFactory.create_switches_for_dog(
             coord, "rex", "Rex", _full_modules()
@@ -173,20 +173,20 @@ class TestOptimizedSwitchBase:
         )
         return switch
 
-    def test_unique_id_set_correctly(self) -> None:
+    def test_unique_id_set_correctly(self) -> None:  # noqa: D102
         switch = self._make()
         assert switch._attr_unique_id == "pawcontrol_rex_test_switch"
 
-    def test_is_on_reflects_initial_state_false(self) -> None:
+    def test_is_on_reflects_initial_state_false(self) -> None:  # noqa: D102
         switch = self._make(initial_state=False)
         assert switch.is_on is False
 
-    def test_is_on_reflects_initial_state_true(self) -> None:
+    def test_is_on_reflects_initial_state_true(self) -> None:  # noqa: D102
         switch = self._make(initial_state=True)
         assert switch.is_on is True
 
     @pytest.mark.asyncio
-    async def test_turn_on_sets_state_true(self) -> None:
+    async def test_turn_on_sets_state_true(self) -> None:  # noqa: D102
         switch = self._make(initial_state=False)
         switch.hass = MagicMock()
         switch.async_write_ha_state = MagicMock()
@@ -194,25 +194,25 @@ class TestOptimizedSwitchBase:
         assert switch._is_on is True
 
     @pytest.mark.asyncio
-    async def test_turn_off_sets_state_false(self) -> None:
+    async def test_turn_off_sets_state_false(self) -> None:  # noqa: D102
         switch = self._make(initial_state=True)
         switch.hass = MagicMock()
         switch.async_write_ha_state = MagicMock()
         await switch.async_turn_off()
         assert switch._is_on is False
 
-    def test_extra_state_attributes_includes_switch_type(self) -> None:
+    def test_extra_state_attributes_includes_switch_type(self) -> None:  # noqa: D102
         switch = self._make()
         switch.hass = MagicMock()
         attrs = switch.extra_state_attributes
         assert attrs.get("switch_type") == "test_switch"
 
-    def test_translation_key_matches_switch_type(self) -> None:
+    def test_translation_key_matches_switch_type(self) -> None:  # noqa: D102
         switch = self._make()
         assert switch._attr_translation_key == "test_switch"
 
     @pytest.mark.asyncio
-    async def test_async_added_to_hass_restores_last_state(self) -> None:
+    async def test_async_added_to_hass_restores_last_state(self) -> None:  # noqa: D102
         from unittest.mock import patch
 
         switch = self._make()
@@ -225,7 +225,7 @@ class TestOptimizedSwitchBase:
             await switch.async_added_to_hass()
         assert switch._is_on is True
 
-    def test_is_on_uses_hot_cache_before_internal_state(self) -> None:
+    def test_is_on_uses_hot_cache_before_internal_state(self) -> None:  # noqa: D102
         switch = self._make(initial_state=False)
         switch._state_cache[f"{switch._dog_id}_{switch._switch_type}"] = (
             True,
@@ -234,14 +234,14 @@ class TestOptimizedSwitchBase:
         assert switch.is_on is True
 
     @pytest.mark.asyncio
-    async def test_turn_on_wraps_errors_as_homeassistant_error(self) -> None:
+    async def test_turn_on_wraps_errors_as_homeassistant_error(self) -> None:  # noqa: D102
         switch = self._make()
         switch._async_set_state = AsyncMock(side_effect=RuntimeError("boom"))  # type: ignore[method-assign]
         with pytest.raises(HomeAssistantError):
             await switch.async_turn_on()
 
     @pytest.mark.asyncio
-    async def test_turn_off_wraps_errors_as_homeassistant_error(self) -> None:
+    async def test_turn_off_wraps_errors_as_homeassistant_error(self) -> None:  # noqa: D102
         switch = self._make(initial_state=True)
         switch._async_set_state = AsyncMock(side_effect=RuntimeError("boom"))  # type: ignore[method-assign]
         with pytest.raises(HomeAssistantError):
@@ -260,16 +260,16 @@ class TestPawControlMainPowerSwitch:
         coord = _make_coordinator()
         return PawControlMainPowerSwitch(coord, "rex", "Rex")
 
-    def test_initial_state_is_on(self) -> None:
+    def test_initial_state_is_on(self) -> None:  # noqa: D102
         switch = self._make()
         assert switch._is_on is True
 
-    def test_unique_id_format(self) -> None:
+    def test_unique_id_format(self) -> None:  # noqa: D102
         switch = self._make()
         assert switch._attr_unique_id == "pawcontrol_rex_main_power"
 
     @pytest.mark.asyncio
-    async def test_set_state_skips_when_hass_missing(self) -> None:
+    async def test_set_state_skips_when_hass_missing(self) -> None:  # noqa: D102
         switch = self._make()
         switch.hass = None
         switch.coordinator.async_request_selective_refresh = AsyncMock()
@@ -277,7 +277,7 @@ class TestPawControlMainPowerSwitch:
         switch.coordinator.async_request_selective_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_set_state_refreshes_when_data_manager_available(self) -> None:
+    async def test_set_state_refreshes_when_data_manager_available(self) -> None:  # noqa: D102
         switch = self._make()
         switch.hass = MagicMock()
         data_manager = AsyncMock()
@@ -300,11 +300,11 @@ class TestPawControlDoNotDisturbSwitch:
         coord = _make_coordinator()
         return PawControlDoNotDisturbSwitch(coord, "rex", "Rex")
 
-    def test_initial_state_is_off(self) -> None:
+    def test_initial_state_is_off(self) -> None:  # noqa: D102
         switch = self._make()
         assert switch._is_on is False
 
-    def test_unique_id_format(self) -> None:
+    def test_unique_id_format(self) -> None:  # noqa: D102
         switch = self._make()
         assert switch._attr_unique_id == "pawcontrol_rex_do_not_disturb"
 
@@ -325,22 +325,22 @@ class TestPawControlFeatureSwitch:
             coord, "rex", "Rex", feature_id, "GPS Tracking", "mdi:gps", module
         )
 
-    def test_feature_id_stored(self) -> None:
+    def test_feature_id_stored(self) -> None:  # noqa: D102
         switch = self._make()
         assert switch._feature_id == "gps_tracking"
 
-    def test_module_stored(self) -> None:
+    def test_module_stored(self) -> None:  # noqa: D102
         switch = self._make()
         assert switch._module == "gps"
 
-    def test_extra_state_attributes_contain_parent_module(self) -> None:
+    def test_extra_state_attributes_contain_parent_module(self) -> None:  # noqa: D102
         switch = self._make()
         switch.hass = MagicMock()
         attrs = switch.extra_state_attributes
         assert attrs.get("parent_module") == "gps"
 
     @pytest.mark.asyncio
-    async def test_set_state_dispatches_to_gps_handler(self) -> None:
+    async def test_set_state_dispatches_to_gps_handler(self) -> None:  # noqa: D102
         switch = self._make()
         switch.hass = MagicMock()
         switch._set_gps_tracking = AsyncMock()  # type: ignore[method-assign]
@@ -348,7 +348,7 @@ class TestPawControlFeatureSwitch:
         switch._set_gps_tracking.assert_awaited_once_with(True)
 
     @pytest.mark.asyncio
-    async def test_set_notifications_calls_expected_service(self) -> None:
+    async def test_set_notifications_calls_expected_service(self) -> None:  # noqa: D102
         switch = self._make(feature_id="notifications", module="notifications")
         switch._async_call_hass_service = AsyncMock(return_value=True)  # type: ignore[method-assign]
         await switch._set_notifications(False)
@@ -366,7 +366,7 @@ class TestAsyncAddEntitiesInBatches:
     """Tests for the batch entity addition helper."""
 
     @pytest.mark.asyncio
-    async def test_empty_list_does_not_call_add_entities(self) -> None:
+    async def test_empty_list_does_not_call_add_entities(self) -> None:  # noqa: D102
         callback = AsyncMock()
         # Patch async_call_add_entities to avoid import complexity
         from unittest.mock import patch
@@ -379,7 +379,7 @@ class TestAsyncAddEntitiesInBatches:
             mock_add.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_single_batch_when_few_entities(self) -> None:
+    async def test_single_batch_when_few_entities(self) -> None:  # noqa: D102
         coord = _make_coordinator()
         entities = [
             PawControlDoNotDisturbSwitch(coord, f"dog{i}", f"Dog{i}") for i in range(3)
@@ -430,7 +430,7 @@ class TestSwitchSetupAndReproduction:
     """Coverage for setup and reproduce-state helper flows."""
 
     @pytest.mark.asyncio
-    async def test_async_setup_entry_returns_when_runtime_data_missing(self) -> None:
+    async def test_async_setup_entry_returns_when_runtime_data_missing(self) -> None:  # noqa: D102
         from unittest.mock import patch
 
         hass = MagicMock()
@@ -451,7 +451,7 @@ class TestSwitchSetupAndReproduction:
         mock_add.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_setup_entry_builds_entities_and_batches(self) -> None:
+    async def test_async_setup_entry_builds_entities_and_batches(self) -> None:  # noqa: D102
         from unittest.mock import patch
 
         coordinator = _make_coordinator()
@@ -490,18 +490,18 @@ class TestSwitchSetupAndReproduction:
         entities = mock_add.await_args.args[1]
         assert len(entities) == 8
 
-    def test_preprocess_switch_state_rejects_invalid(self) -> None:
+    def test_preprocess_switch_state_rejects_invalid(self) -> None:  # noqa: D102
         invalid_state = MagicMock(state="invalid", entity_id="switch.test")
         assert _preprocess_switch_state(invalid_state) is None
 
-    def test_preprocess_switch_state_accepts_on_off(self) -> None:
+    def test_preprocess_switch_state_accepts_on_off(self) -> None:  # noqa: D102
         on_state = MagicMock(state="on")
         off_state = MagicMock(state="off")
         assert _preprocess_switch_state(on_state) == "on"
         assert _preprocess_switch_state(off_state) == "off"
 
     @pytest.mark.asyncio
-    async def test_async_reproduce_switch_state_skips_when_no_change(self) -> None:
+    async def test_async_reproduce_switch_state_skips_when_no_change(self) -> None:  # noqa: D102
         hass = MagicMock()
         hass.services.async_call = AsyncMock()
         current = MagicMock(state="on")
@@ -518,7 +518,7 @@ class TestSwitchSetupAndReproduction:
         hass.services.async_call.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_reproduce_switch_state_calls_turn_off_service(self) -> None:
+    async def test_async_reproduce_switch_state_calls_turn_off_service(self) -> None:  # noqa: D102
         hass = MagicMock()
         hass.services.async_call = AsyncMock()
         current = MagicMock(state="on")
@@ -542,7 +542,7 @@ class TestModuleSwitchUpdates:
     """Coverage for module switch config mutation branch."""
 
     @pytest.mark.asyncio
-    async def test_module_switch_updates_dog_modules_in_config_entry(self) -> None:
+    async def test_module_switch_updates_dog_modules_in_config_entry(self) -> None:  # noqa: D102
         coordinator = _make_coordinator()
         coordinator.config_entry = MagicMock()
         coordinator.config_entry.data = {

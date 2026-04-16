@@ -95,7 +95,7 @@ def _make_stats_coordinator(runtime_stats: dict[str, Any]) -> SimpleNamespace:
 
 
 @pytest.mark.unit
-def test_summarise_resilience_tracks_other_state_and_stale_recovery() -> None:
+def test_summarise_resilience_tracks_other_state_and_stale_recovery() -> None:  # noqa: D103
     summary = ct._summarise_resilience(
         {
             "primary": {
@@ -130,14 +130,14 @@ def test_summarise_resilience_tracks_other_state_and_stale_recovery() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_breaker_id_falls_back_when_stringified_value_empty() -> None:
+def test_normalise_breaker_id_falls_back_when_stringified_value_empty() -> None:  # noqa: D103
     assert (
         ct._normalise_breaker_id("breaker-x", {"id": _EmptyStringId()}) == "breaker-x"
     )
 
 
 @pytest.mark.unit
-def test_merge_rejection_metric_values_handles_empty_sources_and_missing_mapping() -> (
+def test_merge_rejection_metric_values_handles_empty_sources_and_missing_mapping() -> (  # noqa: D103
     None
 ):
     target = ct.default_rejection_metrics()
@@ -160,7 +160,7 @@ def test_merge_rejection_metric_values_handles_empty_sources_and_missing_mapping
 
 
 @pytest.mark.unit
-def test_derive_rejection_metrics_normalises_failure_reason_mapping() -> None:
+def test_derive_rejection_metrics_normalises_failure_reason_mapping() -> None:  # noqa: D103
     metrics = ct.derive_rejection_metrics(
         {
             "last_failure_reason": "upstream_timeout",
@@ -173,7 +173,7 @@ def test_derive_rejection_metrics_normalises_failure_reason_mapping() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_entity_and_adaptive_diagnostics_missing_values() -> None:
+def test_normalise_entity_and_adaptive_diagnostics_missing_values() -> None:  # noqa: D103
     summary = ct._normalise_entity_budget_summary(
         {"average_utilization": "bad", "peak_utilization": "nan"},
     )
@@ -200,7 +200,7 @@ def test_normalise_entity_and_adaptive_diagnostics_missing_values() -> None:
 
 
 @pytest.mark.unit
-def test_guard_metric_helpers_cover_immutable_payload_paths() -> None:
+def test_guard_metric_helpers_cover_immutable_payload_paths() -> None:  # noqa: D103
     guard = ct._normalise_guard_metrics(
         {"reasons": {"": 3, "timeout": 0, "slow": 2}, "last_results": []},
     )
@@ -217,7 +217,7 @@ def test_guard_metric_helpers_cover_immutable_payload_paths() -> None:
 
 
 @pytest.mark.unit
-def test_resolve_entity_factory_guard_metrics_handles_empty_recent_events() -> None:
+def test_resolve_entity_factory_guard_metrics_handles_empty_recent_events() -> None:  # noqa: D103
     payload = MappingProxyType(
         {
             "entity_factory_guard_metrics": {
@@ -234,25 +234,25 @@ def test_resolve_entity_factory_guard_metrics_handles_empty_recent_events() -> N
 
 
 @pytest.mark.unit
-def test_stringify_breaker_name_uses_generated_fallback_id() -> None:
+def test_stringify_breaker_name_uses_generated_fallback_id() -> None:  # noqa: D103
     assert ct._stringify_breaker_name(_BadName()).startswith("breaker_")
 
 
 @pytest.mark.unit
-def test_coerce_int_nested_error_paths_return_zero() -> None:
+def test_coerce_int_nested_error_paths_return_zero() -> None:  # noqa: D103
     assert ct._coerce_int(_IntValueErrorFloatTypeError()) == 0
     assert ct._coerce_int(_IntTypeErrorFloatValueError()) == 0
 
 
 @pytest.mark.unit
-def test_normalise_string_list_non_sequence_conversion_paths() -> None:
+def test_normalise_string_list_non_sequence_conversion_paths() -> None:  # noqa: D103
     assert ct._normalise_string_list(42) == ["42"]
     assert ct._normalise_string_list(_BadStr()) == []
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize("exc", [ValueError("bad"), OverflowError("bad")])
-def test_timestamp_from_datetime_handles_as_timestamp_errors(
+def test_timestamp_from_datetime_handles_as_timestamp_errors(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch, exc: Exception
 ) -> None:
     def _raise(_value: datetime) -> float:
@@ -267,7 +267,7 @@ def test_timestamp_from_datetime_handles_as_timestamp_errors(
     "exc",
     [OverflowError("bad"), OSError("bad"), ValueError("bad")],
 )
-def test_timestamp_from_datetime_fallback_timestamp_exceptions(
+def test_timestamp_from_datetime_fallback_timestamp_exceptions(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch, exc: Exception
 ) -> None:
     monkeypatch.setattr(ct.dt_util, "as_timestamp", None, raising=False)
@@ -281,7 +281,7 @@ def test_timestamp_from_datetime_fallback_timestamp_exceptions(
 
 
 @pytest.mark.unit
-def test_coerce_float_handles_bool_parse_type_error_and_float_type_error(
+def test_coerce_float_handles_bool_parse_type_error_and_float_type_error(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     assert ct._coerce_float(True) == 1.0
@@ -296,7 +296,7 @@ def test_coerce_float_handles_bool_parse_type_error_and_float_type_error(
 
 @pytest.mark.unit
 @pytest.mark.parametrize("exc", [ValueError("bad"), AttributeError("bad")])
-def test_coerce_float_date_start_of_day_fallback_branches(
+def test_coerce_float_date_start_of_day_fallback_branches(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch, exc: Exception
 ) -> None:
     def _raise(_value: date) -> datetime:
@@ -307,7 +307,7 @@ def test_coerce_float_date_start_of_day_fallback_branches(
 
 
 @pytest.mark.unit
-def test_store_resilience_diagnostics_skips_when_runtime_data_missing(
+def test_store_resilience_diagnostics_skips_when_runtime_data_missing(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     coordinator = SimpleNamespace(hass=object(), config_entry=object())
@@ -325,7 +325,7 @@ def test_store_resilience_diagnostics_skips_when_runtime_data_missing(
 
 
 @pytest.mark.unit
-def test_collect_resilience_diagnostics_handles_iterable_tuple_payload(
+def test_collect_resilience_diagnostics_handles_iterable_tuple_payload(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     coordinator = SimpleNamespace(
@@ -352,7 +352,7 @@ def test_collect_resilience_diagnostics_handles_iterable_tuple_payload(
 
 
 @pytest.mark.unit
-def test_build_update_statistics_keeps_default_rejection_metrics_for_non_mapping_summary(
+def test_build_update_statistics_keeps_default_rejection_metrics_for_non_mapping_summary(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     coordinator = _make_stats_coordinator({"performance_metrics": {}})
@@ -370,7 +370,7 @@ def test_build_update_statistics_keeps_default_rejection_metrics_for_non_mapping
 
 
 @pytest.mark.unit
-def test_build_runtime_statistics_merges_error_summary_and_reconfigure(
+def test_build_runtime_statistics_merges_error_summary_and_reconfigure(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     coordinator = _make_stats_coordinator(
@@ -400,7 +400,7 @@ def test_build_runtime_statistics_merges_error_summary_and_reconfigure(
 
 
 @pytest.mark.unit
-def test_build_runtime_statistics_skips_error_summary_merge_for_non_dict(
+def test_build_runtime_statistics_skips_error_summary_merge_for_non_dict(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     coordinator = _make_stats_coordinator(
@@ -421,7 +421,7 @@ def test_build_runtime_statistics_skips_error_summary_merge_for_non_dict(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_run_maintenance_resets_consecutive_errors_after_stable_period(
+async def test_run_maintenance_resets_consecutive_errors_after_stable_period(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
@@ -464,7 +464,7 @@ async def test_run_maintenance_resets_consecutive_errors_after_stable_period(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_run_maintenance_skips_reset_when_stability_period_too_short(
+async def test_run_maintenance_skips_reset_when_stability_period_too_short(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
@@ -499,7 +499,7 @@ async def test_run_maintenance_skips_reset_when_stability_period_too_short(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_run_maintenance_error_branch_collects_diagnostics_when_missing(
+async def test_run_maintenance_error_branch_collects_diagnostics_when_missing(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     coordinator = SimpleNamespace(
@@ -541,7 +541,7 @@ async def test_run_maintenance_error_branch_collects_diagnostics_when_missing(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_run_maintenance_error_branch_reuses_existing_diagnostics(
+async def test_run_maintenance_error_branch_reuses_existing_diagnostics(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     coordinator = SimpleNamespace(

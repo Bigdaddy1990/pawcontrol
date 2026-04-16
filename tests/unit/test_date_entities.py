@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping  # noqa: D100
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from types import SimpleNamespace

@@ -423,7 +423,7 @@ def test_cache_monitor_snapshot_contains_anomalies() -> None:
 async def test_update_settings_without_entity_change(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Settings updates should preserve the entity and restart monitoring when changed."""  # noqa: E501
+    """Settings updates should preserve the entity and restart monitoring when changed."""
     hass = Mock()
     manager = DoorSensorManager(hass, "entry")
     config = DoorSensorConfig(

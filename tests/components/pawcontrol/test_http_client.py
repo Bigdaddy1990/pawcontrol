@@ -1,4 +1,4 @@
-import pytest
+import pytest  # noqa: D100
 
 from custom_components.pawcontrol.http_client import ensure_shared_client_session
 
@@ -50,22 +50,22 @@ class _SessionWithNonBooleanClosed(_ValidSession):
     closed = "yes"
 
 
-def test_ensure_shared_client_session_rejects_none() -> None:
+def test_ensure_shared_client_session_rejects_none() -> None:  # noqa: D103
     with pytest.raises(ValueError, match="received None"):
         ensure_shared_client_session(None, owner="test")
 
 
-def test_ensure_shared_client_session_rejects_missing_request_coroutine() -> None:
+def test_ensure_shared_client_session_rejects_missing_request_coroutine() -> None:  # noqa: D103
     with pytest.raises(ValueError, match="aiohttp-compatible 'request' coroutine"):
         ensure_shared_client_session(_NoRequestCallable(), owner="test")
 
 
-def test_ensure_shared_client_session_rejects_shadowed_sync_request() -> None:
+def test_ensure_shared_client_session_rejects_shadowed_sync_request() -> None:  # noqa: D103
     with pytest.raises(ValueError, match="aiohttp-compatible 'request' coroutine"):
         ensure_shared_client_session(_RequestShadowingSession(), owner="test")
 
 
-def test_ensure_shared_client_session_rejects_sync_request_no_async_fallback() -> None:
+def test_ensure_shared_client_session_rejects_sync_request_no_async_fallback() -> None:  # noqa: D103
     with pytest.raises(ValueError, match="aiohttp-compatible 'request' coroutine"):
         ensure_shared_client_session(
             _SyncRequestWithoutCoroutineFallback(),
@@ -73,7 +73,7 @@ def test_ensure_shared_client_session_rejects_sync_request_no_async_fallback() -
         )
 
 
-def test_ensure_shared_client_session_rejects_closed_sessions() -> None:
+def test_ensure_shared_client_session_rejects_closed_sessions() -> None:  # noqa: D103
     with pytest.raises(
         ValueError,
         match="received a closed aiohttp ClientSession",
@@ -81,7 +81,7 @@ def test_ensure_shared_client_session_rejects_closed_sessions() -> None:
         ensure_shared_client_session(_ClosedValidSession(), owner="test")
 
 
-def test_ensure_shared_client_session_accepts_valid_session() -> None:
+def test_ensure_shared_client_session_accepts_valid_session() -> None:  # noqa: D103
     session = _ValidSession()
 
     assert ensure_shared_client_session(session, owner="test") is session

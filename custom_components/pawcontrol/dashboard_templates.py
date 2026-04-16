@@ -837,7 +837,7 @@ class DashboardTemplates:
                             transform: translateY(-2px);
                             box-shadow: 0 8px 30px rgba(0,0,0,0.12);
                         }
-                    """,  # noqa: E501
+                    """,
                 },
                 "colors": {
                     "primary": "#2196F3",
@@ -866,7 +866,7 @@ class DashboardTemplates:
                             50% { transform: translateY(-10px); }
                             100% { transform: translateY(0px); }
                         }
-                    """,  # noqa: E501
+                    """,
                 },
                 "colors": {
                     "primary": "#FF6B6B",
@@ -911,7 +911,7 @@ class DashboardTemplates:
                             border: 1px solid rgba(255,255,255,0.1);
                             box-shadow: 0 8px 32px rgba(0,0,0,0.4);
                         }
-                    """,  # noqa: E501
+                    """,
                 },
                 "colors": {
                     "primary": "#0F3460",
@@ -1205,7 +1205,7 @@ class DashboardTemplates:
         layout: str = "cards",
     ) -> CardCollection:
         """Get themed action buttons template for dog."""
-        cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}_{theme}_{layout}"  # noqa: E501
+        cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}_{theme}_{layout}"
 
         cached = await self._cache.get(cache_key)
         if isinstance(cached, list):
@@ -1268,7 +1268,7 @@ class DashboardTemplates:
                     ha-card:hover {{
                         transform: scale(1.05);
                     }}
-                """,  # noqa: E501
+                """,
             },
         }
 
@@ -1291,7 +1291,7 @@ class DashboardTemplates:
                             70% { box-shadow: 0 0 0 10px rgba(245,87,108,0); }
                             100% { box-shadow: 0 0 0 0 rgba(245,87,108,0); }
                         }
-                    """,  # noqa: E501
+                    """,
                 },
             }
         return {}
@@ -1455,7 +1455,7 @@ class DashboardTemplates:
             for key, value in options.items():
                 if not isinstance(key, str):
                     _LOGGER.debug(
-                        "Skipping map option entry with non-string key from mapping: %r",  # noqa: E501
+                        "Skipping map option entry with non-string key from mapping: %r",
                         key,
                     )
                     continue
@@ -1469,7 +1469,7 @@ class DashboardTemplates:
 
             if not filtered_options:
                 _LOGGER.debug(
-                    "Ignoring map options mapping payload without supported entries: %s",  # noqa: E501
+                    "Ignoring map options mapping payload without supported entries: %s",
                     type(options).__name__,
                 )
                 return resolved
@@ -1482,13 +1482,13 @@ class DashboardTemplates:
                     for key, value in item.items():
                         if not isinstance(key, str):
                             _LOGGER.debug(
-                                "Skipping map option entry with non-string key from mapping: %r",  # noqa: E501
+                                "Skipping map option entry with non-string key from mapping: %r",
                                 key,
                             )
                             continue
                         if key not in MAP_OPTION_KEYS:
                             _LOGGER.debug(
-                                "Ignoring unsupported map option key '%s' from iterable mapping",  # noqa: E501
+                                "Ignoring unsupported map option key '%s' from iterable mapping",
                                 key,
                             )
                             continue
@@ -1503,7 +1503,7 @@ class DashboardTemplates:
                     if isinstance(key, str):
                         if key not in MAP_OPTION_KEYS:
                             _LOGGER.debug(
-                                "Ignoring unsupported map option key '%s' from iterable pair",  # noqa: E501
+                                "Ignoring unsupported map option key '%s' from iterable pair",
                                 key,
                             )
                             continue
@@ -1706,7 +1706,7 @@ class DashboardTemplates:
 - **Today's Meals**: {{{{ states('sensor.{dog_id}_meals_today') }}}}
 - **Daily Amount**: {{{{ states('sensor.{dog_id}_daily_food_consumed') }}}}g
 - **Schedule Adherence**: {{{{ states('sensor.{dog_id}_feeding_schedule_adherence') }}}}%
-"""  # noqa: E501
+"""
 
         if modules.get("walk"):
             stats_content += f"""
@@ -2058,7 +2058,7 @@ class DashboardTemplates:
 
             for label, breaker_names in breaker_name_lists.items():
                 lines.append(
-                    f"- {label}: {_format_breaker_list(breaker_names, translation_lookup)}",  # noqa: E501
+                    f"- {label}: {_format_breaker_list(breaker_names, translation_lookup)}",
                 )
 
             breaker_lists = {
@@ -2082,7 +2082,7 @@ class DashboardTemplates:
 
             for label, breaker_ids in breaker_lists.items():
                 lines.append(
-                    f"- {label}: {_format_breaker_list(breaker_ids, translation_lookup)}",  # noqa: E501
+                    f"- {label}: {_format_breaker_list(breaker_ids, translation_lookup)}",
                 )
 
             if guard_payload is not None:
@@ -2269,8 +2269,8 @@ class DashboardTemplates:
             "- **Total errors:** {{ metrics.get('total_errors', 0) }}\n"
             "- **Guard skipped:** {{ guard.get('skipped', 0) }}\n"
             "- **Guard reasons:** {{ guard.get('reasons', {}) | tojson }}\n"
-            "- **Notification failures:** {{ notifications.get('total_failures', 0) }}\n"  # noqa: E501
-            "- **Classified errors:** {{ metrics.get('classified_errors', {}) | tojson }}\n"  # noqa: E501
+            "- **Notification failures:** {{ notifications.get('total_failures', 0) }}\n"
+            "- **Classified errors:** {{ metrics.get('classified_errors', {}) | tojson }}\n"
         )
 
         template: CardConfig = {
@@ -2655,7 +2655,7 @@ class DashboardTemplates:
                                 color: white;
                                 border-radius: 12px;
                             }}
-                        """,  # noqa: E501
+                        """,
                     },
                 }
             elif theme == "playful":
@@ -2799,7 +2799,7 @@ class DashboardTemplates:
                                     background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
                                     border-radius: 50%;
                                 }
-                            """,  # noqa: E501
+                            """,
                         },
                     },
                     {
@@ -2821,7 +2821,7 @@ class DashboardTemplates:
                                     background: linear-gradient(45deg, #4ECDC4, #FFE66D);
                                     border-radius: 50%;
                                 }
-                            """,  # noqa: E501
+                            """,
                         },
                     },
                 ],
@@ -2877,7 +2877,7 @@ class DashboardTemplates:
 - **Last Fed**: {{{{ states('sensor.{dog_id}_last_fed') }}}}
 - **Last Walk**: {{{{ states('sensor.{dog_id}_last_walk') }}}}
 - **{last_health_label}**: {{{{ states('sensor.{dog_id}_last_health_check') }}}}
-"""  # noqa: E501
+"""
 
         card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
@@ -3060,7 +3060,7 @@ class DashboardTemplates:
 {{%- endif -%}}
 
 **Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}
-"""  # noqa: E501
+"""
 
         # Conditional styling based on alert severity
         if theme == "modern":
@@ -3097,7 +3097,7 @@ class DashboardTemplates:
                     50% { transform: scale(1.02); }
                     100% { transform: scale(1); }
                 }
-            """.replace("{dog_id}", dog_id)  # noqa: E501
+            """.replace("{dog_id}", dog_id)
         else:
             card_mod_style = self._card_mod(theme_styles).get("style", "")
         template: CardConfig = {
@@ -3160,16 +3160,16 @@ class DashboardTemplates:
         if include_breed_specific:
             breed_section = [
                 "### 🐕 Breed-Specific Advice",
-                "{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}",  # noqa: E501
-                "{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}",  # noqa: E501
+                "{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}",
+                "{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}",
             ]
 
         lines = [
             f"## {rec_icon} Weather Recommendations for {dog_name}",
             "",
             "### 🌡️ Temperature Guidance",
-            f"**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C",  # noqa: E501
-            f"**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}",  # noqa: E501
+            f"**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C",
+            f"**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}",
             "",
             "### 🚶 Activity Suggestions",
             *bullet_lines,
@@ -3181,10 +3181,10 @@ class DashboardTemplates:
             [
                 "",
                 "### ⏰ Best Activity Times",
-                f"**Optimal Walk Time:** {{{{ states('sensor.{dog_id}_optimal_walk_time') }}}}",  # noqa: E501
-                f"**Avoid Outdoors:** {{{{ states('sensor.{dog_id}_weather_avoid_times') }}}}",  # noqa: E501
+                f"**Optimal Walk Time:** {{{{ states('sensor.{dog_id}_optimal_walk_time') }}}}",
+                f"**Avoid Outdoors:** {{{{ states('sensor.{dog_id}_weather_avoid_times') }}}}",
                 "",
-                f"**Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}",  # noqa: E501
+                f"**Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}",
             ],
         )
 
@@ -3402,7 +3402,7 @@ class DashboardTemplates:
 **Special Considerations:** {{ breed_advice.special_considerations | default('Standard care applies') }}
 
 **Breed Profile Last Updated:** {{{{ states('sensor.{dog_id}_breed_profile_updated') }}}}
-"""  # noqa: E501
+"""
 
         breed_advice_state = self.hass.states.get(
             f"sensor.{dog_id}_breed_weather_advice",
@@ -3455,7 +3455,7 @@ class DashboardTemplates:
                             #4CAF50
                         {% endif %};
                 }
-            """  # noqa: E501
+            """
                 .replace("{dog_id}", dog_id)
                 .replace("breed_comfort_min", str(comfort_min_value))
                 .replace("breed_comfort_max", str(comfort_max_value))
@@ -3561,7 +3561,7 @@ class DashboardTemplates:
                             transform: translateY(-2px);
                             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
                         }}
-                    """,  # noqa: E501
+                    """,
                 )
                 button["card_mod"] = card_mod
         elif theme == "playful":

@@ -550,7 +550,7 @@ class EntityBudget:
         """Normalize base allocation to remain within the capacity."""
         if self.base_allocation > self.capacity:
             _LOGGER.warning(
-                "Base allocation %d exceeds capacity %d for %s/%s",  # pragma: no cover - log only  # noqa: E501
+                "Base allocation %d exceeds capacity %d for %s/%s",  # pragma: no cover - log only
                 self.base_allocation,
                 self.capacity,
                 self.dog_id,
@@ -814,7 +814,7 @@ class EntityFactory:
                 self.coordinator.report_entity_budget(snapshot)
             except AttributeError:  # pragma: no cover - defensive guard
                 _LOGGER.debug(
-                    "Coordinator does not support entity budget reporting",  # pragma: no cover - log only  # noqa: E501
+                    "Coordinator does not support entity budget reporting",  # pragma: no cover - log only
                 )
 
         return snapshot
@@ -985,7 +985,7 @@ class EntityFactory:
         )
         if estimate.raw_total > estimate.capacity:
             _LOGGER.debug(
-                "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only  # noqa: E501
+                "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only
                 estimate.raw_total,
                 estimate.capacity,
                 estimate.profile,
@@ -1010,7 +1010,7 @@ class EntityFactory:
         )
         if estimate.raw_total > estimate.capacity:
             _LOGGER.debug(
-                "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only  # noqa: E501
+                "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only
                 estimate.raw_total,
                 estimate.capacity,
                 estimate.profile,

@@ -17,28 +17,28 @@ from custom_components.pawcontrol.compat import (
 
 
 @pytest.mark.unit
-def test_ensure_homeassistant_exception_symbols_no_raise() -> None:
+def test_ensure_homeassistant_exception_symbols_no_raise() -> None:  # noqa: D103
     ensure_homeassistant_exception_symbols()  # idempotent, no raise
 
 
 @pytest.mark.unit
-def test_ensure_homeassistant_exception_symbols_twice() -> None:
+def test_ensure_homeassistant_exception_symbols_twice() -> None:  # noqa: D103
     ensure_homeassistant_exception_symbols()
     ensure_homeassistant_exception_symbols()  # calling twice is fine
 
 
 @pytest.mark.unit
-def test_ensure_homeassistant_config_entry_symbols_no_raise() -> None:
+def test_ensure_homeassistant_config_entry_symbols_no_raise() -> None:  # noqa: D103
     ensure_homeassistant_config_entry_symbols()
 
 
 @pytest.mark.unit
-def test_bind_exception_alias_returns_callable() -> None:
+def test_bind_exception_alias_returns_callable() -> None:  # noqa: D103
     result = bind_exception_alias("TestAlias")
     assert callable(result)
 
 
 @pytest.mark.unit
-def test_bind_exception_alias_callable_no_raise() -> None:
+def test_bind_exception_alias_callable_no_raise() -> None:  # noqa: D103
     unbind = bind_exception_alias("TestAlias2")
     unbind()  # calling the returned unbind function should not raise

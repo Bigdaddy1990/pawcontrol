@@ -4,7 +4,7 @@ from pathlib import Path
 import tomllib
 
 
-def test_runtime_dependencies_match_requirements_txt() -> None:
+def test_runtime_dependencies_match_requirements_txt() -> None:  # noqa: D103
     repo_root = next(
         parent
         for parent in Path(__file__).resolve().parents

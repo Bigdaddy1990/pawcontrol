@@ -79,7 +79,7 @@ def _baseline_data(
     }
 
 
-def test_execute_cycle_handles_offline_errors(mock_hass: object) -> None:
+def test_execute_cycle_handles_offline_errors(mock_hass: object) -> None:  # noqa: D103
     runtime, registry = _build_runtime(mock_hass, ["buddy", "offline"])
 
     current_data: dict[str, CoordinatorDogData] = {
@@ -114,7 +114,7 @@ def test_execute_cycle_handles_offline_errors(mock_hass: object) -> None:
     assert cycle.success
 
 
-def test_execute_cycle_handles_rate_limit_errors(mock_hass: object) -> None:
+def test_execute_cycle_handles_rate_limit_errors(mock_hass: object) -> None:  # noqa: D103
     runtime, registry = _build_runtime(mock_hass, ["buddy", "rate"])
 
     current_data: dict[str, CoordinatorDogData] = {
@@ -149,7 +149,7 @@ def test_execute_cycle_handles_rate_limit_errors(mock_hass: object) -> None:
     assert cycle.success
 
 
-def test_execute_cycle_handles_network_errors(mock_hass: object) -> None:
+def test_execute_cycle_handles_network_errors(mock_hass: object) -> None:  # noqa: D103
     runtime, registry = _build_runtime(mock_hass, ["buddy", "network"])
 
     current_data: dict[str, CoordinatorDogData] = {
@@ -184,7 +184,7 @@ def test_execute_cycle_handles_network_errors(mock_hass: object) -> None:
     assert cycle.success
 
 
-def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
+def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:  # noqa: D103
     runtime, registry = _build_runtime(mock_hass, ["buddy", "flaky"])
 
     current_data: dict[str, CoordinatorDogData] = {
@@ -280,7 +280,7 @@ def test_retry_strategy_raises_runtime_error_when_no_attempts() -> None:
         asyncio.run(strategy.execute(_never_called))
 
 
-def test_fetch_dog_data_maps_module_exceptions(mock_hass: object) -> None:
+def test_fetch_dog_data_maps_module_exceptions(mock_hass: object) -> None:  # noqa: D103
     runtime, _ = _build_runtime(mock_hass, ["buddy"])
 
     async def gps_unavailable() -> object:
@@ -329,7 +329,7 @@ def test_fetch_dog_data_maps_module_exceptions(mock_hass: object) -> None:
     assert payload["status_snapshot"]["state"] == "away"
 
 
-def test_adaptive_polling_controller_increases_interval_for_slow_cycles() -> None:
+def test_adaptive_polling_controller_increases_interval_for_slow_cycles() -> None:  # noqa: D103
     initial_interval_seconds = 30.0
     target_cycle_seconds = 20.0
     slow_cycle_duration_seconds = 30.0
@@ -351,7 +351,7 @@ def test_adaptive_polling_controller_increases_interval_for_slow_cycles() -> Non
     assert new_interval > initial_interval
 
 
-def test_summarize_entity_budgets_includes_totals() -> None:
+def test_summarize_entity_budgets_includes_totals() -> None:  # noqa: D103
     now = datetime.now(UTC)
     summary = summarize_entity_budgets(
         [

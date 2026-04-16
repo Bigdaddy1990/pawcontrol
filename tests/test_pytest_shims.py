@@ -58,7 +58,7 @@ def _reload(module_name: str):
     return importlib.import_module(module_name)
 
 
-def test_pytest_asyncio_stub_registers_asyncio_mode_and_loop() -> None:
+def test_pytest_asyncio_stub_registers_asyncio_mode_and_loop() -> None:  # noqa: D103
     pytest_asyncio = _reload("pytest_asyncio")
 
     parser = _DummyParser()
@@ -78,7 +78,7 @@ def test_pytest_asyncio_stub_registers_asyncio_mode_and_loop() -> None:
     assert loop.is_closed()
 
 
-def test_pytest_cov_plugin_registers_marker() -> None:
+def test_pytest_cov_plugin_registers_marker() -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     config = _DummyConfig()
@@ -87,7 +87,7 @@ def test_pytest_cov_plugin_registers_marker() -> None:
     assert ("markers", "cov: dummy marker for pytest-cov shim") in config.markers
 
 
-def test_pytest_cov_plugin_registers_options() -> None:
+def test_pytest_cov_plugin_registers_options() -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     parser = _DummyParser()
@@ -103,7 +103,7 @@ def test_pytest_cov_plugin_registers_options() -> None:
     } <= option_names
 
 
-def test_pytest_cov_imports_without_coverage_dependency(tmp_path: Path) -> None:
+def test_pytest_cov_imports_without_coverage_dependency(tmp_path: Path) -> None:  # noqa: D103
     real_import = builtins.__import__
 
     def _blocked_import(name: str, *args: object, **kwargs: object):
@@ -126,7 +126,7 @@ def test_pytest_cov_imports_without_coverage_dependency(tmp_path: Path) -> None:
     assert xml_path.exists()
 
 
-def test_pytest_cov_source_aliases_include_dotted_packages() -> None:
+def test_pytest_cov_source_aliases_include_dotted_packages() -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     expanded = pytest_cov_plugin._expand_source_aliases((
@@ -141,7 +141,7 @@ def test_pytest_cov_source_aliases_include_dotted_packages() -> None:
     assert "/tmp/absolute" in expanded
 
 
-def test_pytest_cov_include_patterns_cover_path_and_dotted_sources() -> None:
+def test_pytest_cov_include_patterns_cover_path_and_dotted_sources() -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     include = pytest_cov_plugin._build_include_patterns((
@@ -154,7 +154,7 @@ def test_pytest_cov_include_patterns_cover_path_and_dotted_sources() -> None:
     assert "*/custom_components/pawcontrol/*" in include
 
 
-def test_pytest_cov_include_patterns_keep_python_file_targets() -> None:
+def test_pytest_cov_include_patterns_keep_python_file_targets() -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     include = pytest_cov_plugin._build_include_patterns((
@@ -166,7 +166,7 @@ def test_pytest_cov_include_patterns_keep_python_file_targets() -> None:
     assert "*/custom_components/pawcontrol/validation.py" in include
 
 
-def test_pytest_cov_split_report_target_preserves_terminal_modifier() -> None:
+def test_pytest_cov_split_report_target_preserves_terminal_modifier() -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     report_type, report_target = pytest_cov_plugin._split_report_target(
@@ -177,7 +177,7 @@ def test_pytest_cov_split_report_target_preserves_terminal_modifier() -> None:
     assert report_target is None
 
 
-def test_pytest_cov_split_report_target_keeps_file_target() -> None:
+def test_pytest_cov_split_report_target_keeps_file_target() -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     report_type, report_target = pytest_cov_plugin._split_report_target("xml:cov.xml")
@@ -186,7 +186,7 @@ def test_pytest_cov_split_report_target_keeps_file_target() -> None:
     assert report_target == "cov.xml"
 
 
-def test_pytest_cov_session_hooks_generate_xml_and_cleanup(tmp_path: Path) -> None:
+def test_pytest_cov_session_hooks_generate_xml_and_cleanup(tmp_path: Path) -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     measured_file = tmp_path / "sample.py"
@@ -216,7 +216,7 @@ def test_pytest_cov_session_hooks_generate_xml_and_cleanup(tmp_path: Path) -> No
     assert not hasattr(session.config, "_pawcontrol_cov")
 
 
-def test_pytest_cov_controller_synthesizes_lines_for_explicit_files(
+def test_pytest_cov_controller_synthesizes_lines_for_explicit_files(  # noqa: D103
     tmp_path: Path,
 ) -> None:
     pytest_cov_plugin = _reload("pytest_cov.plugin")
@@ -242,7 +242,7 @@ def test_pytest_cov_controller_synthesizes_lines_for_explicit_files(
     assert added_lines[str(measured_file.resolve())] == {1, 3}
 
 
-def test_pytest_cov_fail_under_sets_session_failure() -> None:
+def test_pytest_cov_fail_under_sets_session_failure() -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     option = SimpleNamespace(
@@ -263,7 +263,7 @@ def test_pytest_cov_fail_under_sets_session_failure() -> None:
     assert session.exitstatus == 1
 
 
-def test_pytest_cov_no_cov_on_fail_skips_fail_under_enforcement() -> None:
+def test_pytest_cov_no_cov_on_fail_skips_fail_under_enforcement() -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     option = SimpleNamespace(
@@ -284,7 +284,7 @@ def test_pytest_cov_no_cov_on_fail_skips_fail_under_enforcement() -> None:
     assert session.exitstatus == 0
 
 
-def test_pytest_cov_sessionstart_returns_when_options_missing() -> None:
+def test_pytest_cov_sessionstart_returns_when_options_missing() -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
     session = SimpleNamespace(config=SimpleNamespace())
 
@@ -293,7 +293,7 @@ def test_pytest_cov_sessionstart_returns_when_options_missing() -> None:
     assert not hasattr(session.config, "_pawcontrol_cov")
 
 
-def test_pytest_cov_sessionfinish_writes_html_stub_without_controller(
+def test_pytest_cov_sessionfinish_writes_html_stub_without_controller(  # noqa: D103
     tmp_path: Path,
 ) -> None:
     pytest_cov_plugin = _reload("pytest_cov.plugin")
@@ -306,7 +306,7 @@ def test_pytest_cov_sessionfinish_writes_html_stub_without_controller(
     assert (tmp_path / "htmlcov").is_dir()
 
 
-def test_pytest_cov_sessionfinish_tolerates_missing_data_errors(tmp_path: Path) -> None:
+def test_pytest_cov_sessionfinish_tolerates_missing_data_errors(tmp_path: Path) -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
 
     option = SimpleNamespace(
@@ -334,7 +334,7 @@ def test_pytest_cov_sessionfinish_tolerates_missing_data_errors(tmp_path: Path) 
     assert (tmp_path / "htmlcov").is_dir()
 
 
-def test_pytest_homeassistant_shim_registers_marker() -> None:
+def test_pytest_homeassistant_shim_registers_marker() -> None:  # noqa: D103
     plugin = _reload("pytest_homeassistant_custom_component")
 
     config = _DummyConfig()
@@ -346,7 +346,7 @@ def test_pytest_homeassistant_shim_registers_marker() -> None:
     ) in config.markers
 
 
-def test_asyncio_stub_imports_and_restores_get_event_loop() -> None:
+def test_asyncio_stub_imports_and_restores_get_event_loop() -> None:  # noqa: D103
     stub = _reload("tests.plugins.asyncio_stub")
 
     original_get_event_loop = stub._ORIGINAL_GET_EVENT_LOOP

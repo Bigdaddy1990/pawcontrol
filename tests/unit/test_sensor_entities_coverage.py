@@ -44,20 +44,20 @@ def _coord(dog_id="rex"):
 
 
 @pytest.mark.unit
-def test_activity_level_sensor_init() -> None:
+def test_activity_level_sensor_init() -> None:  # noqa: D103
     s = PawControlActivityLevelSensor(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_activity_level_native_value() -> None:
+def test_activity_level_native_value() -> None:  # noqa: D103
     s = PawControlActivityLevelSensor(_coord(), "rex", "Rex")
     result = s.native_value
     assert result is None or isinstance(result, str)
 
 
 @pytest.mark.unit
-def test_activity_level_extra_attrs() -> None:
+def test_activity_level_extra_attrs() -> None:  # noqa: D103
     s = PawControlActivityLevelSensor(_coord(), "rex", "Rex")
     attrs = s.extra_state_attributes
     assert isinstance(attrs, dict)
@@ -69,20 +69,20 @@ def test_activity_level_extra_attrs() -> None:
 
 
 @pytest.mark.unit
-def test_calories_burned_sensor_init() -> None:
+def test_calories_burned_sensor_init() -> None:  # noqa: D103
     s = PawControlCaloriesBurnedTodaySensor(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_calories_burned_native_value() -> None:
+def test_calories_burned_native_value() -> None:  # noqa: D103
     s = PawControlCaloriesBurnedTodaySensor(_coord(), "rex", "Rex")
     result = s.native_value
     assert result is None or isinstance(result, int | float)
 
 
 @pytest.mark.unit
-def test_calories_burned_unique_id() -> None:
+def test_calories_burned_unique_id() -> None:  # noqa: D103
     s = PawControlCaloriesBurnedTodaySensor(_coord(), "rex", "Rex")
     assert "rex" in s._attr_unique_id
 
@@ -93,13 +93,13 @@ def test_calories_burned_unique_id() -> None:
 
 
 @pytest.mark.unit
-def test_current_walk_duration_sensor_init() -> None:
+def test_current_walk_duration_sensor_init() -> None:  # noqa: D103
     s = PawControlCurrentWalkDurationSensor(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_current_walk_duration_native_value() -> None:
+def test_current_walk_duration_native_value() -> None:  # noqa: D103
     s = PawControlCurrentWalkDurationSensor(_coord(), "rex", "Rex")
     result = s.native_value
     assert result is None or isinstance(result, int | float)
@@ -111,13 +111,13 @@ def test_current_walk_duration_native_value() -> None:
 
 
 @pytest.mark.unit
-def test_average_walk_duration_sensor_init() -> None:
+def test_average_walk_duration_sensor_init() -> None:  # noqa: D103
     s = PawControlAverageWalkDurationSensor(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_average_walk_duration_native_value() -> None:
+def test_average_walk_duration_native_value() -> None:  # noqa: D103
     s = PawControlAverageWalkDurationSensor(_coord(), "rex", "Rex")
     result = s.native_value
     assert result is None or isinstance(result, int | float)
@@ -129,19 +129,19 @@ def test_average_walk_duration_native_value() -> None:
 
 
 @pytest.mark.unit
-def test_body_condition_score_sensor_init() -> None:
+def test_body_condition_score_sensor_init() -> None:  # noqa: D103
     s = PawControlBodyConditionScoreSensor(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_body_condition_score_native_value() -> None:
+def test_body_condition_score_native_value() -> None:  # noqa: D103
     s = PawControlBodyConditionScoreSensor(_coord(), "rex", "Rex")
     result = s.native_value
     assert result is None or isinstance(result, int | float | str)
 
 
 @pytest.mark.unit
-def test_body_condition_score_unique_id() -> None:
+def test_body_condition_score_unique_id() -> None:  # noqa: D103
     s = PawControlBodyConditionScoreSensor(_coord(), "rex", "Rex")
     assert "rex" in s._attr_unique_id

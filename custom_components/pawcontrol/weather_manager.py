@@ -262,7 +262,7 @@ class WeatherForecast:
             return (
                 f"Challenging conditions requiring precautions (avg score: {score}/100)"
             )
-        return f"Dangerous conditions - outdoor activities not recommended (avg score: {score}/100)"  # noqa: E501
+        return f"Dangerous conditions - outdoor activities not recommended (avg score: {score}/100)"
 
     def get_next_optimal_window(
         self,

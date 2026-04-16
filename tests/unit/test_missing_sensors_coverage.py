@@ -16,13 +16,13 @@ from custom_components.pawcontrol.missing_sensors import (
 
 
 @pytest.mark.unit
-def test_calculate_hours_since_none() -> None:
+def test_calculate_hours_since_none() -> None:  # noqa: D103
     result = calculate_hours_since(None)
     assert result is None
 
 
 @pytest.mark.unit
-def test_calculate_hours_since_now() -> None:
+def test_calculate_hours_since_now() -> None:  # noqa: D103
     now = datetime.now(UTC)
     result = calculate_hours_since(now)
     assert result is not None
@@ -30,7 +30,7 @@ def test_calculate_hours_since_now() -> None:
 
 
 @pytest.mark.unit
-def test_calculate_hours_since_two_hours_ago() -> None:
+def test_calculate_hours_since_two_hours_ago() -> None:  # noqa: D103
     past = datetime.now(UTC) - timedelta(hours=2)
     result = calculate_hours_since(past)
     assert result is not None
@@ -38,7 +38,7 @@ def test_calculate_hours_since_two_hours_ago() -> None:
 
 
 @pytest.mark.unit
-def test_calculate_hours_since_one_day_ago() -> None:
+def test_calculate_hours_since_one_day_ago() -> None:  # noqa: D103
     past = datetime.now(UTC) - timedelta(hours=24)
     result = calculate_hours_since(past)
     assert result is not None
@@ -46,7 +46,7 @@ def test_calculate_hours_since_one_day_ago() -> None:
 
 
 @pytest.mark.unit
-def test_calculate_hours_since_with_reference() -> None:
+def test_calculate_hours_since_with_reference() -> None:  # noqa: D103
     ref = datetime(2025, 1, 1, 12, 0, tzinfo=UTC)
     ts = datetime(2025, 1, 1, 10, 0, tzinfo=UTC)
     result = calculate_hours_since(ts, reference=ref)
@@ -55,7 +55,7 @@ def test_calculate_hours_since_with_reference() -> None:
 
 
 @pytest.mark.unit
-def test_calculate_hours_since_string_timestamp() -> None:
+def test_calculate_hours_since_string_timestamp() -> None:  # noqa: D103
     ts = "2025-01-01T10:00:00+00:00"
     result = calculate_hours_since(ts)
     assert result is None or isinstance(result, float)
@@ -65,13 +65,13 @@ def test_calculate_hours_since_string_timestamp() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_utc_datetime_none() -> None:
+def test_ensure_utc_datetime_none() -> None:  # noqa: D103
     result = ensure_utc_datetime(None)
     assert result is None
 
 
 @pytest.mark.unit
-def test_ensure_utc_datetime_aware_datetime() -> None:
+def test_ensure_utc_datetime_aware_datetime() -> None:  # noqa: D103
     dt = datetime(2025, 6, 1, 10, 0, tzinfo=UTC)
     result = ensure_utc_datetime(dt)
     assert result is not None
@@ -79,13 +79,13 @@ def test_ensure_utc_datetime_aware_datetime() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_utc_datetime_string() -> None:
+def test_ensure_utc_datetime_string() -> None:  # noqa: D103
     result = ensure_utc_datetime("2025-06-01T10:00:00+00:00")
     assert result is None or isinstance(result, datetime)
 
 
 @pytest.mark.unit
-def test_ensure_utc_datetime_preserves_value() -> None:
+def test_ensure_utc_datetime_preserves_value() -> None:  # noqa: D103
     dt = datetime(2025, 3, 15, 8, 30, tzinfo=UTC)
     result = ensure_utc_datetime(dt)
     if result is not None:

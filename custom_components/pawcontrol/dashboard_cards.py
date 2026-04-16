@@ -490,7 +490,7 @@ class BaseCardGenerator:
 
         Returns:
             List of valid entity IDs
-        """  # noqa: E501
+        """
         if not entities:
             return []
         loop = asyncio.get_running_loop()
@@ -684,7 +684,7 @@ class OverviewCardGenerator(BaseCardGenerator):
         # Generate dynamic content based on current status
         content_parts = [
             f"# {title}",
-            f"Managing **{dog_count}** {'dog' if dog_count == 1 else 'dogs'} with Paw Control",  # noqa: E501
+            f"Managing **{dog_count}** {'dog' if dog_count == 1 else 'dogs'} with Paw Control",
         ]
 
         # Add quick stats if available
@@ -1016,7 +1016,7 @@ class DogCardGenerator(BaseCardGenerator):
             return [
                 {
                     "type": "markdown",
-                    "content": f"## {dog_name}\n\nTimeout generating dashboard cards. Please refresh.",  # noqa: E501
+                    "content": f"## {dog_name}\n\nTimeout generating dashboard cards. Please refresh.",
                 },
             ]
 
@@ -2038,10 +2038,10 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         summary_content = (
             "### {status_heading}\n"
-            "- {active_label}: {{{{ iif(is_state('binary_sensor.{dog_id}_visitor_mode', 'on'), {yes_value}, {no_value}) }}}}\n"  # noqa: E501
-            "- {visitor_label}: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_name') or {none_value} }}}}\n"  # noqa: E501
-            "- {started_label}: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_mode_started') or {unknown_value} }}}}\n"  # noqa: E501
-            "- {alerts_reduced_label}: {{{{ iif(state_attr('binary_sensor.{dog_id}_visitor_mode', 'reduced_alerts'), {yes_value}, {no_value}) }}}}\n"  # noqa: E501
+            "- {active_label}: {{{{ iif(is_state('binary_sensor.{dog_id}_visitor_mode', 'on'), {yes_value}, {no_value}) }}}}\n"
+            "- {visitor_label}: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_name') or {none_value} }}}}\n"
+            "- {started_label}: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_mode_started') or {unknown_value} }}}}\n"
+            "- {alerts_reduced_label}: {{{{ iif(state_attr('binary_sensor.{dog_id}_visitor_mode', 'reduced_alerts'), {yes_value}, {no_value}) }}}}\n"
         ).format(
             status_heading=_translated_visitor_label(
                 hass_language,
@@ -2238,7 +2238,7 @@ class WeatherCardGenerator(BaseCardGenerator):
 
     Quality Scale: Platinum target
     Weather Integration: v1.0.0
-    """  # noqa: E501
+    """
 
     @staticmethod
     def _normalise_recommendations(source: object) -> list[str]:
@@ -2421,7 +2421,7 @@ class WeatherCardGenerator(BaseCardGenerator):
             ):
                 card_payload = _unwrap_async_result(
                     result,
-                    context=f"Weather card {card_type} generation failed for {dog_name}",  # noqa: E501
+                    context=f"Weather card {card_type} generation failed for {dog_name}",
                     logger=_LOGGER,
                 )
                 if card_payload is None:
@@ -2436,7 +2436,7 @@ class WeatherCardGenerator(BaseCardGenerator):
             return [
                 {
                     "type": "markdown",
-                    "content": f"## 🌤️ {dog_name} Weather\n\nTimeout generating weather cards. Please refresh.",  # noqa: E501
+                    "content": f"## 🌤️ {dog_name} Weather\n\nTimeout generating weather cards. Please refresh.",
                 },
             ]
 
@@ -2492,7 +2492,7 @@ class WeatherCardGenerator(BaseCardGenerator):
 {{% endif %}}
 
 *Last updated: {{{{ states.sensor.{dog_id}_weather_health_score.last_updated.strftime('%H:%M') }}}}*
-                    """,  # noqa: E501
+                    """,
                 },
             ],
         }
@@ -2580,7 +2580,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                     ],
                     "card": {
                         "type": "markdown",
-                        "content": "✅ **No active weather alerts** - Conditions are safe for normal activities.",  # noqa: E501
+                        "content": "✅ **No active weather alerts** - Conditions are safe for normal activities.",
                     },
                 },
             ],
@@ -2660,7 +2660,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "custom:mushroom-title-card",
                     "title": f"💡 {dog_name} Weather Advice",
-                    "subtitle": "Personalized recommendations based on current conditions",  # noqa: E501
+                    "subtitle": "Personalized recommendations based on current conditions",
                 },
                 markdown_card,
                 actions_card,

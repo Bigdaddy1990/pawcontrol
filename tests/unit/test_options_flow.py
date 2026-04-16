@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time  # noqa: D100
 import json
 from types import SimpleNamespace
 from typing import Any, cast
@@ -1887,7 +1887,7 @@ async def test_manual_event_choices_support_disable_and_translations(
         assert disable_option["badge"] == "Deaktiviert"
         assert (
             disable_option["help_text"]
-            == "Entfernt den Listener und beendet die Überwachung dieses manuellen Ereignisses."  # noqa: E501
+            == "Entfernt den Listener und beendet die Überwachung dieses manuellen Ereignisses."
         )
         assert disable_option["metadata_sources"] == ["disabled"]
         assert disable_option["metadata_primary_source"] == "disabled"
@@ -1910,7 +1910,7 @@ async def test_manual_event_choices_support_disable_and_translations(
             == "system_settings"
         )
         assert guard_by_value["pawcontrol_manual_guard"]["help_text"] == (
-            "Integration verwendet diesen Wert, solange keine Überschreibungen aktiv sind. "  # noqa: E501
+            "Integration verwendet diesen Wert, solange keine Überschreibungen aktiv sind. "
             'Über das Formular "Systemeinstellungen" gespeichert.'
         )
         assert (
@@ -1953,7 +1953,7 @@ async def test_manual_event_choices_support_disable_and_translations(
         )
         assert check_by_value["pawcontrol_resilience_check"]["help_text"] == (
             "Vom Resilience-Blueprint vorgeschlagen. "
-            "Integration verwendet diesen Wert, solange keine Überschreibungen aktiv sind."  # noqa: E501
+            "Integration verwendet diesen Wert, solange keine Überschreibungen aktiv sind."
         )
 
         hass.config.language = "en"

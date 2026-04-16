@@ -16,7 +16,7 @@ from custom_components.pawcontrol.validation_helpers import (
 )
 
 
-def test_normalise_existing_names_filters_and_normalises() -> None:
+def test_normalise_existing_names_filters_and_normalises() -> None:  # noqa: D103
     assert normalise_existing_names({" Luna ", "MILO", "", "   "}) == {
         "luna",
         "milo",
@@ -24,7 +24,7 @@ def test_normalise_existing_names_filters_and_normalises() -> None:
     assert normalise_existing_names(None) == set()
 
 
-def test_validate_unique_dog_name_duplicate_and_optional_none() -> None:
+def test_validate_unique_dog_name_duplicate_and_optional_none() -> None:  # noqa: D103
     assert (
         validate_unique_dog_name(
             "  Bella ",
@@ -40,7 +40,7 @@ def test_validate_unique_dog_name_duplicate_and_optional_none() -> None:
     assert validate_unique_dog_name(None, required=False) is None
 
 
-def test_validate_coordinate_pair_and_service_wrapper() -> None:
+def test_validate_coordinate_pair_and_service_wrapper() -> None:  # noqa: D103
     assert validate_coordinate_pair(47.6, -122.3) == pytest.approx((47.6, -122.3))
 
     with pytest.raises(ServiceValidationError, match="latitude must be between"):
@@ -59,7 +59,7 @@ def test_validate_coordinate_pair_and_service_wrapper() -> None:
         ("unknown", "latitude is invalid"),
     ],
 )
-def test_format_coordinate_validation_error_messages(
+def test_format_coordinate_validation_error_messages(  # noqa: D103
     constraint: str,
     expected: str,
 ) -> None:
@@ -74,7 +74,7 @@ def test_format_coordinate_validation_error_messages(
     assert format_coordinate_validation_error(error) == expected
 
 
-def test_safe_validate_interval_returns_default_on_validation_errors() -> None:
+def test_safe_validate_interval_returns_default_on_validation_errors() -> None:  # noqa: D103
     assert (
         safe_validate_interval(
             30,
@@ -98,12 +98,12 @@ def test_safe_validate_interval_returns_default_on_validation_errors() -> None:
     )
 
 
-def test_format_coordinate_validation_error_out_of_range_without_bounds() -> None:
+def test_format_coordinate_validation_error_out_of_range_without_bounds() -> None:  # noqa: D103
     error = ValidationError("gps_latitude", "bad", "coordinate_out_of_range")
 
     assert format_coordinate_validation_error(error) == "gps latitude is out of range"
 
 
-def test_validate_service_coordinates_raises_for_non_numeric_longitude() -> None:
+def test_validate_service_coordinates_raises_for_non_numeric_longitude() -> None:  # noqa: D103
     with pytest.raises(ServiceValidationError, match="longitude must be a number"):
         validate_service_coordinates(45.0, "west")

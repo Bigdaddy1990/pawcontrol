@@ -827,7 +827,7 @@ class PawControlEmergencyDateTime(PawControlDateTimeBase):
             "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
-                "note": f"EMERGENCY EVENT recorded for {value.strftime('%Y-%m-%d %H:%M')}",  # noqa: E501
+                "note": f"EMERGENCY EVENT recorded for {value.strftime('%Y-%m-%d %H:%M')}",
             },
         ):
             return

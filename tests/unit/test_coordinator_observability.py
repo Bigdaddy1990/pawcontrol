@@ -29,7 +29,7 @@ from custom_components.pawcontrol.types import (
 
 
 @pytest.mark.unit
-def test_entity_budget_tracker_records_and_summarises() -> None:
+def test_entity_budget_tracker_records_and_summarises() -> None:  # noqa: D103
     tracker = EntityBudgetTracker()
     now = datetime.now(UTC)
     tracker.record(
@@ -65,7 +65,7 @@ def test_entity_budget_tracker_records_and_summarises() -> None:
 
 
 @pytest.mark.unit
-def test_build_performance_snapshot_includes_metrics() -> None:
+def test_build_performance_snapshot_includes_metrics() -> None:  # noqa: D103
     metrics = CoordinatorMetrics(update_count=3, failed_cycles=1, consecutive_errors=0)
     adaptive: AdaptivePollingDiagnostics = {
         "current_interval_ms": 120.0,
@@ -224,7 +224,7 @@ def test_build_performance_snapshot_includes_metrics() -> None:
 
 
 @pytest.mark.unit
-def test_build_performance_snapshot_defaults_rejection_metrics() -> None:
+def test_build_performance_snapshot_defaults_rejection_metrics() -> None:  # noqa: D103
     metrics = CoordinatorMetrics(update_count=2, failed_cycles=0, consecutive_errors=0)
     adaptive = cast(
         AdaptivePollingDiagnostics,
@@ -457,7 +457,7 @@ def test_build_performance_snapshot_keeps_local_bool_summary_when_module_is_smal
 
 
 @pytest.mark.unit
-def test_build_security_scorecard_handles_failures() -> None:
+def test_build_security_scorecard_handles_failures() -> None:  # noqa: D103
     adaptive = {"current_interval_ms": 500.0, "target_cycle_ms": 180.0}
     entity_summary = {"peak_utilization": 99.0}
     webhook_status = {"configured": True, "secure": False, "hmac_ready": False}
@@ -475,7 +475,7 @@ def test_build_security_scorecard_handles_failures() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_webhook_status_handles_exception() -> None:
+def test_normalise_webhook_status_handles_exception() -> None:  # noqa: D103
     class BrokenManager:
         @staticmethod
         def webhook_security_status() -> WebhookSecurityStatus:
@@ -493,7 +493,7 @@ def test_normalise_webhook_status_handles_exception() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_webhook_status_converts_iterable_insecure_configs_to_tuple() -> None:
+def test_normalise_webhook_status_converts_iterable_insecure_configs_to_tuple() -> None:  # noqa: D103
     class Manager:
         @staticmethod
         def webhook_security_status() -> WebhookSecurityStatus:

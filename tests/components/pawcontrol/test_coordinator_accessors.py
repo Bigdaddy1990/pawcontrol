@@ -39,7 +39,7 @@ class _AccessorHarness(CoordinatorDataAccessMixin):
         self.runtime_managers = {}
 
 
-def test_basic_registry_and_payload_accessors() -> None:  # noqa: D103
+def test_basic_registry_and_payload_accessors() -> None:
     harness = _AccessorHarness()
 
     assert harness.get_dog_config("dog-1") == {"name": "Milo", "breed": "Beagle"}

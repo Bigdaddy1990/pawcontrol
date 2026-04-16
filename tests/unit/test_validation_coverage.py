@@ -28,13 +28,13 @@ from custom_components.pawcontrol.validation import (
 )
 
 
-class DemoNotification(Enum):
+class DemoNotification(Enum):  # noqa: D101
     PUSH = "push"
     EMAIL = "email"
 
 
 @pytest.mark.unit
-def test_clamp_float_range_within_bounds() -> None:
+def test_clamp_float_range_within_bounds() -> None:  # noqa: D103
     result = clamp_float_range(
         5.0, field="weight", minimum=0.0, maximum=100.0, default=50.0
     )
@@ -42,7 +42,7 @@ def test_clamp_float_range_within_bounds() -> None:
 
 
 @pytest.mark.unit
-def test_clamp_float_range_invalid_uses_default() -> None:
+def test_clamp_float_range_invalid_uses_default() -> None:  # noqa: D103
     result = clamp_float_range(
         "not-a-number", field="weight", minimum=0.0, maximum=100.0, default=50.0
     )
@@ -50,36 +50,36 @@ def test_clamp_float_range_invalid_uses_default() -> None:
 
 
 @pytest.mark.unit
-def test_clamp_int_range_above_max() -> None:
+def test_clamp_int_range_above_max() -> None:  # noqa: D103
     result = clamp_int_range(99, field="meals", minimum=1, maximum=6, default=2)
     assert result == 6
 
 
 @pytest.mark.unit
-def test_coerce_float_bool_rejected() -> None:
+def test_coerce_float_bool_rejected() -> None:  # noqa: D103
     with pytest.raises(InputCoercionError, match="Must be numeric"):
         coerce_float("weight", True)
 
 
 @pytest.mark.unit
-def test_coerce_int_fractional_string_rejected() -> None:
+def test_coerce_int_fractional_string_rejected() -> None:  # noqa: D103
     with pytest.raises(InputCoercionError, match="Must be a whole number"):
         coerce_int("meals", "2.9")
 
 
 @pytest.mark.unit
-def test_normalize_dog_id_normalizes_spaces() -> None:
+def test_normalize_dog_id_normalizes_spaces() -> None:  # noqa: D103
     assert normalize_dog_id("  My Dog  ") == "my_dog"
 
 
 @pytest.mark.unit
-def test_normalize_dog_id_non_string_rejected() -> None:
+def test_normalize_dog_id_non_string_rejected() -> None:  # noqa: D103
     with pytest.raises(InputCoercionError, match="Must be a string"):
         normalize_dog_id(123)
 
 
 @pytest.mark.unit
-def test_validate_notification_targets_filters_duplicates_and_invalid() -> None:
+def test_validate_notification_targets_filters_duplicates_and_invalid() -> None:  # noqa: D103
     result = validate_notification_targets(
         ["push", DemoNotification.EMAIL, "sms", "push"],
         enum_type=DemoNotification,
@@ -89,7 +89,7 @@ def test_validate_notification_targets_filters_duplicates_and_invalid() -> None:
 
 
 @pytest.mark.unit
-def test_validate_time_window_uses_defaults_for_empty_values() -> None:
+def test_validate_time_window_uses_defaults_for_empty_values() -> None:  # noqa: D103
     start, end = validate_time_window(
         "  ",
         None,
@@ -103,7 +103,7 @@ def test_validate_time_window_uses_defaults_for_empty_values() -> None:
 
 
 @pytest.mark.unit
-def test_validate_time_window_rejects_invalid_end() -> None:
+def test_validate_time_window_rejects_invalid_end() -> None:  # noqa: D103
     with pytest.raises(ValidationError):
         validate_time_window(
             "08:00:00",

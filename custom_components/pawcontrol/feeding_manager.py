@@ -980,7 +980,7 @@ class FeedingConfig:
                 )
             except ValueError:
                 _LOGGER.warning(
-                    "Received invalid age_months=%s for %s; skipping life stage determination",  # noqa: E501
+                    "Received invalid age_months=%s for %s; skipping life stage determination",
                     age_months,
                     self.dog_id,
                 )
@@ -1265,23 +1265,23 @@ class FeedingManager:
                 weight = dog.get("weight")
                 if not isinstance(weight, int | float | str):
                     raise ValueError(
-                        f"Invalid feeding configuration for {dog_id}: weight is required",  # noqa: E501
+                        f"Invalid feeding configuration for {dog_id}: weight is required",
                     )
 
                 try:
                     parsed_weight = float(weight)
                 except ValueError:
                     raise ValueError(
-                        f"Invalid feeding configuration for {dog_id}: weight is required",  # noqa: E501
+                        f"Invalid feeding configuration for {dog_id}: weight is required",
                     ) from None
                 except TypeError:
                     raise ValueError(
-                        f"Invalid feeding configuration for {dog_id}: weight is required",  # noqa: E501
+                        f"Invalid feeding configuration for {dog_id}: weight is required",
                     ) from None
 
                 if parsed_weight <= 0:
                     raise ValueError(
-                        f"Invalid feeding configuration for {dog_id}: weight is required",  # noqa: E501
+                        f"Invalid feeding configuration for {dog_id}: weight is required",
                     )
 
                 feeding_config = cast(
@@ -1960,7 +1960,7 @@ class FeedingManager:
         amount_value = float(amount)
         if not (0 < amount_value <= self._MAX_SINGLE_FEEDING_GRAMS):
             raise ValueError(
-                f"Feeding amount must be between 0 and {self._MAX_SINGLE_FEEDING_GRAMS} grams",  # noqa: E501
+                f"Feeding amount must be between 0 and {self._MAX_SINGLE_FEEDING_GRAMS} grams",
             )
 
         if timestamp is not None:
@@ -3937,7 +3937,7 @@ class FeedingManager:
 
             self._active_emergencies[dog_id] = result["emergency_state"]
             _LOGGER.info(
-                "Activated emergency feeding mode for %s: %s for %d days (%.1f%% portions)",  # noqa: E501
+                "Activated emergency feeding mode for %s: %s for %d days (%.1f%% portions)",
                 dog_id,
                 emergency_type,
                 duration_days,
@@ -4213,18 +4213,18 @@ class FeedingManager:
                 if amount_deviation > tolerance_percent:
                     if accumulator.total_amount < expected_daily_amount:
                         day_issues.append(
-                            f"Underfed by {amount_deviation:.1f}% ({accumulator.total_amount:.0f}g vs {expected_daily_amount:.0f}g)",  # noqa: E501
+                            f"Underfed by {amount_deviation:.1f}% ({accumulator.total_amount:.0f}g vs {expected_daily_amount:.0f}g)",
                         )
                     else:
                         day_issues.append(
-                            f"Overfed by {amount_deviation:.1f}% ({accumulator.total_amount:.0f}g vs {expected_daily_amount:.0f}g)",  # noqa: E501
+                            f"Overfed by {amount_deviation:.1f}% ({accumulator.total_amount:.0f}g vs {expected_daily_amount:.0f}g)",
                         )
 
                 # Check meal frequency
                 actual_meals = len(accumulator.feedings)
                 if actual_meals < expected_meals_per_day:
                     day_issues.append(
-                        f"Too few meals: {actual_meals} vs expected {expected_meals_per_day}",  # noqa: E501
+                        f"Too few meals: {actual_meals} vs expected {expected_meals_per_day}",
                     )
                     missed_meals.append(
                         MissedMealEntry(
@@ -4237,7 +4237,7 @@ class FeedingManager:
                     actual_meals > expected_meals_per_day + 2
                 ):  # Allow some flexibility
                     day_issues.append(
-                        f"Too many meals: {actual_meals} vs expected {expected_meals_per_day}",  # noqa: E501
+                        f"Too many meals: {actual_meals} vs expected {expected_meals_per_day}",
                     )
 
                 # Check schedule adherence if strict scheduling
@@ -4247,7 +4247,7 @@ class FeedingManager:
                     )
                     if accumulator.scheduled_feedings < expected_scheduled:
                         day_issues.append(
-                            f"Missed scheduled feedings: {accumulator.scheduled_feedings} vs {expected_scheduled}",  # noqa: E501
+                            f"Missed scheduled feedings: {accumulator.scheduled_feedings} vs {expected_scheduled}",
                         )
 
                 if day_issues:
@@ -4478,7 +4478,7 @@ class FeedingManager:
 
                             self._invalidate_cache(dog_id)
                             _LOGGER.info(
-                                "Reverted portion adjustment for %s back to %.0fg after %d days",  # noqa: E501
+                                "Reverted portion adjustment for %s back to %.0fg after %d days",
                                 dog_id,
                                 original_amount,
                                 duration_days,

@@ -22,14 +22,14 @@ from custom_components.pawcontrol.flow_steps.notifications_helpers import (
 
 
 @pytest.mark.unit
-def test_build_gps_source_options_empty() -> None:
+def test_build_gps_source_options_empty() -> None:  # noqa: D103
     result = build_gps_source_options({})
     # Function may include default sources even for empty input
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_build_gps_source_options_with_entries() -> None:
+def test_build_gps_source_options_with_entries() -> None:  # noqa: D103
     result = build_gps_source_options({
         "ha_person": "HA Person",
         "gps_device": "GPS Device",
@@ -39,7 +39,7 @@ def test_build_gps_source_options_with_entries() -> None:
 
 
 @pytest.mark.unit
-def test_build_dog_gps_placeholders_sets_dog_name() -> None:
+def test_build_dog_gps_placeholders_sets_dog_name() -> None:  # noqa: D103
     result = build_dog_gps_placeholders(dog_name="Rex")
     assert result["dog_name"] == "Rex"
 
@@ -48,7 +48,7 @@ def test_build_dog_gps_placeholders_sets_dog_name() -> None:
 
 
 @pytest.mark.unit
-def test_validation_error_key_with_constraint() -> None:
+def test_validation_error_key_with_constraint() -> None:  # noqa: D103
     err = ValidationError("weight", -1.0, "too_low")
     result = validation_error_key(err, fallback="invalid_value")
     assert isinstance(result, str)
@@ -56,7 +56,7 @@ def test_validation_error_key_with_constraint() -> None:
 
 
 @pytest.mark.unit
-def test_validation_error_key_uses_fallback() -> None:
+def test_validation_error_key_uses_fallback() -> None:  # noqa: D103
     err = ValidationError("name")
     result = validation_error_key(err, fallback="field_required")
     assert isinstance(result, str)
@@ -66,13 +66,13 @@ def test_validation_error_key_uses_fallback() -> None:
 
 
 @pytest.mark.unit
-def test_validate_int_range_valid() -> None:
+def test_validate_int_range_valid() -> None:  # noqa: D103
     result = validate_int_range(5, field="count", minimum=1, maximum=10)
     assert result == 5
 
 
 @pytest.mark.unit
-def test_validate_int_range_none_not_required() -> None:
+def test_validate_int_range_none_not_required() -> None:  # noqa: D103
     result = validate_int_range(
         None, field="count", minimum=1, maximum=10, required=False
     )
@@ -80,13 +80,13 @@ def test_validate_int_range_none_not_required() -> None:
 
 
 @pytest.mark.unit
-def test_validate_int_range_clamp_below() -> None:
+def test_validate_int_range_clamp_below() -> None:  # noqa: D103
     result = validate_int_range(0, field="count", minimum=1, maximum=10, clamp=True)
     assert result == 1
 
 
 @pytest.mark.unit
-def test_validate_int_range_clamp_above() -> None:
+def test_validate_int_range_clamp_above() -> None:  # noqa: D103
     result = validate_int_range(99, field="count", minimum=1, maximum=10, clamp=True)
     assert result == 10
 
@@ -95,7 +95,7 @@ def test_validate_int_range_clamp_above() -> None:
 
 
 @pytest.mark.unit
-def test_build_unique_id_basic() -> None:
+def test_build_unique_id_basic() -> None:  # noqa: D103
     result = build_unique_id("rex", "feeding_sensor")
     assert isinstance(result, str)
     assert "rex" in result
@@ -103,7 +103,7 @@ def test_build_unique_id_basic() -> None:
 
 
 @pytest.mark.unit
-def test_build_unique_id_different_inputs() -> None:
+def test_build_unique_id_different_inputs() -> None:  # noqa: D103
     r1 = build_unique_id("rex", "walk_sensor")
     r2 = build_unique_id("buddy", "walk_sensor")
     assert r1 != r2
@@ -113,13 +113,13 @@ def test_build_unique_id_different_inputs() -> None:
 
 
 @pytest.mark.unit
-def test_build_dog_status_snapshot_empty() -> None:
+def test_build_dog_status_snapshot_empty() -> None:  # noqa: D103
     result = build_dog_status_snapshot("rex", {})
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_build_dog_status_snapshot_with_data() -> None:
+def test_build_dog_status_snapshot_with_data() -> None:  # noqa: D103
     data = {"walk": {"walk_in_progress": True}, "feeding": {"meals_today": 2}}
     result = build_dog_status_snapshot("rex", data)
     assert isinstance(result, dict)
@@ -129,12 +129,12 @@ def test_build_dog_status_snapshot_with_data() -> None:
 
 
 @pytest.mark.unit
-def test_gps_helpers_module_importable() -> None:
+def test_gps_helpers_module_importable() -> None:  # noqa: D103
     assert gps_h is not None
     assert hasattr(gps_h, "build_dog_gps_placeholders")
 
 
 @pytest.mark.unit
-def test_health_helpers_module_importable() -> None:
+def test_health_helpers_module_importable() -> None:  # noqa: D103
     assert health_h is not None
     assert hasattr(health_h, "build_dog_health_placeholders")

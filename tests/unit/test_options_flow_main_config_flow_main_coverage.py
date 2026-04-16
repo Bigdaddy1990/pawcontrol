@@ -1,4 +1,4 @@
-"""Coverage tests for options_flow_feeding.py + options_flow_main.py + config_flow_main.py."""  # noqa: E501
+"""Coverage tests for options_flow_feeding.py + options_flow_main.py + config_flow_main.py."""
 
 import pytest
 
@@ -18,14 +18,14 @@ from custom_components.pawcontrol.options_flow_main import (
 
 
 @pytest.mark.unit
-def test_ofm_ensure_json_mapping_none() -> None:
+def test_ofm_ensure_json_mapping_none() -> None:  # noqa: D103
     result = ensure_json_mapping(None)
     assert isinstance(result, dict)
     assert len(result) == 0
 
 
 @pytest.mark.unit
-def test_ofm_ensure_json_mapping_with_data() -> None:
+def test_ofm_ensure_json_mapping_with_data() -> None:  # noqa: D103
     result = ensure_json_mapping({"key": "value", "num": 42})
     assert result["key"] == "value"
 
@@ -34,13 +34,13 @@ def test_ofm_ensure_json_mapping_with_data() -> None:
 
 
 @pytest.mark.unit
-def test_ofm_ensure_advanced_options_empty() -> None:
+def test_ofm_ensure_advanced_options_empty() -> None:  # noqa: D103
     result = ensure_advanced_options({})
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_ofm_ensure_advanced_options_with_defaults() -> None:
+def test_ofm_ensure_advanced_options_with_defaults() -> None:  # noqa: D103
     result = ensure_advanced_options({}, defaults={"debug_mode": False})
     assert isinstance(result, dict)
 
@@ -49,7 +49,7 @@ def test_ofm_ensure_advanced_options_with_defaults() -> None:
 
 
 @pytest.mark.unit
-def test_cfm_build_profile_summary_text_returns_str() -> None:
+def test_cfm_build_profile_summary_text_returns_str() -> None:  # noqa: D103
     result = build_profile_summary_text()
     assert isinstance(result, str)
 
@@ -58,19 +58,19 @@ def test_cfm_build_profile_summary_text_returns_str() -> None:
 
 
 @pytest.mark.unit
-def test_cfm_coerce_dog_modules_config_none() -> None:
+def test_cfm_coerce_dog_modules_config_none() -> None:  # noqa: D103
     result = coerce_dog_modules_config(None)
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_cfm_coerce_dog_modules_config_empty() -> None:
+def test_cfm_coerce_dog_modules_config_empty() -> None:  # noqa: D103
     result = coerce_dog_modules_config({})
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_cfm_coerce_dog_modules_config_with_values() -> None:
+def test_cfm_coerce_dog_modules_config_with_values() -> None:  # noqa: D103
     result = coerce_dog_modules_config({"feeding": True, "walk": False})
     assert isinstance(result, dict)
 
@@ -79,25 +79,25 @@ def test_cfm_coerce_dog_modules_config_with_values() -> None:
 
 
 @pytest.mark.unit
-def test_options_flow_feeding_importable() -> None:
+def test_options_flow_feeding_importable() -> None:  # noqa: D103
     assert off_mod is not None
     assert hasattr(off_mod, "FeedingOptionsMixin")
     assert hasattr(off_mod, "FeedingOptions")
 
 
 @pytest.mark.unit
-def test_options_flow_feeding_has_ensure_entry() -> None:
+def test_options_flow_feeding_has_ensure_entry() -> None:  # noqa: D103
     assert hasattr(off_mod, "ensure_dog_options_entry")
     assert callable(off_mod.ensure_dog_options_entry)
 
 
 @pytest.mark.unit
-def test_options_flow_main_has_ensure_dog_config() -> None:
+def test_options_flow_main_has_ensure_dog_config() -> None:  # noqa: D103
     assert hasattr(ofm_mod, "ensure_dog_config_data")
     assert hasattr(ofm_mod, "DogManagementOptionsMixin")
 
 
 @pytest.mark.unit
-def test_config_flow_main_has_config_flow() -> None:
+def test_config_flow_main_has_config_flow() -> None:  # noqa: D103
     assert hasattr(cfm_mod, "ConfigFlow")
     assert hasattr(cfm_mod, "clone_placeholders")

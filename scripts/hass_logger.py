@@ -20,7 +20,7 @@ class HassLoggerFormatChecker(BaseChecker):
             "Periods are not permitted at the end of logger messages",
         ),
         "W7402": (
-            "User visible logger messages must start with a capital letter or downgrade to debug",  # noqa: E501
+            "User visible logger messages must start with a capital letter or downgrade to debug",
             "hass-logger-capital",
             "All logger messages must start with a capital letter",
         ),

@@ -750,7 +750,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
     Issues created:
     - push_no_data: Push source selected but no accepted push seen after a grace period
     - push_rejections_high: High rejection counts (likely wrong dog_id/source, replay, rate limit)
-    """  # noqa: E501
+    """
     if not isinstance(getattr(hass, "data", None), Mapping):
         return
 
@@ -2522,7 +2522,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
                                 "options": [
                                     {
                                         "value": "reduce_retention",
-                                        "label": "Reduce data retention to recommended value",  # noqa: E501
+                                        "label": "Reduce data retention to recommended value",
                                     },
                                     {
                                         "value": "configure",
@@ -2571,7 +2571,7 @@ class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
                                 "options": [
                                     {
                                         "value": "reduce_load",
-                                        "label": "Disable intensive modules for extra dogs",  # noqa: E501
+                                        "label": "Disable intensive modules for extra dogs",
                                     },
                                     {
                                         "value": "optimize",

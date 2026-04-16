@@ -37,7 +37,7 @@ class _FakeFactory:
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_skips_when_runtime_data_missing(
+async def test_async_setup_entry_skips_when_runtime_data_missing(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     add_entities = AsyncMock()
@@ -53,7 +53,7 @@ async def test_async_setup_entry_skips_when_runtime_data_missing(
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_builds_entities_and_awaits_callback(
+async def test_async_setup_entry_builds_entities_and_awaits_callback(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     factory = _FakeFactory(budget_remaining=3)
@@ -116,7 +116,7 @@ async def test_async_setup_entry_finalizes_budget_when_module_creation_fails(
     assert factory.finalize_calls == [("dog-1", "standard")]
 
 
-def test_create_module_entities_uses_profile_fallback_and_budget_checks(
+def test_create_module_entities_uses_profile_fallback_and_budget_checks(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _Entity:
@@ -156,7 +156,7 @@ def test_create_module_entities_uses_profile_fallback_and_budget_checks(
     assert len(entities) == 1
 
 
-def test_coerce_budget_remaining_handles_invalid_values() -> None:
+def test_coerce_budget_remaining_handles_invalid_values() -> None:  # noqa: D103
     @dataclass
     class _Budget:
         remaining: object

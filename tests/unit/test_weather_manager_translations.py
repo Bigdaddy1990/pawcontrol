@@ -10,12 +10,12 @@ from tests.weather_test_support import ensure_weather_module_compat
 
 ensure_weather_module_compat()
 
-from custom_components.pawcontrol.weather_manager import (
+from custom_components.pawcontrol.weather_manager import (  # noqa: E402
     AlertTranslationParts,
     WeatherHealthManager,
     WeatherTranslationParts,
 )
-from custom_components.pawcontrol.weather_translations import (
+from custom_components.pawcontrol.weather_translations import (  # noqa: E402
     DEFAULT_LANGUAGE,
     SUPPORTED_LANGUAGES,
     WEATHER_ALERT_KEY_SET,
@@ -81,7 +81,7 @@ def test_get_translation_returns_original_key_when_fallback_missing(
 def test_get_translation_handles_format_errors_in_fallback(
     weather_manager: WeatherHealthManager,
 ) -> None:
-    """Fallback formatting errors should yield the template text without substitution."""  # noqa: E501
+    """Fallback formatting errors should yield the template text without substitution."""
     translations = get_weather_translations("de")
     translations["alerts"].pop("extreme_heat_warning")
     weather_manager._translations = translations

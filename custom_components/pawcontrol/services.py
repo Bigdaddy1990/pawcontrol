@@ -244,7 +244,7 @@ def _format_expires_in_hours_error(error: ValidationError) -> str:
 
     if constraint == "expires_in_hours_out_of_range":
         if error.min_value is not None and error.max_value is not None:
-            return f"{field} must be between {_format_numeric_value(error.min_value)} and {_format_numeric_value(error.max_value)}"  # noqa: E501
+            return f"{field} must be between {_format_numeric_value(error.min_value)} and {_format_numeric_value(error.max_value)}"
         if error.min_value is not None:
             return (
                 f"{field} must be greater than {_format_numeric_value(error.min_value)}"
@@ -370,7 +370,7 @@ class _CoordinatorResolver:
             )
 
         raise _service_validation_error(
-            "PawControl is not set up. Add the integration before calling its services.",  # noqa: E501
+            "PawControl is not set up. Add the integration before calling its services.",
         )
 
 
@@ -1390,7 +1390,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Unknown dog_id '{dog_id}'. Known dog_ids: {hint}",
                 )
             raise _service_validation_error(
-                "No dogs are configured for PawControl. Add a dog before calling services.",  # noqa: E501
+                "No dogs are configured for PawControl. Add a dog before calling services.",
             )
 
         return dog_id, dog_config
@@ -1799,7 +1799,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 dog_id,
                 err,
             )
-            error_message = f"Failed to update health data for {dog_id}. Check the logs for details."  # noqa: E501
+            error_message = f"Failed to update health data for {dog_id}. Check the logs for details."
             _record_service_result(
                 runtime_data,
                 service=SERVICE_UPDATE_HEALTH,
@@ -1999,7 +1999,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 dog_id,
                 err,
             )
-            error_message = f"Failed to toggle visitor mode for {dog_id}. Check the logs for details."  # noqa: E501
+            error_message = f"Failed to toggle visitor mode for {dog_id}. Check the logs for details."
             _record_service_result(
                 runtime_data,
                 service=SERVICE_TOGGLE_VISITOR_MODE,
@@ -2498,7 +2498,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             await coordinator.async_request_refresh()
             _LOGGER.info(
-                "Setup automatic GPS for %s: auto_walk=%s, safe_zone=%.1fm, tracking=%s",  # noqa: E501
+                "Setup automatic GPS for %s: auto_walk=%s, safe_zone=%.1fm, tracking=%s",
                 dog_id,
                 auto_start_walk,
                 safe_zone_radius,
@@ -2519,7 +2519,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         message=(
                             f"Automatic GPS tracking configured for {dog_id}. "
                             f"Safe zone: {safe_zone_radius:.1f}m radius. "
-                            f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}."  # noqa: E501
+                            f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}."
                         ),
                         dog_id=dog_id,
                     )
@@ -2563,7 +2563,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 dog_id,
                 err,
             )
-            error_message = f"Failed to setup automatic GPS for {dog_id}. Check the logs for details."  # noqa: E501
+            error_message = f"Failed to setup automatic GPS for {dog_id}. Check the logs for details."
             guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
@@ -2763,7 +2763,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise
         except Exception as err:
             _LOGGER.error("Failed to send notification: %s", err)
-            error_message = "Failed to send the PawControl notification. Check the logs for details."  # noqa: E501
+            error_message = "Failed to send the PawControl notification. Check the logs for details."
             guard_snapshot = tuple(guard_results)
             _record_delivery_failure_reason(
                 runtime_data,
@@ -2835,7 +2835,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 notification_id,
                 err,
             )
-            error_message = "Failed to acknowledge the PawControl notification. Check the logs for details."  # noqa: E501
+            error_message = "Failed to acknowledge the PawControl notification. Check the logs for details."
             guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
@@ -2950,7 +2950,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 message=str(err),
             )
             raise HomeAssistantError(
-                f"Failed to calculate portion for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to calculate portion for {dog_id}. Check the logs for details.",
             ) from err
 
     async def export_data_service(call: ServiceCall) -> None:
@@ -3244,7 +3244,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 message=str(err),
             )
             raise HomeAssistantError(
-                f"Failed to recalculate health portions for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to recalculate health portions for {dog_id}. Check the logs for details.",
             ) from err
 
     async def adjust_calories_for_activity_service(call: ServiceCall) -> None:
@@ -3276,7 +3276,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             await coordinator.async_request_refresh()
             _LOGGER.info(
-                "Adjusted calories for activity for %s: %s level for %sh (temporary: %s)",  # noqa: E501
+                "Adjusted calories for activity for %s: %s level for %sh (temporary: %s)",
                 dog_id,
                 activity_level,
                 duration_hours or "unlimited",
@@ -3321,7 +3321,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 message=str(err),
             )
             raise HomeAssistantError(
-                f"Failed to adjust calories for activity for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to adjust calories for activity for {dog_id}. Check the logs for details.",
             ) from err
 
     async def activate_diabetic_feeding_mode_service(call: ServiceCall) -> None:
@@ -3366,7 +3366,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 err,
             )
             raise HomeAssistantError(
-                f"Failed to activate diabetic feeding mode for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to activate diabetic feeding mode for {dog_id}. Check the logs for details.",
             ) from err
 
     async def feed_with_medication_service(call: ServiceCall) -> None:
@@ -3426,7 +3426,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 err,
             )
             raise HomeAssistantError(
-                f"Failed to feed with medication for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to feed with medication for {dog_id}. Check the logs for details.",
             ) from err
 
     async def generate_weekly_health_report_service(call: ServiceCall) -> None:
@@ -3500,7 +3500,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 message=str(err),
             )
             raise HomeAssistantError(
-                f"Failed to generate weekly health report for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to generate weekly health report for {dog_id}. Check the logs for details.",
             ) from err
 
     async def activate_emergency_feeding_mode_service(call: ServiceCall) -> None:
@@ -3530,7 +3530,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             await coordinator.async_request_refresh()
             _LOGGER.info(
-                "Activated emergency feeding mode for %s: %s for %d days (%.1f%% portions)",  # noqa: E501
+                "Activated emergency feeding mode for %s: %s for %d days (%.1f%% portions)",
                 dog_id,
                 emergency_type,
                 duration_days,
@@ -3546,7 +3546,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 err,
             )
             raise HomeAssistantError(
-                f"Failed to activate emergency feeding mode for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to activate emergency feeding mode for {dog_id}. Check the logs for details.",
             ) from err
 
     async def start_diet_transition_service(call: ServiceCall) -> None:
@@ -3594,7 +3594,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 err,
             )
             raise HomeAssistantError(
-                f"Failed to start diet transition for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to start diet transition for {dog_id}. Check the logs for details.",
             ) from err
 
     async def check_feeding_compliance_service(call: ServiceCall) -> None:
@@ -3778,7 +3778,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 metadata=error_metadata,
             )
             raise HomeAssistantError(
-                f"Failed to check feeding compliance for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to check feeding compliance for {dog_id}. Check the logs for details.",
             ) from err
 
     async def adjust_daily_portions_service(call: ServiceCall) -> None:
@@ -3826,7 +3826,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 err,
             )
             raise HomeAssistantError(
-                f"Failed to adjust daily portions for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to adjust daily portions for {dog_id}. Check the logs for details.",
             ) from err
 
     async def add_health_snack_service(call: ServiceCall) -> None:
@@ -4262,7 +4262,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 dog_id,
                 err,
             )
-            error_message = f"Failed to start garden session for {dog_id}. Check the logs for details."  # noqa: E501
+            error_message = f"Failed to start garden session for {dog_id}. Check the logs for details."
             _record_service_result(
                 runtime_data,
                 service=SERVICE_START_GARDEN,
@@ -4300,7 +4300,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 await coordinator.async_request_refresh()
 
                 _LOGGER.info(
-                    "Ended garden session for %s: %.1f minutes, %d activities, %d poop events",  # noqa: E501
+                    "Ended garden session for %s: %.1f minutes, %d activities, %d poop events",
                     session.dog_name,
                     session.duration_minutes,
                     len(session.activities),
@@ -4362,7 +4362,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 dog_id,
                 err,
             )
-            error_message = f"Failed to end garden session for {dog_id}. Check the logs for details."  # noqa: E501
+            error_message = f"Failed to end garden session for {dog_id}. Check the logs for details."
             _record_service_result(
                 runtime_data,
                 service=SERVICE_END_GARDEN,
@@ -4458,7 +4458,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 dog_id,
                 err,
             )
-            error_message = f"Failed to add garden activity for {dog_id}. Check the logs for details."  # noqa: E501
+            error_message = f"Failed to add garden activity for {dog_id}. Check the logs for details."
             _record_service_result(
                 runtime_data,
                 service=SERVICE_ADD_GARDEN_ACTIVITY,
@@ -4549,7 +4549,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 dog_id,
                 err,
             )
-            error_message = f"Failed to confirm garden poop for {dog_id}. Check the logs for details."  # noqa: E501
+            error_message = f"Failed to confirm garden poop for {dog_id}. Check the logs for details."
             _record_service_result(
                 runtime_data,
                 service=SERVICE_CONFIRM_POOP,
@@ -4763,7 +4763,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 err,
             )
             raise HomeAssistantError(
-                f"Failed to get weather recommendations for {dog_id}. Check the logs for details.",  # noqa: E501
+                f"Failed to get weather recommendations for {dog_id}. Check the logs for details.",
             ) from err
 
     # Register all services
@@ -4997,7 +4997,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     )
 
     _LOGGER.debug(
-        "Registered PawControl services with enhanced automation, GPS setup, garden tracking, and weather health functionality",  # noqa: E501
+        "Registered PawControl services with enhanced automation, GPS setup, garden tracking, and weather health functionality",
     )
 
 

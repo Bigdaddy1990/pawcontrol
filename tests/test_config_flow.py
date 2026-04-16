@@ -54,7 +54,7 @@ async def _complete_minimal_setup(flow: PawControlConfigFlow) -> dict[str, objec
     return result
 
 
-async def test_config_flow_success_creates_entry(hass: HomeAssistant) -> None:
+async def test_config_flow_success_creates_entry(hass: HomeAssistant) -> None:  # noqa: D103
     flow = PawControlConfigFlow()
     flow.hass = hass
 
@@ -72,7 +72,7 @@ async def test_config_flow_success_creates_entry(hass: HomeAssistant) -> None:
         ("cannot_connect", FlowValidationError(base_errors=["cannot_connect"])),
     ],
 )
-async def test_config_flow_known_validation_errors_return_form_error(
+async def test_config_flow_known_validation_errors_return_form_error(  # noqa: D103
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
     error_key: str,
@@ -96,7 +96,7 @@ async def test_config_flow_known_validation_errors_return_form_error(
     assert result["errors"]["base"] == error_key
 
 
-async def test_config_flow_unknown_error_returns_unknown_error_form(
+async def test_config_flow_unknown_error_returns_unknown_error_form(  # noqa: D103
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     flow = PawControlConfigFlow()
@@ -117,7 +117,7 @@ async def test_config_flow_unknown_error_returns_unknown_error_form(
     assert result["errors"]["base"] == "unknown_error"
 
 
-async def test_config_flow_duplicate_aborts_already_configured(
+async def test_config_flow_duplicate_aborts_already_configured(  # noqa: D103
     hass: HomeAssistant,
 ) -> None:
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={CONF_DOGS: []})
@@ -134,7 +134,7 @@ async def test_config_flow_duplicate_aborts_already_configured(
         assert "already_configured" in str(exc)
 
 
-async def test_reauth_confirm_success_aborts_with_success(
+async def test_reauth_confirm_success_aborts_with_success(  # noqa: D103
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -168,7 +168,7 @@ async def test_reauth_confirm_success_aborts_with_success(
     assert result["reason"] == "reauth_successful"
 
 
-async def test_reauth_confirm_failure_returns_form_error(
+async def test_reauth_confirm_failure_returns_form_error(  # noqa: D103
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     entry = MockConfigEntry(
@@ -203,7 +203,7 @@ async def test_reauth_confirm_failure_returns_form_error(
     assert result["errors"]["base"] == "reauth_failed"
 
 
-async def test_options_flow_updates_options_entry(
+async def test_options_flow_updates_options_entry(  # noqa: D103
     hass: HomeAssistant, mock_config_entry: MockConfigEntry
 ) -> None:
     flow = PawControlOptionsFlow()

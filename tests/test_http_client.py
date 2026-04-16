@@ -53,12 +53,12 @@ class _RequestFallbackSession:
         return None
 
 
-def test_rejects_none_session() -> None:
+def test_rejects_none_session() -> None:  # noqa: D103
     with pytest.raises(ValueError, match="received None"):
         ensure_shared_client_session(None, owner="test-owner")
 
 
-def test_rejects_missing_request_callable() -> None:
+def test_rejects_missing_request_callable() -> None:  # noqa: D103
     with pytest.raises(
         ValueError,
         match="without an aiohttp-compatible 'request' coroutine",
@@ -66,7 +66,7 @@ def test_rejects_missing_request_callable() -> None:
         ensure_shared_client_session(_NoRequestSession(), owner="test-owner")
 
 
-def test_rejects_sync_request_without_fallback() -> None:
+def test_rejects_sync_request_without_fallback() -> None:  # noqa: D103
     with pytest.raises(
         ValueError,
         match="without an aiohttp-compatible 'request' coroutine",
@@ -74,18 +74,18 @@ def test_rejects_sync_request_without_fallback() -> None:
         ensure_shared_client_session(_SyncRequestSession(), owner="test-owner")
 
 
-def test_accepts_wrapped_coroutine_request() -> None:
+def test_accepts_wrapped_coroutine_request() -> None:  # noqa: D103
     session = _WrappedRequestSession()
 
     assert ensure_shared_client_session(session, owner="test-owner") is session
 
 
-def test_rejects_closed_session() -> None:
+def test_rejects_closed_session() -> None:  # noqa: D103
     with pytest.raises(ValueError, match="received a closed aiohttp ClientSession"):
         ensure_shared_client_session(_ClosedSession(), owner="test-owner")
 
 
-def test_rejects_instance_override_when_class_request_is_coroutine() -> None:
+def test_rejects_instance_override_when_class_request_is_coroutine() -> None:  # noqa: D103
     session = _ClassCoroutineRequestSession()
     session.request = lambda *_args, **_kwargs: None
 
@@ -96,7 +96,7 @@ def test_rejects_instance_override_when_class_request_is_coroutine() -> None:
         ensure_shared_client_session(session, owner="test-owner")
 
 
-def test_accepts_private_request_coroutine_fallback() -> None:
+def test_accepts_private_request_coroutine_fallback() -> None:  # noqa: D103
     session = _RequestFallbackSession()
 
     assert ensure_shared_client_session(session, owner="test-owner") is session

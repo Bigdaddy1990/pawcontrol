@@ -46,11 +46,11 @@ class _CoordinatorStub:
         ("unknown_unit", None),
     ],
 )
-def test_suggested_precision_from_unit(unit: str | None, expected: int | None) -> None:
+def test_suggested_precision_from_unit(unit: str | None, expected: int | None) -> None:  # noqa: D103
     assert sensor._suggested_precision_from_unit(unit) == expected
 
 
-def test_suggested_precision_handles_dynamic_speed_and_calorie_units() -> None:
+def test_suggested_precision_handles_dynamic_speed_and_calorie_units() -> None:  # noqa: D103
     assert sensor._suggested_precision_from_unit(sensor._SPEED_UNIT) == 1
     assert sensor._suggested_precision_from_unit(sensor._CALORIE_UNIT) == 0
 
@@ -71,7 +71,7 @@ def test_suggested_precision_handles_dynamic_speed_and_calorie_units() -> None:
         (_IntervalRaisesTypeError(), 300),
     ],
 )
-def test_get_activity_score_cache_ttl(update_interval: object, expected: int) -> None:
+def test_get_activity_score_cache_ttl(update_interval: object, expected: int) -> None:  # noqa: D103
     coordinator = _CoordinatorStub(update_interval)
 
     assert sensor.get_activity_score_cache_ttl(coordinator) == expected
@@ -88,7 +88,7 @@ def test_get_activity_score_cache_ttl(update_interval: object, expected: int) ->
         (object(), 1.2, 1.2),
     ],
 )
-def test_coerce_float(value: object, default: float, expected: float) -> None:
+def test_coerce_float(value: object, default: float, expected: float) -> None:  # noqa: D103
     assert sensor.PawControlSensorBase._coerce_float(value, default) == expected
 
 
@@ -103,7 +103,7 @@ def test_coerce_float(value: object, default: float, expected: float) -> None:
         (object(), 3, 3),
     ],
 )
-def test_coerce_int(value: object, default: int, expected: int) -> None:
+def test_coerce_int(value: object, default: int, expected: int) -> None:  # noqa: D103
     assert sensor.PawControlSensorBase._coerce_int(value, default) == expected
 
 
@@ -118,7 +118,7 @@ def test_coerce_int(value: object, default: int, expected: int) -> None:
         (object(), True),
     ],
 )
-def test_coerce_utc_datetime(value: object, is_none: bool) -> None:
+def test_coerce_utc_datetime(value: object, is_none: bool) -> None:  # noqa: D103
     result = sensor.PawControlSensorBase._coerce_utc_datetime(value)
 
     assert (result is None) is is_none
@@ -137,7 +137,7 @@ class _DocChild(_DocBase):
         return "value"
 
 
-def test_copy_base_docstring_to_property() -> None:
+def test_copy_base_docstring_to_property() -> None:  # noqa: D103
     assert _DocChild.test_property.__doc__ is None
 
     sensor._copy_base_docstring(
@@ -160,7 +160,7 @@ class _MethodDocChild(_MethodDocBase):
         return "ok"
 
 
-def test_copy_base_docstring_to_method() -> None:
+def test_copy_base_docstring_to_method() -> None:  # noqa: D103
     assert _MethodDocChild.documented_method.__doc__ is None
 
     sensor._copy_base_docstring(
@@ -185,7 +185,7 @@ class _ClassmethodDocChild(_ClassmethodDocBase):
         return "ok"
 
 
-def test_copy_base_docstring_to_classmethod() -> None:
+def test_copy_base_docstring_to_classmethod() -> None:  # noqa: D103
     assert _ClassmethodDocChild.documented_classmethod.__doc__ is None
 
     sensor._copy_base_docstring(
@@ -197,7 +197,7 @@ def test_copy_base_docstring_to_classmethod() -> None:
     assert _ClassmethodDocChild.documented_classmethod.__doc__ == "Class method docs."
 
 
-def test_normalise_attributes_returns_json_serialisable_mapping() -> None:
+def test_normalise_attributes_returns_json_serialisable_mapping() -> None:  # noqa: D103
     attrs = {
         "timestamp": datetime(2026, 1, 1, tzinfo=UTC),
         "today": date(2026, 1, 1),
@@ -220,7 +220,7 @@ def test_normalise_attributes_returns_json_serialisable_mapping() -> None:
         "invalid",
     ],
 )
-def test_module_payload_coercion_helpers(payload: object) -> None:
+def test_module_payload_coercion_helpers(payload: object) -> None:  # noqa: D103
     module_payload = sensor.PawControlSensorBase._coerce_module_payload(payload)
     feeding_payload = sensor.PawControlSensorBase._coerce_feeding_payload(
         module_payload
@@ -242,7 +242,7 @@ class _RegisteredSensor(sensor.PawControlSensorBase):
         return "ok"
 
 
-def test_register_sensor_decorator_adds_mapping_entry() -> None:
+def test_register_sensor_decorator_adds_mapping_entry() -> None:  # noqa: D103
     marker = "pytest_registered_sensor"
     sensor.SENSOR_MAPPING.pop(marker, None)
 
@@ -254,7 +254,7 @@ def test_register_sensor_decorator_adds_mapping_entry() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_returns_when_runtime_data_missing(
+async def test_async_setup_entry_returns_when_runtime_data_missing(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(sensor, "get_runtime_data", lambda _hass, _entry: None)
@@ -273,7 +273,7 @@ async def test_async_setup_entry_returns_when_runtime_data_missing(
     assert calls == []
 
 
-def test_create_module_entities_respects_enabled_modules_and_budget() -> None:
+def test_create_module_entities_respects_enabled_modules_and_budget() -> None:  # noqa: D103
     class _BudgetStub:
         remaining = 0
 
@@ -317,7 +317,7 @@ def test_create_module_entities_respects_enabled_modules_and_budget() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_finalizes_budget_and_awaits_add_entities(
+async def test_async_setup_entry_finalizes_budget_and_awaits_add_entities(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     begin_calls: list[tuple[str, str, int]] = []
@@ -360,7 +360,7 @@ async def test_async_setup_entry_finalizes_budget_and_awaits_add_entities(
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_adds_entities_from_core_and_module_and_awaits_callback(
+async def test_async_setup_entry_adds_entities_from_core_and_module_and_awaits_callback(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     runtime_data = SimpleNamespace(
@@ -388,7 +388,7 @@ async def test_async_setup_entry_adds_entities_from_core_and_module_and_awaits_c
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_skips_add_entities_when_no_dogs(
+async def test_async_setup_entry_skips_add_entities_when_no_dogs(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     runtime_data = SimpleNamespace(
@@ -420,13 +420,13 @@ async def test_async_setup_entry_skips_add_entities_when_no_dogs(
         (object(), None),
     ],
 )
-def test_coerce_budget_remaining(remaining: object, expected: int | None) -> None:
+def test_coerce_budget_remaining(remaining: object, expected: int | None) -> None:  # noqa: D103
     budget = SimpleNamespace(remaining=remaining)
 
     assert sensor._coerce_budget_remaining(budget) == expected
 
 
-def test_coerce_budget_remaining_without_remaining_attribute() -> None:
+def test_coerce_budget_remaining_without_remaining_attribute() -> None:  # noqa: D103
     assert sensor._coerce_budget_remaining(object()) is None
 
 
@@ -442,7 +442,7 @@ def test_coerce_budget_remaining_without_remaining_attribute() -> None:
         ("bad", False),
     ],
 )
-def test_is_budget_exhausted(remaining: object, expected: bool) -> None:
+def test_is_budget_exhausted(remaining: object, expected: bool) -> None:  # noqa: D103
     budget = SimpleNamespace(remaining=remaining)
 
     assert sensor._is_budget_exhausted(budget) is expected
@@ -467,7 +467,7 @@ def _build_calorie_sensor() -> sensor.PawControlCaloriesBurnedTodaySensor:
         ({}, None),
     ],
 )
-def test_compute_activity_score_optimized_weighted_outputs(
+def test_compute_activity_score_optimized_weighted_outputs(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
     scores: dict[str, float | None],
     expected: float | None,
@@ -504,7 +504,7 @@ def test_compute_activity_score_optimized_weighted_outputs(
     assert activity_sensor._compute_activity_score_optimized(dog_data) == expected
 
 
-def test_compute_activity_score_optimized_ignores_module_errors(
+def test_compute_activity_score_optimized_ignores_module_errors(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     activity_sensor = _build_activity_score_sensor()
@@ -534,7 +534,7 @@ def test_compute_activity_score_optimized_ignores_module_errors(
     assert result == 90.0
 
 
-def test_activity_score_native_value_uses_cache(
+def test_activity_score_native_value_uses_cache(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     activity_sensor = _build_activity_score_sensor()
@@ -563,7 +563,7 @@ def test_activity_score_native_value_uses_cache(
         ("invalid", 1000, 10.0, 0.0),
     ],
 )
-def test_calculate_calories_from_activity_thresholds_and_fallbacks(
+def test_calculate_calories_from_activity_thresholds_and_fallbacks(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
     duration: object,
     distance: object,
@@ -587,14 +587,14 @@ def test_calculate_calories_from_activity_thresholds_and_fallbacks(
     assert result == pytest.approx(expected)
 
 
-def test_calories_burned_native_value_prefers_direct_payload() -> None:
+def test_calories_burned_native_value_prefers_direct_payload() -> None:  # noqa: D103
     calorie_sensor = _build_calorie_sensor()
     calorie_sensor._get_walk_module = lambda: {"calories_burned_today": "120.56"}
 
     assert calorie_sensor.native_value == pytest.approx(120.6)
 
 
-def test_calories_burned_native_value_uses_activity_fallback(
+def test_calories_burned_native_value_uses_activity_fallback(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calorie_sensor = _build_calorie_sensor()

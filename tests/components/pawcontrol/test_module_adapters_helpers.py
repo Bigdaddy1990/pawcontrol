@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta  # noqa: D100
 from types import SimpleNamespace
 
 from aiohttp import ClientSession
@@ -56,7 +56,7 @@ class _FakeWalkManager:
         return self._payload
 
 
-def test_expiring_cache_tracks_hits_misses_metadata(monkeypatch) -> None:
+def test_expiring_cache_tracks_hits_misses_metadata(monkeypatch) -> None:  # noqa: D103
     now = datetime(2026, 1, 1, tzinfo=UTC)
     monkeypatch.setattr(module_adapters, "dt_util", _FrozenTime(now))
     cache = _ExpiringCache[dict[str, str]](ttl=timedelta(minutes=5))
@@ -81,7 +81,7 @@ def test_expiring_cache_tracks_hits_misses_metadata(monkeypatch) -> None:
     assert snapshot["metadata"] == {"ttl_seconds": 300.0}
 
 
-def test_expiring_cache_cleanup_and_clear(monkeypatch) -> None:
+def test_expiring_cache_cleanup_and_clear(monkeypatch) -> None:  # noqa: D103
     start = datetime(2026, 1, 1, tzinfo=UTC)
     monkeypatch.setattr(module_adapters, "dt_util", _FrozenTime(start))
     cache = _ExpiringCache[str](ttl=timedelta(seconds=10))
@@ -100,7 +100,7 @@ def test_expiring_cache_cleanup_and_clear(monkeypatch) -> None:
     assert cache.metadata() == {"ttl_seconds": 10.0}
 
 
-def test_expiring_cache_cleanup_reports_last_cleanup_when_nothing_expires(
+def test_expiring_cache_cleanup_reports_last_cleanup_when_nothing_expires(  # noqa: D103
     monkeypatch,
 ) -> None:
     start = datetime(2026, 1, 1, tzinfo=UTC)
@@ -118,7 +118,7 @@ def test_expiring_cache_cleanup_reports_last_cleanup_when_nothing_expires(
     }
 
 
-def test_expiring_cache_get_evicts_expired_entries(monkeypatch) -> None:
+def test_expiring_cache_get_evicts_expired_entries(monkeypatch) -> None:  # noqa: D103
     start = datetime(2026, 1, 1, tzinfo=UTC)
     cache = _ExpiringCache[str](ttl=timedelta(seconds=5))
 
@@ -134,7 +134,7 @@ def test_expiring_cache_get_evicts_expired_entries(monkeypatch) -> None:
     assert cache.metrics().entries == 0
 
 
-def test_base_module_adapter_snapshot_without_cache() -> None:
+def test_base_module_adapter_snapshot_without_cache() -> None:  # noqa: D103
     adapter = _DummyAdapter(ttl=None)
 
     assert adapter.cleanup(datetime(2026, 1, 1, tzinfo=UTC)) == 0
@@ -144,7 +144,7 @@ def test_base_module_adapter_snapshot_without_cache() -> None:
     }
 
 
-def test_base_module_adapter_cache_helpers_with_disabled_ttl() -> None:
+def test_base_module_adapter_cache_helpers_with_disabled_ttl() -> None:  # noqa: D103
     adapter = _DummyAdapter(ttl=None)
 
     adapter._remember("dog-1", {"state": "cached"})
@@ -153,7 +153,7 @@ def test_base_module_adapter_cache_helpers_with_disabled_ttl() -> None:
     assert adapter.cache_metrics() == module_adapters.ModuleCacheMetrics()
 
 
-def test_base_module_adapter_snapshot_sets_ttl_metadata(monkeypatch) -> None:
+def test_base_module_adapter_snapshot_sets_ttl_metadata(monkeypatch) -> None:  # noqa: D103
     adapter = _DummyAdapter(ttl=timedelta(seconds=30))
     assert adapter._cache is not None
 
@@ -172,7 +172,7 @@ def test_base_module_adapter_snapshot_sets_ttl_metadata(monkeypatch) -> None:
     }
 
 
-def test_base_module_adapter_snapshot_keeps_existing_ttl_metadata(monkeypatch) -> None:
+def test_base_module_adapter_snapshot_keeps_existing_ttl_metadata(monkeypatch) -> None:  # noqa: D103
     adapter = _DummyAdapter(ttl=timedelta(seconds=30))
     assert adapter._cache is not None
 
@@ -188,7 +188,7 @@ def test_base_module_adapter_snapshot_keeps_existing_ttl_metadata(monkeypatch) -
     assert adapter.cache_snapshot()["metadata"]["ttl_seconds"] == 5.0
 
 
-def test_normalise_health_alert_defaults_and_details() -> None:
+def test_normalise_health_alert_defaults_and_details() -> None:  # noqa: D103
     payload = {
         "type": "hydration",
         "severity": "UNEXPECTED",
@@ -207,7 +207,7 @@ def test_normalise_health_alert_defaults_and_details() -> None:
     }
 
 
-def test_normalise_health_medication_optional_fields_and_nulls() -> None:
+def test_normalise_health_medication_optional_fields_and_nulls() -> None:  # noqa: D103
     payload = {
         "medication": "Omega 3",
         "dosage": None,
@@ -229,7 +229,7 @@ def test_normalise_health_medication_optional_fields_and_nulls() -> None:
     }
 
 
-def test_normalise_health_alert_defaults_without_mapping_details() -> None:
+def test_normalise_health_alert_defaults_without_mapping_details() -> None:  # noqa: D103
     normalised = _normalise_health_alert({
         "message": "",
         "severity": "HIGH",
@@ -244,14 +244,14 @@ def test_normalise_health_alert_defaults_without_mapping_details() -> None:
     }
 
 
-def test_normalise_health_medication_defaults_to_name_field() -> None:
+def test_normalise_health_medication_defaults_to_name_field() -> None:  # noqa: D103
     normalised = _normalise_health_medication({"name": "Joint Support"})
 
     assert normalised == {"name": "Joint Support"}
 
 
 @pytest.mark.asyncio
-async def test_coordinator_module_adapters_build_tasks_for_enabled_modules() -> None:
+async def test_coordinator_module_adapters_build_tasks_for_enabled_modules() -> None:  # noqa: D103
     config_entry = SimpleNamespace(data={"dogs": []}, options={})
     async with ClientSession() as session:
         adapters = CoordinatorModuleAdapters(
@@ -286,7 +286,7 @@ async def test_coordinator_module_adapters_build_tasks_for_enabled_modules() -> 
 
 
 @pytest.mark.asyncio
-async def test_coordinator_module_adapters_build_tasks_for_walk_and_garden_only() -> (
+async def test_coordinator_module_adapters_build_tasks_for_walk_and_garden_only() -> (  # noqa: D103
     None
 ):
     config_entry = SimpleNamespace(data={"dogs": []}, options={})
@@ -317,7 +317,7 @@ async def test_coordinator_module_adapters_build_tasks_for_walk_and_garden_only(
 
 
 @pytest.mark.asyncio
-async def test_coordinator_module_adapters_cache_lifecycle_and_detach(
+async def test_coordinator_module_adapters_cache_lifecycle_and_detach(  # noqa: D103
     monkeypatch,
 ) -> None:
     config_entry = SimpleNamespace(data={"dogs": []}, options={})
@@ -368,7 +368,7 @@ async def test_coordinator_module_adapters_cache_lifecycle_and_detach(
 
 
 @pytest.mark.asyncio
-async def test_weather_module_adapter_builds_ready_payload_and_caches() -> None:
+async def test_weather_module_adapter_builds_ready_payload_and_caches() -> None:  # noqa: D103
     config_entry = SimpleNamespace(
         data={
             "dogs": [
@@ -450,7 +450,7 @@ async def test_weather_module_adapter_builds_ready_payload_and_caches() -> None:
 
 
 @pytest.mark.asyncio
-async def test_weather_module_adapter_returns_error_payload_on_manager_failure() -> (
+async def test_weather_module_adapter_returns_error_payload_on_manager_failure() -> (  # noqa: D103
     None
 ):
     config_entry = SimpleNamespace(
@@ -483,7 +483,7 @@ async def test_weather_module_adapter_returns_error_payload_on_manager_failure()
 
 
 @pytest.mark.asyncio
-async def test_garden_module_adapter_default_error_and_idle_payloads() -> None:
+async def test_garden_module_adapter_default_error_and_idle_payloads() -> None:  # noqa: D103
     adapter = GardenModuleAdapter(ttl=timedelta(minutes=5))
 
     disabled_payload = await adapter.async_get_data("dog-1")
@@ -522,7 +522,7 @@ async def test_garden_module_adapter_default_error_and_idle_payloads() -> None:
 
 
 @pytest.mark.asyncio
-async def test_health_module_adapter_merges_stored_feeding_and_walk_context() -> None:
+async def test_health_module_adapter_merges_stored_feeding_and_walk_context() -> None:  # noqa: D103
     adapter = HealthModuleAdapter(ttl=timedelta(minutes=5))
 
     class _DataManager:
@@ -596,7 +596,7 @@ async def test_health_module_adapter_merges_stored_feeding_and_walk_context() ->
 
 
 @pytest.mark.asyncio
-async def test_health_module_adapter_walk_fallback_without_feeding_context() -> None:
+async def test_health_module_adapter_walk_fallback_without_feeding_context() -> None:  # noqa: D103
     adapter = HealthModuleAdapter(ttl=timedelta(minutes=5))
 
     class _WalkManager:
@@ -616,7 +616,7 @@ async def test_health_module_adapter_walk_fallback_without_feeding_context() -> 
 
 
 @pytest.mark.asyncio
-async def test_feeding_module_adapter_uses_manager_then_cache() -> None:
+async def test_feeding_module_adapter_uses_manager_then_cache() -> None:  # noqa: D103
     async with ClientSession() as session:
         adapter = FeedingModuleAdapter(
             session=session,
@@ -636,7 +636,7 @@ async def test_feeding_module_adapter_uses_manager_then_cache() -> None:
 
 
 @pytest.mark.asyncio
-async def test_feeding_module_adapter_wraps_unexpected_api_errors() -> None:
+async def test_feeding_module_adapter_wraps_unexpected_api_errors() -> None:  # noqa: D103
     async with ClientSession() as session:
         adapter = FeedingModuleAdapter(
             session=session,
@@ -650,7 +650,7 @@ async def test_feeding_module_adapter_wraps_unexpected_api_errors() -> None:
 
 
 @pytest.mark.asyncio
-async def test_walk_module_adapter_defaults_for_missing_or_empty_manager_data() -> None:
+async def test_walk_module_adapter_defaults_for_missing_or_empty_manager_data() -> None:  # noqa: D103
     adapter = WalkModuleAdapter(ttl=timedelta(minutes=5))
 
     disabled = await adapter.async_get_data("dog-1")
@@ -662,7 +662,7 @@ async def test_walk_module_adapter_defaults_for_missing_or_empty_manager_data() 
 
 
 @pytest.mark.asyncio
-async def test_gps_module_adapter_reports_unavailable_and_tracking_payload() -> None:
+async def test_gps_module_adapter_reports_unavailable_and_tracking_payload() -> None:  # noqa: D103
     adapter = module_adapters.GPSModuleAdapter()
 
     with pytest.raises(module_adapters.GPSUnavailableError, match="dog-1"):
@@ -701,7 +701,7 @@ async def test_gps_module_adapter_reports_unavailable_and_tracking_payload() -> 
 
 
 @pytest.mark.asyncio
-async def test_feeding_adapter_reraises_rate_limit_and_network_errors() -> None:
+async def test_feeding_adapter_reraises_rate_limit_and_network_errors() -> None:  # noqa: D103
     class _RateLimitedClient:
         async def async_get_feeding_payload(self, _: str) -> dict[str, object]:
             raise module_adapters.RateLimitError("slow down")
@@ -731,7 +731,7 @@ async def test_feeding_adapter_reraises_rate_limit_and_network_errors() -> None:
 
 
 @pytest.mark.asyncio
-async def test_feeding_adapter_external_api_success_sets_ready_and_caches() -> None:
+async def test_feeding_adapter_external_api_success_sets_ready_and_caches() -> None:  # noqa: D103
     class _OkClient:
         async def async_get_feeding_payload(self, dog_id: str) -> dict[str, object]:
             return {"dog_id": dog_id}
@@ -749,7 +749,7 @@ async def test_feeding_adapter_external_api_success_sets_ready_and_caches() -> N
 
 
 @pytest.mark.asyncio
-async def test_walk_and_garden_adapters_return_cached_payloads() -> None:
+async def test_walk_and_garden_adapters_return_cached_payloads() -> None:  # noqa: D103
     walk_adapter = WalkModuleAdapter(ttl=timedelta(minutes=5))
     walk_adapter.attach(_FakeWalkManager(payload={"status": "ready", "daily_walks": 2}))
     walk_first = await walk_adapter.async_get_data("dog-cache")
@@ -782,7 +782,7 @@ async def test_walk_and_garden_adapters_return_cached_payloads() -> None:
 
 
 @pytest.mark.asyncio
-async def test_geofencing_adapter_disabled_active_and_cached_paths() -> None:
+async def test_geofencing_adapter_disabled_active_and_cached_paths() -> None:  # noqa: D103
     adapter = module_adapters.GeofencingModuleAdapter(ttl=timedelta(minutes=5))
     disabled = await adapter.async_get_data("dog-1")
     assert disabled["status"] == "unavailable"
@@ -805,7 +805,7 @@ async def test_geofencing_adapter_disabled_active_and_cached_paths() -> None:
 
 
 @pytest.mark.asyncio
-async def test_health_and_weather_adapters_cover_cache_and_optional_branches() -> None:
+async def test_health_and_weather_adapters_cover_cache_and_optional_branches() -> None:  # noqa: D103
     health_adapter = HealthModuleAdapter(ttl=timedelta(minutes=5))
 
     class _FeedingManager:

@@ -21,20 +21,20 @@ from custom_components.pawcontrol.coordinator_diffing import (
 
 
 @pytest.mark.unit
-def test_compute_data_diff_both_none() -> None:
+def test_compute_data_diff_both_none() -> None:  # noqa: D103
     diff = compute_data_diff(None, None)
     assert isinstance(diff, DataDiff)
 
 
 @pytest.mark.unit
-def test_compute_data_diff_no_change() -> None:
+def test_compute_data_diff_no_change() -> None:  # noqa: D103
     data = {"dog1": {"feeding": {"meals": 2}}}
     diff = compute_data_diff(data, data)
     assert diff.has_changes is False or isinstance(diff.has_changes, bool)
 
 
 @pytest.mark.unit
-def test_compute_data_diff_added_key() -> None:
+def test_compute_data_diff_added_key() -> None:  # noqa: D103
     old = {"dog1": {"feeding": {}}}
     new = {"dog1": {"feeding": {}}, "dog2": {"feeding": {}}}
     diff = compute_data_diff(old, new)
@@ -42,7 +42,7 @@ def test_compute_data_diff_added_key() -> None:
 
 
 @pytest.mark.unit
-def test_compute_data_diff_modified_value() -> None:
+def test_compute_data_diff_modified_value() -> None:  # noqa: D103
     old = {"dog1": {"walk": {"walk_in_progress": False}}}
     new = {"dog1": {"walk": {"walk_in_progress": True}}}
     diff = compute_data_diff(old, new)
@@ -50,14 +50,14 @@ def test_compute_data_diff_modified_value() -> None:
 
 
 @pytest.mark.unit
-def test_compute_data_diff_old_none() -> None:
+def test_compute_data_diff_old_none() -> None:  # noqa: D103
     new = {"dog1": {"feeding": {}}}
     diff = compute_data_diff(None, new)
     assert isinstance(diff, DataDiff)
 
 
 @pytest.mark.unit
-def test_compute_data_diff_new_none() -> None:
+def test_compute_data_diff_new_none() -> None:  # noqa: D103
     old = {"dog1": {"feeding": {}}}
     diff = compute_data_diff(old, None)
     assert isinstance(diff, DataDiff)
@@ -69,13 +69,13 @@ def test_compute_data_diff_new_none() -> None:
 
 
 @pytest.mark.unit
-def test_compute_dog_diff_both_none() -> None:
+def test_compute_dog_diff_both_none() -> None:  # noqa: D103
     diff = compute_dog_diff("rex", None, None)
     assert isinstance(diff, DogDataDiff)
 
 
 @pytest.mark.unit
-def test_compute_dog_diff_no_change() -> None:
+def test_compute_dog_diff_no_change() -> None:  # noqa: D103
     data = {"feeding": {"meals": 2}, "walk": {}}
     diff = compute_dog_diff("rex", data, data)
     assert isinstance(diff, DogDataDiff)
@@ -83,7 +83,7 @@ def test_compute_dog_diff_no_change() -> None:
 
 
 @pytest.mark.unit
-def test_compute_dog_diff_walk_changed() -> None:
+def test_compute_dog_diff_walk_changed() -> None:  # noqa: D103
     old = {"walk": {"walk_in_progress": False}}
     new = {"walk": {"walk_in_progress": True}}
     diff = compute_dog_diff("rex", old, new)
@@ -96,14 +96,14 @@ def test_compute_dog_diff_walk_changed() -> None:
 
 
 @pytest.mark.unit
-def test_get_changed_fields_empty_diff() -> None:
+def test_get_changed_fields_empty_diff() -> None:  # noqa: D103
     diff = compute_data_diff({}, {})
     fields = get_changed_fields(diff)
     assert isinstance(fields, frozenset)
 
 
 @pytest.mark.unit
-def test_get_changed_fields_with_changes() -> None:
+def test_get_changed_fields_with_changes() -> None:  # noqa: D103
     old = {"a": 1, "b": 2}
     new = {"a": 1, "b": 3, "c": 4}
     diff = compute_data_diff(old, new)
@@ -112,7 +112,7 @@ def test_get_changed_fields_with_changes() -> None:
 
 
 @pytest.mark.unit
-def test_get_changed_fields_exclude_removed() -> None:
+def test_get_changed_fields_exclude_removed() -> None:  # noqa: D103
     old = {"a": 1}
     new = {}
     diff = compute_data_diff(old, new)
@@ -126,7 +126,7 @@ def test_get_changed_fields_exclude_removed() -> None:
 
 
 @pytest.mark.unit
-def test_should_notify_entities_no_changes() -> None:
+def test_should_notify_entities_no_changes() -> None:  # noqa: D103
     from custom_components.pawcontrol.coordinator_diffing import CoordinatorDataDiff
 
     # CoordinatorDataDiff: dog_diffs, added_dogs, removed_dogs
@@ -138,7 +138,7 @@ def test_should_notify_entities_no_changes() -> None:
 
 
 @pytest.mark.unit
-def test_should_notify_entities_with_dog_filter() -> None:
+def test_should_notify_entities_with_dog_filter() -> None:  # noqa: D103
     from custom_components.pawcontrol.coordinator_diffing import CoordinatorDataDiff
 
     coordinator_diff = CoordinatorDataDiff(

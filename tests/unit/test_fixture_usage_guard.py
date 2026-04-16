@@ -8,7 +8,7 @@ type DynamicPath = tuple[str, ...]
 type DynamicFixture = str | tuple[tuple[DynamicPath, str], ...]
 
 FORBIDDEN_FIXTURE_CALLS: Final[dict[str, str]] = {
-    "aiohttp_server": "Use the ``aiohttp_client`` helpers instead of calling the fixture.",  # noqa: E501
+    "aiohttp_server": "Use the ``aiohttp_client`` helpers instead of calling the fixture.",
     "hass_companion_client": (
         "Request the companion HTTP client fixture via a parameter instead of"
         " invoking it manually.",
@@ -30,7 +30,7 @@ FORBIDDEN_FIXTURE_CALLS: Final[dict[str, str]] = {
         " it directly."
     ),
     "hass_client": (
-        "Inject the HTTP client fixture via a parameter instead of invoking it manually."  # noqa: E501
+        "Inject the HTTP client fixture via a parameter instead of invoking it manually."
     ),
     "hass_client_no_auth": (
         "Request the unauthenticated HTTP client fixture via a parameter instead of"
@@ -49,7 +49,7 @@ FORBIDDEN_FIXTURE_CALLS: Final[dict[str, str]] = {
         " than calling it directly.",
     ),
     "hass_ws_client": (
-        "Request the websocket fixture via a test argument instead of calling it directly."  # noqa: E501
+        "Request the websocket fixture via a test argument instead of calling it directly."
     ),
     "hass_admin_ws_client": (
         "Request the admin websocket client via a fixture argument instead of"
@@ -2552,7 +2552,7 @@ def test_detects_entry_point_select_loader() -> None:
     """Detect fixtures pulled from entry point selections by name."""
     offenders = _scan_source(
         "from importlib.metadata import entry_points\n"
-        "client = entry_points(group='ha.test').select(name='hass_client_admin').load()\n"  # noqa: E501
+        "client = entry_points(group='ha.test').select(name='hass_client_admin').load()\n"
         "client()\n"
     )
 
@@ -2626,7 +2626,7 @@ def test_detects_module_spec_loader_fixture_alias() -> None:
     offenders = _scan_source(
         "from importlib.machinery import ModuleSpec\n"
         "from types import SimpleNamespace\n"
-        "spec = ModuleSpec('helper', SimpleNamespace(create_module=hass_client_admin))\n"  # noqa: E501
+        "spec = ModuleSpec('helper', SimpleNamespace(create_module=hass_client_admin))\n"
         "spec.loader.create_module()\n"
     )
 
@@ -2677,7 +2677,7 @@ def test_detects_module_from_spec_exec_module_loader() -> None:
         "def _exec_module(module):\n"
         "    return SimpleNamespace(client=hass_supervisor_ws_client)\n"
         "spec = SimpleNamespace(\n"
-        "    loader=SimpleNamespace(create_module=_create_module, exec_module=_exec_module)\n"  # noqa: E501
+        "    loader=SimpleNamespace(create_module=_create_module, exec_module=_exec_module)\n"
         ")\n"
         "module = module_from_spec(spec)\n"
         "module = spec.loader.exec_module(module)\n"
@@ -2744,7 +2744,7 @@ def test_detects_exec_module_setdefault_fixture_alias() -> None:
         "def _exec_module(module):\n"
         "    module.__dict__.setdefault('client', hass_owner_ws_client)\n"
         "spec = SimpleNamespace(\n"
-        "    loader=SimpleNamespace(create_module=_create_module, exec_module=_exec_module)\n"  # noqa: E501
+        "    loader=SimpleNamespace(create_module=_create_module, exec_module=_exec_module)\n"
         ")\n"
         "module = module_from_spec(spec)\n"
         "spec.loader.exec_module(module)\n"
@@ -2889,7 +2889,7 @@ def test_detects_importlib_resources_joinpath_open_loader() -> None:
 
 
 def test_detects_importlib_resources_joinpath_read_text_loader() -> None:
-    """Detect fixtures returned via importlib.resources.files joinpath read_text wrappers."""  # noqa: E501
+    """Detect fixtures returned via importlib.resources.files joinpath read_text wrappers."""
     offenders = _scan_source(
         "from importlib.resources import files\n"
         "from types import SimpleNamespace\n"
@@ -3014,7 +3014,7 @@ def test_detects_importlib_resources_with_segments_open_text_loader() -> None:
         "def get_files(package: str):\n"
         "    return SimpleNamespace(joinpath=_joinpath)\n"
         "files = get_files\n"
-        "files('tests.helpers').joinpath('client').with_segments('data', 'client.txt').open_text().client()\n"  # noqa: E501
+        "files('tests.helpers').joinpath('client').with_segments('data', 'client.txt').open_text().client()\n"
     )
 
     assert any("hass_companion_ws_client" in offender for offender in offenders)
@@ -3125,7 +3125,7 @@ def test_detects_importlib_resources_parents_with_segments_loader() -> None:
         "def get_files(package: str):\n"
         "    return SimpleNamespace(joinpath=_joinpath)\n"
         "files = get_files\n"
-        "files('tests.helpers').joinpath('helpers').parents[1].with_segments('client', 'payload.json').open_text().client()\n"  # noqa: E501
+        "files('tests.helpers').joinpath('helpers').parents[1].with_segments('client', 'payload.json').open_text().client()\n"
     )
 
     assert any("hass_supervisor_admin_ws_client" in offender for offender in offenders)
@@ -3202,7 +3202,7 @@ def test_detects_zipimporter_loaded_fixture() -> None:
     offenders = _scan_source(
         "import zipimport\n"
         "importer = zipimport.zipimporter('helpers.zip')\n"
-        "getattr(importer.load_module('tests.conftest'), 'hass_mobile_app_ws_client')()\n"  # noqa: E501
+        "getattr(importer.load_module('tests.conftest'), 'hass_mobile_app_ws_client')()\n"
     )
 
     assert len(offenders) == 1
@@ -3289,7 +3289,7 @@ def test_detects_zipimporter_find_loader_loader() -> None:
         "def zip_loader(path: str):\n"
         "    return SimpleNamespace(find_loader=find_loader)\n"
         "zipimport.zipimporter = zip_loader\n"
-        "module = zipimport.zipimporter('helpers.zip').find_loader('tests.helpers').load_module('tests.conftest')\n"  # noqa: E501
+        "module = zipimport.zipimporter('helpers.zip').find_loader('tests.helpers').load_module('tests.conftest')\n"
         "module.client()\n"
     )
 
@@ -3329,7 +3329,7 @@ def test_detects_find_spec_nested_loader_chain() -> None:
         "def _find_spec(name: str):\n"
         "    return SimpleNamespace(loader=outer_loader)\n"
         "find_spec = _find_spec\n"
-        "module = find_spec('tests.helpers').loader.loader.load_module('tests.conftest')\n"  # noqa: E501
+        "module = find_spec('tests.helpers').loader.loader.load_module('tests.conftest')\n"
         "module.client()\n"
     )
 
@@ -3349,7 +3349,7 @@ def test_detects_find_spec_invalidate_caches_loader() -> None:
         "def _find_spec(name: str):\n"
         "    return SimpleNamespace(loader=loader)\n"
         "find_spec = _find_spec\n"
-        "module = find_spec('tests.helpers').loader.invalidate_caches().load_module('tests.conftest')\n"  # noqa: E501
+        "module = find_spec('tests.helpers').loader.invalidate_caches().load_module('tests.conftest')\n"
         "module.client()\n"
     )
 

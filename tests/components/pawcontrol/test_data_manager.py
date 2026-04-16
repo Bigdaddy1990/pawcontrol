@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass  # noqa: D100
 from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
@@ -76,7 +76,7 @@ class _BudgetTracker:
 
 
 @pytest.mark.asyncio
-async def test_adaptive_cache_cleanup_and_diagnostics(
+async def test_adaptive_cache_cleanup_and_diagnostics(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2025, 1, 1, tzinfo=UTC)
@@ -97,7 +97,7 @@ async def test_adaptive_cache_cleanup_and_diagnostics(
 
 
 @pytest.mark.asyncio
-async def test_adaptive_cache_get_handles_future_created_at(
+async def test_adaptive_cache_get_handles_future_created_at(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2025, 1, 1, tzinfo=UTC)
@@ -118,7 +118,7 @@ async def test_adaptive_cache_get_handles_future_created_at(
     assert cache._metadata["future"]["created_at"] == now
 
 
-def test_entity_budget_monitor_payload() -> None:
+def test_entity_budget_monitor_payload() -> None:  # noqa: D103
     monitor = _EntityBudgetMonitor(_BudgetTracker())
 
     snapshot = monitor.coordinator_snapshot()
@@ -129,7 +129,7 @@ def test_entity_budget_monitor_payload() -> None:
     assert diagnostics["snapshots"][0]["recorded_at"] == "2025-01-01T00:00:00+00:00"
 
 
-def test_coordinator_module_cache_monitor_snapshots_and_errors() -> None:
+def test_coordinator_module_cache_monitor_snapshots_and_errors() -> None:  # noqa: D103
     class _AdapterWithSnapshot:
         def cache_snapshot(self) -> dict[str, int]:
             return {"entries": 2}
@@ -161,7 +161,7 @@ def test_coordinator_module_cache_monitor_snapshots_and_errors() -> None:
     assert per_module["health"] == {"error": "boom"}
 
 
-def test_storage_namespace_cache_monitor_timestamp_anomalies(
+def test_storage_namespace_cache_monitor_timestamp_anomalies(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2025, 1, 10, tzinfo=UTC)
@@ -190,7 +190,7 @@ def test_storage_namespace_cache_monitor_timestamp_anomalies(
     assert anomalies["dog-future"] == "future"
 
 
-def test_namespace_helper_functions() -> None:
+def test_namespace_helper_functions() -> None:  # noqa: D103
     payload = {"a": [1, 2], "b": {"updated_at": "2025-01-01T00:00:00+00:00"}}
 
     assert _estimate_namespace_entries(payload) == 3
@@ -206,7 +206,7 @@ def test_namespace_helper_functions() -> None:
         (datetime(2025, 1, 1, tzinfo=UTC), "2025-01-01T00:00:00+00:00"),
     ],
 )
-def test_datetime_serialization_helpers(
+def test_datetime_serialization_helpers(  # noqa: D103
     value: datetime | None,
     expected: str | None,
 ) -> None:
@@ -215,7 +215,7 @@ def test_datetime_serialization_helpers(
         assert _deserialize_datetime(expected) == value
 
 
-def test_serialize_timestamp_falls_back_to_utcnow(
+def test_serialize_timestamp_falls_back_to_utcnow(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2025, 1, 1, tzinfo=UTC)
@@ -224,7 +224,7 @@ def test_serialize_timestamp_falls_back_to_utcnow(
     assert _serialize_timestamp(None) == now.isoformat()
 
 
-def test_mapping_and_list_helpers() -> None:
+def test_mapping_and_list_helpers() -> None:  # noqa: D103
     merged = _merge_dicts({"a": {"x": 1}, "b": 1}, {"a": {"y": 2}, "c": 3})
 
     assert merged == {"a": {"x": 1, "y": 2}, "b": 1, "c": 3}
@@ -236,7 +236,7 @@ def test_mapping_and_list_helpers() -> None:
     assert _normalise_history_entries([{"x": 1}, "bad", b"raw"]) == [{"x": 1}]
 
 
-def test_payload_coercion_helpers() -> None:
+def test_payload_coercion_helpers() -> None:  # noqa: D103
     health_data = HealthData(timestamp=datetime(2025, 1, 1, tzinfo=UTC), mood="normal")
     health_payload = _coerce_health_payload(health_data)
     medication_payload = _coerce_medication_payload({"name": "pill"})
@@ -247,7 +247,7 @@ def test_payload_coercion_helpers() -> None:
     assert "logged_at" in medication_payload
 
 
-def test_dog_profile_serialization_round_trip() -> None:
+def test_dog_profile_serialization_round_trip() -> None:  # noqa: D103
     config = {DOG_ID_FIELD: "dog_1", DOG_NAME_FIELD: "Buddy"}
     stored = {
         "daily_stats": {"feedings_count": 2},
@@ -264,7 +264,7 @@ def test_dog_profile_serialization_round_trip() -> None:
     assert data["current_walk"]["start_time"] == "2025-01-01T00:00:00+00:00"
 
 
-def test_misc_helpers() -> None:
+def test_misc_helpers() -> None:  # noqa: D103
     session_a = _default_session_id_generator()
     session_b = _default_session_id_generator()
 
@@ -275,7 +275,7 @@ def test_misc_helpers() -> None:
 
 
 @pytest.mark.asyncio
-async def test_adaptive_cache_diagnostics_and_snapshot_payload(
+async def test_adaptive_cache_diagnostics_and_snapshot_payload(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2025, 1, 1, tzinfo=UTC)
@@ -306,7 +306,7 @@ async def test_adaptive_cache_diagnostics_and_snapshot_payload(
     assert snapshot["diagnostics"]["tracked_entries"] == 1
 
 
-def test_entity_budget_monitor_handles_tracker_failures() -> None:
+def test_entity_budget_monitor_handles_tracker_failures() -> None:  # noqa: D103
     class _FailingTracker:
         def snapshots(self) -> list[_BudgetSnapshot]:
             raise RuntimeError("snapshot error")
@@ -320,7 +320,7 @@ def test_entity_budget_monitor_handles_tracker_failures() -> None:
     assert monitor.get_diagnostics()["summary"] == {"error": "snapshot error"}
 
 
-def test_coordinator_module_cache_monitor_collects_aggregate_errors() -> None:
+def test_coordinator_module_cache_monitor_collects_aggregate_errors() -> None:  # noqa: D103
     class _BrokenModules:
         feeding = object()
 
@@ -340,7 +340,7 @@ def test_coordinator_module_cache_monitor_collects_aggregate_errors() -> None:
     assert diagnostics["errors"] == ["aggregate boom"]
 
 
-def test_storage_namespace_cache_monitor_snapshot_with_unparseable_timestamp(
+def test_storage_namespace_cache_monitor_snapshot_with_unparseable_timestamp(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2025, 1, 10, tzinfo=UTC)
@@ -381,7 +381,7 @@ async def _init_data_manager_for_export_tests(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_routes_json_falls_back_for_invalid_json_content(
+async def test_async_export_data_routes_json_falls_back_for_invalid_json_content(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -405,7 +405,7 @@ async def test_async_export_data_routes_json_falls_back_for_invalid_json_content
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_all_raises_on_partial_failure_without_silent_crash(
+async def test_async_export_data_all_raises_on_partial_failure_without_silent_crash(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -429,7 +429,7 @@ async def test_async_export_data_all_raises_on_partial_failure_without_silent_cr
 
 
 @pytest.mark.asyncio
-async def test_async_generate_report_ignores_invalid_timestamps_and_persists_report(
+async def test_async_generate_report_ignores_invalid_timestamps_and_persists_report(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -457,7 +457,7 @@ async def test_async_generate_report_ignores_invalid_timestamps_and_persists_rep
 
 
 @pytest.mark.asyncio
-async def test_async_generate_report_propagates_persist_errors(
+async def test_async_generate_report_propagates_persist_errors(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -471,7 +471,7 @@ async def test_async_generate_report_propagates_persist_errors(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_defaults_to_json_when_format_is_invalid(
+async def test_async_export_data_defaults_to_json_when_format_is_invalid(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -495,7 +495,7 @@ async def test_async_export_data_defaults_to_json_when_format_is_invalid(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_raises_for_unknown_export_type(
+async def test_async_export_data_raises_for_unknown_export_type(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -506,7 +506,7 @@ async def test_async_export_data_raises_for_unknown_export_type(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_propagates_boundary_io_errors(
+async def test_async_export_data_propagates_boundary_io_errors(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -522,7 +522,7 @@ async def test_async_export_data_propagates_boundary_io_errors(
 
 
 @pytest.mark.asyncio
-async def test_async_generate_report_full_payload_with_best_effort_integrations(
+async def test_async_generate_report_full_payload_with_best_effort_integrations(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -566,7 +566,7 @@ async def test_async_generate_report_full_payload_with_best_effort_integrations(
 
 
 @pytest.mark.asyncio
-async def test_async_generate_report_handles_optional_fields_and_manager_exceptions(
+async def test_async_generate_report_handles_optional_fields_and_manager_exceptions(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -591,7 +591,7 @@ async def test_async_generate_report_handles_optional_fields_and_manager_excepti
 
 
 @pytest.mark.asyncio
-async def test_async_generate_report_rejects_unknown_dog(
+async def test_async_generate_report_rejects_unknown_dog(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -601,7 +601,7 @@ async def test_async_generate_report_rejects_unknown_dog(
         await manager.async_generate_report("missing", "weekly")
 
 
-def test_cache_repair_summary_handles_corrupt_snapshot_payloads() -> None:
+def test_cache_repair_summary_handles_corrupt_snapshot_payloads() -> None:  # noqa: D103
     hass = SimpleNamespace(
         config=SimpleNamespace(config_dir="/tmp"),
         async_add_executor_job=None,
@@ -637,7 +637,7 @@ def test_cache_repair_summary_handles_corrupt_snapshot_payloads() -> None:
     assert summary["caches_with_pending_expired_entries"] == ["cache-a"]
 
 
-def test_cache_repair_summary_stable_defaults_for_missing_and_invalid_fields() -> None:
+def test_cache_repair_summary_stable_defaults_for_missing_and_invalid_fields() -> None:  # noqa: D103
     hass = SimpleNamespace(
         config=SimpleNamespace(config_dir="/tmp"),
         async_add_executor_job=None,

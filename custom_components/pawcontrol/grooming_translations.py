@@ -27,7 +27,7 @@ GROOMING_TEMPLATE_TRANSLATION_KEYS: Final[Mapping[str, str]] = {
     "notification_title": "grooming_template_notification_title",
     "notification_message": "grooming_template_notification_message",
     "notification_with_groomer": "grooming_template_notification_with_groomer",
-    "notification_estimated_duration": "grooming_template_notification_estimated_duration",  # noqa: E501
+    "notification_estimated_duration": "grooming_template_notification_estimated_duration",
     "start_failure": "grooming_template_start_failure",
     "manual_session_notes": "grooming_template_manual_session_notes",
 }

@@ -180,7 +180,7 @@ class PawControlCoordinator(
         self._last_cycle: RuntimeCycleInfo | None = None
 
         _LOGGER.info(
-            "Coordinator started (event=coordinator_start dogs=%d interval_s=%d external_api=%s)",  # noqa: E501
+            "Coordinator started (event=coordinator_start dogs=%d interval_s=%d external_api=%s)",
             len(self.registry),
             base_interval,
             self._use_external_api,
@@ -366,7 +366,7 @@ class PawControlCoordinator(
         )
         duration = perf_counter() - cycle_start
         _LOGGER.debug(
-            "Update cycle completed (event=update_cycle_end dogs=%d duration_ms=%.2f interval_s=%.2f)",  # noqa: E501
+            "Update cycle completed (event=update_cycle_end dogs=%d duration_ms=%.2f interval_s=%.2f)",
             len(dog_ids),
             duration * 1000,
             cycle.new_interval,

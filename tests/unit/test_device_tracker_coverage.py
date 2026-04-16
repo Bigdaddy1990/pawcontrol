@@ -25,60 +25,60 @@ def _coord(dog_id="rex"):
 
 
 @pytest.mark.unit
-def test_gps_tracker_init() -> None:
+def test_gps_tracker_init() -> None:  # noqa: D103
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     assert t.dog_id == "rex"
     assert t.dog_name == "Rex"
 
 
 @pytest.mark.unit
-def test_gps_tracker_unique_id() -> None:
+def test_gps_tracker_unique_id() -> None:  # noqa: D103
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     assert "rex" in t.unique_id
 
 
 @pytest.mark.unit
-def test_gps_tracker_latitude_none_initially() -> None:
+def test_gps_tracker_latitude_none_initially() -> None:  # noqa: D103
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     assert t.latitude is None or isinstance(t.latitude, float)
 
 
 @pytest.mark.unit
-def test_gps_tracker_longitude_none_initially() -> None:
+def test_gps_tracker_longitude_none_initially() -> None:  # noqa: D103
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     assert t.longitude is None or isinstance(t.longitude, float)
 
 
 @pytest.mark.unit
-def test_gps_tracker_source_type() -> None:
+def test_gps_tracker_source_type() -> None:  # noqa: D103
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     result = t.source_type
     assert result is not None
 
 
 @pytest.mark.unit
-def test_gps_tracker_extra_attributes() -> None:
+def test_gps_tracker_extra_attributes() -> None:  # noqa: D103
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     attrs = t.extra_state_attributes
     assert isinstance(attrs, dict)
 
 
 @pytest.mark.unit
-def test_gps_tracker_battery_level() -> None:
+def test_gps_tracker_battery_level() -> None:  # noqa: D103
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     result = t.battery_level
     assert result is None or isinstance(result, int | float)
 
 
 @pytest.mark.unit
-def test_gps_tracker_available() -> None:
+def test_gps_tracker_available() -> None:  # noqa: D103
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     result = t.available
     assert isinstance(result, bool)
 
 
 @pytest.mark.unit
-def test_gps_tracker_location_accuracy() -> None:
+def test_gps_tracker_location_accuracy() -> None:  # noqa: D103
     t = PawControlGPSTracker(_coord(), "rex", "Rex")
     acc = t.location_accuracy
     assert acc is None or isinstance(acc, int | float)

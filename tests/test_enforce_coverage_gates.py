@@ -32,7 +32,7 @@ def _write_coverage_xml(
     return report
 
 
-def test_evaluate_gates_passes_when_all_thresholds_met(tmp_path: Path) -> None:
+def test_evaluate_gates_passes_when_all_thresholds_met(tmp_path: Path) -> None:  # noqa: D103
     report = _write_coverage_xml(
         tmp_path,
         line_rate="0.89",
@@ -56,7 +56,7 @@ def test_evaluate_gates_passes_when_all_thresholds_met(tmp_path: Path) -> None:
     assert notices == []
 
 
-def test_evaluate_gates_reports_total_and_module_failures(tmp_path: Path) -> None:
+def test_evaluate_gates_reports_total_and_module_failures(tmp_path: Path) -> None:  # noqa: D103
     report = _write_coverage_xml(
         tmp_path,
         line_rate="0.70",
@@ -79,7 +79,7 @@ def test_evaluate_gates_reports_total_and_module_failures(tmp_path: Path) -> Non
     assert any("without documented exception" in failure for failure in failures)
 
 
-def test_evaluate_gates_fails_when_critical_module_is_missing(tmp_path: Path) -> None:
+def test_evaluate_gates_fails_when_critical_module_is_missing(tmp_path: Path) -> None:  # noqa: D103
     report = _write_coverage_xml(
         tmp_path,
         line_rate="0.90",
@@ -99,7 +99,7 @@ def test_evaluate_gates_fails_when_critical_module_is_missing(tmp_path: Path) ->
         )
 
 
-def test_evaluate_gates_uses_documented_branch_exception(tmp_path: Path) -> None:
+def test_evaluate_gates_uses_documented_branch_exception(tmp_path: Path) -> None:  # noqa: D103
     report = _write_coverage_xml(
         tmp_path,
         line_rate="0.90",
@@ -128,7 +128,7 @@ def test_evaluate_gates_uses_documented_branch_exception(tmp_path: Path) -> None
     assert any("exception applied" in notice for notice in notices)
 
 
-def test_evaluate_gates_reports_critical_module_line_floor_failures(
+def test_evaluate_gates_reports_critical_module_line_floor_failures(  # noqa: D103
     tmp_path: Path,
 ) -> None:
     report = _write_coverage_xml(
@@ -154,7 +154,7 @@ def test_evaluate_gates_reports_critical_module_line_floor_failures(
     )
 
 
-def test_module_coverage_percent_accepts_normalized_filename(tmp_path: Path) -> None:
+def test_module_coverage_percent_accepts_normalized_filename(tmp_path: Path) -> None:  # noqa: D103
     report = _write_coverage_xml(
         tmp_path,
         line_rate="0.90",
@@ -172,7 +172,7 @@ def test_module_coverage_percent_accepts_normalized_filename(tmp_path: Path) -> 
     assert percent == Decimal("95.00")
 
 
-def test_module_branch_percent_accepts_normalized_filename(tmp_path: Path) -> None:
+def test_module_branch_percent_accepts_normalized_filename(tmp_path: Path) -> None:  # noqa: D103
     report = _write_coverage_xml(
         tmp_path,
         line_rate="0.90",
@@ -190,7 +190,7 @@ def test_module_branch_percent_accepts_normalized_filename(tmp_path: Path) -> No
     assert percent == Decimal("81.00")
 
 
-def test_overall_coverage_percent_requires_line_rate_attribute(tmp_path: Path) -> None:
+def test_overall_coverage_percent_requires_line_rate_attribute(tmp_path: Path) -> None:  # noqa: D103
     report = tmp_path / "coverage.xml"
     report.write_text(
         '<?xml version="1.0" ?>\n'
@@ -205,7 +205,7 @@ def test_overall_coverage_percent_requires_line_rate_attribute(tmp_path: Path) -
         enforce_coverage_gates._overall_coverage_percent(root)
 
 
-def test_module_branch_percent_requires_branch_rate_attribute(tmp_path: Path) -> None:
+def test_module_branch_percent_requires_branch_rate_attribute(tmp_path: Path) -> None:  # noqa: D103
     report = tmp_path / "coverage.xml"
     report.write_text(
         '<?xml version="1.0" ?>\n'
@@ -225,7 +225,7 @@ def test_module_branch_percent_requires_branch_rate_attribute(tmp_path: Path) ->
         )
 
 
-def test_load_branch_exceptions_rejects_invalid_payload_types(tmp_path: Path) -> None:
+def test_load_branch_exceptions_rejects_invalid_payload_types(tmp_path: Path) -> None:  # noqa: D103
     exceptions_file = tmp_path / "exceptions.json"
     exceptions_file.write_text('{"path":"bad"}', encoding="utf-8")
 
@@ -233,7 +233,7 @@ def test_load_branch_exceptions_rejects_invalid_payload_types(tmp_path: Path) ->
         enforce_coverage_gates._load_branch_exceptions(exceptions_file)
 
 
-def test_load_branch_exceptions_rejects_missing_rationale(tmp_path: Path) -> None:
+def test_load_branch_exceptions_rejects_missing_rationale(tmp_path: Path) -> None:  # noqa: D103
     exceptions_file = tmp_path / "exceptions.json"
     exceptions_file.write_text(
         '[{"path":"custom_components/pawcontrol/coordinator.py",'
@@ -245,7 +245,7 @@ def test_load_branch_exceptions_rejects_missing_rationale(tmp_path: Path) -> Non
         enforce_coverage_gates._load_branch_exceptions(exceptions_file)
 
 
-def test_load_branch_exceptions_returns_empty_mapping_for_missing_file(
+def test_load_branch_exceptions_returns_empty_mapping_for_missing_file(  # noqa: D103
     tmp_path: Path,
 ) -> None:
     exceptions = enforce_coverage_gates._load_branch_exceptions(
@@ -255,7 +255,7 @@ def test_load_branch_exceptions_returns_empty_mapping_for_missing_file(
     assert exceptions == {}
 
 
-def test_load_branch_exceptions_rejects_invalid_minimum_branch_percent(
+def test_load_branch_exceptions_rejects_invalid_minimum_branch_percent(  # noqa: D103
     tmp_path: Path,
 ) -> None:
     exceptions_file = tmp_path / "exceptions.json"
@@ -269,17 +269,17 @@ def test_load_branch_exceptions_rejects_invalid_minimum_branch_percent(
         enforce_coverage_gates._load_branch_exceptions(exceptions_file)
 
 
-def test_parse_percent_rejects_invalid_numeric_values() -> None:
+def test_parse_percent_rejects_invalid_numeric_values() -> None:  # noqa: D103
     with pytest.raises(SystemExit, match="invalid numeric value"):
         enforce_coverage_gates._parse_percent("not-a-number")
 
 
-def test_coverage_root_requires_existing_report(tmp_path: Path) -> None:
+def test_coverage_root_requires_existing_report(tmp_path: Path) -> None:  # noqa: D103
     with pytest.raises(SystemExit, match="coverage report not found"):
         enforce_coverage_gates._coverage_root(tmp_path / "missing.xml")
 
 
-def test_module_coverage_percent_requires_line_rate_attribute(tmp_path: Path) -> None:
+def test_module_coverage_percent_requires_line_rate_attribute(tmp_path: Path) -> None:  # noqa: D103
     report = tmp_path / "coverage.xml"
     report.write_text(
         '<?xml version="1.0" ?>\n'
@@ -299,7 +299,7 @@ def test_module_coverage_percent_requires_line_rate_attribute(tmp_path: Path) ->
         )
 
 
-def test_load_branch_exceptions_rejects_non_object_entries(tmp_path: Path) -> None:
+def test_load_branch_exceptions_rejects_non_object_entries(tmp_path: Path) -> None:  # noqa: D103
     exceptions_file = tmp_path / "exceptions.json"
     exceptions_file.write_text('["bad-entry"]', encoding="utf-8")
 
@@ -307,7 +307,7 @@ def test_load_branch_exceptions_rejects_non_object_entries(tmp_path: Path) -> No
         enforce_coverage_gates._load_branch_exceptions(exceptions_file)
 
 
-def test_evaluate_gates_fails_when_branch_exception_floor_is_not_met(
+def test_evaluate_gates_fails_when_branch_exception_floor_is_not_met(  # noqa: D103
     tmp_path: Path,
 ) -> None:
     report = _write_coverage_xml(
@@ -338,7 +338,7 @@ def test_evaluate_gates_fails_when_branch_exception_floor_is_not_met(
     assert any("exception floor failed" in failure for failure in failures)
 
 
-def test_main_reports_passed_gates(
+def test_main_reports_passed_gates(  # noqa: D103
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:

@@ -1397,7 +1397,7 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
                     previous = coordinator._metrics.consecutive_errors
                     coordinator._metrics.reset_consecutive()
                     coordinator.logger.info(
-                        "Reset consecutive error count (%d) after %d hours of stability",  # noqa: E501
+                        "Reset consecutive error count (%d) after %d hours of stability",
                         previous,
                         int(hours_since_last_update),
                     )

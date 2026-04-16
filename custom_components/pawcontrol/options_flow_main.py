@@ -625,7 +625,7 @@ class PawControlOptionsFlow(
                 and "blueprint" in existing_sources
                 and not (existing_sources - {"blueprint"})
             ):
-                # Blueprint-only defaults should not inherit the integration default tag.  # noqa: E501
+                # Blueprint-only defaults should not inherit the integration default tag.
                 pass
             else:
                 existing_sources.add("default")
@@ -731,7 +731,7 @@ class PawControlOptionsFlow(
             sorted_sources = [str(source) for source in sorted_source_tags]
             for source in sorted_sources:
                 if source == "default" and "blueprint" in source_tags:
-                    # Blueprint suggestions inherit the integration default but should not  # noqa: E501
+                    # Blueprint suggestions inherit the integration default but should not
                     # surface that tag in the description list.
                     continue
                 key = self._SETUP_FLAG_SOURCE_LABEL_KEYS.get(

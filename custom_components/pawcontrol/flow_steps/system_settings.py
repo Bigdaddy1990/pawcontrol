@@ -1,4 +1,4 @@
-"""System, dashboard, advanced and weather settings steps for the PawControl options flow."""  # noqa: E501
+"""System, dashboard, advanced and weather settings steps for the PawControl options flow."""
 
 from collections.abc import Callable, Mapping, Sequence
 from importlib import import_module

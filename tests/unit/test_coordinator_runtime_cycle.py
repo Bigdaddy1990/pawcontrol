@@ -53,27 +53,27 @@ class TestEntityBudgetSnapshot:
             recorded_at=datetime.now(UTC),
         )
 
-    def test_total_allocated(self) -> None:
+    def test_total_allocated(self) -> None:  # noqa: D102
         snap = self._make(base_allocation=15, dynamic_allocation=5)
         assert snap.total_allocated == 20
 
-    def test_remaining(self) -> None:
+    def test_remaining(self) -> None:  # noqa: D102
         snap = self._make(capacity=50, base_allocation=20, dynamic_allocation=10)
         assert snap.remaining == 20
 
-    def test_remaining_cannot_be_negative(self) -> None:
+    def test_remaining_cannot_be_negative(self) -> None:  # noqa: D102
         snap = self._make(capacity=5, base_allocation=20, dynamic_allocation=0)
         assert snap.remaining == 0
 
-    def test_saturation_normal(self) -> None:
+    def test_saturation_normal(self) -> None:  # noqa: D102
         snap = self._make(capacity=100, base_allocation=50, dynamic_allocation=0)
         assert snap.saturation == pytest.approx(0.5)
 
-    def test_saturation_zero_capacity(self) -> None:
+    def test_saturation_zero_capacity(self) -> None:  # noqa: D102
         snap = self._make(capacity=0, base_allocation=0, dynamic_allocation=0)
         assert snap.saturation == 0.0
 
-    def test_saturation_clamped_to_one(self) -> None:
+    def test_saturation_clamped_to_one(self) -> None:  # noqa: D102
         snap = self._make(capacity=10, base_allocation=15, dynamic_allocation=5)
         assert snap.saturation == 1.0
 
@@ -107,32 +107,32 @@ class TestRuntimeCycleInfo:
             success=success,
         )
 
-    def test_to_dict_contains_dog_count(self) -> None:
+    def test_to_dict_contains_dog_count(self) -> None:  # noqa: D102
         info = self._make(dog_count=5)
         result = info.to_dict()
         assert result["dog_count"] == 5
 
-    def test_to_dict_contains_errors(self) -> None:
+    def test_to_dict_contains_errors(self) -> None:  # noqa: D102
         info = self._make(errors=2)
         result = info.to_dict()
         assert result["errors"] == 2
 
-    def test_to_dict_success_rate_rounded(self) -> None:
+    def test_to_dict_success_rate_rounded(self) -> None:  # noqa: D102
         info = self._make(success_rate=0.6667)
         result = info.to_dict()
         assert result["success_rate"] == pytest.approx(66.67, abs=0.01)
 
-    def test_to_dict_duration_in_ms(self) -> None:
+    def test_to_dict_duration_in_ms(self) -> None:  # noqa: D102
         info = self._make(duration=0.25)
         result = info.to_dict()
         assert result["duration_ms"] == pytest.approx(250.0)
 
-    def test_to_dict_next_interval(self) -> None:
+    def test_to_dict_next_interval(self) -> None:  # noqa: D102
         info = self._make(new_interval=60.5)
         result = info.to_dict()
         assert result["next_interval_s"] == pytest.approx(60.5)
 
-    def test_to_dict_success_flag(self) -> None:
+    def test_to_dict_success_flag(self) -> None:  # noqa: D102
         info_ok = self._make(success=True)
         info_fail = self._make(success=False)
         assert info_ok.to_dict()["success"] is True
@@ -166,13 +166,13 @@ class TestSummarizeEntityBudgets:
             recorded_at=datetime.now(UTC),
         )
 
-    def test_empty_snapshots_returns_zero_summary(self) -> None:
+    def test_empty_snapshots_returns_zero_summary(self) -> None:  # noqa: D102
         result = summarize_entity_budgets([])
         assert result["active_dogs"] == 0
         assert result["total_capacity"] == 0
         assert result["average_utilization"] == 0.0
 
-    def test_single_snapshot_utilization(self) -> None:
+    def test_single_snapshot_utilization(self) -> None:  # noqa: D102
         snap = self._snap(capacity=100, base=50, dynamic=0)
         result = summarize_entity_budgets([snap])
         assert result["active_dogs"] == 1
@@ -180,7 +180,7 @@ class TestSummarizeEntityBudgets:
         assert result["total_allocated"] == 50
         assert result["average_utilization"] == pytest.approx(50.0)
 
-    def test_multiple_snapshots_aggregate_capacity(self) -> None:
+    def test_multiple_snapshots_aggregate_capacity(self) -> None:  # noqa: D102
         snaps = [
             self._snap("dog1", capacity=100, base=30, dynamic=10),
             self._snap("dog2", capacity=200, base=50, dynamic=20),
@@ -190,12 +190,12 @@ class TestSummarizeEntityBudgets:
         assert result["total_capacity"] == 300
         assert result["total_allocated"] == 110
 
-    def test_denied_requests_counted(self) -> None:
+    def test_denied_requests_counted(self) -> None:  # noqa: D102
         snap = self._snap(denied=("sensor.a", "sensor.b"))
         result = summarize_entity_budgets([snap])
         assert result["denied_requests"] == 2
 
-    def test_peak_utilization_reflects_most_saturated(self) -> None:
+    def test_peak_utilization_reflects_most_saturated(self) -> None:  # noqa: D102
         snaps = [
             self._snap("dog1", capacity=100, base=90, dynamic=0),
             self._snap("dog2", capacity=100, base=20, dynamic=0),
@@ -203,7 +203,7 @@ class TestSummarizeEntityBudgets:
         result = summarize_entity_budgets(snaps)
         assert result["peak_utilization"] == pytest.approx(90.0)
 
-    def test_total_remaining_calculated(self) -> None:
+    def test_total_remaining_calculated(self) -> None:  # noqa: D102
         snaps = [
             self._snap("dog1", capacity=100, base=40, dynamic=10),  # remaining=50
             self._snap("dog2", capacity=200, base=50, dynamic=20),  # remaining=130
@@ -269,13 +269,13 @@ class TestCoordinatorRuntimeExecuteCycle:
         )
 
     @pytest.mark.asyncio
-    async def test_execute_cycle_raises_when_no_dogs(self) -> None:
+    async def test_execute_cycle_raises_when_no_dogs(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
         with pytest.raises(UpdateFailed, match="No valid dogs"):
             await runtime.execute_cycle([], {}, empty_payload_factory=dict)
 
     @pytest.mark.asyncio
-    async def test_execute_cycle_returns_data_for_dogs(self) -> None:
+    async def test_execute_cycle_returns_data_for_dogs(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
         data, info = await runtime.execute_cycle(
             ["rex"],
@@ -287,7 +287,7 @@ class TestCoordinatorRuntimeExecuteCycle:
         assert info.errors == 0
 
     @pytest.mark.asyncio
-    async def test_execute_cycle_raises_when_all_fail(self) -> None:
+    async def test_execute_cycle_raises_when_all_fail(self) -> None:  # noqa: D102
         from custom_components.pawcontrol.exceptions import NetworkError
 
         runtime = self._make_runtime(fetch_error=NetworkError)
@@ -299,7 +299,7 @@ class TestCoordinatorRuntimeExecuteCycle:
             await runtime.execute_cycle(["rex"], {}, empty_payload_factory=dict)
 
     @pytest.mark.asyncio
-    async def test_cycle_info_success_flag_true_on_no_errors(self) -> None:
+    async def test_cycle_info_success_flag_true_on_no_errors(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
         _data, info = await runtime.execute_cycle(
             ["rex"], {}, empty_payload_factory=dict
@@ -307,7 +307,7 @@ class TestCoordinatorRuntimeExecuteCycle:
         assert info.success is True
 
     @pytest.mark.asyncio
-    async def test_cycle_info_contains_dog_count(self) -> None:
+    async def test_cycle_info_contains_dog_count(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
         _data, info = await runtime.execute_cycle(
             ["rex", "max"], {}, empty_payload_factory=dict
@@ -315,7 +315,7 @@ class TestCoordinatorRuntimeExecuteCycle:
         assert info.dog_count == 2
 
     @pytest.mark.asyncio
-    async def test_execute_cycle_raises_auth_failure_from_task_group(self) -> None:
+    async def test_execute_cycle_raises_auth_failure_from_task_group(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
         runtime._resilience.execute_with_resilience = AsyncMock(
             side_effect=ConfigEntryAuthFailed("auth failed")
@@ -325,7 +325,7 @@ class TestCoordinatorRuntimeExecuteCycle:
             await runtime.execute_cycle(["rex"], {}, empty_payload_factory=dict)
 
     @pytest.mark.asyncio
-    async def test_execute_cycle_validation_error_uses_empty_payload(self) -> None:
+    async def test_execute_cycle_validation_error_uses_empty_payload(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
         runtime._resilience.execute_with_resilience = AsyncMock(
             side_effect=[
@@ -346,7 +346,7 @@ class TestCoordinatorRuntimeExecuteCycle:
         runtime._logger.error.assert_called()
 
     @pytest.mark.asyncio
-    async def test_execute_cycle_rate_limit_error_uses_cached_payload(self) -> None:
+    async def test_execute_cycle_rate_limit_error_uses_cached_payload(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
         runtime._resilience.execute_with_resilience = AsyncMock(
             side_effect=[
@@ -368,7 +368,7 @@ class TestCoordinatorRuntimeExecuteCycle:
         runtime._logger.warning.assert_called()
 
     @pytest.mark.asyncio
-    async def test_execute_cycle_generic_error_uses_cached_payload(self) -> None:
+    async def test_execute_cycle_generic_error_uses_cached_payload(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
         runtime._resilience.execute_with_resilience = AsyncMock(
             side_effect=[
@@ -390,7 +390,7 @@ class TestCoordinatorRuntimeExecuteCycle:
         runtime._logger.error.assert_called()
 
     @pytest.mark.asyncio
-    async def test_execute_cycle_warns_on_low_success_rate(self) -> None:
+    async def test_execute_cycle_warns_on_low_success_rate(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
         runtime._resilience.execute_with_resilience = AsyncMock(
             side_effect=[
@@ -412,7 +412,7 @@ class TestCoordinatorRuntimeExecuteCycle:
         runtime._logger.warning.assert_called()
 
     @pytest.mark.asyncio
-    async def test_fetch_dog_data_returns_payload_without_module_tasks(self) -> None:
+    async def test_fetch_dog_data_returns_payload_without_module_tasks(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
 
         payload = await runtime._fetch_dog_data("rex")
@@ -422,7 +422,7 @@ class TestCoordinatorRuntimeExecuteCycle:
         assert isinstance(payload["last_update"], str)
 
     @pytest.mark.asyncio
-    async def test_fetch_dog_data_raises_validation_error_without_registry_entry(
+    async def test_fetch_dog_data_raises_validation_error_without_registry_entry(  # noqa: D102
         self,
     ) -> None:
         runtime = self._make_runtime()
@@ -432,7 +432,7 @@ class TestCoordinatorRuntimeExecuteCycle:
             await runtime._fetch_dog_data("ghost")
 
     @pytest.mark.asyncio
-    async def test_fetch_dog_data_maps_module_results_and_errors(self) -> None:
+    async def test_fetch_dog_data_maps_module_results_and_errors(self) -> None:  # noqa: D102
         runtime = self._make_runtime()
 
         async def _gps_unavailable() -> dict[str, object]:

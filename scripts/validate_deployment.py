@@ -224,7 +224,7 @@ class DeploymentValidator:
             return CheckResult(
                 name="Security Scan",
                 passed=len(high_severity) == 0,
-                message=f"{len(high_severity)} high, {len(medium_severity)} medium severity issues",  # noqa: E501
+                message=f"{len(high_severity)} high, {len(medium_severity)} medium severity issues",
                 severity=severity,
                 details={
                     "high": len(high_severity),

@@ -18,7 +18,7 @@ from custom_components.pawcontrol.text import _preprocess_text_state
         pytest.param("invalid", None, id="number-invalid"),
     ],
 )
-def test_number_state_mapping(raw: str, expected: float | None) -> None:
+def test_number_state_mapping(raw: str, expected: float | None) -> None:  # noqa: D103
     assert _preprocess_number_state(State("number.rex", raw)) == expected
 
 
@@ -30,7 +30,7 @@ def test_number_state_mapping(raw: str, expected: float | None) -> None:
         pytest.param("unknown", None, id="switch-invalid"),
     ],
 )
-def test_switch_state_mapping(raw: str, expected: str | None) -> None:
+def test_switch_state_mapping(raw: str, expected: str | None) -> None:  # noqa: D103
     assert _preprocess_switch_state(State("switch.rex", raw)) == expected
 
 
@@ -41,7 +41,7 @@ def test_switch_state_mapping(raw: str, expected: str | None) -> None:
         pytest.param("eco", "eco", id="select-eco"),
     ],
 )
-def test_select_state_mapping(raw: str, expected: str) -> None:
+def test_select_state_mapping(raw: str, expected: str) -> None:  # noqa: D103
     assert _preprocess_select_state(State("select.rex", raw)) == expected
 
 
@@ -52,5 +52,5 @@ def test_select_state_mapping(raw: str, expected: str) -> None:
         pytest.param("", "", id="text-empty"),
     ],
 )
-def test_text_state_mapping(raw: str, expected: str) -> None:
+def test_text_state_mapping(raw: str, expected: str) -> None:  # noqa: D103
     assert _preprocess_text_state(State("text.rex", raw)) == expected

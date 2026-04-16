@@ -11,12 +11,12 @@ from custom_components.pawcontrol.exceptions import (
 
 
 @pytest.fixture(autouse=True)
-def clear_registry() -> None:
+def clear_registry() -> None:  # noqa: D103
     resilience._circuit_breakers.clear()
 
 
 @pytest.mark.asyncio
-async def test_circuit_breaker_opens_and_recovers(
+async def test_circuit_breaker_opens_and_recovers(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     breaker = resilience.CircuitBreaker(
@@ -51,7 +51,7 @@ async def test_circuit_breaker_opens_and_recovers(
 
 
 @pytest.mark.asyncio
-async def test_circuit_breaker_excludes_configured_exception() -> None:
+async def test_circuit_breaker_excludes_configured_exception() -> None:  # noqa: D103
     breaker = resilience.CircuitBreaker("api")
 
     async def limited() -> None:
@@ -67,7 +67,7 @@ async def test_circuit_breaker_excludes_configured_exception() -> None:
 
 
 @pytest.mark.asyncio
-async def test_circuit_breaker_context_manager_records_results() -> None:
+async def test_circuit_breaker_context_manager_records_results() -> None:  # noqa: D103
     breaker = resilience.CircuitBreaker(
         "ctx",
         config=resilience.CircuitBreakerConfig(failure_threshold=1),
@@ -84,7 +84,7 @@ async def test_circuit_breaker_context_manager_records_results() -> None:
 
 
 @pytest.mark.asyncio
-async def test_retry_strategy_retries_and_computes_delay(
+async def test_retry_strategy_retries_and_computes_delay(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     strategy = resilience.RetryStrategy(
@@ -111,7 +111,7 @@ async def test_retry_strategy_retries_and_computes_delay(
 
 
 @pytest.mark.asyncio
-async def test_retry_strategy_non_retryable_exception_bubbles() -> None:
+async def test_retry_strategy_non_retryable_exception_bubbles() -> None:  # noqa: D103
     strategy = resilience.RetryStrategy()
 
     async def bad() -> None:
@@ -121,7 +121,7 @@ async def test_retry_strategy_non_retryable_exception_bubbles() -> None:
         await strategy.execute(bad)
 
 
-def test_retry_calculate_delay_applies_float_jitter(
+def test_retry_calculate_delay_applies_float_jitter(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     strategy = resilience.RetryStrategy(
@@ -133,7 +133,7 @@ def test_retry_calculate_delay_applies_float_jitter(
 
 
 @pytest.mark.asyncio
-async def test_fallback_strategy_uses_fallback_then_default() -> None:
+async def test_fallback_strategy_uses_fallback_then_default() -> None:  # noqa: D103
     async def main_fail() -> None:
         raise RuntimeError("main")
 
@@ -156,7 +156,7 @@ async def test_fallback_strategy_uses_fallback_then_default() -> None:
 
 
 @pytest.mark.asyncio
-async def test_resilience_manager_uses_registry_breaker(
+async def test_resilience_manager_uses_registry_breaker(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     manager = resilience.ResilienceManager()
@@ -181,7 +181,7 @@ async def test_resilience_manager_uses_registry_breaker(
 
 
 @pytest.mark.asyncio
-async def test_resilience_manager_without_breaker_uses_retry() -> None:
+async def test_resilience_manager_without_breaker_uses_retry() -> None:  # noqa: D103
     manager = resilience.ResilienceManager()
 
     async def echo(value: str) -> str:
@@ -190,7 +190,7 @@ async def test_resilience_manager_without_breaker_uses_retry() -> None:
     assert await manager.execute_with_resilience(echo, "v") == "v"
 
 
-def test_registry_helpers_reuse_breakers() -> None:
+def test_registry_helpers_reuse_breakers() -> None:  # noqa: D103
     first = resilience.get_circuit_breaker("name")
     second = resilience.get_circuit_breaker("name")
 
@@ -204,7 +204,7 @@ def test_registry_helpers_reuse_breakers() -> None:
 
 
 @pytest.mark.asyncio
-async def test_circuit_breaker_half_open_failure_reopens() -> None:
+async def test_circuit_breaker_half_open_failure_reopens() -> None:  # noqa: D103
     breaker = resilience.CircuitBreaker(
         "recover",
         config=resilience.CircuitBreakerConfig(failure_threshold=1, timeout_seconds=1),
@@ -230,7 +230,7 @@ async def test_circuit_breaker_half_open_failure_reopens() -> None:
     assert breaker.is_open is True
 
 
-def test_reset_all_circuit_breakers_resets_state() -> None:
+def test_reset_all_circuit_breakers_resets_state() -> None:  # noqa: D103
     breaker = resilience.get_circuit_breaker("bulk")
     breaker.get_stats().state = resilience.CircuitState.OPEN
 
@@ -240,7 +240,7 @@ def test_reset_all_circuit_breakers_resets_state() -> None:
 
 
 @pytest.mark.asyncio
-async def test_resilience_decorators_apply_wrappers() -> None:
+async def test_resilience_decorators_apply_wrappers() -> None:  # noqa: D103
     @resilience.with_circuit_breaker("decorator")
     async def guarded(value: str) -> str:
         return value
@@ -259,7 +259,7 @@ async def test_resilience_decorators_apply_wrappers() -> None:
 
 
 @pytest.mark.asyncio
-async def test_retry_strategy_zero_attempts_raises_runtime_error() -> None:
+async def test_retry_strategy_zero_attempts_raises_runtime_error() -> None:  # noqa: D103
     strategy = resilience.RetryStrategy(resilience.RetryConfig(max_attempts=0))
 
     async def should_not_run() -> None:
@@ -270,7 +270,7 @@ async def test_retry_strategy_zero_attempts_raises_runtime_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_circuit_breaker_enter_blocks_when_open_without_reset() -> None:
+async def test_circuit_breaker_enter_blocks_when_open_without_reset() -> None:  # noqa: D103
     breaker = resilience.CircuitBreaker("blocked")
     stats = breaker.get_stats()
     stats.state = resilience.CircuitState.OPEN
@@ -281,13 +281,13 @@ async def test_circuit_breaker_enter_blocks_when_open_without_reset() -> None:
             pytest.fail("context should not be entered")
 
 
-def test_circuit_breaker_should_attempt_reset_when_no_failure_time() -> None:
+def test_circuit_breaker_should_attempt_reset_when_no_failure_time() -> None:  # noqa: D103
     breaker = resilience.CircuitBreaker("fresh")
     assert breaker._should_attempt_reset() is True
 
 
 @pytest.mark.asyncio
-async def test_retry_strategy_raises_on_last_retryable_attempt() -> None:
+async def test_retry_strategy_raises_on_last_retryable_attempt() -> None:  # noqa: D103
     strategy = resilience.RetryStrategy(resilience.RetryConfig(max_attempts=1))
 
     async def always_fail() -> None:

@@ -45,21 +45,21 @@ except ImportError:  # pragma: no cover - coverage API differs across versions
                 return None
 
 
-from pytest_cov import plugin as pytest_cov_plugin
+from pytest_cov import plugin as pytest_cov_plugin  # noqa: E402
 
 ha_util_logging = types.ModuleType("homeassistant.util.logging")
 
 if "homeassistant.util.logging" not in sys.modules:
     sys.modules["homeassistant.util.logging"] = ha_util_logging
 
-from homeassistant import util as ha_util
+from homeassistant import util as ha_util  # noqa: E402
 
 if not hasattr(ha_util, "logging"):
     ha_util.logging = ha_util_logging  # type: ignore[attr-defined]
 
 if not hasattr(ha_util_logging, "log_exception"):
 
-    def log_exception(*_args, **_kwargs):
+    def log_exception(*_args, **_kwargs):  # noqa: D103
         return None
 
     ha_util_logging.log_exception = log_exception  # type: ignore[attr-defined]
@@ -67,7 +67,7 @@ if not hasattr(ha_util_logging, "log_exception"):
 
 @_skip_no_report
 def test_runtime_metrics_generation(tmp_path) -> None:
-    """Ensure the coverage shim emits JSON and CSV runtime metrics.【F:coverage.py†L471-L506】."""  # noqa: E501
+    """Ensure the coverage shim emits JSON and CSV runtime metrics.【F:coverage.py†L471-L506】."""
     _ = tmp_path
     metrics_dir = Path("generated/coverage")
     json_path = metrics_dir / "runtime.json"
@@ -109,7 +109,7 @@ def test_runtime_metrics_generation(tmp_path) -> None:
 
 @_skip_no_report
 def test_runtime_metrics_can_be_disabled(monkeypatch, tmp_path) -> None:
-    """Environment flag bypasses runtime metrics emission entirely.【F:coverage.py†L437-L442】."""  # noqa: E501
+    """Environment flag bypasses runtime metrics emission entirely.【F:coverage.py†L437-L442】."""
     monkeypatch.setenv("PAWCONTROL_DISABLE_RUNTIME_METRICS", "1")
     _ = tmp_path
     metrics_dir = Path("generated/coverage")
@@ -138,7 +138,7 @@ def test_runtime_metrics_can_be_disabled(monkeypatch, tmp_path) -> None:
 
 
 def test_compile_cached_reuses_bytecode() -> None:
-    """The compilation helper caches bytecode for repeated calls.【F:coverage.py†L31-L41】."""  # noqa: E501
+    """The compilation helper caches bytecode for repeated calls.【F:coverage.py†L31-L41】."""
     first = _compile_cached("sample.py", "value = 1")
     second = _compile_cached("sample.py", "value = 1")
     assert first is not None
@@ -146,7 +146,7 @@ def test_compile_cached_reuses_bytecode() -> None:
 
 
 def test_compile_cached_handles_syntax_errors() -> None:
-    """Invalid source returns ``None`` and caches the failure result.【F:coverage.py†L31-L41】."""  # noqa: E501
+    """Invalid source returns ``None`` and caches the failure result.【F:coverage.py†L31-L41】."""
     source = "def broken(: pass"
     assert _compile_cached("broken.py", source) is None
     assert _compile_cached("broken.py", source) is None
@@ -154,7 +154,7 @@ def test_compile_cached_handles_syntax_errors() -> None:
 
 @pytest.mark.skipif(
     sys.platform == "win32",
-    reason="Coverage path resolution differs on Windows — pre-existing environment issue unrelated to PawControl",  # noqa: E501
+    reason="Coverage path resolution differs on Windows — pre-existing environment issue unrelated to PawControl",
 )
 def test_plugin_records_module_imports() -> None:
     """Coverage controller starts before imports so module setup is tracked."""

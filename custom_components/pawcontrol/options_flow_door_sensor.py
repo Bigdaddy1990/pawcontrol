@@ -289,7 +289,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):  # noqa: D101
                                 err.__class__.__name__ == "RuntimeDataUnavailableError"
                             ):
                                 _LOGGER.error(
-                                    f"Runtime data unavailable while updating door sensor overrides for dog {dog_id}",  # noqa: E501
+                                    f"Runtime data unavailable while updating door sensor overrides for dog {dog_id}",
                                 )
                                 errors["base"] = "runtime_cache_unavailable"
                             else:
@@ -302,7 +302,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):  # noqa: D101
                             )
                             if data_manager is None:
                                 _LOGGER.error(
-                                    f"Door sensor overrides require an active data manager; runtime payload missing data_manager for dog {dog_id}",  # noqa: E501
+                                    f"Door sensor overrides require an active data manager; runtime payload missing data_manager for dog {dog_id}",
                                 )
                                 errors["base"] = "runtime_cache_unavailable"
                     if data_manager and persist_updates and "base" not in errors:
@@ -358,7 +358,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):  # noqa: D101
                             errors["base"] = "door_sensor_update_failed"
                     elif persist_updates and "base" not in errors:
                         _LOGGER.debug(
-                            "Data manager unavailable while updating door sensor for %s",  # noqa: E501
+                            "Data manager unavailable while updating door sensor for %s",
                             dog_id,
                         )
 

@@ -32,26 +32,26 @@ def _make_device(device_id="dev_001"):
 
 
 @pytest.mark.unit
-def test_discovered_device_init() -> None:
+def test_discovered_device_init() -> None:  # noqa: D103
     dev = _make_device()
     assert dev.device_id == "dev_001"
     assert dev.name == "Rex Collar"
 
 
 @pytest.mark.unit
-def test_discovered_device_confidence() -> None:
+def test_discovered_device_confidence() -> None:  # noqa: D103
     dev = _make_device()
     assert dev.confidence == pytest.approx(0.95)
 
 
 @pytest.mark.unit
-def test_discovered_device_manufacturer() -> None:
+def test_discovered_device_manufacturer() -> None:  # noqa: D103
     dev = _make_device()
     assert dev.manufacturer == "PawTech"
 
 
 @pytest.mark.unit
-def test_discovery_connection_info() -> None:
+def test_discovery_connection_info() -> None:  # noqa: D103
     from custom_components.pawcontrol.discovery import DiscoveryConnectionInfo
 
     conn = DiscoveryConnectionInfo(host="10.0.0.1", port=443)
@@ -59,7 +59,7 @@ def test_discovery_connection_info() -> None:
 
 
 @pytest.mark.unit
-def test_discovery_metadata() -> None:
+def test_discovery_metadata() -> None:  # noqa: D103
     from custom_components.pawcontrol.discovery import DiscoveredDeviceMetadata
 
     meta = DiscoveredDeviceMetadata(firmware_version="2.0")

@@ -775,7 +775,7 @@ class PawControlNotificationManager:
 
     OPTIMIZE: Enhanced with batch processing, advanced caching, rate limiting,
     person entity integration, and comprehensive performance monitoring for Platinum-targeted quality.
-    """  # noqa: E501
+    """
 
     def __init__(
         self,
@@ -1247,7 +1247,7 @@ class PawControlNotificationManager:
 
         Returns:
             Notification ID
-        """  # noqa: E501
+        """
         async with self._lock:
             # Generate notification ID
             notification_id = f"{notification_type.value}_{uuid4().hex}"
@@ -1742,7 +1742,7 @@ class PawControlNotificationManager:
         await self._send_to_channels(batch_notification)
 
         _LOGGER.info(
-            "Sent batch notification with %d individual notifications for %s [%d targets]",  # noqa: E501
+            "Sent batch notification with %d individual notifications for %s [%d targets]",
             len(notifications),
             dog_name,
             len(unique_services),
@@ -1778,7 +1778,7 @@ class PawControlNotificationManager:
                 _unwrap_async_result(
                     result,
                     context=(
-                        f"Failed to send notification {notification.id} to channel {channel.value}"  # noqa: E501
+                        f"Failed to send notification {notification.id} to channel {channel.value}"
                     ),
                     level=logging.ERROR,
                 )
@@ -2784,7 +2784,7 @@ class PawControlNotificationManager:
         title = f"🚶 Walk Time for {dog_id.title()}"
 
         if last_walk_hours:
-            message = f"{dog_id} hasn't been walked in {last_walk_hours:.1f} hours. Time for a walk!"  # noqa: E501
+            message = f"{dog_id} hasn't been walked in {last_walk_hours:.1f} hours. Time for a walk!"
         else:
             message = f"It's time to take {dog_id} for a walk!"
         return await self.async_send_notification(

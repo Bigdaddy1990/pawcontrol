@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime  # noqa: D100
 
 from custom_components.pawcontrol import diagnostics
 from custom_components.pawcontrol.types import (

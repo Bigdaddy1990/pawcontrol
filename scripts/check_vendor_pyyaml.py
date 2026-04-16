@@ -135,7 +135,7 @@ def parse_arguments() -> argparse.Namespace:
         "--fail-on-outdated",
         action="store_true",
         help=(
-            "Exit with status 1 when a newer stable PyYAML release is available on PyPI."  # noqa: E501
+            "Exit with status 1 when a newer stable PyYAML release is available on PyPI."
         ),
     )
     parser.add_argument(

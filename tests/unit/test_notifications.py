@@ -874,7 +874,7 @@ class TestQuietHours:
 
         assert manager._notifications.get(second_id) is None
 
-        # Age the cache so the next call recomputes using the new time outside quiet hours  # noqa: E501
+        # Age the cache so the next call recomputes using the new time outside quiet hours
         manager._cache._quiet_time_cache[quiet_key] = (
             True,
             base_time - timedelta(minutes=10),
@@ -1218,7 +1218,7 @@ class TestNotificationAcknowledgment:
     async def test_acknowledge_notification_without_services(
         self, mock_notification_manager
     ) -> None:
-        """Notification acknowledgment should short-circuit when hass services missing."""  # noqa: E501
+        """Notification acknowledgment should short-circuit when hass services missing."""
         notification_id = await mock_notification_manager.async_send_notification(
             notification_type=NotificationType.FEEDING_REMINDER,
             title="Test",

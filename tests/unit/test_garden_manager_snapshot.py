@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta  # noqa: D100
 from typing import cast
 
 from homeassistant.core import HomeAssistant

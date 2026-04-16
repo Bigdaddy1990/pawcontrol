@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping  # noqa: D100
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock
 
@@ -17,18 +17,18 @@ ATTR_VALUE = "value"
 # versions used by this repo.
 ATTR_ENTITY_ID = "entity_id"
 
-from custom_components.pawcontrol.const import (
+from custom_components.pawcontrol.const import (  # noqa: E402
     CONF_GPS_UPDATE_INTERVAL,
     CONF_MEALS_PER_DAY,
 )
 from custom_components.pawcontrol.data_manager import PawControlDataManager
-from custom_components.pawcontrol.entity_factory import EntityFactory
-from custom_components.pawcontrol.number import (
+from custom_components.pawcontrol.entity_factory import EntityFactory  # noqa: E402
+from custom_components.pawcontrol.number import (  # noqa: E402
     PawControlGPSUpdateIntervalNumber,
     PawControlMealsPerDayNumber,
 )
-from custom_components.pawcontrol.runtime_data import store_runtime_data
-from custom_components.pawcontrol.types import (
+from custom_components.pawcontrol.runtime_data import store_runtime_data  # noqa: E402
+from custom_components.pawcontrol.types import (  # noqa: E402
     DOG_FEEDING_CONFIG_FIELD,
     DOG_GPS_CONFIG_FIELD,
     DOG_ID_FIELD,
@@ -157,7 +157,7 @@ async def _async_call_number_service(
 
 
 @pytest.mark.asyncio
-async def test_number_set_value_updates_feeding_config(
+async def test_number_set_value_updates_feeding_config(  # noqa: D103
     hass: Any,
 ) -> None:
     dog_id = "dog-1"
@@ -203,7 +203,7 @@ async def test_number_set_value_updates_feeding_config(
 
 
 @pytest.mark.asyncio
-async def test_number_set_value_updates_gps_config(
+async def test_number_set_value_updates_gps_config(  # noqa: D103
     hass: Any,
 ) -> None:
     dog_id = "dog-2"
@@ -255,7 +255,7 @@ async def test_number_set_value_updates_gps_config(
 
 
 @pytest.mark.asyncio
-async def test_number_update_flows_through_runtime_managers(
+async def test_number_update_flows_through_runtime_managers(  # noqa: D103
     mock_hass,
     mock_config_entry,
     mock_coordinator,

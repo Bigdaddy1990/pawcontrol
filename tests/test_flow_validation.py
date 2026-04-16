@@ -17,7 +17,7 @@ from custom_components.pawcontrol.flow_validation import (
 )
 
 
-def test_validate_dog_setup_input_success() -> None:
+def test_validate_dog_setup_input_success() -> None:  # noqa: D103
     user_input = {
         CONF_DOG_ID: "buddy",
         CONF_DOG_NAME: "Buddy",
@@ -43,7 +43,7 @@ def test_validate_dog_setup_input_success() -> None:
     assert result[CONF_DOG_BREED] == "Golden Retriever"
 
 
-def test_validate_dog_setup_input_reports_field_and_base_errors() -> None:
+def test_validate_dog_setup_input_reports_field_and_base_errors() -> None:  # noqa: D103
     user_input = {
         CONF_DOG_ID: "1",
         CONF_DOG_NAME: "",
@@ -69,7 +69,7 @@ def test_validate_dog_setup_input_reports_field_and_base_errors() -> None:
     assert "max_dogs_reached" in err.value.base_errors
 
 
-def test_validate_dog_setup_rejects_duplicate_name() -> None:
+def test_validate_dog_setup_rejects_duplicate_name() -> None:  # noqa: D103
     user_input = {
         CONF_DOG_ID: "luna",
         CONF_DOG_NAME: "Buddy",
@@ -90,7 +90,7 @@ def test_validate_dog_setup_rejects_duplicate_name() -> None:
     assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"
 
 
-def test_validate_dog_setup_rejects_invalid_breed() -> None:
+def test_validate_dog_setup_rejects_invalid_breed() -> None:  # noqa: D103
     user_input = {
         CONF_DOG_ID: "luna",
         CONF_DOG_NAME: "Luna",
@@ -112,7 +112,7 @@ def test_validate_dog_setup_rejects_invalid_breed() -> None:
     assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
 
 
-def test_validate_dog_setup_rejects_weight_size_mismatch() -> None:
+def test_validate_dog_setup_rejects_weight_size_mismatch() -> None:  # noqa: D103
     user_input = {
         CONF_DOG_ID: "tiny",
         CONF_DOG_NAME: "Tiny",
@@ -133,7 +133,7 @@ def test_validate_dog_setup_rejects_weight_size_mismatch() -> None:
     assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_size_mismatch"
 
 
-def test_validate_dog_update_rejects_duplicate_name() -> None:
+def test_validate_dog_update_rejects_duplicate_name() -> None:  # noqa: D103
     current_dog = {
         CONF_DOG_NAME: "Rex",
         CONF_DOG_WEIGHT: 12.0,
@@ -150,7 +150,7 @@ def test_validate_dog_update_rejects_duplicate_name() -> None:
     assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"
 
 
-def test_validate_dog_update_rejects_invalid_breed() -> None:
+def test_validate_dog_update_rejects_invalid_breed() -> None:  # noqa: D103
     current_dog = {
         CONF_DOG_NAME: "Luna",
         CONF_DOG_WEIGHT: 20.0,
@@ -166,7 +166,7 @@ def test_validate_dog_update_rejects_invalid_breed() -> None:
     assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
 
 
-def test_validate_dog_update_allows_removing_optional_fields() -> None:
+def test_validate_dog_update_allows_removing_optional_fields() -> None:  # noqa: D103
     current_dog = {
         CONF_DOG_NAME: "Luna",
         CONF_DOG_WEIGHT: 20.0,

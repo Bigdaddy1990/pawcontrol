@@ -77,7 +77,7 @@ from .types import (
 )
 from .utils import async_call_add_entities, normalise_entity_attributes
 
-# ``ATTR_ENTITY_ID``/``ATTR_VALUE`` moved/changed over time; fall back to canonical keys.  # noqa: E501
+# ``ATTR_ENTITY_ID``/``ATTR_VALUE`` moved/changed over time; fall back to canonical keys.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
 ATTR_VALUE = getattr(ha_const, "ATTR_VALUE", "value")
 
@@ -484,7 +484,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     validation, and error handling.
     """
 
-    def __init__(  # noqa: D417,D107
+    def __init__(  # noqa: D417
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,

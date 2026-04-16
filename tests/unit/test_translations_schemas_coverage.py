@@ -1,6 +1,6 @@
 """Coverage tests for feeding_translations.py + dashboard_shared.py + config_entry_helpers.py
 and flow_steps/gps_schemas.py + notifications_schemas.py + health_schemas.py.
-"""  # noqa: D205, E501
+"""  # noqa: D205
 
 from unittest.mock import MagicMock
 
@@ -22,25 +22,25 @@ import custom_components.pawcontrol.flow_steps.notifications_schemas as notif_sc
 
 
 @pytest.mark.unit
-def test_feeding_compliance_translations_english() -> None:
+def test_feeding_compliance_translations_english() -> None:  # noqa: D103
     result = get_feeding_compliance_translations("en")
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_feeding_compliance_translations_none() -> None:
+def test_feeding_compliance_translations_none() -> None:  # noqa: D103
     result = get_feeding_compliance_translations(None)
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_feeding_compliance_translations_german() -> None:
+def test_feeding_compliance_translations_german() -> None:  # noqa: D103
     result = get_feeding_compliance_translations("de")
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_feeding_compliance_translations_unknown() -> None:
+def test_feeding_compliance_translations_unknown() -> None:  # noqa: D103
     result = get_feeding_compliance_translations("zz")
     assert isinstance(result, dict)
 
@@ -49,13 +49,13 @@ def test_feeding_compliance_translations_unknown() -> None:
 
 
 @pytest.mark.unit
-def test_coerce_dog_config_minimal() -> None:
+def test_coerce_dog_config_minimal() -> None:  # noqa: D103
     result = coerce_dog_config({"dog_id": "rex", "dog_name": "Rex"})
     assert result is not None or result is None
 
 
 @pytest.mark.unit
-def test_coerce_dog_config_empty() -> None:
+def test_coerce_dog_config_empty() -> None:  # noqa: D103
     result = coerce_dog_config({})
     assert result is None or isinstance(result, dict)
 
@@ -64,14 +64,14 @@ def test_coerce_dog_config_empty() -> None:
 
 
 @pytest.mark.unit
-def test_coerce_dog_configs_empty_list() -> None:
+def test_coerce_dog_configs_empty_list() -> None:  # noqa: D103
     result = coerce_dog_configs([])
     assert isinstance(result, list)
     assert len(result) == 0
 
 
 @pytest.mark.unit
-def test_coerce_dog_configs_with_entries() -> None:
+def test_coerce_dog_configs_with_entries() -> None:  # noqa: D103
     result = coerce_dog_configs([
         {"dog_id": "rex", "dog_name": "Rex"},
         {"dog_id": "buddy", "dog_name": "Buddy"},
@@ -83,7 +83,7 @@ def test_coerce_dog_configs_with_entries() -> None:
 
 
 @pytest.mark.unit
-def test_get_entry_dogs_no_dogs() -> None:
+def test_get_entry_dogs_no_dogs() -> None:  # noqa: D103
     entry = MagicMock()
     entry.data = {}
     entry.options = {}
@@ -92,7 +92,7 @@ def test_get_entry_dogs_no_dogs() -> None:
 
 
 @pytest.mark.unit
-def test_get_entry_dogs_with_dogs() -> None:
+def test_get_entry_dogs_with_dogs() -> None:  # noqa: D103
     entry = MagicMock()
     entry.data = {"dogs": [{"dog_id": "rex", "dog_name": "Rex"}]}
     entry.options = {}
@@ -104,19 +104,19 @@ def test_get_entry_dogs_with_dogs() -> None:
 
 
 @pytest.mark.unit
-def test_gps_schemas_importable() -> None:
+def test_gps_schemas_importable() -> None:  # noqa: D103
     assert gps_sch is not None
     assert hasattr(gps_sch, "build_gps_settings_schema")
     assert hasattr(gps_sch, "build_geofence_settings_schema")
 
 
 @pytest.mark.unit
-def test_notifications_schemas_importable() -> None:
+def test_notifications_schemas_importable() -> None:  # noqa: D103
     assert notif_sch is not None
     assert hasattr(notif_sch, "build_notifications_schema")
 
 
 @pytest.mark.unit
-def test_health_schemas_importable() -> None:
+def test_health_schemas_importable() -> None:  # noqa: D103
     assert health_sch is not None
     assert hasattr(health_sch, "build_health_settings_schema")

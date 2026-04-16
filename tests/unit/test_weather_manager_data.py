@@ -32,7 +32,7 @@ from tests.weather_test_support import ensure_weather_module_compat
 UnitOfTemperature = ensure_weather_module_compat()
 STATE_UNAVAILABLE = ha_const.STATE_UNAVAILABLE
 
-from custom_components.pawcontrol.weather_manager import (
+from custom_components.pawcontrol.weather_manager import (  # noqa: E402
     WeatherHealthImpact,
     WeatherHealthManager,
     WeatherSeverity,
@@ -227,7 +227,7 @@ async def test_async_update_weather_data_handles_formatting_errors_in_translatio
             german_alerts = catalog["alerts"].get("high_heat_advisory")
             if german_alerts:
                 german_alerts["message"] = (
-                    "Temperatur {temperature}°C und {missing_placeholder} erfordern Schutz"  # noqa: E501
+                    "Temperatur {temperature}°C und {missing_placeholder} erfordern Schutz"
                 )
         return catalog
 

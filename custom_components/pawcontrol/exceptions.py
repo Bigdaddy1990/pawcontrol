@@ -37,7 +37,7 @@ ServiceValidationError = _ServiceValidationErrorType
 UpdateFailed = _UpdateFailedType
 # NOTE: CoordinatorUpdateFailed was a duplicate alias of UpdateFailed defined here
 # AND re-defined in coordinator.py — that caused py/multiple-definition alerts.
-# The canonical alias lives in coordinator.py as ``CoordinatorUpdateFailed = UpdateFailed``.  # noqa: E501
+# The canonical alias lives in coordinator.py as ``CoordinatorUpdateFailed = UpdateFailed``.
 # This module only exposes ``UpdateFailed``; consumers that need the coordinator alias
 # should import it from coordinator.py directly.
 
@@ -395,7 +395,7 @@ class DogNotFoundError(PawControlError):
             recovery_suggestions=[
                 "Check if the dog ID is spelled correctly",
                 "Verify the dog is configured in the integration",
-                f"Available dogs: {', '.join(available_dogs) if available_dogs else 'None'}",  # noqa: E501
+                f"Available dogs: {', '.join(available_dogs) if available_dogs else 'None'}",
             ],
             user_message=f"The dog '{dog_id}' was not found. Please check the dog ID.",
         )
@@ -901,7 +901,7 @@ class RateLimitError(PawControlError):
             max_count: Maximum allowed requests
         """
         if limit and retry_after:
-            message = f"Rate limit exceeded for {action} ({limit}). Retry after {retry_after} seconds"  # noqa: E501
+            message = f"Rate limit exceeded for {action} ({limit}). Retry after {retry_after} seconds"
         elif limit:
             message = f"Rate limit exceeded for {action} ({limit})"
         elif retry_after:

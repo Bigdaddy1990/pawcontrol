@@ -106,7 +106,7 @@ def _extract_init_keys(path: Path, *, base_class: str, keyword_name: str) -> set
     return keys
 
 
-def test_entity_translation_keys_are_defined() -> None:
+def test_entity_translation_keys_are_defined() -> None:  # noqa: D103
     strings = _load_strings(COMPONENT_ROOT / "strings.json")
     entity = strings["entity"]
 
@@ -165,7 +165,7 @@ def test_entity_translation_keys_are_defined() -> None:
     assert "gps" in entity["device_tracker"]
 
 
-def test_translation_files_cover_new_entity_keys() -> None:
+def test_translation_files_cover_new_entity_keys() -> None:  # noqa: D103
     strings = _load_strings(COMPONENT_ROOT / "strings.json")
     entity = strings["entity"]
 
@@ -208,7 +208,7 @@ def test_translation_files_cover_new_entity_keys() -> None:
         assert sensor_keys.issubset(set(data["sensor"].keys())), locale
 
 
-def test_common_translation_keys_are_defined() -> None:
+def test_common_translation_keys_are_defined() -> None:  # noqa: D103
     strings = _load_strings(COMPONENT_ROOT / "strings.json")
     common = strings["common"]
 

@@ -32,21 +32,21 @@ def _make_datetime_entity(cls, coordinator=None, dog_id="rex", dog_name="Rex"):
 
 
 @pytest.mark.unit
-def test_birthdate_datetime_init() -> None:
+def test_birthdate_datetime_init() -> None:  # noqa: D103
     entity = _make_datetime_entity(PawControlBirthdateDateTime)
     assert entity._dog_id == "rex"
     assert entity._attr_icon == "mdi:cake"
 
 
 @pytest.mark.unit
-def test_adoption_date_datetime_init() -> None:
+def test_adoption_date_datetime_init() -> None:  # noqa: D103
     entity = _make_datetime_entity(PawControlAdoptionDateDateTime)
     assert entity._dog_id == "rex"
     assert entity._attr_icon == "mdi:home-heart"
 
 
 @pytest.mark.unit
-def test_breakfast_time_datetime_init() -> None:
+def test_breakfast_time_datetime_init() -> None:  # noqa: D103
     entity = _make_datetime_entity(PawControlBreakfastTimeDateTime)
     assert entity._dog_id == "rex"
 
@@ -57,13 +57,13 @@ def test_breakfast_time_datetime_init() -> None:
 
 
 @pytest.mark.unit
-def test_native_value_initially_none() -> None:
+def test_native_value_initially_none() -> None:  # noqa: D103
     entity = _make_datetime_entity(PawControlBirthdateDateTime)
     assert entity.native_value is None
 
 
 @pytest.mark.unit
-def test_native_value_after_set() -> None:
+def test_native_value_after_set() -> None:  # noqa: D103
     entity = _make_datetime_entity(PawControlBirthdateDateTime)
     entity._current_value = datetime(2020, 1, 1, tzinfo=UTC)
     assert entity.native_value == datetime(2020, 1, 1, tzinfo=UTC)
@@ -75,7 +75,7 @@ def test_native_value_after_set() -> None:
 
 
 @pytest.mark.unit
-def test_extra_state_attributes_returns_dict() -> None:
+def test_extra_state_attributes_returns_dict() -> None:  # noqa: D103
     entity = _make_datetime_entity(PawControlBirthdateDateTime)
     attrs = entity.extra_state_attributes
     assert isinstance(attrs, dict)
@@ -90,7 +90,7 @@ def test_extra_state_attributes_returns_dict() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_async_set_value_updates_current() -> None:
+async def test_async_set_value_updates_current() -> None:  # noqa: D103
     entity = _make_datetime_entity(PawControlBirthdateDateTime)
     entity.async_write_ha_state = MagicMock()
     dt = datetime(2022, 6, 15, tzinfo=UTC)

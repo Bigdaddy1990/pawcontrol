@@ -30,7 +30,7 @@ def _write_rule_file(path: Path) -> None:
     )
 
 
-def test_run_check_detects_findings(tmp_path: Path, monkeypatch) -> None:
+def test_run_check_detects_findings(tmp_path: Path, monkeypatch) -> None:  # noqa: D103
     rules_path = tmp_path / "rules.json"
     _write_rule_file(rules_path)
     source_root = tmp_path / "src"
@@ -53,7 +53,7 @@ def test_run_check_detects_findings(tmp_path: Path, monkeypatch) -> None:
     assert "async_timeout" in target.read_text(encoding="utf-8")
 
 
-def test_run_fix_applies_replacement(tmp_path: Path, monkeypatch) -> None:
+def test_run_fix_applies_replacement(tmp_path: Path, monkeypatch) -> None:  # noqa: D103
     rules_path = tmp_path / "rules.json"
     _write_rule_file(rules_path)
     source_root = tmp_path / "src"
@@ -74,7 +74,7 @@ def test_run_fix_applies_replacement(tmp_path: Path, monkeypatch) -> None:
     assert "import asyncio" in target.read_text(encoding="utf-8")
 
 
-def test_validate_coverage_reports_newer_release() -> None:
+def test_validate_coverage_reports_newer_release() -> None:  # noqa: D103
     rule_set = push_guard.RuleSet(
         min_covered_version=Version.parse("2024.1.0"),
         max_covered_version=Version.parse("2024.12.0"),
@@ -84,7 +84,7 @@ def test_validate_coverage_reports_newer_release() -> None:
     assert not push_guard.validate_coverage(rule_set, Version.parse("2025.1.0"))
 
 
-def test_fetch_latest_homeassistant_version_raises_on_network_error(
+def test_fetch_latest_homeassistant_version_raises_on_network_error(  # noqa: D103
     monkeypatch,
 ) -> None:
     def _raise_url_error(*_args, **_kwargs):
@@ -99,7 +99,7 @@ def test_fetch_latest_homeassistant_version_raises_on_network_error(
         push_guard.fetch_latest_homeassistant_version()
 
 
-def test_load_rules_rejects_invalid_pattern(tmp_path: Path) -> None:
+def test_load_rules_rejects_invalid_pattern(tmp_path: Path) -> None:  # noqa: D103
     rules_path = tmp_path / "rules.json"
     rules_path.write_text(
         json.dumps({
@@ -122,7 +122,7 @@ def test_load_rules_rejects_invalid_pattern(tmp_path: Path) -> None:
         push_guard.load_rules(rules_path)
 
 
-def test_apply_rule_does_not_leave_backup_file(tmp_path: Path) -> None:
+def test_apply_rule_does_not_leave_backup_file(tmp_path: Path) -> None:  # noqa: D103
     target = tmp_path / "module.py"
     target.write_text("import async_timeout\n", encoding="utf-8")
     rule = push_guard.UpgradeRule(
@@ -141,7 +141,7 @@ def test_apply_rule_does_not_leave_backup_file(tmp_path: Path) -> None:
     assert not target.with_suffix(".py.bak").exists()
 
 
-def test_apply_rule_preserves_start_end_of_string_regex(tmp_path: Path) -> None:
+def test_apply_rule_preserves_start_end_of_string_regex(tmp_path: Path) -> None:  # noqa: D103
     target = tmp_path / "module.py"
     target.write_text("header\nimport async_timeout\n", encoding="utf-8")
     rule = push_guard.UpgradeRule(
@@ -159,12 +159,12 @@ def test_apply_rule_preserves_start_end_of_string_regex(tmp_path: Path) -> None:
     assert target.read_text(encoding="utf-8") == "header\nimport async_timeout\n"
 
 
-def test_validated_https_url_rejects_non_https() -> None:
+def test_validated_https_url_rejects_non_https() -> None:  # noqa: D103
     with pytest.raises(ValueError, match="Only absolute HTTPS URLs"):
         push_guard._validated_https_url("http://example.com")
 
 
-def test_fetch_latest_homeassistant_version_rejects_malformed_payload(
+def test_fetch_latest_homeassistant_version_rejects_malformed_payload(  # noqa: D103
     monkeypatch,
 ) -> None:
     class _Response:
@@ -187,7 +187,7 @@ def test_fetch_latest_homeassistant_version_rejects_malformed_payload(
         push_guard.fetch_latest_homeassistant_version()
 
 
-def test_collect_python_files_deduplicates_results(tmp_path: Path) -> None:
+def test_collect_python_files_deduplicates_results(tmp_path: Path) -> None:  # noqa: D103
     root = tmp_path / "src"
     nested = root / "nested"
     nested.mkdir(parents=True)
@@ -200,7 +200,7 @@ def test_collect_python_files_deduplicates_results(tmp_path: Path) -> None:
     assert files == [target]
 
 
-def test_main_returns_2_when_fix_and_check_are_enabled(monkeypatch, capsys) -> None:
+def test_main_returns_2_when_fix_and_check_are_enabled(monkeypatch, capsys) -> None:  # noqa: D103
     args = type(
         "Args", (), {"fix": True, "check": True, "rules": Path("r"), "root": Path("s")}
     )
@@ -210,7 +210,7 @@ def test_main_returns_2_when_fix_and_check_are_enabled(monkeypatch, capsys) -> N
     assert "Please use either --fix or --check." in capsys.readouterr().out
 
 
-def test_main_returns_0_for_check_mode_without_findings(monkeypatch, capsys) -> None:
+def test_main_returns_0_for_check_mode_without_findings(monkeypatch, capsys) -> None:  # noqa: D103
     args = type(
         "Args", (), {"fix": False, "check": True, "rules": Path("r"), "root": Path("s")}
     )
@@ -235,7 +235,7 @@ def test_main_returns_0_for_check_mode_without_findings(monkeypatch, capsys) -> 
     assert "OK: No known deprecated Home Assistant patterns found." in output
 
 
-def test_main_returns_1_when_run_raises_runtime_error(monkeypatch) -> None:
+def test_main_returns_1_when_run_raises_runtime_error(monkeypatch) -> None:  # noqa: D103
     args = type(
         "Args",
         (),

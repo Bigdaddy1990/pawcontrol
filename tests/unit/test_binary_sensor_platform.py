@@ -71,31 +71,31 @@ class _TestSensor(PawControlBinarySensorBase):
 class TestCoerceBoolFlag:
     """Tests for the _coerce_bool_flag helper."""
 
-    def test_true_returns_true(self) -> None:
+    def test_true_returns_true(self) -> None:  # noqa: D102
         assert _coerce_bool_flag(True) is True
 
-    def test_false_returns_false(self) -> None:
+    def test_false_returns_false(self) -> None:  # noqa: D102
         assert _coerce_bool_flag(False) is False
 
-    def test_int_one_returns_true(self) -> None:
+    def test_int_one_returns_true(self) -> None:  # noqa: D102
         assert _coerce_bool_flag(1) is True
 
-    def test_int_zero_returns_false(self) -> None:
+    def test_int_zero_returns_false(self) -> None:  # noqa: D102
         assert _coerce_bool_flag(0) is False
 
-    def test_float_one_returns_true(self) -> None:
+    def test_float_one_returns_true(self) -> None:  # noqa: D102
         assert _coerce_bool_flag(1.0) is True
 
-    def test_float_zero_returns_false(self) -> None:
+    def test_float_zero_returns_false(self) -> None:  # noqa: D102
         assert _coerce_bool_flag(0.0) is False
 
-    def test_string_returns_none(self) -> None:
+    def test_string_returns_none(self) -> None:  # noqa: D102
         assert _coerce_bool_flag("true") is None
 
-    def test_none_returns_none(self) -> None:
+    def test_none_returns_none(self) -> None:  # noqa: D102
         assert _coerce_bool_flag(None) is None
 
-    def test_arbitrary_int_returns_none(self) -> None:
+    def test_arbitrary_int_returns_none(self) -> None:  # noqa: D102
         assert _coerce_bool_flag(5) is None
 
 
@@ -107,23 +107,23 @@ class TestCoerceBoolFlag:
 class TestCoerceTimestamp:
     """Tests for the _coerce_timestamp helper."""
 
-    def test_none_returns_none(self) -> None:
+    def test_none_returns_none(self) -> None:  # noqa: D102
         assert _coerce_timestamp(None) is None
 
-    def test_datetime_returns_datetime(self) -> None:
+    def test_datetime_returns_datetime(self) -> None:  # noqa: D102
         dt = datetime.now(UTC)
         result = _coerce_timestamp(dt)
         assert isinstance(result, datetime)
 
-    def test_iso_string_returns_datetime(self) -> None:
+    def test_iso_string_returns_datetime(self) -> None:  # noqa: D102
         result = _coerce_timestamp("2025-01-01T12:00:00+00:00")
         assert isinstance(result, datetime)
 
-    def test_timestamp_int_returns_datetime(self) -> None:
+    def test_timestamp_int_returns_datetime(self) -> None:  # noqa: D102
         result = _coerce_timestamp(1700000000)
         assert isinstance(result, datetime)
 
-    def test_unsupported_type_returns_none(self) -> None:
+    def test_unsupported_type_returns_none(self) -> None:  # noqa: D102
         assert _coerce_timestamp({"nested": "dict"}) is None
 
 
@@ -135,7 +135,7 @@ class TestCoerceTimestamp:
 class TestApplyStandardTimingAttributes:
     """Tests for _apply_standard_timing_attributes."""
 
-    def test_populates_started_at_from_string(self) -> None:
+    def test_populates_started_at_from_string(self) -> None:  # noqa: D102
         attrs: dict[str, Any] = {}
         _apply_standard_timing_attributes(
             attrs,
@@ -145,7 +145,7 @@ class TestApplyStandardTimingAttributes:
         )
         assert isinstance(attrs.get("started_at"), datetime)
 
-    def test_duration_minutes_set_for_numeric_values(self) -> None:
+    def test_duration_minutes_set_for_numeric_values(self) -> None:  # noqa: D102
         attrs: dict[str, Any] = {}
         _apply_standard_timing_attributes(
             attrs,
@@ -155,7 +155,7 @@ class TestApplyStandardTimingAttributes:
         )
         assert attrs["duration_minutes"] == 45.0
 
-    def test_duration_minutes_none_for_non_numeric(self) -> None:
+    def test_duration_minutes_none_for_non_numeric(self) -> None:  # noqa: D102
         attrs: dict[str, Any] = {}
         _apply_standard_timing_attributes(
             attrs,
@@ -165,7 +165,7 @@ class TestApplyStandardTimingAttributes:
         )
         assert attrs["duration_minutes"] is None
 
-    def test_last_seen_populated_from_datetime(self) -> None:
+    def test_last_seen_populated_from_datetime(self) -> None:  # noqa: D102
         attrs: dict[str, Any] = {}
         now = datetime.now(UTC)
         _apply_standard_timing_attributes(
@@ -186,57 +186,57 @@ class TestBinarySensorLogicMixin:
     """Tests for BinarySensorLogicMixin calculation helpers."""
 
     @pytest.fixture
-    def mixin(self) -> BinarySensorLogicMixin:
+    def mixin(self) -> BinarySensorLogicMixin:  # noqa: D102
         return BinarySensorLogicMixin()
 
-    def test_time_based_status_true_within_threshold(
+    def test_time_based_status_true_within_threshold(  # noqa: D102
         self, mixin: BinarySensorLogicMixin
     ) -> None:
         recent = (datetime.now(UTC) - timedelta(minutes=5)).isoformat()
         assert mixin._calculate_time_based_status(recent, 0.5) is True
 
-    def test_time_based_status_false_outside_threshold(
+    def test_time_based_status_false_outside_threshold(  # noqa: D102
         self, mixin: BinarySensorLogicMixin
     ) -> None:
         old_ts = (datetime.now(UTC) - timedelta(hours=2)).isoformat()
         assert mixin._calculate_time_based_status(old_ts, 0.5) is False
 
-    def test_time_based_status_default_when_none(
+    def test_time_based_status_default_when_none(  # noqa: D102
         self, mixin: BinarySensorLogicMixin
     ) -> None:
         assert mixin._calculate_time_based_status(None, 1.0, True) is True
         assert mixin._calculate_time_based_status(None, 1.0, False) is False
 
-    def test_time_based_status_false_on_empty_string(
+    def test_time_based_status_false_on_empty_string(  # noqa: D102
         self, mixin: BinarySensorLogicMixin
     ) -> None:
         assert mixin._calculate_time_based_status("", 1.0) is False
 
-    def test_evaluate_threshold_greater(self, mixin: BinarySensorLogicMixin) -> None:
+    def test_evaluate_threshold_greater(self, mixin: BinarySensorLogicMixin) -> None:  # noqa: D102
         assert mixin._evaluate_threshold(10, 5, "greater") is True
         assert mixin._evaluate_threshold(4, 5, "greater") is False
 
-    def test_evaluate_threshold_less(self, mixin: BinarySensorLogicMixin) -> None:
+    def test_evaluate_threshold_less(self, mixin: BinarySensorLogicMixin) -> None:  # noqa: D102
         assert mixin._evaluate_threshold(3, 5, "less") is True
         assert mixin._evaluate_threshold(6, 5, "less") is False
 
-    def test_evaluate_threshold_greater_equal(
+    def test_evaluate_threshold_greater_equal(  # noqa: D102
         self, mixin: BinarySensorLogicMixin
     ) -> None:
         assert mixin._evaluate_threshold(5, 5, "greater_equal") is True
         assert mixin._evaluate_threshold(4, 5, "greater_equal") is False
 
-    def test_evaluate_threshold_less_equal(self, mixin: BinarySensorLogicMixin) -> None:
+    def test_evaluate_threshold_less_equal(self, mixin: BinarySensorLogicMixin) -> None:  # noqa: D102
         assert mixin._evaluate_threshold(5, 5, "less_equal") is True
         assert mixin._evaluate_threshold(6, 5, "less_equal") is False
 
-    def test_evaluate_threshold_none_returns_default(
+    def test_evaluate_threshold_none_returns_default(  # noqa: D102
         self, mixin: BinarySensorLogicMixin
     ) -> None:
         assert mixin._evaluate_threshold(None, 5, "greater", True) is True
         assert mixin._evaluate_threshold(None, 5, "greater", False) is False
 
-    def test_evaluate_threshold_unknown_comparison(
+    def test_evaluate_threshold_unknown_comparison(  # noqa: D102
         self, mixin: BinarySensorLogicMixin
     ) -> None:
         assert mixin._evaluate_threshold(10, 5, "unknown_op") is False
@@ -254,19 +254,19 @@ class TestPawControlBinarySensorBase:
         coord = _CoordStub(dog_data)
         return _TestSensor(coord)
 
-    def test_unique_id_uses_dog_id_and_sensor_type(self) -> None:
+    def test_unique_id_uses_dog_id_and_sensor_type(self) -> None:  # noqa: D102
         sensor = self._make_sensor()
         assert sensor._attr_unique_id == "pawcontrol_rex_test_sensor"
 
-    def test_is_on_delegates_to_get_is_on_state(self) -> None:
+    def test_is_on_delegates_to_get_is_on_state(self) -> None:  # noqa: D102
         sensor = self._make_sensor()
         assert sensor.is_on is False
 
-    def test_icon_returns_info_outline_when_no_icons_configured(self) -> None:
+    def test_icon_returns_info_outline_when_no_icons_configured(self) -> None:  # noqa: D102
         sensor = self._make_sensor()
         assert sensor.icon == "mdi:information-outline"
 
-    def test_icon_on_returned_when_sensor_active(self) -> None:
+    def test_icon_on_returned_when_sensor_active(self) -> None:  # noqa: D102
         coord = _CoordStub()
         sensor = PawControlBinarySensorBase(
             cast(PawControlCoordinator, coord),
@@ -279,7 +279,7 @@ class TestPawControlBinarySensorBase:
         sensor._test_is_on = True
         assert sensor.icon == "mdi:wifi"
 
-    def test_icon_off_returned_when_sensor_inactive(self) -> None:
+    def test_icon_off_returned_when_sensor_inactive(self) -> None:  # noqa: D102
         coord = _CoordStub()
         sensor = PawControlBinarySensorBase(
             cast(PawControlCoordinator, coord),
@@ -291,19 +291,19 @@ class TestPawControlBinarySensorBase:
         )
         assert sensor.icon == "mdi:wifi-off"
 
-    def test_available_false_when_coordinator_unavailable(self) -> None:
+    def test_available_false_when_coordinator_unavailable(self) -> None:  # noqa: D102
         coord = _CoordStub()
         coord.available = False
         sensor = self._make_sensor()
         sensor.coordinator.available = False
         assert sensor.available is False
 
-    def test_extra_state_attributes_contains_sensor_type(self) -> None:
+    def test_extra_state_attributes_contains_sensor_type(self) -> None:  # noqa: D102
         sensor = self._make_sensor(cast(CoordinatorDogData, {"status": "online"}))
         attrs = sensor.extra_state_attributes
         assert attrs.get("sensor_type") == "test_sensor"
 
-    def test_translation_key_matches_sensor_type(self) -> None:
+    def test_translation_key_matches_sensor_type(self) -> None:  # noqa: D102
         sensor = self._make_sensor()
         assert sensor._attr_translation_key == "test_sensor"
 
@@ -316,12 +316,12 @@ class TestPawControlBinarySensorBase:
 class TestAsLocal:
     """Tests for the _as_local timezone conversion helper."""
 
-    def test_aware_datetime_is_returned(self) -> None:
+    def test_aware_datetime_is_returned(self) -> None:  # noqa: D102
         dt = datetime.now(UTC)
         result = _as_local(dt)
         assert result.tzinfo is not None
 
-    def test_naive_datetime_gets_utc_assigned(self) -> None:
+    def test_naive_datetime_gets_utc_assigned(self) -> None:  # noqa: D102
         naive_dt = datetime(2025, 1, 1, 12, 0, 0)
         result = _as_local(naive_dt)
         assert result.tzinfo is not None

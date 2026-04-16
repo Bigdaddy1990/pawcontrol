@@ -118,7 +118,7 @@ class PawControlDeviceClient:
             payload = await response.json()
         except (ContentTypeError, ValueError) as err:  # pragma: no cover - defensive
             raise NetworkError(
-                "Device API returned a non-JSON response. Check the configured endpoint.",  # noqa: E501
+                "Device API returned a non-JSON response. Check the configured endpoint.",
             ) from err
         if payload is not None and not isinstance(payload, Mapping):
             raise NetworkError(

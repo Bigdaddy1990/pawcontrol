@@ -240,7 +240,7 @@ class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
         Returns:
             True if weight matches size expectations
         """
-        # Consistent realistic weight ranges with overlap to accommodate breed variations  # noqa: E501
+        # Consistent realistic weight ranges with overlap to accommodate breed variations
         size_ranges = {
             "toy": (1.0, 15.0),  # Chihuahua, Yorkshire Terrier
             # Beagle, Cocker Spaniel (overlap with toy/medium)
@@ -366,7 +366,7 @@ class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
             dogs_list.append(
                 f"{i}. {size_emoji} **{dog[DOG_NAME_FIELD]}** ({dog[DOG_ID_FIELD]})\n"
                 f"   {size_key.title()} {breed_info}, "
-                f"{dog.get(DOG_AGE_FIELD, 'unknown')} years, {dog.get(DOG_WEIGHT_FIELD, 'unknown')}kg\n"  # noqa: E501
+                f"{dog.get(DOG_AGE_FIELD, 'unknown')} years, {dog.get(DOG_WEIGHT_FIELD, 'unknown')}kg\n"
                 f"   {enabled_count}/{total_modules} modules enabled"
                 + (f"\n   {special_text}" if special_text else ""),
             )

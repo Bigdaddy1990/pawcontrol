@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock  # noqa: D100
 
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -52,7 +52,7 @@ async def _finish_user_flow_with_single_dog(
     return step
 
 
-async def test_user_step_shows_form(hass: HomeAssistant) -> None:
+async def test_user_step_shows_form(hass: HomeAssistant) -> None:  # noqa: D103
     flow = PawControlConfigFlow()
     flow.hass = hass
     result = await flow.async_step_user()
@@ -61,7 +61,7 @@ async def test_user_step_shows_form(hass: HomeAssistant) -> None:
     assert result["step_id"] == "user"
 
 
-async def test_user_flow_success_creates_entry(hass: HomeAssistant) -> None:
+async def test_user_flow_success_creates_entry(hass: HomeAssistant) -> None:  # noqa: D103
     flow = PawControlConfigFlow()
     flow.hass = hass
 
@@ -73,7 +73,7 @@ async def test_user_flow_success_creates_entry(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.asyncio
-async def test_user_flow_invalid_auth_shows_form_error(
+async def test_user_flow_invalid_auth_shows_form_error(  # noqa: D103
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     flow = PawControlConfigFlow()
@@ -94,7 +94,7 @@ async def test_user_flow_invalid_auth_shows_form_error(
 
 
 @pytest.mark.asyncio
-async def test_user_flow_cannot_connect_shows_form_error(
+async def test_user_flow_cannot_connect_shows_form_error(  # noqa: D103
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     flow = PawControlConfigFlow()
@@ -115,7 +115,7 @@ async def test_user_flow_cannot_connect_shows_form_error(
 
 
 @pytest.mark.asyncio
-async def test_user_flow_unknown_exception_shows_unknown(
+async def test_user_flow_unknown_exception_shows_unknown(  # noqa: D103
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     flow = PawControlConfigFlow()
@@ -135,7 +135,7 @@ async def test_user_flow_unknown_exception_shows_unknown(
     assert result["errors"]["base"] == "unknown_error"
 
 
-async def test_duplicate_entry_aborts_already_configured(hass: HomeAssistant) -> None:
+async def test_duplicate_entry_aborts_already_configured(hass: HomeAssistant) -> None:  # noqa: D103
     existing = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={CONF_DOGS: []})
     existing.add_to_hass(hass)
 
@@ -150,7 +150,7 @@ async def test_duplicate_entry_aborts_already_configured(hass: HomeAssistant) ->
         assert "already_configured" in str(exc)
 
 
-async def test_reauth_flow_success_updates_entry(
+async def test_reauth_flow_success_updates_entry(  # noqa: D103
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -191,7 +191,7 @@ async def test_reauth_flow_success_updates_entry(
     assert result["reason"] == "reauth_successful"
 
 
-async def test_reauth_flow_failure_keeps_entry(
+async def test_reauth_flow_failure_keeps_entry(  # noqa: D103
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     entry = MockConfigEntry(
@@ -226,7 +226,7 @@ async def test_reauth_flow_failure_keeps_entry(
     assert "last_reauth" not in entry.options
 
 
-async def test_reconfigure_step_shows_form(
+async def test_reconfigure_step_shows_form(  # noqa: D103
     hass: HomeAssistant,
 ) -> None:
     entry = MockConfigEntry(
@@ -268,7 +268,7 @@ async def test_options_flow_updates_options(
     assert result["data"]["entity_profile"] == "advanced"
 
 
-async def test_reauth_health_check_reports_config_issues(
+async def test_reauth_health_check_reports_config_issues(  # noqa: D103
     hass: HomeAssistant,
 ) -> None:
     entry = MockConfigEntry(
@@ -305,7 +305,7 @@ async def test_reauth_health_check_reports_config_issues(
     )
 
 
-async def test_reauth_health_summary_safe_handles_timeout(
+async def test_reauth_health_summary_safe_handles_timeout(  # noqa: D103
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

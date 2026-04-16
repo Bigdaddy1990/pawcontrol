@@ -23,20 +23,20 @@ from custom_components.pawcontrol.validation_helpers import (
 
 
 @pytest.mark.unit
-def test_build_dog_status_snapshot_empty() -> None:
+def test_build_dog_status_snapshot_empty() -> None:  # noqa: D103
     result = build_dog_status_snapshot("rex", {})
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_build_dog_status_snapshot_with_walk() -> None:
+def test_build_dog_status_snapshot_with_walk() -> None:  # noqa: D103
     data = {"walk": {"walk_in_progress": True, "total_distance_today": 2.5}}
     result = build_dog_status_snapshot("rex", data)
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_build_dog_status_snapshot_with_feeding() -> None:
+def test_build_dog_status_snapshot_with_feeding() -> None:  # noqa: D103
     data = {"feeding": {"meals_today": 2}}
     result = build_dog_status_snapshot("buddy", data)
     assert isinstance(result, dict)
@@ -48,14 +48,14 @@ def test_build_dog_status_snapshot_with_feeding() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_existing_names_none() -> None:
+def test_normalise_existing_names_none() -> None:  # noqa: D103
     result = normalise_existing_names(None)
     assert isinstance(result, set)
     assert len(result) == 0
 
 
 @pytest.mark.unit
-def test_normalise_existing_names_set() -> None:
+def test_normalise_existing_names_set() -> None:  # noqa: D103
     # normalise_existing_names lowercases names
     result = normalise_existing_names({"Rex", "Buddy"})
     assert isinstance(result, set)
@@ -68,7 +68,7 @@ def test_normalise_existing_names_set() -> None:
 
 
 @pytest.mark.unit
-def test_safe_validate_interval_valid() -> None:
+def test_safe_validate_interval_valid() -> None:  # noqa: D103
     result = safe_validate_interval(
         60, default=30, minimum=1, maximum=3600, field="interval"
     )
@@ -76,7 +76,7 @@ def test_safe_validate_interval_valid() -> None:
 
 
 @pytest.mark.unit
-def test_safe_validate_interval_below_min_clamps() -> None:
+def test_safe_validate_interval_below_min_clamps() -> None:  # noqa: D103
     result = safe_validate_interval(
         0,
         default=30,
@@ -89,7 +89,7 @@ def test_safe_validate_interval_below_min_clamps() -> None:
 
 
 @pytest.mark.unit
-def test_safe_validate_interval_above_max_clamps() -> None:
+def test_safe_validate_interval_above_max_clamps() -> None:  # noqa: D103
     result = safe_validate_interval(
         9999,
         default=30,
@@ -102,7 +102,7 @@ def test_safe_validate_interval_above_max_clamps() -> None:
 
 
 @pytest.mark.unit
-def test_safe_validate_interval_none_uses_default() -> None:
+def test_safe_validate_interval_none_uses_default() -> None:  # noqa: D103
     result = safe_validate_interval(
         None, default=30, minimum=1, maximum=3600, field="interval"
     )
@@ -115,13 +115,13 @@ def test_safe_validate_interval_none_uses_default() -> None:
 
 
 @pytest.mark.unit
-def test_vh_validate_dog_name_valid() -> None:
+def test_vh_validate_dog_name_valid() -> None:  # noqa: D103
     result = validate_dog_name("Rex")
     assert result == "Rex"
 
 
 @pytest.mark.unit
-def test_vh_validate_dog_name_strips() -> None:
+def test_vh_validate_dog_name_strips() -> None:  # noqa: D103
     result = validate_dog_name("  Buddy  ")
     assert result == "Buddy"
 
@@ -132,19 +132,19 @@ def test_vh_validate_dog_name_strips() -> None:
 
 
 @pytest.mark.unit
-def test_validate_coordinate_valid_lat() -> None:
+def test_validate_coordinate_valid_lat() -> None:  # noqa: D103
     result = validate_coordinate(52.5, field="latitude", minimum=-90, maximum=90)
     assert result == pytest.approx(52.5)
 
 
 @pytest.mark.unit
-def test_validate_coordinate_invalid_raises() -> None:
+def test_validate_coordinate_invalid_raises() -> None:  # noqa: D103
     with pytest.raises((ValidationError, Exception)):
         validate_coordinate(999.0, field="latitude", minimum=-90, maximum=90)
 
 
 @pytest.mark.unit
-def test_format_coordinate_validation_error() -> None:
+def test_format_coordinate_validation_error() -> None:  # noqa: D103
     err = ValidationError(
         "latitude", 999.0, "out_of_range", min_value=-90, max_value=90
     )

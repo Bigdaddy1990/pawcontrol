@@ -1,4 +1,4 @@
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable  # noqa: D100
 from types import TracebackType
 from typing import cast
 
@@ -21,7 +21,7 @@ type DummyPayload = dict[str, JSONValue]
 class DummyResponse:
     """Minimal async context manager used to emulate aiohttp responses."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         status: int,
         payload: DummyPayload | None = None,
@@ -32,10 +32,10 @@ class DummyResponse:
         self._payload: DummyPayload = payload or {}
         self._json_error = json_error
 
-    async def __aenter__(self) -> DummyResponse:
+    async def __aenter__(self) -> DummyResponse:  # noqa: D105
         return self
 
-    async def __aexit__(
+    async def __aexit__(  # noqa: D105
         self,
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
@@ -43,7 +43,7 @@ class DummyResponse:
     ) -> bool:
         return False
 
-    async def json(self) -> DummyPayload:
+    async def json(self) -> DummyPayload:  # noqa: D102
         if self._json_error is not None:
             raise self._json_error
         return self._payload
@@ -52,19 +52,19 @@ class DummyResponse:
 class DummyRequestContext:
     """Awaitable context manager matching aiohttp's request API."""
 
-    def __init__(self, response: DummyResponse) -> None:
+    def __init__(self, response: DummyResponse) -> None:  # noqa: D107
         self._response = response
 
-    def __await__(self) -> Generator[DummyResponse, None, DummyResponse]:
+    def __await__(self) -> Generator[DummyResponse, None, DummyResponse]:  # noqa: D105
         async def _inner() -> DummyResponse:
             return self._response
 
         return _inner().__await__()
 
-    async def __aenter__(self) -> DummyResponse:
+    async def __aenter__(self) -> DummyResponse:  # noqa: D105
         return await self._response.__aenter__()
 
-    async def __aexit__(
+    async def __aexit__(  # noqa: D105
         self,
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
@@ -78,15 +78,15 @@ class DummySession:
 
     closed = False
 
-    def __init__(self, responses: Iterable[DummyResponse]) -> None:
+    def __init__(self, responses: Iterable[DummyResponse]) -> None:  # noqa: D107
         self._responses: list[DummyResponse] = list(responses)
         self._index: int = 0
 
-    async def request(self, *args: object, **kwargs: object) -> DummyResponse:
+    async def request(self, *args: object, **kwargs: object) -> DummyResponse:  # noqa: D102
         context = self.get(*args, **kwargs)
         return await context
 
-    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:
+    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:  # noqa: D102
         if self._index >= len(self._responses):
             raise AssertionError(
                 "DummySession received more get() calls than configured responses"
@@ -101,25 +101,25 @@ class RaisingSession:
 
     closed = False
 
-    def __init__(self, error: Exception) -> None:
+    def __init__(self, error: Exception) -> None:  # noqa: D107
         self._error = error
 
-    async def request(self, *args: object, **kwargs: object) -> DummyResponse:
+    async def request(self, *args: object, **kwargs: object) -> DummyResponse:  # noqa: D102
         context = self.get(*args, **kwargs)
         return await context
 
-    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:
+    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:  # noqa: D102
         raise self._error
 
 
 class FlakySession(DummySession):
     """Session stub that fails once before returning configured responses."""
 
-    def __init__(self, responses: Iterable[DummyResponse]) -> None:
+    def __init__(self, responses: Iterable[DummyResponse]) -> None:  # noqa: D107
         super().__init__(responses)
         self._attempts = 0
 
-    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:
+    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:  # noqa: D102
         self._attempts += 1
         if self._attempts == 1:
             raise aiohttp.ClientError("temporary failure")
@@ -131,11 +131,11 @@ class AlwaysFailingClientSession:
 
     closed = False
 
-    async def request(self, *args: object, **kwargs: object) -> DummyResponse:
+    async def request(self, *args: object, **kwargs: object) -> DummyResponse:  # noqa: D102
         context = self.get(*args, **kwargs)
         return await context
 
-    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:
+    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:  # noqa: D102
         raise aiohttp.ClientError("unreachable endpoint")
 
 
@@ -312,11 +312,11 @@ async def test_async_test_api_health_reports_unexpected_errors(
 class CapturingSession(DummySession):
     """Session stub that records GET call arguments for assertions."""
 
-    def __init__(self, responses: Iterable[DummyResponse]) -> None:
+    def __init__(self, responses: Iterable[DummyResponse]) -> None:  # noqa: D107
         super().__init__(responses)
         self.calls: list[tuple[object, dict[str, object]]] = []
 
-    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:
+    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:  # noqa: D102
         self.calls.append((args[0] if args else None, dict(kwargs)))
         return super().get(*args, **kwargs)
 

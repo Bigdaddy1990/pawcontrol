@@ -20,7 +20,7 @@ def _reload_utils_modules() -> tuple[object, object]:
 def test_utils_serialize_helpers_resolve_latest_module_bindings(
     monkeypatch,
 ) -> None:
-    """Package-level serialize helpers should resolve from ``utils.serialize`` lazily."""  # noqa: E501
+    """Package-level serialize helpers should resolve from ``utils.serialize`` lazily."""
     utils, serialize_module = _reload_utils_modules()
 
     def replacement(value: datetime) -> str:
@@ -33,7 +33,7 @@ def test_utils_serialize_helpers_resolve_latest_module_bindings(
 
 
 def test_utils_getattr_unknown_helper_raises_attribute_error() -> None:
-    """Unknown package helper names should raise ``AttributeError`` via ``__getattr__``."""  # noqa: E501
+    """Unknown package helper names should raise ``AttributeError`` via ``__getattr__``."""
     utils, _ = _reload_utils_modules()
 
     try:

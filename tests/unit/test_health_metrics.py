@@ -113,7 +113,7 @@ def _blank_report() -> dict[str, object]:
     }
 
 
-def test_breed_recommendations_are_requested_when_breed_valid() -> None:
+def test_breed_recommendations_are_requested_when_breed_valid() -> None:  # noqa: D103
     manager = _StubWeatherHealthManager()
     metrics = HealthMetrics(
         current_weight=24.5,
@@ -142,11 +142,11 @@ def test_breed_recommendations_are_requested_when_breed_valid() -> None:
 
 
 @pytest.mark.parametrize("invalid_breed", ["", " ", "?", "1", "a"])
-def test_invalid_breed_values_raise_value_error(invalid_breed: str) -> None:
+def test_invalid_breed_values_raise_value_error(invalid_breed: str) -> None:  # noqa: D103
     with pytest.raises(ValueError):
         HealthMetrics(current_weight=10.0, breed=invalid_breed)
 
 
-def test_non_string_breed_values_raise_type_error() -> None:
+def test_non_string_breed_values_raise_type_error() -> None:  # noqa: D103
     with pytest.raises(TypeError):
         HealthMetrics(current_weight=12.0, breed=123)  # type: ignore[arg-type]

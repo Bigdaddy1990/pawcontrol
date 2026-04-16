@@ -1,4 +1,4 @@
-import pytest
+import pytest  # noqa: D100
 
 from custom_components.pawcontrol.dog_status import (
     _coerce_mapping,
@@ -9,7 +9,7 @@ from custom_components.pawcontrol.dog_status import (
 )
 
 
-def test_build_dog_status_snapshot_prefers_walk_state() -> None:
+def test_build_dog_status_snapshot_prefers_walk_state() -> None:  # noqa: D103
     snapshot = build_dog_status_snapshot(
         "dog-1",
         {
@@ -41,7 +41,7 @@ def test_build_dog_status_snapshot_prefers_walk_state() -> None:
         (False, False, False, False, None, "away"),
     ],
 )
-def test_derive_status_state_variants(
+def test_derive_status_state_variants(  # noqa: D103
     on_walk: bool,
     is_home: bool,
     is_hungry: bool,
@@ -73,7 +73,7 @@ def test_derive_status_state_variants(
         ({}, "unknown_zone", False),
     ],
 )
-def test_resolve_safe_zone_variants(
+def test_resolve_safe_zone_variants(  # noqa: D103
     geofence_status: dict[str, object], zone: str | None, expected: bool
 ) -> None:
     assert _resolve_safe_zone(geofence_status, zone) is expected
@@ -87,7 +87,7 @@ def test_resolve_safe_zone_variants(
         ("bad", {}),
     ],
 )
-def test_coercion_helpers(value: object, expected: dict[str, object]) -> None:
+def test_coercion_helpers(value: object, expected: dict[str, object]) -> None:  # noqa: D103
     assert _coerce_mapping(value) == expected
 
 
@@ -100,5 +100,5 @@ def test_coercion_helpers(value: object, expected: dict[str, object]) -> None:
         (42, None),
     ],
 )
-def test_coerce_zone_name(value: object, expected: str | None) -> None:
+def test_coerce_zone_name(value: object, expected: str | None) -> None:  # noqa: D103
     assert _coerce_zone_name(value) == expected

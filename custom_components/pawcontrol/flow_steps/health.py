@@ -128,7 +128,7 @@ class DogHealthFlowMixin(DogHealthFlowHost):
         current_dog = self._current_dog_config
         if current_dog is None:
             _LOGGER.error(
-                "Health configuration step invoked without active dog; restarting add_dog",  # noqa: E501
+                "Health configuration step invoked without active dog; restarting add_dog",
             )
             return await self.async_step_add_dog()
         if user_input is not None:
@@ -222,7 +222,7 @@ class DogHealthFlowMixin(DogHealthFlowHost):
 
                 if diet_validation["recommended_vet_consultation"]:
                     _LOGGER.info(
-                        "Diet validation for %s recommends veterinary consultation: %s conflicts, %s warnings",  # noqa: E501
+                        "Diet validation for %s recommends veterinary consultation: %s conflicts, %s warnings",
                         current_dog[DOG_NAME_FIELD],
                         len(diet_validation["conflicts"]),
                         len(diet_validation["warnings"]),

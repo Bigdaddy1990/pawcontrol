@@ -2,7 +2,7 @@
 
 Covers: ActionDefinition, ConditionDefinition, TriggerDefinition dataclasses
         and resolve_device_context helpers.
-"""  # noqa: E501
+"""
 
 import pytest
 
@@ -23,19 +23,19 @@ from custom_components.pawcontrol.device_trigger import (
 
 
 @pytest.mark.unit
-def test_action_definition_init() -> None:
+def test_action_definition_init() -> None:  # noqa: D103
     a = ActionDefinition(type="walk_start")
     assert a.type == "walk_start"
 
 
 @pytest.mark.unit
-def test_action_definition_feeding() -> None:
+def test_action_definition_feeding() -> None:  # noqa: D103
     a = ActionDefinition(type="trigger_feeding")
     assert a.type == "trigger_feeding"
 
 
 @pytest.mark.unit
-def test_device_action_payload_is_dict() -> None:
+def test_device_action_payload_is_dict() -> None:  # noqa: D103
     payload: DeviceActionPayload = {"type": "walk_start", "device_id": "dev_001"}
     assert payload["type"] == "walk_start"
 
@@ -44,7 +44,7 @@ def test_device_action_payload_is_dict() -> None:
 
 
 @pytest.mark.unit
-def test_condition_definition_init() -> None:
+def test_condition_definition_init() -> None:  # noqa: D103
     c = ConditionDefinition(
         type="is_walking",
         platform="device",
@@ -55,7 +55,7 @@ def test_condition_definition_init() -> None:
 
 
 @pytest.mark.unit
-def test_condition_definition_feeding() -> None:
+def test_condition_definition_feeding() -> None:  # noqa: D103
     c = ConditionDefinition(
         type="is_fed_today",
         platform="device",
@@ -65,7 +65,7 @@ def test_condition_definition_feeding() -> None:
 
 
 @pytest.mark.unit
-def test_device_condition_payload_is_dict() -> None:
+def test_device_condition_payload_is_dict() -> None:  # noqa: D103
     payload: DeviceConditionPayload = {
         "type": "is_walking",
         "device_id": "dev_001",
@@ -78,7 +78,7 @@ def test_device_condition_payload_is_dict() -> None:
 
 
 @pytest.mark.unit
-def test_trigger_definition_minimal() -> None:
+def test_trigger_definition_minimal() -> None:  # noqa: D103
     t = TriggerDefinition(
         type="walk_started",
         platform="device",
@@ -90,7 +90,7 @@ def test_trigger_definition_minimal() -> None:
 
 
 @pytest.mark.unit
-def test_trigger_definition_with_states() -> None:
+def test_trigger_definition_with_states() -> None:  # noqa: D103
     t = TriggerDefinition(
         type="walk_ended",
         platform="device",
@@ -103,7 +103,7 @@ def test_trigger_definition_with_states() -> None:
 
 
 @pytest.mark.unit
-def test_device_trigger_payload_is_dict() -> None:
+def test_device_trigger_payload_is_dict() -> None:  # noqa: D103
     payload: DeviceTriggerPayload = {
         "type": "walk_started",
         "device_id": "dev_001",
@@ -116,21 +116,21 @@ def test_device_trigger_payload_is_dict() -> None:
 
 
 @pytest.mark.unit
-def test_device_action_has_resolve_device_context() -> None:
+def test_device_action_has_resolve_device_context() -> None:  # noqa: D103
     import custom_components.pawcontrol.device_action as da
 
     assert hasattr(da, "resolve_device_context")
 
 
 @pytest.mark.unit
-def test_device_condition_has_build_unique_id() -> None:
+def test_device_condition_has_build_unique_id() -> None:  # noqa: D103
     import custom_components.pawcontrol.device_condition as dc
 
     assert hasattr(dc, "build_unique_id")
 
 
 @pytest.mark.unit
-def test_device_trigger_has_build_unique_id() -> None:
+def test_device_trigger_has_build_unique_id() -> None:  # noqa: D103
     import custom_components.pawcontrol.device_trigger as dt
 
     assert hasattr(dt, "build_unique_id")

@@ -1087,7 +1087,7 @@ def test_notification_delivery_errors_clears_issues_when_clean(
 
     _run_check_for_issues(module, hass, entry, runtime_data)
 
-    # Use a different variable name to avoid shadowing the imported ``call`` from ``unittest.mock``  # noqa: E501
+    # Use a different variable name to avoid shadowing the imported ``call`` from ``unittest.mock``
     deleted = [args.args[-1] for args in delete_issue_mock.await_args_list]
     assert any(str(name).endswith("notification_auth_error") for name in deleted)
     assert any(

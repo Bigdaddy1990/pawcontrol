@@ -471,7 +471,7 @@ def _build_localised_sections(
     translations: Mapping[str, str],
     compliance: FeedingComplianceDisplayMapping,
 ) -> tuple[list[str], list[str], list[str]]:
-    """Return localised summary sections for missed meals, issues, and recommendations."""  # noqa: E501
+    """Return localised summary sections for missed meals, issues, and recommendations."""
     missed_summary = _collect_missed_meals(
         translations,
         compliance.get("missed_meals"),

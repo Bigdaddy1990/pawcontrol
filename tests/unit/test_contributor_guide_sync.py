@@ -24,7 +24,7 @@ def _normalize_markdown(content: str) -> str:
     return "\n".join(line.rstrip() for line in content.strip().splitlines())
 
 
-def test_assistant_guides_match_canonical() -> None:
+def test_assistant_guides_match_canonical() -> None:  # noqa: D103
     canonical = _normalize_markdown(CANONICAL_PATH.read_text(encoding="utf-8"))
     for target in TARGETS:
         assert _synced_block(target) == canonical, target

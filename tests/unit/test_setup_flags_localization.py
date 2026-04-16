@@ -114,7 +114,7 @@ def _expected_setup_flag_keys() -> dict[str, str]:
     return relevant_keys
 
 
-def test_setup_flag_supported_languages_match_translations() -> None:
+def test_setup_flag_supported_languages_match_translations() -> None:  # noqa: D103
     expected_languages = {path.stem for path in TRANSLATIONS_DIR.glob("*.json")}
     if STRINGS_PATH.exists():
         expected_languages.add("en")
@@ -126,7 +126,7 @@ def test_setup_flag_supported_languages_match_translations() -> None:
     )
 
 
-def test_translations_include_setup_flag_keys() -> None:
+def test_translations_include_setup_flag_keys() -> None:  # noqa: D103
     expected = _expected_setup_flag_keys()
     expected_keys = set(expected)
 
@@ -150,7 +150,7 @@ def test_translations_include_setup_flag_keys() -> None:
                 assert common[key] == value, (path, key)
 
 
-def test_documentation_lists_all_setup_flag_translations() -> None:
+def test_documentation_lists_all_setup_flag_translations() -> None:  # noqa: D103
     expected = _expected_setup_flag_keys()
     doc_content = DOC_PATH.read_text(encoding="utf-8")
     languages, doc_rows = _parse_localization_table(doc_content)

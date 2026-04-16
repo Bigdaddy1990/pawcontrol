@@ -1,4 +1,4 @@
-import importlib
+import importlib  # noqa: D100
 from pathlib import Path
 import sys
 

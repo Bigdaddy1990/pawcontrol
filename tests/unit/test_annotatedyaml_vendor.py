@@ -34,28 +34,28 @@ class _DummyLoader:
         self.disposed = True
 
 
-def test_load_accepts_legacy_loader_keyword() -> None:
+def test_load_accepts_legacy_loader_keyword() -> None:  # noqa: D103
     data = vendored_yaml.load("answer: 42", Loader=vendored_yaml.FullLoader)
     assert data == {"answer": 42}
 
 
-def test_load_accepts_positional_loader_argument() -> None:
+def test_load_accepts_positional_loader_argument() -> None:  # noqa: D103
     data = vendored_yaml.load("answer: 42", vendored_yaml.FullLoader)
     assert data == {"answer": 42}
 
 
-def test_safe_load_accepts_legacy_loader_keyword() -> None:
+def test_safe_load_accepts_legacy_loader_keyword() -> None:  # noqa: D103
     data = vendored_yaml.safe_load("answer: 42", Loader=vendored_yaml.SafeLoader)
     assert data == {"answer": 42}
 
 
-def test_safe_load_rejects_unsafe_loader() -> None:
+def test_safe_load_rejects_unsafe_loader() -> None:  # noqa: D103
     message = r"safe_load\(\) custom Loader must be a subclass"
     with pytest.raises(ValueError, match=message):
         vendored_yaml.safe_load("answer: 42", Loader=vendored_yaml.UnsafeLoader)
 
 
-def test_safe_load_all_rejects_unsafe_loader() -> None:
+def test_safe_load_all_rejects_unsafe_loader() -> None:  # noqa: D103
     message = r"safe_load_all\(\) custom Loader must be a subclass"
     with pytest.raises(ValueError, match=message):
         list(
@@ -63,20 +63,20 @@ def test_safe_load_all_rejects_unsafe_loader() -> None:
         )
 
 
-def test_dump_accepts_legacy_dumper_keyword() -> None:
+def test_dump_accepts_legacy_dumper_keyword() -> None:  # noqa: D103
     payload = {"answer": 42}
     rendered = vendored_yaml.dump(payload, Dumper=vendored_yaml.Dumper)
     assert "answer" in rendered
     assert "42" in rendered
 
 
-def test_load_without_loader_argument_raises() -> None:
+def test_load_without_loader_argument_raises() -> None:  # noqa: D103
     message = "load() missing 1 required positional argument: 'Loader'"
     with pytest.raises(TypeError, match=re.escape(message)):
         vendored_yaml.load("answer: 42")
 
 
-def test_conflicting_loader_alias_raises() -> None:
+def test_conflicting_loader_alias_raises() -> None:  # noqa: D103
     message = "load() received both 'Loader' and its replacement"
     with pytest.raises(TypeError, match=re.escape(message)):
         vendored_yaml.load(
@@ -86,35 +86,35 @@ def test_conflicting_loader_alias_raises() -> None:
         )
 
 
-def test_extract_legacy_loader_returns_value_and_strips_keyword() -> None:
+def test_extract_legacy_loader_returns_value_and_strips_keyword() -> None:  # noqa: D103
     kwargs = {"Loader": _DummyLoader}
     result = vendored_yaml._extract_legacy_loader("load", kwargs)
     assert result is _DummyLoader
     assert kwargs == {}
 
 
-def test_extract_legacy_loader_rejects_other_keywords() -> None:
+def test_extract_legacy_loader_rejects_other_keywords() -> None:  # noqa: D103
     kwargs = {"Loader": _DummyLoader, "unexpected": True}
     message = "load() got unexpected keyword argument"
     with pytest.raises(TypeError, match=re.escape(message)):
         vendored_yaml._extract_legacy_loader("load", kwargs)
 
 
-def test_select_loader_prefers_explicit_loader_cls() -> None:
+def test_select_loader_prefers_explicit_loader_cls() -> None:  # noqa: D103
     selected = vendored_yaml._select_loader(
         "load", loader_cls=_DummyLoader, legacy_loader=None
     )
     assert selected is _DummyLoader
 
 
-def test_select_loader_prefers_legacy_loader_argument() -> None:
+def test_select_loader_prefers_legacy_loader_argument() -> None:  # noqa: D103
     selected = vendored_yaml._select_loader(
         "load", loader_cls=None, legacy_loader=_DummyLoader
     )
     assert selected is _DummyLoader
 
 
-def test_select_loader_conflicts_raise_type_error() -> None:
+def test_select_loader_conflicts_raise_type_error() -> None:  # noqa: D103
     message = "load() received both 'Loader' and its replacement"
     with pytest.raises(TypeError, match=re.escape(message)):
         vendored_yaml._select_loader(
@@ -124,7 +124,7 @@ def test_select_loader_conflicts_raise_type_error() -> None:
         )
 
 
-def test_select_loader_missing_required_argument_raises() -> None:
+def test_select_loader_missing_required_argument_raises() -> None:  # noqa: D103
     message = "load() missing 1 required positional argument: 'Loader'"
     with pytest.raises(TypeError, match=re.escape(message)):
         vendored_yaml._select_loader(
@@ -132,7 +132,7 @@ def test_select_loader_missing_required_argument_raises() -> None:
         )
 
 
-def test_select_loader_uses_default_loader_when_available() -> None:
+def test_select_loader_uses_default_loader_when_available() -> None:  # noqa: D103
     selected = vendored_yaml._select_loader(
         "load",
         loader_cls=None,
@@ -142,13 +142,13 @@ def test_select_loader_uses_default_loader_when_available() -> None:
     assert selected is _DummyLoader
 
 
-def test_load_all_accepts_positional_loader_argument() -> None:
+def test_load_all_accepts_positional_loader_argument() -> None:  # noqa: D103
     payload = "---\nanswer: 42\n---\nanswer: 43"
     data = list(vendored_yaml.load_all(payload, vendored_yaml.FullLoader))
     assert data == [{"answer": 42}, {"answer": 43}]
 
 
-def test_safe_load_all_accepts_positional_loader_argument() -> None:
+def test_safe_load_all_accepts_positional_loader_argument() -> None:  # noqa: D103
     payload = "---\nanswer: 42\n---\nanswer: 43"
     data = list(vendored_yaml.safe_load_all(payload, vendored_yaml.SafeLoader))
     assert data == [{"answer": 42}, {"answer": 43}]

@@ -67,25 +67,25 @@ def test_get_cache_ttl_clamps_to_min(
 
 
 @pytest.mark.unit
-def test_coerce_float_bool() -> None:
+def test_coerce_float_bool() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_float(True) == 1.0
     assert PawControlSensorBase._coerce_float(False) == 0.0
 
 
 @pytest.mark.unit
-def test_coerce_float_int_and_float() -> None:
+def test_coerce_float_int_and_float() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_float(42) == 42.0
     assert PawControlSensorBase._coerce_float(3.14) == pytest.approx(3.14)
 
 
 @pytest.mark.unit
-def test_coerce_float_string() -> None:
+def test_coerce_float_string() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_float("2.5") == pytest.approx(2.5)
     assert PawControlSensorBase._coerce_float("bad", default=99.0) == 99.0
 
 
 @pytest.mark.unit
-def test_coerce_float_none_returns_default() -> None:
+def test_coerce_float_none_returns_default() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_float(None, default=-1.0) == -1.0
 
 
@@ -95,25 +95,25 @@ def test_coerce_float_none_returns_default() -> None:
 
 
 @pytest.mark.unit
-def test_coerce_int_bool() -> None:
+def test_coerce_int_bool() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_int(True) == 1
     assert PawControlSensorBase._coerce_int(False) == 0
 
 
 @pytest.mark.unit
-def test_coerce_int_float_truncates() -> None:
+def test_coerce_int_float_truncates() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_int(3.9) == 3
 
 
 @pytest.mark.unit
-def test_coerce_int_string() -> None:
+def test_coerce_int_string() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_int("7") == 7
     assert PawControlSensorBase._coerce_int("7.8") == 7
     assert PawControlSensorBase._coerce_int("bad", default=5) == 5
 
 
 @pytest.mark.unit
-def test_coerce_int_none_returns_default() -> None:
+def test_coerce_int_none_returns_default() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_int(None) == 0
 
 
@@ -123,25 +123,25 @@ def test_coerce_int_none_returns_default() -> None:
 
 
 @pytest.mark.unit
-def test_coerce_utc_datetime_none() -> None:
+def test_coerce_utc_datetime_none() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_utc_datetime(None) is None
 
 
 @pytest.mark.unit
-def test_coerce_utc_datetime_from_datetime() -> None:
+def test_coerce_utc_datetime_from_datetime() -> None:  # noqa: D103
     dt = datetime(2025, 6, 1, 12, 0, 0, tzinfo=UTC)
     result = PawControlSensorBase._coerce_utc_datetime(dt)
     assert isinstance(result, datetime)
 
 
 @pytest.mark.unit
-def test_coerce_utc_datetime_from_string() -> None:
+def test_coerce_utc_datetime_from_string() -> None:  # noqa: D103
     result = PawControlSensorBase._coerce_utc_datetime("2025-06-01T12:00:00+00:00")
     assert isinstance(result, datetime)
 
 
 @pytest.mark.unit
-def test_coerce_utc_datetime_unsupported_type() -> None:
+def test_coerce_utc_datetime_unsupported_type() -> None:  # noqa: D103
     result = PawControlSensorBase._coerce_utc_datetime({"not": "a datetime"})
     assert result is None
 
@@ -152,20 +152,20 @@ def test_coerce_utc_datetime_unsupported_type() -> None:
 
 
 @pytest.mark.unit
-def test_coerce_module_payload_mapping() -> None:
+def test_coerce_module_payload_mapping() -> None:  # noqa: D103
     payload = {"key": "value"}
     result = PawControlSensorBase._coerce_module_payload(payload)
     assert result == payload
 
 
 @pytest.mark.unit
-def test_coerce_module_payload_none() -> None:
+def test_coerce_module_payload_none() -> None:  # noqa: D103
     result = PawControlSensorBase._coerce_module_payload(None)
     assert result == {}
 
 
 @pytest.mark.unit
-def test_coerce_module_payload_non_mapping() -> None:
+def test_coerce_module_payload_non_mapping() -> None:  # noqa: D103
     result = PawControlSensorBase._coerce_module_payload("not a mapping")
     assert result == {}
 
@@ -176,24 +176,24 @@ def test_coerce_module_payload_non_mapping() -> None:
 
 
 @pytest.mark.unit
-def test_coerce_feeding_payload_mapping() -> None:
+def test_coerce_feeding_payload_mapping() -> None:  # noqa: D103
     payload = {"total_fed_today": 200.0}
     result = PawControlSensorBase._coerce_feeding_payload(payload)
     assert result is not None and result.get("total_fed_today") == 200.0
 
 
 @pytest.mark.unit
-def test_coerce_feeding_payload_none() -> None:
+def test_coerce_feeding_payload_none() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_feeding_payload(None) is None
 
 
 @pytest.mark.unit
-def test_coerce_walk_payload_mapping() -> None:
+def test_coerce_walk_payload_mapping() -> None:  # noqa: D103
     payload = {"walk_in_progress": True}
     result = PawControlSensorBase._coerce_walk_payload(payload)
     assert result is not None and result.get("walk_in_progress") is True
 
 
 @pytest.mark.unit
-def test_coerce_walk_payload_none() -> None:
+def test_coerce_walk_payload_none() -> None:  # noqa: D103
     assert PawControlSensorBase._coerce_walk_payload(None) is None

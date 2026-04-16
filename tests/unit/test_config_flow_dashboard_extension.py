@@ -1,4 +1,4 @@
-from types import MappingProxyType
+from types import MappingProxyType  # noqa: D100
 
 import pytest
 
@@ -140,7 +140,7 @@ async def test_dashboard_step_shows_form_without_hass_context() -> None:
 
 
 @pytest.mark.unit
-def test_translated_dashboard_info_line_uses_english_fallback_for_unknown_language() -> (  # noqa: E501
+def test_translated_dashboard_info_line_uses_english_fallback_for_unknown_language() -> (
     None
 ):
     """Unsupported language codes should fall back to the english template."""

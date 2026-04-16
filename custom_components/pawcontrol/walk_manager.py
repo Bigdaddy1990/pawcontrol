@@ -322,7 +322,7 @@ class WalkManager:
 
     OPTIMIZE: Enhanced with GPS caching, memory management, batch processing,
     and performance optimizations for Platinum-targeted quality.
-    """  # noqa: E501
+    """
 
     def __init__(self) -> None:
         """Initialize optimized walk manager."""
@@ -990,7 +990,7 @@ class WalkManager:
 
         Returns:
             Optimized path
-        """  # noqa: E501
+        """
         if len(path) <= PATH_POINT_LIMIT:
             return path
         # Keep start and end points
@@ -1045,7 +1045,7 @@ class WalkManager:
             # BUG FIX: async_start_walk acquires self._data_lock, but this method is
             # called from inside async_update_gps_data which already holds that lock.
             # asyncio.Lock is NOT reentrant → calling async_start_walk here caused a
-            # deadlock on every auto-detected walk start, hanging the entire integration.  # noqa: E501
+            # deadlock on every auto-detected walk start, hanging the entire integration.
             # Fix: use the lock-free internal helper _start_walk_locked instead.
             await self._start_walk_locked(dog_id, "auto_detected")
             _LOGGER.debug(
@@ -1058,7 +1058,7 @@ class WalkManager:
         # OPTIMIZE: Add to walk path if walk in progress with point limits
         if dog_id in self._current_walks:
             current_walk = self._current_walks[dog_id]
-            # Only add point if it's significant (distance > 5m or time > 30s since last point)  # noqa: E501
+            # Only add point if it's significant (distance > 5m or time > 30s since last point)
             should_add_point = True
             if current_walk["path"]:
                 last_point = current_walk["path"][-1]
@@ -1737,7 +1737,7 @@ class WalkManager:
 
         Returns:
             Export data with file paths and metadata, or None if no walks found
-        """  # noqa: E501
+        """
         try:
             async with self._data_lock:
                 if dog_id not in self._walk_history:
@@ -1857,7 +1857,7 @@ class WalkManager:
                 self._performance_metrics["gpx_exports"] += 1
 
                 _LOGGER.info(
-                    "Successfully exported %d route(s) for %s in %s format (%.1fm, %d points)",  # noqa: E501
+                    "Successfully exported %d route(s) for %s in %s format (%.1fm, %d points)",
                     len(recent_walks),
                     dog_id,
                     format,

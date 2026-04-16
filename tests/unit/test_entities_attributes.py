@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass  # noqa: D100
 from datetime import UTC, datetime, timedelta
 from typing import cast
 

@@ -14,7 +14,7 @@ from custom_components.pawcontrol.cache import CacheStats, LRUCache
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_lru_cache_set_and_get() -> None:
+async def test_lru_cache_set_and_get() -> None:  # noqa: D103
     cache = LRUCache(max_size=5, default_ttl=60.0)
     await cache.set("key1", "value1")
     assert await cache.get("key1") == "value1"
@@ -22,14 +22,14 @@ async def test_lru_cache_set_and_get() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_lru_cache_miss_returns_none() -> None:
+async def test_lru_cache_miss_returns_none() -> None:  # noqa: D103
     cache = LRUCache(max_size=5, default_ttl=60.0)
     assert await cache.get("nonexistent") is None
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_lru_cache_delete() -> None:
+async def test_lru_cache_delete() -> None:  # noqa: D103
     cache = LRUCache(max_size=5, default_ttl=60.0)
     await cache.set("key1", "value1")
     await cache.delete("key1")
@@ -38,7 +38,7 @@ async def test_lru_cache_delete() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_lru_cache_overwrite() -> None:
+async def test_lru_cache_overwrite() -> None:  # noqa: D103
     cache = LRUCache(max_size=5, default_ttl=60.0)
     await cache.set("key1", "old")
     await cache.set("key1", "new")
@@ -47,7 +47,7 @@ async def test_lru_cache_overwrite() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_lru_cache_evicts_when_full() -> None:
+async def test_lru_cache_evicts_when_full() -> None:  # noqa: D103
     cache = LRUCache(max_size=3, default_ttl=60.0)
     await cache.set("a", 1)
     await cache.set("b", 2)
@@ -58,7 +58,7 @@ async def test_lru_cache_evicts_when_full() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_lru_cache_clear() -> None:
+async def test_lru_cache_clear() -> None:  # noqa: D103
     cache = LRUCache(max_size=5, default_ttl=60.0)
     await cache.set("a", 1)
     await cache.set("b", 2)
@@ -69,7 +69,7 @@ async def test_lru_cache_clear() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_lru_cache_multiple_keys() -> None:
+async def test_lru_cache_multiple_keys() -> None:  # noqa: D103
     cache = LRUCache(max_size=10, default_ttl=60.0)
     for i in range(5):
         await cache.set(f"key{i}", i * 10)
@@ -79,7 +79,7 @@ async def test_lru_cache_multiple_keys() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_lru_cache_none_value() -> None:
+async def test_lru_cache_none_value() -> None:  # noqa: D103
     cache = LRUCache(max_size=5, default_ttl=60.0)
     await cache.set("k", None)
     # None stored is distinguishable from cache miss only by key existence
@@ -93,14 +93,14 @@ async def test_lru_cache_none_value() -> None:
 
 
 @pytest.mark.unit
-def test_cache_stats_init() -> None:
+def test_cache_stats_init() -> None:  # noqa: D103
     stats = CacheStats()
     assert stats.hits == 0
     assert stats.misses == 0
 
 
 @pytest.mark.unit
-def test_cache_stats_hit_rate_zero_when_empty() -> None:
+def test_cache_stats_hit_rate_zero_when_empty() -> None:  # noqa: D103
     stats = CacheStats()
     rate = stats.hit_rate
     assert rate == pytest.approx(0.0)

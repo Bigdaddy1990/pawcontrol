@@ -31,20 +31,20 @@ def _coord(dog_id="rex"):
 
 
 @pytest.mark.unit
-def test_allergies_text_init() -> None:
+def test_allergies_text_init() -> None:  # noqa: D103
     e = PawControlAllergiesText(_coord(), "rex", "Rex")
     assert e._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_allergies_text_native_value_none() -> None:
+def test_allergies_text_native_value_none() -> None:  # noqa: D103
     e = PawControlAllergiesText(_coord(), "rex", "Rex")
     result = e.native_value
     assert result is None or isinstance(result, str)
 
 
 @pytest.mark.unit
-def test_allergies_text_extra_attrs() -> None:
+def test_allergies_text_extra_attrs() -> None:  # noqa: D103
     e = PawControlAllergiesText(_coord(), "rex", "Rex")
     attrs = e.extra_state_attributes
     assert isinstance(attrs, dict)
@@ -56,13 +56,13 @@ def test_allergies_text_extra_attrs() -> None:
 
 
 @pytest.mark.unit
-def test_behavior_notes_init() -> None:
+def test_behavior_notes_init() -> None:  # noqa: D103
     e = PawControlBehaviorNotesText(_coord(), "rex", "Rex")
     assert e._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_behavior_notes_unique_id() -> None:
+def test_behavior_notes_unique_id() -> None:  # noqa: D103
     e = PawControlBehaviorNotesText(_coord(), "rex", "Rex")
     assert "rex" in e._attr_unique_id
 
@@ -73,13 +73,13 @@ def test_behavior_notes_unique_id() -> None:
 
 
 @pytest.mark.unit
-def test_breeder_info_init() -> None:
+def test_breeder_info_init() -> None:  # noqa: D103
     e = PawControlBreederInfoText(_coord(), "rex", "Rex")
     assert e._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_breeder_info_native_value() -> None:
+def test_breeder_info_native_value() -> None:  # noqa: D103
     e = PawControlBreederInfoText(_coord(), "rex", "Rex")
     result = e.native_value
     assert result is None or isinstance(result, str)
@@ -91,7 +91,7 @@ def test_breeder_info_native_value() -> None:
 
 
 @pytest.mark.unit
-def test_custom_label_init() -> None:
+def test_custom_label_init() -> None:  # noqa: D103
     e = PawControlCustomLabelText(_coord(), "rex", "Rex")
     assert e._dog_id == "rex"
 

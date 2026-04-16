@@ -21,7 +21,7 @@ def _select_options(selectors: dict[str, object], key: str) -> set[str]:
     return set(cast(dict[str, object], entry))
 
 
-def test_selector_options_are_localized() -> None:
+def test_selector_options_are_localized() -> None:  # noqa: D103
     strings = _load_strings(COMPONENT_ROOT / "strings.json")
     selectors = strings["selector"]
 

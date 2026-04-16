@@ -205,7 +205,7 @@ class HassImportsFormatChecker(BaseChecker):
         "W7424": (
             "Import should be using the component root",
             "hass-component-root-import",
-            "Used when an import from another component should be from the component root",  # noqa: E501
+            "Used when an import from another component should be from the component root",
         ),
         "W7425": (
             "`%s` should not be imported directly. Please import `%s` as `%s` "

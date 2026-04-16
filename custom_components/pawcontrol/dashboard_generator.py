@@ -1212,7 +1212,7 @@ class PawControlDashboardGenerator:
                         else "full"
                     )
 
-                    weather_layout = await self._dashboard_templates.get_weather_dashboard_layout_template(  # noqa: E501
+                    weather_layout = await self._dashboard_templates.get_weather_dashboard_layout_template(
                         dog_id,
                         dog_name,
                         breed,
@@ -1827,7 +1827,7 @@ class PawControlDashboardGenerator:
                     else "full"
                 )
 
-                weather_config = await self._dashboard_templates.get_weather_dashboard_layout_template(  # noqa: E501
+                weather_config = await self._dashboard_templates.get_weather_dashboard_layout_template(
                     dog_id,
                     dog_name,
                     breed,
@@ -2172,7 +2172,7 @@ class PawControlDashboardGenerator:
                         dog,
                         self._copy_dashboard_options(options_payload),
                     ),
-                    name=f"pawcontrol_dashboard_weather_{dog.get(DOG_ID_FIELD, 'unknown')}",  # noqa: E501
+                    name=f"pawcontrol_dashboard_weather_{dog.get(DOG_ID_FIELD, 'unknown')}",
                 )
                 for dog in batch
             ]

@@ -30,7 +30,7 @@ class _MonitorRaises:
         raise RuntimeError("nope")
 
 
-def test_capture_cache_diagnostics_collects_all_channels() -> None:
+def test_capture_cache_diagnostics_collects_all_channels() -> None:  # noqa: D103
     runtime_data = SimpleNamespace(
         data_manager=_DataManagerWithSnapshots(),
         cache={"a": 1},
@@ -51,7 +51,7 @@ def test_capture_cache_diagnostics_collects_all_channels() -> None:
     }
 
 
-def test_capture_cache_diagnostics_supports_summary_fallback() -> None:
+def test_capture_cache_diagnostics_supports_summary_fallback() -> None:  # noqa: D103
     runtime_data = SimpleNamespace(
         data_manager=_DataManagerFallbackSummary(),
         performance_monitor=_MonitorRaises(),
@@ -66,7 +66,7 @@ def test_capture_cache_diagnostics_supports_summary_fallback() -> None:
     }
 
 
-def test_capture_cache_diagnostics_skips_failed_summary_collection() -> None:
+def test_capture_cache_diagnostics_skips_failed_summary_collection() -> None:  # noqa: D103
     class _DataManagerSummaryFailure:
         def cache_snapshots(self) -> dict[str, object]:
             return {"primary": {"entries": 3}}
@@ -86,7 +86,7 @@ def test_capture_cache_diagnostics_skips_failed_summary_collection() -> None:
     }
 
 
-def test_performance_metric_defaults_and_monitor_summary_paths() -> None:
+def test_performance_metric_defaults_and_monitor_summary_paths() -> None:  # noqa: D103
     performance.reset_performance_metrics()
     performance.enable_performance_monitoring()
 
@@ -109,7 +109,7 @@ def test_performance_metric_defaults_and_monitor_summary_paths() -> None:
     assert all_metrics is not performance._performance_monitor._metrics
 
 
-def test_performance_tracker_records_runs_and_failures() -> None:
+def test_performance_tracker_records_runs_and_failures() -> None:  # noqa: D103
     runtime_data = SimpleNamespace(performance_stats={})
 
     with performance.performance_tracker(runtime_data, "refresh", max_samples=2) as ctx:
@@ -127,7 +127,7 @@ def test_performance_tracker_records_runs_and_failures() -> None:
     assert len(bucket["durations_ms"]) == 2
 
 
-def test_performance_tracker_recovers_from_invalid_store_shapes() -> None:
+def test_performance_tracker_recovers_from_invalid_store_shapes() -> None:  # noqa: D103
     runtime_data = SimpleNamespace(
         _performance_stats={
             "performance_buckets": {
@@ -150,7 +150,7 @@ def test_performance_tracker_recovers_from_invalid_store_shapes() -> None:
     assert len(bucket["durations_ms"]) == 1
 
 
-def test_performance_tracker_initializes_store_from_private_attribute() -> None:
+def test_performance_tracker_initializes_store_from_private_attribute() -> None:  # noqa: D103
     runtime_data = SimpleNamespace(_performance_stats="invalid")
 
     with performance.performance_tracker(runtime_data, "refresh"):
@@ -161,7 +161,7 @@ def test_performance_tracker_initializes_store_from_private_attribute() -> None:
     assert bucket["runs"] == 1
 
 
-def test_performance_tracker_handles_non_mapping_bucket_container() -> None:
+def test_performance_tracker_handles_non_mapping_bucket_container() -> None:  # noqa: D103
     runtime_data = SimpleNamespace(performance_stats={"performance_buckets": []})
 
     with performance.performance_tracker(runtime_data, "refresh"):
@@ -172,7 +172,7 @@ def test_performance_tracker_handles_non_mapping_bucket_container() -> None:
     assert bucket["runs"] == 1
 
 
-def test_performance_tracker_creates_public_store_when_missing() -> None:
+def test_performance_tracker_creates_public_store_when_missing() -> None:  # noqa: D103
     class _RuntimeData:
         def __init__(self) -> None:
             self.performance_stats = None
@@ -187,7 +187,7 @@ def test_performance_tracker_creates_public_store_when_missing() -> None:
     assert bucket["runs"] == 1
 
 
-def test_performance_tracker_replaces_non_mapping_bucket() -> None:
+def test_performance_tracker_replaces_non_mapping_bucket() -> None:  # noqa: D103
     runtime_data = SimpleNamespace(
         performance_stats={"performance_buckets": {"refresh": []}}
     )
@@ -204,7 +204,7 @@ def test_performance_tracker_replaces_non_mapping_bucket() -> None:
     assert len(bucket["durations_ms"]) == 1
 
 
-def test_record_maintenance_result_merges_legacy_history_and_metadata() -> None:
+def test_record_maintenance_result_merges_legacy_history_and_metadata() -> None:  # noqa: D103
     existing_event = {"task": "old", "status": "ok"}
     runtime_data = SimpleNamespace(
         performance_stats={
@@ -241,7 +241,7 @@ def test_record_maintenance_result_merges_legacy_history_and_metadata() -> None:
     assert store["last_maintenance_result"]["task"] == "second"
 
 
-def test_capture_cache_diagnostics_handles_snapshot_errors_and_empty_runtime() -> None:
+def test_capture_cache_diagnostics_handles_snapshot_errors_and_empty_runtime() -> None:  # noqa: D103
     class _DataManagerBrokenSnapshots:
         def cache_snapshots(self) -> dict[str, object]:
             raise RuntimeError("broken")
@@ -252,7 +252,7 @@ def test_capture_cache_diagnostics_handles_snapshot_errors_and_empty_runtime() -
     assert performance.capture_cache_diagnostics(None) is None
 
 
-def test_performance_helpers_and_monitor_lifecycle() -> None:
+def test_performance_helpers_and_monitor_lifecycle() -> None:  # noqa: D103
     performance.reset_performance_metrics()
     performance.enable_performance_monitoring()
 
@@ -276,7 +276,7 @@ def test_performance_helpers_and_monitor_lifecycle() -> None:
     assert performance.get_performance_summary()["metric_count"] == 0
 
 
-def test_track_performance_decorator_records_sync_and_async_calls() -> None:
+def test_track_performance_decorator_records_sync_and_async_calls() -> None:  # noqa: D103
     async def _exercise() -> None:
         performance.reset_performance_metrics()
         performance.enable_performance_monitoring()
@@ -299,7 +299,7 @@ def test_track_performance_decorator_records_sync_and_async_calls() -> None:
     asyncio.run(_exercise())
 
 
-def test_track_performance_logs_slow_sync_and_async_calls(monkeypatch) -> None:
+def test_track_performance_logs_slow_sync_and_async_calls(monkeypatch) -> None:  # noqa: D103
     async def _exercise() -> None:
         performance.reset_performance_metrics()
         performance.enable_performance_monitoring()
@@ -340,7 +340,7 @@ def test_track_performance_logs_slow_sync_and_async_calls(monkeypatch) -> None:
     asyncio.run(_exercise())
 
 
-def test_track_performance_records_failures_for_sync_and_async_calls(
+def test_track_performance_records_failures_for_sync_and_async_calls(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def _exercise() -> None:
@@ -393,7 +393,7 @@ def test_track_performance_records_failures_for_sync_and_async_calls(
     asyncio.run(_exercise())
 
 
-def test_debounce_throttle_and_batch_calls() -> None:
+def test_debounce_throttle_and_batch_calls() -> None:  # noqa: D103
     async def _exercise() -> None:
         calls: list[str] = []
 
@@ -438,7 +438,7 @@ def test_debounce_throttle_and_batch_calls() -> None:
     asyncio.run(_exercise())
 
 
-def test_track_performance_records_metrics_when_calls_raise() -> None:
+def test_track_performance_records_metrics_when_calls_raise() -> None:  # noqa: D103
     async def _exercise() -> None:
         performance.reset_performance_metrics()
         performance.enable_performance_monitoring()
@@ -468,7 +468,7 @@ def test_track_performance_records_metrics_when_calls_raise() -> None:
     asyncio.run(_exercise())
 
 
-def test_batch_calls_starts_a_new_task_after_previous_batch_finishes() -> None:
+def test_batch_calls_starts_a_new_task_after_previous_batch_finishes() -> None:  # noqa: D103
     async def _exercise() -> None:
         batched: list[int] = []
 
@@ -486,7 +486,7 @@ def test_batch_calls_starts_a_new_task_after_previous_batch_finishes() -> None:
     asyncio.run(_exercise())
 
 
-def test_capture_cache_diagnostics_counts_all_legacy_cache_slots() -> None:
+def test_capture_cache_diagnostics_counts_all_legacy_cache_slots() -> None:  # noqa: D103
     runtime_data = SimpleNamespace(
         caches={"alpha": object(), "beta": object()},
         _caches={"gamma": object()},
@@ -502,7 +502,7 @@ def test_capture_cache_diagnostics_counts_all_legacy_cache_slots() -> None:
     }
 
 
-def test_debounce_cancels_pending_task_before_latest_call_runs() -> None:
+def test_debounce_cancels_pending_task_before_latest_call_runs() -> None:  # noqa: D103
     async def _exercise() -> None:
         calls: list[str] = []
 

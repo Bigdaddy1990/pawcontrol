@@ -1,4 +1,4 @@
-"""Coverage tests for language.py + grooming_translations.py + weather_translations.py."""  # noqa: E501
+"""Coverage tests for language.py + grooming_translations.py + weather_translations.py."""
 
 import pytest
 
@@ -18,38 +18,38 @@ from custom_components.pawcontrol.weather_translations import (
 
 
 @pytest.mark.unit
-def test_normalize_language_none_returns_default() -> None:
+def test_normalize_language_none_returns_default() -> None:  # noqa: D103
     result = normalize_language(None)
     assert result == "en"
 
 
 @pytest.mark.unit
-def test_normalize_language_valid() -> None:
+def test_normalize_language_valid() -> None:  # noqa: D103
     result = normalize_language("de")
     assert isinstance(result, str)
     assert len(result) > 0
 
 
 @pytest.mark.unit
-def test_normalize_language_uppercase_lowered() -> None:
+def test_normalize_language_uppercase_lowered() -> None:  # noqa: D103
     result = normalize_language("EN")
     assert result == result.lower() or isinstance(result, str)
 
 
 @pytest.mark.unit
-def test_normalize_language_custom_default() -> None:
+def test_normalize_language_custom_default() -> None:  # noqa: D103
     result = normalize_language(None, default="de")
     assert result == "de"
 
 
 @pytest.mark.unit
-def test_normalize_language_supported_set() -> None:
+def test_normalize_language_supported_set() -> None:  # noqa: D103
     result = normalize_language("fr", supported={"en", "de", "fr"})
     assert result == "fr"
 
 
 @pytest.mark.unit
-def test_normalize_language_unsupported_falls_back() -> None:
+def test_normalize_language_unsupported_falls_back() -> None:  # noqa: D103
     result = normalize_language("xx", supported={"en", "de"}, default="en")
     assert result == "en"
 
@@ -58,13 +58,13 @@ def test_normalize_language_unsupported_falls_back() -> None:
 
 
 @pytest.mark.unit
-def test_translated_grooming_label_no_hass() -> None:
+def test_translated_grooming_label_no_hass() -> None:  # noqa: D103
     result = translated_grooming_label(None, None, "brush")
     assert isinstance(result, str)
 
 
 @pytest.mark.unit
-def test_translated_grooming_label_with_lang() -> None:
+def test_translated_grooming_label_with_lang() -> None:  # noqa: D103
     result = translated_grooming_label(None, "en", "bath")
     assert isinstance(result, str)
 
@@ -73,7 +73,7 @@ def test_translated_grooming_label_with_lang() -> None:
 
 
 @pytest.mark.unit
-def test_translated_grooming_template_no_hass() -> None:
+def test_translated_grooming_template_no_hass() -> None:  # noqa: D103
     result = translated_grooming_template(None, None, "reminder")
     assert isinstance(result, str)
 
@@ -82,13 +82,13 @@ def test_translated_grooming_template_no_hass() -> None:
 
 
 @pytest.mark.unit
-def test_empty_weather_translations_returns_dict() -> None:
+def test_empty_weather_translations_returns_dict() -> None:  # noqa: D103
     result = empty_weather_translations()
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_empty_weather_translations_has_keys() -> None:
+def test_empty_weather_translations_has_keys() -> None:  # noqa: D103
     result = empty_weather_translations()
     assert "alerts" in result or "recommendations" in result or isinstance(result, dict)
 
@@ -97,19 +97,19 @@ def test_empty_weather_translations_has_keys() -> None:
 
 
 @pytest.mark.unit
-def test_get_weather_translations_english() -> None:
+def test_get_weather_translations_english() -> None:  # noqa: D103
     result = get_weather_translations("en")
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_get_weather_translations_german() -> None:
+def test_get_weather_translations_german() -> None:  # noqa: D103
     result = get_weather_translations("de")
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_get_weather_translations_unknown_lang() -> None:
+def test_get_weather_translations_unknown_lang() -> None:  # noqa: D103
     result = get_weather_translations("zz")
     assert isinstance(result, dict)
 
@@ -118,7 +118,7 @@ def test_get_weather_translations_unknown_lang() -> None:
 
 
 @pytest.mark.unit
-def test_weather_alert_translation_as_dict() -> None:
+def test_weather_alert_translation_as_dict() -> None:  # noqa: D103
     alert: WeatherAlertTranslation = {
         "title": "Storm warning",
         "message": "Take shelter",
@@ -127,6 +127,6 @@ def test_weather_alert_translation_as_dict() -> None:
 
 
 @pytest.mark.unit
-def test_weather_translations_as_dict() -> None:
+def test_weather_translations_as_dict() -> None:  # noqa: D103
     t: WeatherTranslations = {"alerts": {}, "recommendations": {}}
     assert isinstance(t["alerts"], dict)

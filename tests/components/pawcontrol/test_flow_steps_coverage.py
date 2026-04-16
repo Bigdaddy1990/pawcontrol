@@ -391,7 +391,7 @@ def test_notification_options_mixin_prefers_per_dog_notification_entry() -> None
 
 
 @pytest.mark.asyncio
-async def test_notification_flow_select_dog_redirects_when_missing_dogs() -> None:
+async def test_notification_flow_select_dog_redirects_when_missing_dogs() -> None:  # noqa: D103
     flow = _NotificationAsyncFlow(options={}, dog_options={})
     flow._dogs = []
 
@@ -402,7 +402,7 @@ async def test_notification_flow_select_dog_redirects_when_missing_dogs() -> Non
 
 
 @pytest.mark.asyncio
-async def test_notification_flow_select_dog_with_user_input_routes_to_form() -> None:
+async def test_notification_flow_select_dog_with_user_input_routes_to_form() -> None:  # noqa: D103
     flow = _NotificationAsyncFlow(options={}, dog_options={})
 
     result = await flow.async_step_select_dog_for_notifications({"dog_id": "missing"})
@@ -462,7 +462,7 @@ async def test_notification_flow_notifications_step_without_input_shows_form() -
 
 
 @pytest.mark.asyncio
-async def test_notification_flow_notifications_step_handles_success_and_errors() -> (
+async def test_notification_flow_notifications_step_handles_success_and_errors() -> (  # noqa: D103
     None
 ):
     flow = _NotificationAsyncFlow(

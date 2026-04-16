@@ -1,4 +1,4 @@
-import asyncio
+import asyncio  # noqa: D100
 from types import SimpleNamespace
 
 import pytest
@@ -41,7 +41,7 @@ class _PendingTask:
 
 
 @pytest.mark.asyncio
-async def test_async_setup_external_bindings_registers_and_unloads(
+async def test_async_setup_external_bindings_registers_and_unloads(  # noqa: D103
     hass, monkeypatch
 ) -> None:
     gps_manager = _FakeGPSManager()
@@ -105,7 +105,7 @@ async def test_async_setup_external_bindings_registers_and_unloads(
 
 
 @pytest.mark.asyncio
-async def test_async_setup_external_bindings_ignores_noise_and_invalid_sources(
+async def test_async_setup_external_bindings_ignores_noise_and_invalid_sources(  # noqa: D103
     hass, monkeypatch
 ) -> None:
     gps_manager = _FakeGPSManager()
@@ -159,7 +159,7 @@ async def test_async_setup_external_bindings_ignores_noise_and_invalid_sources(
 
 
 @pytest.mark.asyncio
-async def test_async_setup_external_bindings_returns_when_no_gps_manager(
+async def test_async_setup_external_bindings_returns_when_no_gps_manager(  # noqa: D103
     hass, monkeypatch
 ) -> None:
     coordinator = _FakeCoordinator(gps_manager=None)
@@ -176,7 +176,7 @@ async def test_async_setup_external_bindings_returns_when_no_gps_manager(
     assert hass.data.get("pawcontrol") is None
 
 
-def test_extract_coords_handles_non_mapping_attributes() -> None:
+def test_extract_coords_handles_non_mapping_attributes() -> None:  # noqa: D103
     assert external_bindings._extract_coords(SimpleNamespace(attributes=None)) == (
         None,
         None,
@@ -188,7 +188,7 @@ def test_extract_coords_handles_non_mapping_attributes() -> None:
     ) == (1.0, 2.0, None, 9.0)
 
 
-def test_haversine_distance_zero_for_same_point() -> None:
+def test_haversine_distance_zero_for_same_point() -> None:  # noqa: D103
     assert external_bindings._haversine_m(10.0, 11.0, 10.0, 11.0) == 0.0
 
 

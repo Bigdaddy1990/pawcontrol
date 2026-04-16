@@ -27,7 +27,7 @@ PLATFORM_MODULES: tuple[str, ...] = (
 
 
 @pytest.fixture
-def runtime_data(mock_coordinator, mock_dog_config) -> PawControlRuntimeData:
+def runtime_data(mock_coordinator, mock_dog_config) -> PawControlRuntimeData:  # noqa: D103
     entity_factory = EntityFactory(mock_coordinator)
     return PawControlRuntimeData(
         coordinator=mock_coordinator,
@@ -43,7 +43,7 @@ def runtime_data(mock_coordinator, mock_dog_config) -> PawControlRuntimeData:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("module_path", PLATFORM_MODULES)
-async def test_platform_setup_skips_without_runtime_data(
+async def test_platform_setup_skips_without_runtime_data(  # noqa: D103
     hass,
     mock_config_entry,
     module_path: str,
@@ -58,7 +58,7 @@ async def test_platform_setup_skips_without_runtime_data(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("module_path", PLATFORM_MODULES)
-async def test_platform_setup_adds_entities_when_configured(
+async def test_platform_setup_adds_entities_when_configured(  # noqa: D103
     hass,
     mock_config_entry,
     runtime_data: PawControlRuntimeData,
@@ -76,7 +76,7 @@ async def test_platform_setup_adds_entities_when_configured(
     assert list(added_entities)
 
 
-def test_walk_and_garden_attributes_are_standardised(mock_coordinator) -> None:
+def test_walk_and_garden_attributes_are_standardised(mock_coordinator) -> None:  # noqa: D103
     from custom_components.pawcontrol.binary_sensor import (
         PawControlInSafeZoneBinarySensor,
         PawControlWalkInProgressBinarySensor,

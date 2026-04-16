@@ -8,7 +8,7 @@ from custom_components.pawcontrol import translation_helpers as helpers
 
 
 @pytest.mark.unit
-def test_get_translation_cache_initializes_invalid_hass_data() -> None:
+def test_get_translation_cache_initializes_invalid_hass_data() -> None:  # noqa: D103
     hass = SimpleNamespace(data="invalid")
 
     cache = helpers._get_translation_cache(hass)
@@ -19,7 +19,7 @@ def test_get_translation_cache_initializes_invalid_hass_data() -> None:
 
 
 @pytest.mark.unit
-def test_resolve_translation_legacy_key_fallback() -> None:
+def test_resolve_translation_legacy_key_fallback() -> None:  # noqa: D103
     full_key = helpers.component_translation_key("walk_status")
 
     resolved = helpers.resolve_translation(
@@ -32,7 +32,7 @@ def test_resolve_translation_legacy_key_fallback() -> None:
 
 
 @pytest.mark.unit
-def test_load_bundled_component_translations_cached_ignores_non_string_values(
+def test_load_bundled_component_translations_cached_ignores_non_string_values(  # noqa: D103
     tmp_path,
 ) -> None:
     translations_dir = tmp_path / "translations"
@@ -50,7 +50,7 @@ def test_load_bundled_component_translations_cached_ignores_non_string_values(
 
 @pytest.mark.asyncio
 @pytest.mark.unit
-async def test_async_get_component_translations_uses_bundled_fallback_on_exception(
+async def test_async_get_component_translations_uses_bundled_fallback_on_exception(  # noqa: D103
     monkeypatch,
 ) -> None:
     hass = SimpleNamespace(data={})
@@ -73,7 +73,7 @@ async def test_async_get_component_translations_uses_bundled_fallback_on_excepti
 
 @pytest.mark.asyncio
 @pytest.mark.unit
-async def test_async_get_component_translation_lookup_reuses_same_mapping_for_en() -> (
+async def test_async_get_component_translation_lookup_reuses_same_mapping_for_en() -> (  # noqa: D103
     None
 ):
     hass = SimpleNamespace(data={})
@@ -87,7 +87,7 @@ async def test_async_get_component_translation_lookup_reuses_same_mapping_for_en
 
 @pytest.mark.asyncio
 @pytest.mark.unit
-async def test_async_preload_component_translations_populates_all_languages() -> None:
+async def test_async_preload_component_translations_populates_all_languages() -> None:  # noqa: D103
     hass = SimpleNamespace(data={})
 
     await helpers.async_preload_component_translations(hass, ["de", "en", None])

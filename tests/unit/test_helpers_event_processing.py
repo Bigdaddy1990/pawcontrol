@@ -1,4 +1,4 @@
-import asyncio
+import asyncio  # noqa: D100
 from contextlib import suppress
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch

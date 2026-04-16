@@ -18,19 +18,19 @@ from custom_components.pawcontrol.diagnostics_redaction import redact_sensitive_
 
 
 @pytest.mark.unit
-def test_compile_redaction_patterns_empty() -> None:
+def test_compile_redaction_patterns_empty() -> None:  # noqa: D103
     patterns = compile_redaction_patterns([])
     assert patterns is not None
 
 
 @pytest.mark.unit
-def test_compile_redaction_patterns_known_keys() -> None:
+def test_compile_redaction_patterns_known_keys() -> None:  # noqa: D103
     patterns = compile_redaction_patterns(["api_key", "password", "token"])
     assert patterns is not None
 
 
 @pytest.mark.unit
-def test_compile_redaction_patterns_produces_regex() -> None:
+def test_compile_redaction_patterns_produces_regex() -> None:  # noqa: D103
     import re
 
     patterns = compile_redaction_patterns(["secret"])
@@ -45,19 +45,19 @@ def test_compile_redaction_patterns_produces_regex() -> None:
 
 
 @pytest.mark.unit
-def test_classify_error_reason_timeout() -> None:
+def test_classify_error_reason_timeout() -> None:  # noqa: D103
     result = classify_error_reason("timeout")
     assert isinstance(result, str) and len(result) > 0
 
 
 @pytest.mark.unit
-def test_classify_error_reason_none() -> None:
+def test_classify_error_reason_none() -> None:  # noqa: D103
     result = classify_error_reason(None)
     assert isinstance(result, str)
 
 
 @pytest.mark.unit
-def test_classify_error_reason_network_error() -> None:
+def test_classify_error_reason_network_error() -> None:  # noqa: D103
     result = classify_error_reason(
         "connection refused", error=ConnectionError("refused")
     )
@@ -72,7 +72,7 @@ _PATTERNS = compile_redaction_patterns(["password", "api_key", "token", "secret"
 
 
 @pytest.mark.unit
-def test_redact_sensitive_data_redacts_password() -> None:
+def test_redact_sensitive_data_redacts_password() -> None:  # noqa: D103
     data = {"username": "rex_owner", "password": "hunter2", "api_key": "abc123"}
     result = redact_sensitive_data(data, patterns=_PATTERNS)
     assert isinstance(result, dict)
@@ -82,7 +82,7 @@ def test_redact_sensitive_data_redacts_password() -> None:
 
 
 @pytest.mark.unit
-def test_redact_sensitive_data_nested() -> None:
+def test_redact_sensitive_data_nested() -> None:  # noqa: D103
     data = {"config": {"url": "http://example.com", "token": "secret-xyz"}}
     result = redact_sensitive_data(data, patterns=_PATTERNS)
     assert isinstance(result, dict)
@@ -92,13 +92,13 @@ def test_redact_sensitive_data_nested() -> None:
 
 
 @pytest.mark.unit
-def test_redact_sensitive_data_empty() -> None:
+def test_redact_sensitive_data_empty() -> None:  # noqa: D103
     result = redact_sensitive_data({}, patterns=_PATTERNS)
     assert result == {}
 
 
 @pytest.mark.unit
-def test_redact_sensitive_data_list_value() -> None:
+def test_redact_sensitive_data_list_value() -> None:  # noqa: D103
     data = {"tags": ["a", "b"], "password": "secret"}
     result = redact_sensitive_data(data, patterns=_PATTERNS)
     assert result.get("tags") == ["a", "b"]

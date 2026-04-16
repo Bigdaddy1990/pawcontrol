@@ -448,7 +448,7 @@ async def support_remove_from_device(hass: object, domain: str) -> bool:
 class ConfigSubentry:
     """Minimal representation of a Home Assistant configuration subentry."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         *,
         subentry_id: str,
@@ -489,7 +489,7 @@ def _build_subentries(
 class ConfigEntry:
     """Minimal representation of Home Assistant config entries."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         entry_id: str | None = None,
         *,
@@ -1552,7 +1552,7 @@ class Entity:
 class RestoreEntity(Entity):
     """Mixin stub for state restoration helpers."""
 
-    async def async_get_last_state(self) -> State | None:
+    async def async_get_last_state(self) -> State | None:  # noqa: D102
         return None
 
 

@@ -80,7 +80,7 @@ class _SharedCoverageHost(OptionsFlowSharedMixin):
         return {}
 
 
-def test_build_export_payload_removes_empty_modules_field(
+def test_build_export_payload_removes_empty_modules_field(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _SharedCoverageHost()
@@ -97,7 +97,7 @@ def test_build_export_payload_removes_empty_modules_field(
     assert DOG_MODULES_FIELD not in dog
 
 
-def test_build_export_payload_skips_module_cleanup_when_field_missing(
+def test_build_export_payload_skips_module_cleanup_when_field_missing(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _SharedCoverageHost()
@@ -108,7 +108,7 @@ def test_build_export_payload_skips_module_cleanup_when_field_missing(
     assert DOG_MODULES_FIELD not in payload["dogs"][0]
 
 
-def test_weather_dog_options_and_selection_helpers_cover_fallback_branches(
+def test_weather_dog_options_and_selection_helpers_cover_fallback_branches(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _SharedCoverageHost()
@@ -132,7 +132,7 @@ def test_weather_dog_options_and_selection_helpers_cover_fallback_branches(
     assert host._select_dog_by_id(None) is None
 
 
-def test_current_weather_options_ignores_blank_root_weather_entity() -> None:
+def test_current_weather_options_ignores_blank_root_weather_entity() -> None:  # noqa: D103
     host = _SharedCoverageHost()
     host._entry.options = {"weather_settings": {}, CONF_WEATHER_ENTITY: "   "}
 
@@ -140,7 +140,7 @@ def test_current_weather_options_ignores_blank_root_weather_entity() -> None:
     assert CONF_WEATHER_ENTITY not in weather
 
 
-def test_current_system_and_dashboard_options_support_non_mapping_storage() -> None:
+def test_current_system_and_dashboard_options_support_non_mapping_storage() -> None:  # noqa: D103
     host = _SharedCoverageHost()
     host._entry.options = {
         "system_settings": "bad",
@@ -156,7 +156,7 @@ def test_current_system_and_dashboard_options_support_non_mapping_storage() -> N
     assert dashboard == {}
 
 
-def test_manual_event_context_collects_runtime_suggestions_and_defaults() -> None:
+def test_manual_event_context_collects_runtime_suggestions_and_defaults() -> None:  # noqa: D103
     host = _SharedCoverageHost()
 
     with_events = host._resolve_manual_event_context(
@@ -183,7 +183,7 @@ def test_manual_event_context_collects_runtime_suggestions_and_defaults() -> Non
     assert with_preferred["check_default"] == "check_preferred"
 
 
-def test_manual_event_context_without_snapshot_uses_current_defaults_only() -> None:
+def test_manual_event_context_without_snapshot_uses_current_defaults_only() -> None:  # noqa: D103
     host = _SharedCoverageHost()
     host._manual_snapshot = None
 
@@ -197,7 +197,7 @@ def test_manual_event_context_without_snapshot_uses_current_defaults_only() -> N
     assert context["breaker_default"] == "breaker_current"
 
 
-def test_manual_event_context_prefers_specific_check_event_when_preferred_not_mapping() -> (
+def test_manual_event_context_prefers_specific_check_event_when_preferred_not_mapping() -> (  # noqa: D103
     None
 ):
     host = _SharedCoverageHost()
@@ -213,7 +213,7 @@ def test_manual_event_context_prefers_specific_check_event_when_preferred_not_ma
     assert context["check_default"] == "check_specific"
 
 
-def test_manual_event_context_skips_normalised_none_entries_in_sequences(
+def test_manual_event_context_skips_normalised_none_entries_in_sequences(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _SharedCoverageHost()
@@ -244,7 +244,7 @@ def test_manual_event_context_skips_normalised_none_entries_in_sequences(
     assert "breaker_valid" in context["breaker_suggestions"]
 
 
-def test_resilience_threshold_helpers_cover_all_fallback_paths() -> None:
+def test_resilience_threshold_helpers_cover_all_fallback_paths() -> None:  # noqa: D103
     host = _SharedCoverageHost()
 
     assert (
@@ -291,7 +291,7 @@ def test_resilience_threshold_helpers_cover_all_fallback_paths() -> None:
     )
 
 
-def test_coercion_helpers_cover_bool_int_time_float_and_choice_fallbacks(
+def test_coercion_helpers_cover_bool_int_time_float_and_choice_fallbacks(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _SharedCoverageHost()
@@ -326,7 +326,7 @@ def test_coercion_helpers_cover_bool_int_time_float_and_choice_fallbacks(
     assert host._normalize_choice(5, valid={"a", "b"}, default=1) == "a"
 
 
-def test_build_weather_settings_uses_current_entity_for_non_string_input() -> None:
+def test_build_weather_settings_uses_current_entity_for_non_string_input() -> None:  # noqa: D103
     host = _SharedCoverageHost()
 
     weather = host._build_weather_settings(
@@ -345,7 +345,7 @@ def test_build_weather_settings_uses_current_entity_for_non_string_input() -> No
     assert weather[CONF_WEATHER_ENTITY] == "weather.home"
 
 
-def test_build_system_settings_manual_event_merge_paths() -> None:
+def test_build_system_settings_manual_event_merge_paths() -> None:  # noqa: D103
     host = _SharedCoverageHost()
 
     system_with_user_guard_none, _ = host._build_system_settings(
@@ -393,7 +393,7 @@ def test_build_system_settings_manual_event_merge_paths() -> None:
     assert "manual_breaker_event" in system_without_current_keys
 
 
-def test_build_advanced_settings_sanitizes_mapping_sequence_and_repr(
+def test_build_advanced_settings_sanitizes_mapping_sequence_and_repr(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:

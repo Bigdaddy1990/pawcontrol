@@ -21,20 +21,20 @@ def _make_hass():
 
 
 @pytest.mark.unit
-def test_error_recovery_coordinator_init() -> None:
+def test_error_recovery_coordinator_init() -> None:  # noqa: D103
     coord = ErrorRecoveryCoordinator(_make_hass(), domain="pawcontrol")
     assert coord is not None
 
 
 @pytest.mark.unit
-def test_error_recovery_coordinator_default_domain() -> None:
+def test_error_recovery_coordinator_default_domain() -> None:  # noqa: D103
     coord = ErrorRecoveryCoordinator(_make_hass())
     assert coord is not None
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_handle_error_with_recovery_basic() -> None:
+async def test_handle_error_with_recovery_basic() -> None:  # noqa: D103
     hass = _make_hass()
     err = RuntimeError("something broke")
     result = await handle_error_with_recovery(hass, err)
@@ -43,7 +43,7 @@ async def test_handle_error_with_recovery_basic() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_handle_error_with_recovery_with_context() -> None:
+async def test_handle_error_with_recovery_with_context() -> None:  # noqa: D103
     hass = _make_hass()
     err = ValueError("bad value")
     result = await handle_error_with_recovery(hass, err, context={"dog_id": "rex"})
@@ -52,7 +52,7 @@ async def test_handle_error_with_recovery_with_context() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_handle_error_with_recovery_fallback() -> None:
+async def test_handle_error_with_recovery_fallback() -> None:  # noqa: D103
     hass = _make_hass()
     err = TimeoutError("timeout")
     result = await handle_error_with_recovery(hass, err, fallback_value="default")
@@ -61,7 +61,7 @@ async def test_handle_error_with_recovery_fallback() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_handle_error_with_recovery_connection_error() -> None:
+async def test_handle_error_with_recovery_connection_error() -> None:  # noqa: D103
     hass = _make_hass()
     err = ConnectionError("network down")
     result = await handle_error_with_recovery(hass, err)

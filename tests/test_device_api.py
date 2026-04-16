@@ -62,7 +62,7 @@ class _Session:
 
 
 @pytest.mark.parametrize("endpoint", ["http://example.com", "https://example.com"])
-def test_validate_device_endpoint_accepts_http_and_https(endpoint: str) -> None:
+def test_validate_device_endpoint_accepts_http_and_https(endpoint: str) -> None:  # noqa: D103
     assert str(validate_device_endpoint(endpoint)) == endpoint
 
 
@@ -74,7 +74,7 @@ def test_validate_device_endpoint_accepts_http_and_https(endpoint: str) -> None:
         ("http:///path", "endpoint must include a valid hostname"),
     ],
 )
-def test_validate_device_endpoint_rejects_invalid_values(
+def test_validate_device_endpoint_rejects_invalid_values(  # noqa: D103
     endpoint: str,
     message: str,
 ) -> None:
@@ -83,7 +83,7 @@ def test_validate_device_endpoint_rejects_invalid_values(
 
 
 @pytest.mark.asyncio
-async def test_async_request_adds_bearer_header_and_returns_response() -> None:
+async def test_async_request_adds_bearer_header_and_returns_response() -> None:  # noqa: D103
     session = _Session(_Response(status=200, payload={"ok": True}))
     client = PawControlDeviceClient(
         session,
@@ -101,7 +101,7 @@ async def test_async_request_adds_bearer_header_and_returns_response() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_request_raises_auth_failed_for_401() -> None:
+async def test_async_request_raises_auth_failed_for_401() -> None:  # noqa: D103
     client = PawControlDeviceClient(
         _Session(_Response(status=401)), endpoint="https://device.local"
     )
@@ -113,7 +113,7 @@ async def test_async_request_raises_auth_failed_for_401() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_request_raises_rate_limit_and_parses_retry_after() -> None:
+async def test_async_request_raises_rate_limit_and_parses_retry_after() -> None:  # noqa: D103
     client = PawControlDeviceClient(
         _Session(_Response(status=429, headers={"Retry-After": "12"})),
         endpoint="https://device.local",
@@ -126,7 +126,7 @@ async def test_async_request_raises_rate_limit_and_parses_retry_after() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_request_raises_network_error_on_http_failure() -> None:
+async def test_async_request_raises_network_error_on_http_failure() -> None:  # noqa: D103
     client = PawControlDeviceClient(
         _Session(_Response(status=500, text_payload=" boom ")),
         endpoint="https://device.local",
@@ -137,7 +137,7 @@ async def test_async_request_raises_network_error_on_http_failure() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_request_maps_timeout_error_to_network_error() -> None:
+async def test_async_request_maps_timeout_error_to_network_error() -> None:  # noqa: D103
     client = PawControlDeviceClient(
         _Session(TimeoutError("timed out")),
         endpoint="https://device.local",
@@ -150,7 +150,7 @@ async def test_async_request_maps_timeout_error_to_network_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_get_json_maps_invalid_json_to_network_error() -> None:
+async def test_async_get_json_maps_invalid_json_to_network_error() -> None:  # noqa: D103
     client = PawControlDeviceClient(
         _Session(_Response(status=200, json_error=ValueError("invalid"))),
         endpoint="https://device.local",
@@ -192,7 +192,7 @@ async def test_async_get_json_coerces_mapping_payload_to_mutable_copy() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_get_json_uses_resilience_manager_when_available() -> None:
+async def test_async_get_json_uses_resilience_manager_when_available() -> None:  # noqa: D103
     response = _Response(status=200, payload={"status": "ok"})
     session = _Session(response)
 

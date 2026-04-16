@@ -20,17 +20,17 @@ from custom_components.pawcontrol.performance import (
 
 
 @pytest.mark.unit
-def test_enable_performance_monitoring() -> None:
+def test_enable_performance_monitoring() -> None:  # noqa: D103
     enable_performance_monitoring()  # should not raise
 
 
 @pytest.mark.unit
-def test_disable_performance_monitoring() -> None:
+def test_disable_performance_monitoring() -> None:  # noqa: D103
     disable_performance_monitoring()  # should not raise
 
 
 @pytest.mark.unit
-def test_enable_disable_cycle() -> None:
+def test_enable_disable_cycle() -> None:  # noqa: D103
     enable_performance_monitoring()
     disable_performance_monitoring()
     enable_performance_monitoring()  # idempotent
@@ -42,14 +42,14 @@ def test_enable_disable_cycle() -> None:
 
 
 @pytest.mark.unit
-def test_get_performance_summary_returns_dict() -> None:
+def test_get_performance_summary_returns_dict() -> None:  # noqa: D103
     enable_performance_monitoring()
     result = get_performance_summary()
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_get_performance_summary_after_disable() -> None:
+def test_get_performance_summary_after_disable() -> None:  # noqa: D103
     disable_performance_monitoring()
     result = get_performance_summary()
     assert isinstance(result, dict)
@@ -61,20 +61,20 @@ def test_get_performance_summary_after_disable() -> None:
 
 
 @pytest.mark.unit
-def test_get_slow_operations_empty() -> None:
+def test_get_slow_operations_empty() -> None:  # noqa: D103
     enable_performance_monitoring()
     result = get_slow_operations(threshold_ms=999_999)
     assert isinstance(result, list)
 
 
 @pytest.mark.unit
-def test_get_slow_operations_default_threshold() -> None:
+def test_get_slow_operations_default_threshold() -> None:  # noqa: D103
     result = get_slow_operations()
     assert isinstance(result, list)
 
 
 @pytest.mark.unit
-def test_get_slow_operations_zero_threshold() -> None:
+def test_get_slow_operations_zero_threshold() -> None:  # noqa: D103
     result = get_slow_operations(threshold_ms=0.0)
     assert isinstance(result, list)
 
@@ -85,7 +85,7 @@ def test_get_slow_operations_zero_threshold() -> None:
 
 
 @pytest.mark.unit
-def test_performance_tracker_basic() -> None:
+def test_performance_tracker_basic() -> None:  # noqa: D103
     from unittest.mock import MagicMock
 
     enable_performance_monitoring()
@@ -96,7 +96,7 @@ def test_performance_tracker_basic() -> None:
 
 
 @pytest.mark.unit
-def test_performance_tracker_nested() -> None:
+def test_performance_tracker_nested() -> None:  # noqa: D103
     from unittest.mock import MagicMock
 
     enable_performance_monitoring()
@@ -107,7 +107,7 @@ def test_performance_tracker_nested() -> None:
 
 
 @pytest.mark.unit
-def test_performance_tracker_when_disabled() -> None:
+def test_performance_tracker_when_disabled() -> None:  # noqa: D103
     from unittest.mock import MagicMock
 
     disable_performance_monitoring()

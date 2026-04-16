@@ -74,7 +74,7 @@ def _as_object_map(value: object) -> Mapping[str, object]:
 class StubDataManager(PawControlDataManager):
     """Minimal data manager that exercises visitor profiling without HA deps."""
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # noqa: D107
         self._metrics: JSONMutableMapping = {
             "operations": 0,
             "saves": 0,
@@ -496,7 +496,7 @@ def test_helper_manager_register_cache_monitor() -> None:
 async def test_helper_manager_skips_helper_creation_without_services(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Helper manager should short-circuit helper creation when hass services missing."""  # noqa: E501
+    """Helper manager should short-circuit helper creation when hass services missing."""
     hass = SimpleNamespace(data={}, states=SimpleNamespace(get=lambda entity_id: None))
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
@@ -754,7 +754,7 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
                         title="Resilience follow-up",
                         data={
                             "use_blueprint": {
-                                "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",  # noqa: E501
+                                "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
                                 "input": {
                                     "manual_guard_event": "pawcontrol_manual_guard",
                                     "manual_breaker_event": "pawcontrol_manual_breaker",
@@ -853,7 +853,7 @@ def test_script_manager_manual_snapshot_combines_system_and_blueprint_sources() 
                         title="Resilience follow-up",
                         data={
                             "use_blueprint": {
-                                "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",  # noqa: E501
+                                "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
                                 "input": {
                                     "manual_guard_event": "pawcontrol_manual_guard",
                                 },
@@ -1026,7 +1026,7 @@ async def test_script_manager_sync_manual_events_updates_blueprint() -> None:
                         entry_id="automation-id",
                         data={
                             "use_blueprint": {
-                                "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",  # noqa: E501
+                                "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
                                 "input": dict(blueprint_inputs),
                             }
                         },

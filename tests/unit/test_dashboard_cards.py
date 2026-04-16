@@ -1,4 +1,4 @@
-import asyncio
+import asyncio  # noqa: D100
 from unittest.mock import MagicMock
 
 from homeassistant.core import HomeAssistant

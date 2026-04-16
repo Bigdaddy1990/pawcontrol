@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass  # noqa: D100
 from typing import cast
 
 import pytest
@@ -63,7 +63,7 @@ def _make_coordinator() -> _DummyCoordinator:
     return _DummyCoordinator()
 
 
-def test_entity_descriptions_match_sensor_metadata() -> None:
+def test_entity_descriptions_match_sensor_metadata() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     entity = PawControlWeightSensor(coordinator, "dog-1", "Buddy")
 
@@ -78,7 +78,7 @@ def test_entity_descriptions_match_sensor_metadata() -> None:
     assert entity.has_entity_name is True
 
 
-def test_entity_descriptions_cover_binary_sensor() -> None:
+def test_entity_descriptions_cover_binary_sensor() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     entity = PawControlOnlineBinarySensor(coordinator, "dog-1", "Buddy")
 
@@ -89,7 +89,7 @@ def test_entity_descriptions_cover_binary_sensor() -> None:
     assert description.device_class == BinarySensorDeviceClass.CONNECTIVITY
 
 
-def test_entity_descriptions_cover_switch_button_number() -> None:
+def test_entity_descriptions_cover_switch_button_number() -> None:  # noqa: D103
     coordinator = _make_coordinator()
 
     switch = PawControlMainPowerSwitch(coordinator, "dog-1", "Buddy")
@@ -114,7 +114,7 @@ def test_entity_descriptions_cover_switch_button_number() -> None:
     assert number_description.device_class == NumberDeviceClass.WEIGHT
 
 
-def test_entity_descriptions_cover_select_text_date() -> None:
+def test_entity_descriptions_cover_select_text_date() -> None:  # noqa: D103
     coordinator = _make_coordinator()
 
     select = PawControlDogSizeSelect(coordinator, "dog-1", "Buddy")

@@ -29,20 +29,20 @@ def _make_coord(dog_id="rex"):
 
 
 @pytest.mark.unit
-def test_main_power_switch_init() -> None:
+def test_main_power_switch_init() -> None:  # noqa: D103
     s = PawControlMainPowerSwitch(_make_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_main_power_switch_is_on_type() -> None:
+def test_main_power_switch_is_on_type() -> None:  # noqa: D103
     s = PawControlMainPowerSwitch(_make_coord(), "rex", "Rex")
     result = s.is_on
     assert isinstance(result, bool)
 
 
 @pytest.mark.unit
-def test_main_power_switch_extra_attrs() -> None:
+def test_main_power_switch_extra_attrs() -> None:  # noqa: D103
     s = PawControlMainPowerSwitch(_make_coord(), "rex", "Rex")
     attrs = s.extra_state_attributes
     assert isinstance(attrs, dict)
@@ -54,7 +54,7 @@ def test_main_power_switch_extra_attrs() -> None:
 
 
 @pytest.mark.unit
-def test_module_switch_init() -> None:
+def test_module_switch_init() -> None:  # noqa: D103
     s = PawControlModuleSwitch(
         _make_coord(),
         "rex",
@@ -68,7 +68,7 @@ def test_module_switch_init() -> None:
 
 
 @pytest.mark.unit
-def test_module_switch_is_on_reflects_initial() -> None:
+def test_module_switch_is_on_reflects_initial() -> None:  # noqa: D103
     s = PawControlModuleSwitch(
         _make_coord(),
         "rex",
@@ -84,7 +84,7 @@ def test_module_switch_is_on_reflects_initial() -> None:
 
 
 @pytest.mark.unit
-def test_module_switch_extra_attributes() -> None:
+def test_module_switch_extra_attributes() -> None:  # noqa: D103
     s = PawControlModuleSwitch(
         _make_coord(),
         "rex",
@@ -104,7 +104,7 @@ def test_module_switch_extra_attributes() -> None:
 
 
 @pytest.mark.unit
-def test_feature_switch_init() -> None:
+def test_feature_switch_init() -> None:  # noqa: D103
     s = PawControlFeatureSwitch(
         _make_coord(),
         "rex",
@@ -118,7 +118,7 @@ def test_feature_switch_init() -> None:
 
 
 @pytest.mark.unit
-def test_feature_switch_is_on_false_by_default() -> None:
+def test_feature_switch_is_on_false_by_default() -> None:  # noqa: D103
     s = PawControlFeatureSwitch(
         _make_coord(),
         "rex",
@@ -133,7 +133,7 @@ def test_feature_switch_is_on_false_by_default() -> None:
 
 
 @pytest.mark.unit
-def test_feature_switch_unique_id() -> None:
+def test_feature_switch_unique_id() -> None:  # noqa: D103
     s = PawControlFeatureSwitch(
         _make_coord(),
         "rex",

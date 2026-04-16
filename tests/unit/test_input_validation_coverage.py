@@ -13,14 +13,14 @@ from custom_components.pawcontrol.input_validation import (
 
 
 @pytest.mark.unit
-def test_sanitize_user_input_removes_control_chars_and_limits_length() -> None:
+def test_sanitize_user_input_removes_control_chars_and_limits_length() -> None:  # noqa: D103
     result = sanitize_user_input("  hi\x00there\nfriend  ", max_length=8)
 
     assert result == "hithere"
 
 
 @pytest.mark.unit
-def test_validate_dict_normalizes_types_and_reports_scalar_type_mismatch() -> None:
+def test_validate_dict_normalizes_types_and_reports_scalar_type_mismatch() -> None:  # noqa: D103
     validator = InputValidator()
     result = validator.validate_dict(
         {"email": 42, "phone": "+49 123 4567", "name": "Rex"},
@@ -39,7 +39,7 @@ def test_validate_dict_normalizes_types_and_reports_scalar_type_mismatch() -> No
 
 
 @pytest.mark.unit
-def test_validate_dict_uses_default_string_validator_for_empty_type() -> None:
+def test_validate_dict_uses_default_string_validator_for_empty_type() -> None:  # noqa: D103
     validator = InputValidator()
     result = validator.validate_dict(
         {"nickname": "  Buddy  "},
@@ -51,7 +51,7 @@ def test_validate_dict_uses_default_string_validator_for_empty_type() -> None:
 
 
 @pytest.mark.unit
-def test_validate_dict_handles_validator_value_error_and_type_error() -> None:
+def test_validate_dict_handles_validator_value_error_and_type_error() -> None:  # noqa: D103
     validator = InputValidator()
 
     def raise_value_error(value: Any, **_: Any) -> Any:
@@ -80,7 +80,7 @@ def test_validate_dict_handles_validator_value_error_and_type_error() -> None:
 
 
 @pytest.mark.unit
-def test_validate_and_sanitize_wraps_validator_exceptions() -> None:
+def test_validate_and_sanitize_wraps_validator_exceptions() -> None:  # noqa: D103
     validator = InputValidator()
 
     def raise_value_error(value: Any, **_: Any) -> Any:
@@ -98,7 +98,7 @@ def test_validate_and_sanitize_wraps_validator_exceptions() -> None:
 
 
 @pytest.mark.unit
-def test_validate_and_sanitize_wraps_type_errors_and_unknown_validators() -> None:
+def test_validate_and_sanitize_wraps_type_errors_and_unknown_validators() -> None:  # noqa: D103
     validator = InputValidator()
 
     def raise_type_error(value: Any, **_: Any) -> Any:

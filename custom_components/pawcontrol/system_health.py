@@ -1018,7 +1018,7 @@ def _derive_guard_indicator(
             "level": "critical",
             "color": "red",
             "message": (
-                f"Guard skip count {skip_count} reached the {source_label} ({critical_count})."  # noqa: E501
+                f"Guard skip count {skip_count} reached the {source_label} ({critical_count})."
             ),
             "metric": skip_count,
             "threshold": critical_count,
@@ -1106,7 +1106,7 @@ def _derive_breaker_indicator(
             "level": "critical",
             "color": "red",
             "message": (
-                f"Breaker count {total_breakers} reached the {source_label} ({critical_count})."  # noqa: E501
+                f"Breaker count {total_breakers} reached the {source_label} ({critical_count})."
             ),
             "metric": total_breakers,
             "threshold": critical_count,

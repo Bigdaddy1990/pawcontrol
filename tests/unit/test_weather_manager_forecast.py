@@ -11,7 +11,7 @@ from tests.weather_test_support import ensure_weather_module_compat
 
 UnitOfTemperature = ensure_weather_module_compat()
 
-from custom_components.pawcontrol.weather_manager import (
+from custom_components.pawcontrol.weather_manager import (  # noqa: E402
     ActivityTimeSlot,
     ForecastPoint,
     ForecastQuality,

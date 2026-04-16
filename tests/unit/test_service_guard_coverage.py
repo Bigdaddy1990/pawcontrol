@@ -11,7 +11,7 @@ from custom_components.pawcontrol.service_guard import (
 
 
 @pytest.mark.unit
-def test_service_guard_result_to_mapping_and_bool() -> None:
+def test_service_guard_result_to_mapping_and_bool() -> None:  # noqa: D103
     result = ServiceGuardResult(
         domain="pawcontrol",
         service="walk_start",
@@ -31,7 +31,7 @@ def test_service_guard_result_to_mapping_and_bool() -> None:
 
 
 @pytest.mark.unit
-def test_service_guard_snapshot_aggregation_helpers() -> None:
+def test_service_guard_snapshot_aggregation_helpers() -> None:  # noqa: D103
     snapshot = ServiceGuardSnapshot.from_sequence([
         ServiceGuardResult(
             domain="pawcontrol",
@@ -59,7 +59,7 @@ def test_service_guard_snapshot_aggregation_helpers() -> None:
 
 
 @pytest.mark.unit
-def test_service_guard_snapshot_accumulate_coerces_and_merges() -> None:
+def test_service_guard_snapshot_accumulate_coerces_and_merges() -> None:  # noqa: D103
     snapshot = ServiceGuardSnapshot.from_sequence([
         ServiceGuardResult(domain="pawcontrol", service="walk", executed=False),
         ServiceGuardResult(
@@ -86,7 +86,7 @@ def test_service_guard_snapshot_accumulate_coerces_and_merges() -> None:
 
 
 @pytest.mark.unit
-def test_service_guard_snapshot_accumulate_reasons_recreated_when_invalid() -> None:
+def test_service_guard_snapshot_accumulate_reasons_recreated_when_invalid() -> None:  # noqa: D103
     snapshot = ServiceGuardSnapshot.from_sequence([
         ServiceGuardResult(domain="pawcontrol", service="walk", executed=False)
     ])
@@ -100,7 +100,7 @@ def test_service_guard_snapshot_accumulate_reasons_recreated_when_invalid() -> N
 
 
 @pytest.mark.unit
-def test_normalise_guard_result_payload_keeps_only_valid_fields() -> None:
+def test_normalise_guard_result_payload_keeps_only_valid_fields() -> None:  # noqa: D103
     payload = {
         "executed": 1,
         "domain": "pawcontrol",
@@ -120,7 +120,7 @@ def test_normalise_guard_result_payload_keeps_only_valid_fields() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_guard_result_payload_drops_empty_strings() -> None:
+def test_normalise_guard_result_payload_drops_empty_strings() -> None:  # noqa: D103
     payload = {
         "executed": 0,
         "domain": "",
@@ -133,13 +133,13 @@ def test_normalise_guard_result_payload_drops_empty_strings() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_guard_history_non_sequence_returns_empty_list() -> None:
+def test_normalise_guard_history_non_sequence_returns_empty_list() -> None:  # noqa: D103
     assert normalise_guard_history(None) == []
     assert normalise_guard_history("not-a-list") == []
 
 
 @pytest.mark.unit
-def test_normalise_guard_history_accepts_result_objects_and_mappings() -> None:
+def test_normalise_guard_history_accepts_result_objects_and_mappings() -> None:  # noqa: D103
     entries = [
         ServiceGuardResult(domain="pawcontrol", service="walk", executed=True),
         {
@@ -163,7 +163,7 @@ def test_normalise_guard_history_accepts_result_objects_and_mappings() -> None:
 
 
 @pytest.mark.unit
-def test_service_guard_result_to_mapping_omits_optional_fields() -> None:
+def test_service_guard_result_to_mapping_omits_optional_fields() -> None:  # noqa: D103
     result = ServiceGuardResult(
         domain="pawcontrol",
         service="walk_stop",
@@ -178,7 +178,7 @@ def test_service_guard_result_to_mapping_omits_optional_fields() -> None:
 
 
 @pytest.mark.unit
-def test_service_guard_snapshot_zero_metrics_and_history() -> None:
+def test_service_guard_snapshot_zero_metrics_and_history() -> None:  # noqa: D103
     snapshot = ServiceGuardSnapshot.from_sequence([
         ServiceGuardResult(domain="pawcontrol", service="walk", executed=True)
     ])
@@ -195,6 +195,6 @@ def test_service_guard_snapshot_zero_metrics_and_history() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_guard_history_filters_bytes_sequences() -> None:
+def test_normalise_guard_history_filters_bytes_sequences() -> None:  # noqa: D103
     assert normalise_guard_history(b"binary") == []
     assert normalise_guard_history(bytearray(b"binary")) == []

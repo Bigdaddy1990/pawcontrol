@@ -16,19 +16,19 @@ from custom_components.pawcontrol.telemetry import (
 
 
 @pytest.mark.unit
-def test_get_bool_coercion_metrics_returns_dict() -> None:
+def test_get_bool_coercion_metrics_returns_dict() -> None:  # noqa: D103
     result = get_bool_coercion_metrics()
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_get_bool_coercion_metrics_has_total_key() -> None:
+def test_get_bool_coercion_metrics_has_total_key() -> None:  # noqa: D103
     result = get_bool_coercion_metrics()
     assert "total" in result
 
 
 @pytest.mark.unit
-def test_get_bool_coercion_metrics_numeric_values() -> None:
+def test_get_bool_coercion_metrics_numeric_values() -> None:  # noqa: D103
     result = get_bool_coercion_metrics()
     assert result["total"] >= 0
     assert result["defaulted"] >= 0
@@ -38,7 +38,7 @@ def test_get_bool_coercion_metrics_numeric_values() -> None:
 
 
 @pytest.mark.unit
-def test_get_runtime_bool_coercion_summary_none() -> None:
+def test_get_runtime_bool_coercion_summary_none() -> None:  # noqa: D103
     result = get_runtime_bool_coercion_summary(None)
     assert result is None or isinstance(result, dict)
 
@@ -47,7 +47,7 @@ def test_get_runtime_bool_coercion_summary_none() -> None:
 
 
 @pytest.mark.unit
-def test_bool_coercion_metrics_as_dict() -> None:
+def test_bool_coercion_metrics_as_dict() -> None:  # noqa: D103
     m: BoolCoercionMetrics = {
         "total": 10,
         "defaulted": 2,
@@ -61,7 +61,7 @@ def test_bool_coercion_metrics_as_dict() -> None:
 
 
 @pytest.mark.unit
-def test_bool_coercion_metrics_empty() -> None:
+def test_bool_coercion_metrics_empty() -> None:  # noqa: D103
     m: BoolCoercionMetrics = {
         "total": 0,
         "defaulted": 0,
@@ -77,7 +77,7 @@ def test_bool_coercion_metrics_empty() -> None:
 
 
 @pytest.mark.unit
-def test_bool_coercion_summary_as_dict() -> None:
+def test_bool_coercion_summary_as_dict() -> None:  # noqa: D103
     s: BoolCoercionSummary = {
         "recorded": True,
         "total": 5,
