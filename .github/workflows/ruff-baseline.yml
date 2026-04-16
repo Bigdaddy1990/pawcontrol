@@ -31,7 +31,8 @@ jobs:
           ruff check . --fix --unsafe-fixes || true
           ruff check . --extend-select RUF100 --fix || true
           ruff check . --output-format=github || true
-          ruff format || true
+          ruff check . --exit-non-zero-on-fix || true
+          ruff format
 
       - uses: peter-evans/create-pull-request@v8
         with:
