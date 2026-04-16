@@ -158,7 +158,7 @@ def test_enable_debug_logging_reuses_existing_entry(
 
     assert _enable_debug_logging(entry) is True
     assert _enable_debug_logging(entry) is True
-    assert {"entry-repeat"} == _DEBUG_LOGGER_ENTRIES
+    assert _DEBUG_LOGGER_ENTRIES == {"entry-repeat"}
     assert logger.level == logging.DEBUG
 
 
