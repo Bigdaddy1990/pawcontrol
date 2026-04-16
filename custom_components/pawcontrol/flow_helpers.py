@@ -517,7 +517,9 @@ def build_number_schema(
         Schema dictionary fragment
 
     Examples:
-        >>> schema = build_number_schema("weight", min_value=0.5, max_value=100, unit="kg")
+        >>> schema = build_number_schema(
+        ...     "weight", min_value=0.5, max_value=100, unit="kg"
+        ... )
     """
     from .selector_shim import selector
 

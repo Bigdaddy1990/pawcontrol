@@ -110,7 +110,9 @@ class PIIRedactor:
 
         Examples:
             >>> redactor.add_rule(
-            ...     RedactionRule(pattern=re.compile(r"dog_id_\d+"), replacement="[DOG_ID]")
+            ...     RedactionRule(
+            ...         pattern=re.compile(r"dog_id_\d+"), replacement="[DOG_ID]"
+            ...     )
             ... )
         """
         self._rules.append(rule)
