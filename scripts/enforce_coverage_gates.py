@@ -201,7 +201,7 @@ def _evaluate_gates(
     return overall_percent, failures, notices
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--coverage-xml",

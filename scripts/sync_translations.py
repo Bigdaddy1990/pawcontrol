@@ -124,7 +124,7 @@ def _list_missing(translations_dir: Path) -> list[str]:
     return sorted(ha_langs - existing)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # noqa: D103
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--integration-path",

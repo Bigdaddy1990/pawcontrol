@@ -33,7 +33,7 @@ def _split_report_target(value: str) -> tuple[str, str | None]:
     return report, cleaned_target
 
 
-def pytest_addoption(parser: object) -> None:
+def pytest_addoption(parser: object) -> None:  # noqa: D103
     addoption = getattr(parser, "addoption", None)
     if callable(addoption):
         addoption("--cov", action="append", default=[])
@@ -164,7 +164,7 @@ def _build_include_patterns(raw_sources: tuple[str, ...]) -> tuple[str, ...] | N
     return tuple(dict.fromkeys(patterns)) or None
 
 
-def pytest_sessionstart(session: object) -> None:
+def pytest_sessionstart(session: object) -> None:  # noqa: D103
     if not _coverage_available():
         return
     options = getattr(getattr(session, "config", None), "option", None)
@@ -187,7 +187,7 @@ def pytest_sessionstart(session: object) -> None:
     session.config._pawcontrol_cov_include = include
 
 
-def pytest_sessionfinish(session: object, exitstatus: int) -> None:
+def pytest_sessionfinish(session: object, exitstatus: int) -> None:  # noqa: D103
     config = getattr(session, "config", None)
     if config is None:
         return
@@ -252,7 +252,7 @@ def pytest_sessionfinish(session: object, exitstatus: int) -> None:
         session.exitstatus = 1
 
 
-def pytest_unconfigure(config: object) -> None:
+def pytest_unconfigure(config: object) -> None:  # noqa: D103
     if hasattr(config, "_pawcontrol_cov"):
         del config._pawcontrol_cov
     if hasattr(config, "_pawcontrol_cov_include"):

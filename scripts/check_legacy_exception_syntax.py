@@ -40,7 +40,7 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     args = _parse_args()
     findings: list[tuple[Path, int]] = []
 

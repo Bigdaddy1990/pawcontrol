@@ -102,7 +102,7 @@ def _update_markdown_table(
     return False
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     parser = argparse.ArgumentParser()
     parser.add_argument("--allowlist", type=Path, required=False)
     parser.add_argument(

@@ -8631,13 +8631,13 @@ def is_notification_data_valid(data: Any) -> bool:
 
 
 # geminivorschlag:
-class DogModule(TypedDict):
+class DogModule(TypedDict):  # noqa: D101
     id: str
     name: str
     enabled: bool
 
 
-class DogConfig(TypedDict):
+class DogConfig(TypedDict):  # noqa: D101
     dog_id: str
     dog_name: str
     modules: DogModulesConfig

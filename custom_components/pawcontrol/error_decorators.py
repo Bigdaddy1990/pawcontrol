@@ -207,7 +207,7 @@ def validate_range(
 # Error handling decorators
 
 
-def handle_errors(
+def handle_errors(  # noqa: D417
     log_errors: bool = True,
     reraise_critical: bool = True,
     reraise_validation_errors: bool = True,

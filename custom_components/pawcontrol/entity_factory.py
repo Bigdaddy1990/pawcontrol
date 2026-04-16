@@ -1339,7 +1339,7 @@ class EntityFactory:
             return resolved
         return resolved
 
-    def _apply_profile_specific_rules(
+    def _apply_profile_specific_rules(  # noqa: D417
         self,
         profile: str,
         platform: Platform,

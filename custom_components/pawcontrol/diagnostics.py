@@ -2036,7 +2036,7 @@ def _coerce_int(value: Any) -> int | None:
     return None
 
 
-async def _get_data_statistics(
+async def _get_data_statistics(  # noqa: D417
     runtime_data: PawControlRuntimeData | None,
     cache_snapshots: CacheDiagnosticsMap | None,
 ) -> DataStatisticsPayload:

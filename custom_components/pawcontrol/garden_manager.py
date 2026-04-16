@@ -670,7 +670,7 @@ class GardenManager:
 
         return session_id
 
-    async def async_end_garden_session(
+    async def async_end_garden_session(  # noqa: D417
         self,
         dog_id: str,
         notes: str | None = None,

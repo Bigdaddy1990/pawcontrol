@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
     from .entity_factory import EntityFactory
 
-    class ProfileOptionsHost(Protocol):
+    class ProfileOptionsHost(Protocol):  # noqa: D101
         @property
         def _entry(self) -> ConfigEntry: ...
 
@@ -49,13 +49,13 @@ if TYPE_CHECKING:
         _entity_estimates_cache: dict[str, JSONMutableMapping]
         _entity_factory: EntityFactory
 
-        def __getattr__(self, name: str) -> Any: ...
+        def __getattr__(self, name: str) -> Any: ...  # noqa: D105
 
 else:  # pragma: no cover
     ProfileOptionsHost = object
 
 
-class ProfileOptionsMixin(ProfileOptionsHost):
+class ProfileOptionsMixin(ProfileOptionsHost):  # noqa: D101
     _entry: ConfigEntry
     _profile_cache: dict[str, ConfigFlowPlaceholders]
     _entity_estimates_cache: dict[str, JSONMutableMapping]

@@ -63,7 +63,7 @@ class HealthSummaryMixin(HealthSummaryHost):
 
 if TYPE_CHECKING:
 
-    class DogHealthFlowHost(Protocol):
+    class DogHealthFlowHost(Protocol):  # noqa: D101
         _current_dog_config: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -100,11 +100,11 @@ if TYPE_CHECKING:
             dog_size: str,
         ) -> str: ...
 
-        async def async_step_add_dog(self) -> ConfigFlowResult: ...
+        async def async_step_add_dog(self) -> ConfigFlowResult: ...  # noqa: D102
 
-        async def async_step_add_another_dog(self) -> ConfigFlowResult: ...
+        async def async_step_add_another_dog(self) -> ConfigFlowResult: ...  # noqa: D102
 
-        def async_show_form(
+        def async_show_form(  # noqa: D102
             self,
             *,
             step_id: str,

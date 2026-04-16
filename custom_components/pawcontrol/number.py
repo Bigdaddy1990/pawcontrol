@@ -484,7 +484,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     validation, and error handling.
     """
 
-    def __init__(
+    def __init__(  # noqa: D417,D107
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,

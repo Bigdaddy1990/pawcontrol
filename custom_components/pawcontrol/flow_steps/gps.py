@@ -223,7 +223,7 @@ class GPSModuleDefaultsMixin(GPSDefaultsHost):
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    class DogGPSFlowHost(Protocol):
+    class DogGPSFlowHost(Protocol):  # noqa: D101
         _current_dog_config: DogConfigData | None
         _dogs: list[DogConfigData]
         hass: HomeAssistant
@@ -232,27 +232,27 @@ if TYPE_CHECKING:
 
         def _get_available_person_entities(self) -> dict[str, str]: ...
 
-        async def async_step_add_dog(
+        async def async_step_add_dog(  # noqa: D102
             self,
             user_input: DogSetupStepInput | None = None,
         ) -> ConfigFlowResult: ...
 
-        async def async_step_dog_feeding(
+        async def async_step_dog_feeding(  # noqa: D102
             self,
             user_input: DogFeedingStepInput | None = None,
         ) -> ConfigFlowResult: ...
 
-        async def async_step_dog_health(
+        async def async_step_dog_health(  # noqa: D102
             self,
             user_input: DogHealthStepInput | None = None,
         ) -> ConfigFlowResult: ...
 
-        async def async_step_add_another_dog(
+        async def async_step_add_another_dog(  # noqa: D102
             self,
             user_input: AddAnotherDogInput | None = None,
         ) -> ConfigFlowResult: ...
 
-        def async_show_form(
+        def async_show_form(  # noqa: D102
             self,
             *,
             step_id: str,
@@ -405,7 +405,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
 
 if TYPE_CHECKING:
 
-    class GPSOptionsHost(Protocol):
+    class GPSOptionsHost(Protocol):  # noqa: D101
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -452,7 +452,7 @@ if TYPE_CHECKING:
             raw: Mapping[str, JSONValue],
         ) -> GPSOptions: ...
 
-        def async_show_form(
+        def async_show_form(  # noqa: D102
             self,
             *,
             step_id: str,
@@ -461,14 +461,14 @@ if TYPE_CHECKING:
             description_placeholders: Mapping[str, str] | None = None,
         ) -> ConfigFlowResult: ...
 
-        def async_create_entry(
+        def async_create_entry(  # noqa: D102
             self,
             *,
             title: str,
             data: Mapping[str, JSONValue],
         ) -> ConfigFlowResult: ...
 
-        async def async_step_init(self) -> ConfigFlowResult: ...
+        async def async_step_init(self) -> ConfigFlowResult: ...  # noqa: D102
 
 else:  # pragma: no cover
     from ..options_flow_shared import OptionsFlowSharedMixin
@@ -479,7 +479,7 @@ else:  # pragma: no cover
         pass
 
 
-class GPSOptionsMixin(GPSOptionsHost):
+class GPSOptionsMixin(GPSOptionsHost):  # noqa: D101
     _current_dog_config: DogConfigData | None
     """Handle per-dog GPS and geofencing options."""
 

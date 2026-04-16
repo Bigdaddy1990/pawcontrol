@@ -1350,7 +1350,7 @@ def test_collect_health_conditions_handles_empty_tokens_and_skin_alias_defaults(
     assert "joint_pain" in conditions
 
 
-def test_collect_health_conditions_without_other_conditions_skips_alias_processing() -> (
+def test_collect_health_conditions_without_other_conditions_skips_alias_processing() -> (  # noqa: E501
     None
 ):
     """No free-text conditions should keep only mapped checkbox flags."""
@@ -1443,7 +1443,7 @@ async def test_async_step_configure_modules_persists_input_and_routes_forward(
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_minimal_for_simple_setup() -> (
+async def test_async_step_configure_modules_form_suggests_minimal_for_simple_setup() -> (  # noqa: E501
     None
 ):
     """Single-dog setup should suggest minimal performance profile."""
@@ -1463,7 +1463,7 @@ async def test_async_step_configure_modules_form_suggests_minimal_for_simple_set
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_balanced_for_mid_complexity() -> (
+async def test_async_step_configure_modules_form_suggests_balanced_for_mid_complexity() -> (  # noqa: E501
     None
 ):
     """Three-dog setup should suggest balanced performance and auto-backup."""
@@ -1480,7 +1480,7 @@ async def test_async_step_configure_modules_form_suggests_balanced_for_mid_compl
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_full_for_high_complexity() -> (
+async def test_async_step_configure_modules_form_suggests_full_for_high_complexity() -> (  # noqa: E501
     None
 ):
     """Very large setups should now elevate recommendation to full performance."""

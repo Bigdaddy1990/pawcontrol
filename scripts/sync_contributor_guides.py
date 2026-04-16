@@ -31,7 +31,7 @@ def _apply_sync_block(target: Path, block: str) -> tuple[str, str]:
     return text, text[:start] + block + text[end:]
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--check",

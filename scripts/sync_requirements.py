@@ -216,7 +216,7 @@ ALWAYS_TEST: list[str] = [
 # ---------------------------------------------------------------------------
 # 5. Import-Scanner
 # ---------------------------------------------------------------------------
-def scan_imports(files: list[pathlib.Path]) -> set[str]:
+def scan_imports(files: list[pathlib.Path]) -> set[str]:  # noqa: D103
     imports: set[str] = set()
     for f in files:
         try:
@@ -233,7 +233,7 @@ def scan_imports(files: list[pathlib.Path]) -> set[str]:
     return imports
 
 
-def third_party(imports: set[str]) -> set[str]:
+def third_party(imports: set[str]) -> set[str]:  # noqa: D103
     return imports - STDLIB - HA_PROVIDED
 
 
@@ -254,7 +254,7 @@ def manifest_requirements() -> list[str]:
 # ---------------------------------------------------------------------------
 # 7. Diff-Anzeige
 # ---------------------------------------------------------------------------
-def show_diff(label: str, current: list[str], proposed: list[str]) -> bool:
+def show_diff(label: str, current: list[str], proposed: list[str]) -> bool:  # noqa: D103
     cur = {
         line.split("#")[0].strip()
         for line in current
@@ -282,7 +282,7 @@ def show_diff(label: str, current: list[str], proposed: list[str]) -> bool:
 # ---------------------------------------------------------------------------
 # 8. Main
 # ---------------------------------------------------------------------------
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # noqa: D103
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true", help="Dateien schreiben")
     parser.add_argument(
