@@ -1350,7 +1350,8 @@ def test_collect_health_conditions_handles_empty_tokens_and_skin_alias_defaults(
     assert "joint_pain" in conditions
 
 
-def test_collect_health_conditions_without_other_conditions_skips_alias_processing() -> (  # noqa: E501
+def test_collect_health_conditions_without_other_conditions_skips_alias_processing(
+) -> (
     None
 ):
     """No free-text conditions should keep only mapped checkbox flags."""
