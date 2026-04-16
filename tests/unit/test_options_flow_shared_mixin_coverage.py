@@ -1,7 +1,5 @@
 """Focused branch coverage tests for ``OptionsFlowSharedMixin``."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Any

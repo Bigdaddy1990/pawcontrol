@@ -1,7 +1,5 @@
 """Additional branch coverage tests for ``options_flow_dogs_management``."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping, Sequence
 from types import SimpleNamespace
 from typing import Any
