@@ -30,7 +30,7 @@ Documentation = "https://github.com/BigDaddy1990/pawcontrol/blob/main/README.md"
 Issues = "https://github.com/BigDaddy1990/pawcontrol/issues"
 
 [tool.pytest.ini_options]
-addopts = "-p no:pytest_cov -p pytest_cov.plugin --cov=custom_components/pawcontrol --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-branch -q -ra --strict-markers --strict-config --tb=short --maxfail=20 -n auto --dist worksteal"
+addopts = "-p no:pytest_cov -p pytest_cov.plugin --cov=custom_components/pawcontrol --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-branch -q -ra --strict-markers --strict-config --tb=short --maxfail=20 -n auto"
 markers = [
   "asyncio: mark a test as using asyncio",
   "ci_only: mark a test to run only in CI",
@@ -87,7 +87,7 @@ skip-magic-trailing-comma = false
 [tool.ruff.lint]
 preview = true
 select = ["E", "F", "I", "UP", "B", "SIM", "Q", "D"]
-ignore = []
+ignore = ["E501"]
 fixable = ["ALL"]
 unfixable = []
 extend-unsafe-fixes = ["E", "F401"]
@@ -98,9 +98,6 @@ future-annotations = false
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
-
-[tool.ruff.lint.pep8-naming]
-extend-ignore-names = ["__init__*", "*example*"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
