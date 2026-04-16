@@ -627,9 +627,7 @@ def validate_and_handle(
 
     Examples:
         >>> @validate_and_handle(dog_id_param="dog_id", gps_coords=True)
-        ... async def update_location(
-        ...     self, dog_id: str, latitude: float, longitude: float
-        ... ):
+        ... async def update_location(self, dog_id: str, latitude: float, longitude: float):
         ...     # Dog exists, coordinates valid, errors handled
         ...     await self.api.update_location(dog_id, latitude, longitude)
     """

@@ -4,7 +4,6 @@ Covers: ActionDefinition, ConditionDefinition, TriggerDefinition dataclasses
         and resolve_device_context helpers.
 """  # noqa: E501
 
-
 import pytest
 
 from custom_components.pawcontrol.device_action import (

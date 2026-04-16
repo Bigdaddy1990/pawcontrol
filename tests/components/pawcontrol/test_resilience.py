@@ -1,6 +1,5 @@
 """Unit tests for resilience helpers."""
 
-
 import pytest
 
 from custom_components.pawcontrol import resilience

@@ -5,7 +5,6 @@ Covers: _normalise_issue_severity, _issue_registry_supports_kwarg,
         async_create_issue (mocked), async_schedule_repair_evaluation
 """
 
-
 import pytest
 
 from custom_components.pawcontrol.repairs import (

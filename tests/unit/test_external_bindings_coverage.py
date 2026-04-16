@@ -3,7 +3,6 @@
 Covers: require_runtime_data decorator, LocationSource
 """
 
-
 import pytest
 
 from custom_components.pawcontrol.external_bindings import LocationSource
