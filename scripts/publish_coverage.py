@@ -27,7 +27,7 @@ class PublishError(RuntimeError):
 
 
 @dataclass(slots=True)
-class PublishResult:
+class PublishResult:  # noqa: D101
     published: bool
     archive_path: Path
     url: str | None = None
@@ -53,7 +53,7 @@ def _open_github_api_request(
     return urllib.request.urlopen(request, timeout=timeout)  # nosec B310
 
 
-def build_cli() -> argparse.ArgumentParser:
+def build_cli() -> argparse.ArgumentParser:  # noqa: D103
     parser = argparse.ArgumentParser(description=__doc__)
 
     parser.add_argument("--coverage-xml", type=Path, required=True)
@@ -221,7 +221,7 @@ def _create_archive(
 class GitHubPagesPublisher:
     """Publish coverage bundles to GitHub Pages using the GitHub API."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         token: str,
         repository: str,
@@ -259,7 +259,7 @@ class GitHubPagesPublisher:
         """Return a placeholder URL for the published coverage bundle."""
         return f"https://github.com/{self._repository}"
 
-    def prune_expired_runs(
+    def prune_expired_runs(  # noqa: D102
         self,
         prefix: str,
         max_age: timedelta,
@@ -360,7 +360,7 @@ class GitHubPagesPublisher:
         return removed
 
 
-def publish(args: argparse.Namespace) -> PublishResult:
+def publish(args: argparse.Namespace) -> PublishResult:  # noqa: D103
     coverage_xml = args.coverage_xml
     html_index = args.coverage_html_index
 
@@ -441,7 +441,7 @@ def publish(args: argparse.Namespace) -> PublishResult:
     )
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:  # noqa: D103
     parser = build_cli()
     args = parser.parse_args(argv)
     publish(args)

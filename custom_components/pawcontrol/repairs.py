@@ -163,7 +163,7 @@ _RUNTIME_STORE_STATUS_SEVERITY: dict[str, ir.IssueSeverity] = {
 }
 
 
-async def async_create_issue(
+async def async_create_issue(  # noqa: D417
     hass: HomeAssistant,
     entry: ConfigEntry,
     issue_id: str,

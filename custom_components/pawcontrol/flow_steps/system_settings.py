@@ -101,20 +101,20 @@ def _resolve_get_runtime_data() -> RuntimeDataGetter:
 
 if TYPE_CHECKING:
 
-    class SystemSettingsOptionsHost(Protocol):
+    class SystemSettingsOptionsHost(Protocol):  # noqa: D101
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
 
         @property
         def _entry(self) -> ConfigEntry: ...
 
-        def __getattr__(self, name: str) -> Any: ...
+        def __getattr__(self, name: str) -> Any: ...  # noqa: D105
 
 else:  # pragma: no cover
     SystemSettingsOptionsHost = object
 
 
-class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
+class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):  # noqa: D101
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
 

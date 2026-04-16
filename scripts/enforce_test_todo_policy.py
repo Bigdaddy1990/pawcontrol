@@ -21,7 +21,7 @@ def _find_todos(test_file: Path) -> list[tuple[int, str]]:
     return findings
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--tests-dir",

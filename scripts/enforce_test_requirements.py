@@ -83,7 +83,7 @@ def _is_third_party(module: str) -> bool:
     return not any(module_lower.startswith(prefix) for prefix in INTERNAL_PREFIXES)
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--verbose",

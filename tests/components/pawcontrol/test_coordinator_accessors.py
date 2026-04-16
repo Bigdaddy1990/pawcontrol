@@ -1,3 +1,4 @@
+# ruff: noqa: D103
 """Tests for coordinator data accessor mixin helpers."""
 
 from custom_components.pawcontrol.coordinator_accessors import (
@@ -38,7 +39,7 @@ class _AccessorHarness(CoordinatorDataAccessMixin):
         self.runtime_managers = {}
 
 
-def test_basic_registry_and_payload_accessors() -> None:
+def test_basic_registry_and_payload_accessors() -> None:  # noqa: D103
     harness = _AccessorHarness()
 
     assert harness.get_dog_config("dog-1") == {"name": "Milo", "breed": "Beagle"}

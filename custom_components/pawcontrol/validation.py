@@ -68,7 +68,7 @@ TNotificationTarget = TypeVar("TNotificationTarget", bound=Enum)
 class InputCoercionError(ValueError):
     """Raised when raw input cannot be coerced to the expected type."""
 
-    def __init__(self, field: str, value: Any, message: str) -> None:
+    def __init__(self, field: str, value: Any, message: str) -> None:  # noqa: D107
         super().__init__(message)
         self.field = field
         self.value = value

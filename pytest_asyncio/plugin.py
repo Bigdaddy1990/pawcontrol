@@ -8,7 +8,7 @@ import inspect
 import pytest
 
 
-def pytest_addoption(parser: pytest.Parser) -> None:
+def pytest_addoption(parser: pytest.Parser) -> None:  # noqa: D103
     # Some pytest/plugin combinations can register the same option twice.
     # Mirror pytest-asyncio's permissive behaviour in that scenario.
     with contextlib.suppress(ValueError):
@@ -18,12 +18,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addini("asyncio_mode", "Select asyncio integration mode", default="auto")
 
 
-def pytest_configure(config: pytest.Config) -> None:
+def pytest_configure(config: pytest.Config) -> None:  # noqa: D103
     config.addinivalue_line("markers", "asyncio: run test in an event loop")
 
 
 @pytest.hookimpl(tryfirst=True)
-def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
+def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:  # noqa: D103
     test_fn = pyfuncitem.obj
     if not inspect.iscoroutinefunction(test_fn):
         return None
@@ -52,7 +52,7 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
 
 
 @pytest.fixture
-def event_loop() -> Generator[asyncio.AbstractEventLoop]:
+def event_loop() -> Generator[asyncio.AbstractEventLoop]:  # noqa: D103
     loop = asyncio.new_event_loop()
     try:
         yield loop

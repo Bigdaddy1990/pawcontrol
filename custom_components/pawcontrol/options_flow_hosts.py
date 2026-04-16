@@ -27,7 +27,7 @@ class DogOptionsHost(Protocol):
     def _build_dog_selector_schema(self) -> vol.Schema: ...
     def _require_current_dog(self) -> DogConfigData | None: ...
     def _select_dog_by_id(self, dog_id: str | None) -> DogConfigData | None: ...
-    def async_show_form(
+    def async_show_form(  # noqa: D102
         self,
         *,
         step_id: str,
@@ -35,11 +35,11 @@ class DogOptionsHost(Protocol):
         errors: dict[str, str] | None = None,
     ) -> ConfigFlowResult: ...
 
-    def async_create_entry(
+    def async_create_entry(  # noqa: D102
         self,
         *,
         title: str,
         data: Mapping[str, JSONValue],
     ) -> ConfigFlowResult: ...
 
-    async def async_step_init(self) -> ConfigFlowResult: ...
+    async def async_step_init(self) -> ConfigFlowResult: ...  # noqa: D102

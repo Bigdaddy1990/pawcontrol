@@ -29,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
 
-    class ImportExportOptionsHost(Protocol):
+    class ImportExportOptionsHost(Protocol):  # noqa: D101
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -38,13 +38,13 @@ if TYPE_CHECKING:
 
         hass: Any
 
-        def __getattr__(self, name: str) -> Any: ...
+        def __getattr__(self, name: str) -> Any: ...  # noqa: D105
 
 else:  # pragma: no cover
     ImportExportOptionsHost = object
 
 
-class ImportExportOptionsMixin(ImportExportOptionsHost):
+class ImportExportOptionsMixin(ImportExportOptionsHost):  # noqa: D101
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
 

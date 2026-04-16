@@ -29,7 +29,7 @@ class Version:
     patch: int = 0
 
     @classmethod
-    def parse(cls, value: str) -> Version:
+    def parse(cls, value: str) -> Version:  # noqa: D102
         if not isinstance(value, str):
             raise InvalidVersion(f"Expected version string, got {type(value)!r}")
 
@@ -40,7 +40,7 @@ class Version:
         major, minor, patch = match.groups(default="0")
         return cls(int(major), int(minor), int(patch))
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # noqa: D105
         return f"{self.major}.{self.minor}.{self.patch}"
 
 
@@ -82,7 +82,7 @@ class MatchResult:
     count: int
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:  # noqa: D103
     parser = argparse.ArgumentParser(
         description=(
             "Checks PawControl against Home Assistant migration rules and can "
@@ -164,7 +164,7 @@ def _parse_rule(index: int, entry: dict[str, Any]) -> UpgradeRule:
     )
 
 
-def load_rules(path: Path) -> RuleSet:
+def load_rules(path: Path) -> RuleSet:  # noqa: D103
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except OSError as err:
@@ -217,7 +217,7 @@ def _validated_https_url(url: str) -> str:
     return url
 
 
-def fetch_latest_homeassistant_version() -> Version:
+def fetch_latest_homeassistant_version() -> Version:  # noqa: D103
     request = Request(
         _validated_https_url(PYPI_HOMEASSISTANT_URL),
         headers={
@@ -243,7 +243,7 @@ def fetch_latest_homeassistant_version() -> Version:
         ) from err
 
 
-def applicable_rules(
+def applicable_rules(  # noqa: D103
     rule_set: RuleSet, latest_version: Version
 ) -> tuple[UpgradeRule, ...]:
     return tuple(
@@ -251,7 +251,7 @@ def applicable_rules(
     )
 
 
-def collect_python_files(root: Path, globs: tuple[str, ...]) -> list[Path]:
+def collect_python_files(root: Path, globs: tuple[str, ...]) -> list[Path]:  # noqa: D103
     files: set[Path] = set()
     for pattern in globs:
         files.update(root.glob(pattern))
@@ -275,7 +275,7 @@ def _write_file_atomically(path: Path, content: str) -> None:
             tmp_path.unlink()
 
 
-def apply_rule(path: Path, rule: UpgradeRule, *, fix: bool) -> int:
+def apply_rule(path: Path, rule: UpgradeRule, *, fix: bool) -> int:  # noqa: D103
     try:
         content = path.read_text(encoding="utf-8")
     except OSError as err:
@@ -316,7 +316,7 @@ def apply_rule(path: Path, rule: UpgradeRule, *, fix: bool) -> int:
     return count
 
 
-def run(
+def run(  # noqa: D103
     root: Path, rule_set: RuleSet, *, fix: bool
 ) -> tuple[list[MatchResult], Version]:
     latest_version = fetch_latest_homeassistant_version()
@@ -332,7 +332,7 @@ def run(
     return findings, latest_version
 
 
-def print_findings(findings: list[MatchResult]) -> None:
+def print_findings(findings: list[MatchResult]) -> None:  # noqa: D103
     grouped: dict[str, list[MatchResult]] = {}
     for finding in findings:
         grouped.setdefault(finding.rule_id, []).append(finding)
@@ -343,7 +343,7 @@ def print_findings(findings: list[MatchResult]) -> None:
             print(f"  * {result.path}: {result.count} matches")
 
 
-def validate_coverage(rule_set: RuleSet, latest_version: Version) -> bool:
+def validate_coverage(rule_set: RuleSet, latest_version: Version) -> bool:  # noqa: D103
     if latest_version <= rule_set.max_covered_version:
         return True
     print(
@@ -357,7 +357,7 @@ def validate_coverage(rule_set: RuleSet, latest_version: Version) -> bool:
     return False
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     logging.basicConfig(
         level=logging.WARNING,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",

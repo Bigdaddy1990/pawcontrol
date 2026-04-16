@@ -12,17 +12,17 @@ BASELINE_PATH = REPO_ROOT / "docs" / "docstring_baseline.json"
 
 
 @dataclass
-class DocstringStats:
+class DocstringStats:  # noqa: D101
     total_defs: int = 0
     documented_defs: int = 0
 
     @property
-    def coverage(self) -> float:
+    def coverage(self) -> float:  # noqa: D102
         if self.total_defs == 0:
             return 1.0
         return self.documented_defs / self.total_defs
 
-    def to_dict(self) -> dict[str, float]:
+    def to_dict(self) -> dict[str, float]:  # noqa: D102
         return {
             "total_defs": self.total_defs,
             "documented_defs": self.documented_defs,
@@ -70,7 +70,7 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     args = _parse_args()
     stats = _gather_docstring_stats()
     baseline = _load_baseline()

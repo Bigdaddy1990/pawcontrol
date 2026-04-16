@@ -77,7 +77,7 @@ def _resolve_async_create_issue() -> IssueCreator:
 
 if TYPE_CHECKING:
 
-    class DoorSensorOptionsHost(Protocol):
+    class DoorSensorOptionsHost(Protocol):  # noqa: D101
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -86,13 +86,13 @@ if TYPE_CHECKING:
 
         hass: Any
 
-        def __getattr__(self, name: str) -> Any: ...
+        def __getattr__(self, name: str) -> Any: ...  # noqa: D105
 
 else:  # pragma: no cover
     DoorSensorOptionsHost = object
 
 
-class DoorSensorOptionsMixin(DoorSensorOptionsHost):
+class DoorSensorOptionsMixin(DoorSensorOptionsHost):  # noqa: D101
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
 

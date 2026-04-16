@@ -40,26 +40,26 @@ class ReferenceRequirement:
     requirement: Requirement
 
     @property
-    def specifier(self) -> str:
+    def specifier(self) -> str:  # noqa: D102
         return str(self.requirement.specifier)
 
     @property
-    def marker(self) -> str | None:
+    def marker(self) -> str | None:  # noqa: D102
         return str(self.requirement.marker) if self.requirement.marker else None
 
     @property
-    def version_hint(self) -> Version | None:
+    def version_hint(self) -> Version | None:  # noqa: D102
         return highest_version(self.requirement.specifier)
 
 
 class ReferenceLoader:
     """Load reference files from a local checkout or GitHub."""
 
-    def __init__(self, *, root: Path | None, base_url: str) -> None:
+    def __init__(self, *, root: Path | None, base_url: str) -> None:  # noqa: D107
         self._root = root
         self._base_url = base_url.rstrip("/")
 
-    def load_text(self, relative: str) -> str:
+    def load_text(self, relative: str) -> str:  # noqa: D102
         if self._root is not None:
             return (self._root / relative).read_text(encoding="utf-8")
         url = f"{self._base_url}/{relative}"
@@ -71,7 +71,7 @@ class ReferenceLoader:
 class DependencySynchroniser:
     """Synchronise local dependency files against Home Assistant references."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         *,
         loader: ReferenceLoader,

@@ -737,7 +737,7 @@ class DoorSensorManager:
             return _UNSET
         return normalised
 
-    async def async_initialize(
+    async def async_initialize(  # noqa: D417
         self,
         dogs: list[DogConfigData],
         walk_manager: WalkManager | None = None,

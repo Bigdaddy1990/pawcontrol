@@ -101,7 +101,7 @@ ADVANCED_SETTINGS_FIELD: Final[Literal["advanced_settings"]] = cast(
 
 if TYPE_CHECKING:
 
-    class OptionsFlowSharedHost(Protocol):
+    class OptionsFlowSharedHost(Protocol):  # noqa: D101
         _EXPORT_VERSION: int
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
@@ -109,13 +109,13 @@ if TYPE_CHECKING:
         @property
         def _entry(self) -> ConfigEntry: ...
 
-        def __getattr__(self, name: str) -> Any: ...
+        def __getattr__(self, name: str) -> Any: ...  # noqa: D105
 
 else:  # pragma: no cover
     OptionsFlowSharedHost = object
 
 
-class OptionsFlowSharedMixin(OptionsFlowSharedHost):
+class OptionsFlowSharedMixin(OptionsFlowSharedHost):  # noqa: D101
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
 

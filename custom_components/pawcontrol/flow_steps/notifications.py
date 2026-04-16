@@ -30,7 +30,7 @@ from .notifications_schemas import build_notifications_schema
 
 if TYPE_CHECKING:
 
-    class NotificationOptionsHost:
+    class NotificationOptionsHost:  # noqa: D101
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -63,7 +63,7 @@ if TYPE_CHECKING:
             dog_id: str | None,
         ) -> DogConfigData | None: ...
 
-        def async_show_form(
+        def async_show_form(  # noqa: D102
             self,
             *,
             step_id: str,
@@ -72,14 +72,14 @@ if TYPE_CHECKING:
             description_placeholders: ConfigFlowPlaceholders | None = None,
         ) -> ConfigFlowResult: ...
 
-        def async_create_entry(
+        def async_create_entry(  # noqa: D102
             self,
             *,
             title: str,
             data: Mapping[str, JSONValue],
         ) -> ConfigFlowResult: ...
 
-        async def async_step_init(self) -> ConfigFlowResult: ...
+        async def async_step_init(self) -> ConfigFlowResult: ...  # noqa: D102
 
     class NotificationOptionsNormalizerHost(Protocol):
         """Protocol describing the options flow host requirements."""
@@ -119,7 +119,7 @@ if TYPE_CHECKING:
             dog_id: str | None,
         ) -> DogConfigData | None: ...
 
-        def async_show_form(
+        def async_show_form(  # noqa: D102
             self,
             *,
             step_id: str,
@@ -128,14 +128,14 @@ if TYPE_CHECKING:
             description_placeholders: ConfigFlowPlaceholders | None = None,
         ) -> ConfigFlowResult: ...
 
-        def async_create_entry(
+        def async_create_entry(  # noqa: D102
             self,
             *,
             title: str,
             data: Mapping[str, JSONValue],
         ) -> ConfigFlowResult: ...
 
-        async def async_step_init(self) -> ConfigFlowResult: ...
+        async def async_step_init(self) -> ConfigFlowResult: ...  # noqa: D102
 
 else:  # pragma: no cover
     NotificationOptionsHost = object

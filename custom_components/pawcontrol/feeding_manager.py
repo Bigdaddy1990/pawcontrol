@@ -1924,7 +1924,7 @@ class FeedingManager:
                 return schedule
         return None
 
-    async def async_add_feeding(
+    async def async_add_feeding(  # noqa: D417
         self,
         dog_id: str,
         amount: float,

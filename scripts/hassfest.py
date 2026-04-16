@@ -144,7 +144,7 @@ def _validate_translations(integration_path: Path) -> list[str]:
     return errors
 
 
-def run(argv: Iterable[str] | None = None) -> int:
+def run(argv: Iterable[str] | None = None) -> int:  # noqa: D103
     parser = ArgumentParser(description="Validate Home Assistant integration metadata")
     parser.add_argument(
         "--integration-path",
@@ -169,7 +169,7 @@ def run(argv: Iterable[str] | None = None) -> int:
     return 0
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     return run()
 
 

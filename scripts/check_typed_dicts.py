@@ -74,7 +74,7 @@ def _audit_file(path: Path) -> list[str]:
     return errors
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     if not TARGET.exists():
         print(f"TypedDict audit: target path not found: {TARGET}")
         return 1

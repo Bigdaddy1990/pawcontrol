@@ -4369,7 +4369,7 @@ def _is_budget_exhausted(budget: Any) -> bool:
 class PawControlPushLastAcceptedSensor(PawControlSensorBase):
     """Timestamp of the last accepted push update for this dog."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -4387,7 +4387,7 @@ class PawControlPushLastAcceptedSensor(PawControlSensorBase):
         )
 
     @property
-    def native_value(self) -> datetime | None:
+    def native_value(self) -> datetime | None:  # noqa: D102
         entry = getattr(self.coordinator, "config_entry", None)
         entry_id = getattr(entry, "entry_id", None)
         if not isinstance(entry_id, str) or not entry_id:
@@ -4408,7 +4408,7 @@ class PawControlPushLastAcceptedSensor(PawControlSensorBase):
 class PawControlPushRejectedTotalSensor(PawControlSensorBase):
     """Total rejected push updates for this dog (since HA restart)."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -4426,7 +4426,7 @@ class PawControlPushRejectedTotalSensor(PawControlSensorBase):
         )
 
     @property
-    def native_value(self) -> int:
+    def native_value(self) -> int:  # noqa: D102
         entry = getattr(self.coordinator, "config_entry", None)
         entry_id = getattr(entry, "entry_id", None)
         if not isinstance(entry_id, str) or not entry_id:

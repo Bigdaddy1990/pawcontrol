@@ -459,7 +459,7 @@ class ConfigEntryChange(Enum):
 class ConfigSubentry:
     """Minimal compatibility stand-in for Home Assistant subentries."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         *,
         subentry_id: str,

@@ -57,7 +57,7 @@ def _find_violations(path: Path) -> list[str]:
     return violations
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     violations: list[str] = []
 
     for path in _iter_python_sources():

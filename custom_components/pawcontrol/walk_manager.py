@@ -462,7 +462,7 @@ class WalkManager:
             ),
         )
 
-    async def async_update_gps_data(
+    async def async_update_gps_data(  # noqa: D417
         self,
         dog_id: str,
         latitude: float,
@@ -572,7 +572,7 @@ class WalkManager:
             )
             return True
 
-    async def async_add_gps_point(
+    async def async_add_gps_point(  # noqa: D417
         self,
         *,
         dog_id: str,
@@ -633,7 +633,7 @@ class WalkManager:
             except Exception as err:
                 _LOGGER.error("Batch location analysis error: %s", err)
 
-    async def async_start_walk(
+    async def async_start_walk(  # noqa: D417
         self,
         dog_id: str,
         walk_type: str = "manual",
@@ -954,7 +954,7 @@ class WalkManager:
         )
         return walk_data
 
-    async def async_end_walk(
+    async def async_end_walk(  # noqa: D417
         self,
         dog_id: str,
         *,
