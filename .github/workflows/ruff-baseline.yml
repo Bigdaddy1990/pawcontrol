@@ -27,11 +27,13 @@ jobs:
           python -m scripts.sync_localization_flags \
             --allowlist scripts/sync_localization_flags.allowlist \
             --check
-          ruff check . --preview || true
+
           ruff check . --fix all || true
           ruff check . --fix --unsafe-fixes || true
+          ruff check . --add-noqa || true
           ruff check . --extend-select RUF100 --fix || true
           ruff check . --output-format=github || true
+          ruff check . --preview || true
           ruff check . --exit-non-zero-on-fix || true
           ruff format .
 
