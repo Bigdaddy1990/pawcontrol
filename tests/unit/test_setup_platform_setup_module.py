@@ -457,9 +457,7 @@ async def test_async_setup_scripts_skips_notification_when_no_scripts_created() 
 
 
 @pytest.mark.asyncio
-async def test_async_setup_scripts_with_scripts_and_without_notification_manager() -> (
-    None
-):
+async def test_async_setup_scripts_with_scripts_and_without_notification_manager() -> None:
     """Script generation should succeed even when notifications are unavailable."""
     generate_scripts = AsyncMock(return_value={"buddy": ["script.one"]})
     runtime_data = SimpleNamespace(

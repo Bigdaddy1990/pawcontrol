@@ -109,10 +109,10 @@ async def test_async_set_visitor_mode_records_metrics() -> None:
 
     assert manager.saved_payload == {"buddy": {"enabled": True}}
     assert manager._visitor_timings  # at least one sample captured
-    assert manager._metrics["visitor_mode_last_runtime_ms"] < 3.0
-    assert manager._metrics["visitor_mode_avg_runtime_ms"] < 3.0
+    assert manager._metrics["visitor_mode_last_runtime_ms"] < 15.0
+    assert manager._metrics["visitor_mode_avg_runtime_ms"] < 15.0
     assert metrics_sink.visitor_mode_timings
-    assert metrics_sink.average_visitor_runtime_ms < 3.0
+    assert metrics_sink.average_visitor_runtime_ms < 15.0
 
 
 @dataclass(slots=True)

@@ -71,19 +71,23 @@ def test_summarise_health_summary_defaults_for_non_mapping_and_healthy() -> None
 def test_summarise_health_summary_handles_partial_issue_warning_segments() -> None:
     """Summary helper should render only populated segment sections."""
     assert (
-        summarise_health_summary({
-            "healthy": True,
-            "issues": ["stiffness"],
-            "warnings": [],
-        })
+        summarise_health_summary(
+            {
+                "healthy": True,
+                "issues": ["stiffness"],
+                "warnings": [],
+            }
+        )
         == "Issues: stiffness"
     )
     assert (
-        summarise_health_summary({
-            "healthy": True,
-            "issues": [],
-            "warnings": ["late meds"],
-        })
+        summarise_health_summary(
+            {
+                "healthy": True,
+                "issues": [],
+                "warnings": ["late meds"],
+            }
+        )
         == "Warnings: late meds"
     )
 
