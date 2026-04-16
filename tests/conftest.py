@@ -40,6 +40,7 @@ pawcontrol_compat.ensure_homeassistant_exception_symbols()
 
 from homeassistant.config_entries import ConfigEntry
 
+from custom_components.pawcontrol.feeding_manager import FeedingBatchEntry
 from custom_components.pawcontrol.types import (
     CoordinatorDogData,
     FeedingManagerDogSetupPayload,
@@ -53,10 +54,7 @@ from tests.helpers.factories import (
 )
 
 if TYPE_CHECKING:
-    from custom_components.pawcontrol.feeding_manager import (
-        FeedingBatchEntry,
-        FeedingManager,
-    )
+    from custom_components.pawcontrol.feeding_manager import FeedingManager
     from custom_components.pawcontrol.walk_manager import WalkManager
 
 
