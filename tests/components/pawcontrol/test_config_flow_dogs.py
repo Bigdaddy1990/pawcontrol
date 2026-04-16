@@ -1483,7 +1483,8 @@ async def test_async_step_configure_modules_form_suggests_balanced_for_mid_compl
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_full_for_high_complexity() -> (  # noqa: E501
+async def test_async_step_configure_modules_form_suggests_full_for_high_complexity(
+) -> (
     None
 ):
     """Very large setups should now elevate recommendation to full performance."""
