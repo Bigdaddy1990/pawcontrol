@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch  # noqa: D100
 
 from homeassistant.core import HomeAssistant
 import pytest

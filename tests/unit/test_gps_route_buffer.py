@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta  # noqa: D100
 
 from custom_components.pawcontrol.types import GPSRouteBuffer, GPSRoutePoint
 
@@ -12,7 +12,7 @@ def _make_point(ts: datetime, *, latitude: float) -> GPSRoutePoint:
     }
 
 
-def test_route_buffer_append_prune_and_snapshot() -> None:
+def test_route_buffer_append_prune_and_snapshot() -> None:  # noqa: D103
     now = datetime.now(tz=UTC)
     older = now - timedelta(hours=3)
     recent = now - timedelta(minutes=15)
@@ -40,7 +40,7 @@ def test_route_buffer_append_prune_and_snapshot() -> None:
     assert empty == []
 
 
-def test_route_buffer_clear() -> None:
+def test_route_buffer_clear() -> None:  # noqa: D103
     buffer = GPSRouteBuffer[GPSRoutePoint]()
     buffer.append({
         "latitude": 1.0,

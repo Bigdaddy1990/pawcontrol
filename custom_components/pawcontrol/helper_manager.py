@@ -274,7 +274,7 @@ class _HelperManagerCacheMonitor:
 
 
 class PawControlHelperManager:
-    """Manages automatic creation and lifecycle of Home Assistant helpers for PawControl."""  # noqa: E501
+    """Manages automatic creation and lifecycle of Home Assistant helpers for PawControl."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the helper manager.

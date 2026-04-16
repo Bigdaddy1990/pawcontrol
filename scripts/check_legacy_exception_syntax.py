@@ -35,7 +35,7 @@ def _parse_args() -> argparse.Namespace:
         "paths",
         nargs="*",
         default=["custom_components/pawcontrol"],
-        help="Directories to scan for Python files (default: custom_components/pawcontrol)",  # noqa: E501
+        help="Directories to scan for Python files (default: custom_components/pawcontrol)",
     )
     return parser.parse_args()
 

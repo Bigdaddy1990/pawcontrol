@@ -30,19 +30,19 @@ def _coord(dog_id="rex"):
 
 
 @pytest.mark.unit
-def test_start_walk_button_init() -> None:
+def test_start_walk_button_init() -> None:  # noqa: D103
     b = PawControlStartWalkButton(_coord(), "rex", "Rex")
     assert b._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_start_walk_button_unique_id() -> None:
+def test_start_walk_button_unique_id() -> None:  # noqa: D103
     b = PawControlStartWalkButton(_coord(), "rex", "Rex")
     assert "rex" in b._attr_unique_id
 
 
 @pytest.mark.unit
-def test_start_walk_button_extra_attrs() -> None:
+def test_start_walk_button_extra_attrs() -> None:  # noqa: D103
     b = PawControlStartWalkButton(_coord(), "rex", "Rex")
     attrs = b.extra_state_attributes
     assert isinstance(attrs, dict)
@@ -70,20 +70,20 @@ async def test_start_walk_button_press_service_error() -> None:
 
 
 @pytest.mark.unit
-def test_end_garden_button_init() -> None:
+def test_end_garden_button_init() -> None:  # noqa: D103
     b = PawControlEndGardenSessionButton(_coord(), "rex", "Rex")
     assert b._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_end_garden_button_unique_id() -> None:
+def test_end_garden_button_unique_id() -> None:  # noqa: D103
     b = PawControlEndGardenSessionButton(_coord(), "rex", "Rex")
     assert "rex" in b._attr_unique_id
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_end_garden_button_press_service_error() -> None:
+async def test_end_garden_button_press_service_error() -> None:  # noqa: D103
     b = PawControlEndGardenSessionButton(_coord(), "rex", "Rex")
     b.hass = MagicMock()
     with (
@@ -101,12 +101,12 @@ async def test_end_garden_button_press_service_error() -> None:
 
 
 @pytest.mark.unit
-def test_call_dog_button_init() -> None:
+def test_call_dog_button_init() -> None:  # noqa: D103
     b = PawControlCallDogButton(_coord(), "rex", "Rex")
     assert b._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_call_dog_button_unique_id() -> None:
+def test_call_dog_button_unique_id() -> None:  # noqa: D103
     b = PawControlCallDogButton(_coord(), "rex", "Rex")
     assert "rex" in b._attr_unique_id

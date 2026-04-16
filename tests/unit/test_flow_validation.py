@@ -33,7 +33,7 @@ def _valid_dog_input() -> dict[str, object]:
     }
 
 
-def test_validate_dog_setup_normalizes_dog_id() -> None:
+def test_validate_dog_setup_normalizes_dog_id() -> None:  # noqa: D103
     user_input = _valid_dog_input()
     user_input[CONF_DOG_ID] = "  Big Pup "
 
@@ -48,7 +48,7 @@ def test_validate_dog_setup_normalizes_dog_id() -> None:
     assert result[CONF_DOG_ID] == "big_pup"
 
 
-def test_validate_dog_setup_rejects_non_string_dog_id() -> None:
+def test_validate_dog_setup_rejects_non_string_dog_id() -> None:  # noqa: D103
     user_input = _valid_dog_input()
     user_input[CONF_DOG_ID] = 123
 
@@ -64,7 +64,7 @@ def test_validate_dog_setup_rejects_non_string_dog_id() -> None:
     assert err.value.field_errors[CONF_DOG_ID] == "invalid_dog_id_format"
 
 
-def test_validate_dog_setup_rejects_invalid_weight() -> None:
+def test_validate_dog_setup_rejects_invalid_weight() -> None:  # noqa: D103
     user_input = _valid_dog_input()
     user_input[CONF_DOG_WEIGHT] = "heavy"
 
@@ -80,7 +80,7 @@ def test_validate_dog_setup_rejects_invalid_weight() -> None:
     assert err.value.field_errors[CONF_DOG_WEIGHT] == "invalid_weight_format"
 
 
-def test_validate_dog_setup_rejects_duplicate_name() -> None:
+def test_validate_dog_setup_rejects_duplicate_name() -> None:  # noqa: D103
     user_input = _valid_dog_input()
     user_input[CONF_DOG_NAME] = "Buddy"
 
@@ -104,7 +104,7 @@ def test_validate_dog_setup_rejects_duplicate_name() -> None:
         ("buddy!", "invalid_dog_id_format"),
     ],
 )
-def test_validate_dog_id_reports_length_and_pattern_errors(
+def test_validate_dog_id_reports_length_and_pattern_errors(  # noqa: D103
     dog_id: str,
     expected_error: str,
 ) -> None:
@@ -114,7 +114,7 @@ def test_validate_dog_id_reports_length_and_pattern_errors(
     assert error == expected_error
 
 
-def test_validate_dog_id_rejects_duplicate_values() -> None:
+def test_validate_dog_id_rejects_duplicate_values() -> None:  # noqa: D103
     normalized, error = _validate_dog_id("buddy", existing_ids={"buddy"})
 
     assert normalized == "buddy"
@@ -125,12 +125,12 @@ def test_validate_dog_id_rejects_duplicate_values() -> None:
     "breed",
     [123, "x" * 101, "a"],
 )
-def test_validate_breed_rejects_invalid_values(breed: object) -> None:
+def test_validate_breed_rejects_invalid_values(breed: object) -> None:  # noqa: D103
     with pytest.raises(ValidationError):
         _validate_breed(breed)
 
 
-def test_validate_dog_config_payload_coerces_optional_fields() -> None:
+def test_validate_dog_config_payload_coerces_optional_fields() -> None:  # noqa: D103
     payload = {
         CONF_DOG_ID: "Buddy",
         CONF_DOG_NAME: " Buddy ",
@@ -151,7 +151,7 @@ def test_validate_dog_config_payload_coerces_optional_fields() -> None:
     assert modules["health"] is False
 
 
-def test_validate_dog_config_payload_rejects_invalid_modules() -> None:
+def test_validate_dog_config_payload_rejects_invalid_modules() -> None:  # noqa: D103
     payload = {
         CONF_DOG_ID: "buddy",
         CONF_DOG_NAME: "Buddy",
@@ -164,13 +164,13 @@ def test_validate_dog_config_payload_rejects_invalid_modules() -> None:
     assert err.value.field_errors[CONF_MODULES] == "dog_invalid_modules"
 
 
-def test_is_dog_config_payload_valid_false_for_invalid_payload() -> None:
+def test_is_dog_config_payload_valid_false_for_invalid_payload() -> None:  # noqa: D103
     assert (
         is_dog_config_payload_valid({CONF_DOG_ID: "", CONF_DOG_NAME: "Buddy"}) is False
     )
 
 
-def test_validate_dog_config_payload_reports_max_dogs_reached() -> None:
+def test_validate_dog_config_payload_reports_max_dogs_reached() -> None:  # noqa: D103
     payload = {
         CONF_DOG_ID: "buddy",
         CONF_DOG_NAME: "Buddy",
@@ -182,7 +182,7 @@ def test_validate_dog_config_payload_reports_max_dogs_reached() -> None:
     assert "max_dogs_reached" in err.value.base_errors
 
 
-def test_validate_dog_config_payload_defaults_count_when_only_max_set() -> None:
+def test_validate_dog_config_payload_defaults_count_when_only_max_set() -> None:  # noqa: D103
     payload = {
         CONF_DOG_ID: "buddy",
         CONF_DOG_NAME: "Buddy",
@@ -193,7 +193,7 @@ def test_validate_dog_config_payload_defaults_count_when_only_max_set() -> None:
     assert result[CONF_DOG_ID] == "buddy"
 
 
-def test_validate_dog_config_payload_removes_optional_fields_when_null() -> None:
+def test_validate_dog_config_payload_removes_optional_fields_when_null() -> None:  # noqa: D103
     payload = {
         CONF_DOG_ID: "buddy",
         CONF_DOG_NAME: "Buddy",
@@ -234,7 +234,7 @@ def test_validate_dog_update_input_removes_age_and_weight_when_null() -> None:
     assert CONF_DOG_WEIGHT not in result
 
 
-def test_validate_dog_config_payload_keeps_explicit_empty_modules() -> None:
+def test_validate_dog_config_payload_keeps_explicit_empty_modules() -> None:  # noqa: D103
     payload = {
         CONF_DOG_ID: "buddy",
         CONF_DOG_NAME: "Buddy",
@@ -246,7 +246,7 @@ def test_validate_dog_config_payload_keeps_explicit_empty_modules() -> None:
     assert result[CONF_MODULES] == {}
 
 
-def test_validate_dog_import_input_rejects_unexpected_keys() -> None:
+def test_validate_dog_import_input_rejects_unexpected_keys() -> None:  # noqa: D103
     payload = {
         **_valid_dog_input(),
         "unexpected": True,
@@ -263,7 +263,7 @@ def test_validate_dog_import_input_rejects_unexpected_keys() -> None:
     assert err.value.constraint == "Unexpected keys in dog configuration"
 
 
-def test_validate_dog_import_input_rejects_non_mapping_modules() -> None:
+def test_validate_dog_import_input_rejects_non_mapping_modules() -> None:  # noqa: D103
     payload = {
         **_valid_dog_input(),
         CONF_MODULES: ["gps"],
@@ -280,7 +280,7 @@ def test_validate_dog_import_input_rejects_non_mapping_modules() -> None:
     assert err.value.constraint == "Modules must be a mapping"
 
 
-def test_validate_dog_import_input_accepts_none_modules() -> None:
+def test_validate_dog_import_input_accepts_none_modules() -> None:  # noqa: D103
     payload = {
         **_valid_dog_input(),
         CONF_MODULES: None,
@@ -296,7 +296,7 @@ def test_validate_dog_import_input_accepts_none_modules() -> None:
     assert result[CONF_MODULES] == {}
 
 
-def test_validate_dog_import_input_normalizes_payload() -> None:
+def test_validate_dog_import_input_normalizes_payload() -> None:  # noqa: D103
     payload = {
         CONF_DOG_ID: "  Buddy Pup  ",
         CONF_DOG_NAME: " Buddy  ",
@@ -323,7 +323,7 @@ def test_validate_dog_import_input_normalizes_payload() -> None:
     assert result[CONF_MODULES]["feeding"] is False
 
 
-def test_validate_dog_setup_input_collects_field_and_base_errors() -> None:
+def test_validate_dog_setup_input_collects_field_and_base_errors() -> None:  # noqa: D103
     user_input = {
         CONF_DOG_ID: "a",
         CONF_DOG_NAME: "Buddy",
@@ -351,7 +351,7 @@ def test_validate_dog_setup_input_collects_field_and_base_errors() -> None:
     assert "max_dogs_reached" in err.value.base_errors
 
 
-def test_validate_dog_setup_input_reports_range_and_mismatch_errors() -> None:
+def test_validate_dog_setup_input_reports_range_and_mismatch_errors() -> None:  # noqa: D103
     with pytest.raises(FlowValidationError) as err:
         validate_dog_setup_input(
             {
@@ -373,7 +373,7 @@ def test_validate_dog_setup_input_reports_range_and_mismatch_errors() -> None:
     assert err.value.field_errors[CONF_DOG_BREED] == "breed_name_too_long"
 
 
-def test_validate_dog_setup_input_defaults_none_size_to_medium() -> None:
+def test_validate_dog_setup_input_defaults_none_size_to_medium() -> None:  # noqa: D103
     result = validate_dog_setup_input(
         {
             CONF_DOG_ID: "buddy",
@@ -391,7 +391,7 @@ def test_validate_dog_setup_input_defaults_none_size_to_medium() -> None:
     assert result[CONF_DOG_SIZE] == "medium"
 
 
-def test_validate_dog_setup_input_reports_weight_out_of_range() -> None:
+def test_validate_dog_setup_input_reports_weight_out_of_range() -> None:  # noqa: D103
     with pytest.raises(FlowValidationError) as err:
         validate_dog_setup_input(
             {
@@ -410,7 +410,7 @@ def test_validate_dog_setup_input_reports_weight_out_of_range() -> None:
     assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_out_of_range"
 
 
-def test_validate_dog_update_input_covers_optional_field_paths() -> None:
+def test_validate_dog_update_input_covers_optional_field_paths() -> None:  # noqa: D103
     current_dog = {
         CONF_DOG_ID: "buddy",
         CONF_DOG_NAME: "Buddy",
@@ -438,7 +438,7 @@ def test_validate_dog_update_input_covers_optional_field_paths() -> None:
     assert CONF_DOG_SIZE not in result
 
 
-def test_validate_dog_update_input_keeps_normalized_breed() -> None:
+def test_validate_dog_update_input_keeps_normalized_breed() -> None:  # noqa: D103
     current_dog = {
         CONF_DOG_ID: "buddy",
         CONF_DOG_NAME: "Buddy",
@@ -454,7 +454,7 @@ def test_validate_dog_update_input_keeps_normalized_breed() -> None:
     assert result[CONF_DOG_BREED] == "border collie"
 
 
-def test_validate_dog_update_input_reports_multiple_errors() -> None:
+def test_validate_dog_update_input_reports_multiple_errors() -> None:  # noqa: D103
     current_dog = {
         CONF_DOG_ID: "buddy",
         CONF_DOG_NAME: "Buddy",
@@ -480,7 +480,7 @@ def test_validate_dog_update_input_reports_multiple_errors() -> None:
     assert err.value.field_errors[CONF_DOG_SIZE] == "invalid_dog_size"
 
 
-def test_validate_dog_update_input_reports_weight_range_and_size_mismatch() -> None:
+def test_validate_dog_update_input_reports_weight_range_and_size_mismatch() -> None:  # noqa: D103
     with pytest.raises(FlowValidationError) as err:
         validate_dog_update_input(
             {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"},
@@ -493,7 +493,7 @@ def test_validate_dog_update_input_reports_weight_range_and_size_mismatch() -> N
     assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_size_mismatch"
 
 
-def test_validate_dog_update_input_reports_weight_range_without_size() -> None:
+def test_validate_dog_update_input_reports_weight_range_without_size() -> None:  # noqa: D103
     with pytest.raises(FlowValidationError) as err:
         validate_dog_update_input(
             {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"},
@@ -506,7 +506,7 @@ def test_validate_dog_update_input_reports_weight_range_without_size() -> None:
     assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_out_of_range"
 
 
-def test_validate_dog_update_input_reports_breed_and_age_range_errors() -> None:
+def test_validate_dog_update_input_reports_breed_and_age_range_errors() -> None:  # noqa: D103
     with pytest.raises(FlowValidationError) as err:
         validate_dog_update_input(
             {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"},
@@ -591,7 +591,7 @@ def test_validate_dog_update_input_ignores_non_string_name_from_validator(
     assert result[CONF_DOG_NAME] == "Buddy"
 
 
-def test_validate_dog_config_payload_surfaces_update_validation_errors() -> None:
+def test_validate_dog_config_payload_surfaces_update_validation_errors() -> None:  # noqa: D103
     with pytest.raises(FlowValidationError) as err:
         validate_dog_config_payload(
             {
@@ -605,7 +605,7 @@ def test_validate_dog_config_payload_surfaces_update_validation_errors() -> None
     assert err.value.field_errors[CONF_DOG_BREED] == "breed_name_too_long"
 
 
-def test_is_dog_config_payload_valid_returns_true_for_valid_payload() -> None:
+def test_is_dog_config_payload_valid_returns_true_for_valid_payload() -> None:  # noqa: D103
     assert is_dog_config_payload_valid(
         {
             CONF_DOG_ID: "buddy",

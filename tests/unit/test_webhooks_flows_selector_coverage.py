@@ -1,4 +1,4 @@
-"""Coverage tests for webhooks.py + flows/garden.py + flows/walk_schemas.py + selector_shim.py."""  # noqa: E501
+"""Coverage tests for webhooks.py + flows/garden.py + flows/walk_schemas.py + selector_shim.py."""
 
 from unittest.mock import MagicMock
 
@@ -21,7 +21,7 @@ from custom_components.pawcontrol.webhooks import get_entry_webhook_url
 
 
 @pytest.mark.unit
-def test_get_entry_webhook_url_no_data(mock_hass) -> None:
+def test_get_entry_webhook_url_no_data(mock_hass) -> None:  # noqa: D103
     mock_hass.data = {}
     entry = MagicMock()
     entry.entry_id = "test_entry"
@@ -30,7 +30,7 @@ def test_get_entry_webhook_url_no_data(mock_hass) -> None:
 
 
 @pytest.mark.unit
-def test_webhooks_module_importable() -> None:
+def test_webhooks_module_importable() -> None:  # noqa: D103
     assert webhooks_mod is not None
     assert hasattr(webhooks_mod, "get_entry_webhook_url")
 
@@ -39,7 +39,7 @@ def test_webhooks_module_importable() -> None:
 
 
 @pytest.mark.unit
-def test_build_auto_end_walks_field_empty_values() -> None:
+def test_build_auto_end_walks_field_empty_values() -> None:  # noqa: D103
     defaults = MagicMock()
     defaults.auto_end_walks = False
     defaults.auto_end_walk_timeout_minutes = 60
@@ -48,7 +48,7 @@ def test_build_auto_end_walks_field_empty_values() -> None:
 
 
 @pytest.mark.unit
-def test_build_auto_end_walks_field_with_values() -> None:
+def test_build_auto_end_walks_field_with_values() -> None:  # noqa: D103
     defaults = MagicMock()
     defaults.auto_end_walks = True
     defaults.auto_end_walk_timeout_minutes = 90
@@ -60,7 +60,7 @@ def test_build_auto_end_walks_field_with_values() -> None:
 
 
 @pytest.mark.unit
-def test_build_walk_timing_schema_fields_empty() -> None:
+def test_build_walk_timing_schema_fields_empty() -> None:  # noqa: D103
     defaults = MagicMock()
     defaults.min_walk_duration_minutes = 5
     defaults.max_walk_duration_minutes = 180
@@ -72,20 +72,20 @@ def test_build_walk_timing_schema_fields_empty() -> None:
 
 
 @pytest.mark.unit
-def test_boolean_selector_init() -> None:
+def test_boolean_selector_init() -> None:  # noqa: D103
     sel = BooleanSelector()
     assert sel is not None
 
 
 @pytest.mark.unit
-def test_boolean_selector_with_config() -> None:
+def test_boolean_selector_with_config() -> None:  # noqa: D103
     config = BooleanSelectorConfig()
     sel = BooleanSelector(config=config)
     assert sel is not None
 
 
 @pytest.mark.unit
-def test_boolean_selector_config_is_dict_or_obj() -> None:
+def test_boolean_selector_config_is_dict_or_obj() -> None:  # noqa: D103
     config = BooleanSelectorConfig()
     assert config is not None
 
@@ -94,17 +94,17 @@ def test_boolean_selector_config_is_dict_or_obj() -> None:
 
 
 @pytest.mark.unit
-def test_garden_module_importable() -> None:
+def test_garden_module_importable() -> None:  # noqa: D103
     assert garden_mod is not None
 
 
 @pytest.mark.unit
-def test_garden_module_has_mixin() -> None:
+def test_garden_module_has_mixin() -> None:  # noqa: D103
     assert hasattr(garden_mod, "GardenModuleSelectorMixin")
 
 
 @pytest.mark.unit
-def test_garden_module_selector_builds_optional_boolean_field() -> None:
+def test_garden_module_selector_builds_optional_boolean_field() -> None:  # noqa: D103
     fields = garden_mod.GardenModuleSelectorMixin._build_garden_module_selector(
         field="garden_mode_enabled",
         default=True,

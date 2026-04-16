@@ -1,4 +1,4 @@
-"""Coverage tests for flow_steps modules — system_settings, health, notifications, __init__."""  # noqa: E501
+"""Coverage tests for flow_steps modules — system_settings, health, notifications, __init__."""
 
 import pytest
 
@@ -18,37 +18,37 @@ from custom_components.pawcontrol.flow_steps.system_settings import (
 
 
 @pytest.mark.unit
-def test_normalize_performance_mode_balanced() -> None:
+def test_normalize_performance_mode_balanced() -> None:  # noqa: D103
     result = normalize_performance_mode("balanced")
     assert result == "balanced"
 
 
 @pytest.mark.unit
-def test_normalize_performance_mode_minimal() -> None:
+def test_normalize_performance_mode_minimal() -> None:  # noqa: D103
     result = normalize_performance_mode("minimal")
     assert result == "minimal"
 
 
 @pytest.mark.unit
-def test_normalize_performance_mode_full() -> None:
+def test_normalize_performance_mode_full() -> None:  # noqa: D103
     result = normalize_performance_mode("full")
     assert result == "full"
 
 
 @pytest.mark.unit
-def test_normalize_performance_mode_invalid_uses_fallback() -> None:
+def test_normalize_performance_mode_invalid_uses_fallback() -> None:  # noqa: D103
     result = normalize_performance_mode("turbo", fallback="balanced")
     assert result == "balanced"
 
 
 @pytest.mark.unit
-def test_normalize_performance_mode_none_uses_fallback() -> None:
+def test_normalize_performance_mode_none_uses_fallback() -> None:  # noqa: D103
     result = normalize_performance_mode(None, fallback="minimal")
     assert result == "minimal"
 
 
 @pytest.mark.unit
-def test_normalize_performance_mode_with_current() -> None:
+def test_normalize_performance_mode_with_current() -> None:  # noqa: D103
     result = normalize_performance_mode(None, current="full", fallback="balanced")
     assert result in ("full", "balanced", "minimal")
 
@@ -57,13 +57,13 @@ def test_normalize_performance_mode_with_current() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_notification_options_empty() -> None:
+def test_ensure_notification_options_empty() -> None:  # noqa: D103
     result = ensure_notification_options({})
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_ensure_notification_options_with_values() -> None:
+def test_ensure_notification_options_with_values() -> None:  # noqa: D103
     result = ensure_notification_options({
         "mobile_notifications": True,
         "priority_notifications": False,
@@ -72,7 +72,7 @@ def test_ensure_notification_options_with_values() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_notification_options_with_defaults() -> None:
+def test_ensure_notification_options_with_defaults() -> None:  # noqa: D103
     defaults = {"mobile_notifications": True, "quiet_hours": False}
     result = ensure_notification_options({}, defaults=defaults)
     assert isinstance(result, dict)
@@ -82,7 +82,7 @@ def test_ensure_notification_options_with_defaults() -> None:
 
 
 @pytest.mark.unit
-def test_notification_options_as_dict() -> None:
+def test_notification_options_as_dict() -> None:  # noqa: D103
     opts: NotificationOptions = {
         "quiet_hours": False,
         "quiet_start": "22:00",
@@ -97,24 +97,24 @@ def test_notification_options_as_dict() -> None:
 
 
 @pytest.mark.unit
-def test_flow_steps_init_importable() -> None:
+def test_flow_steps_init_importable() -> None:  # noqa: D103
     assert fs_init is not None
     assert hasattr(fs_init, "DogGPSFlowMixin") or hasattr(fs_init, "DogHealthFlowMixin")
 
 
 @pytest.mark.unit
-def test_system_settings_has_normalize_performance_mode() -> None:
+def test_system_settings_has_normalize_performance_mode() -> None:  # noqa: D103
     assert hasattr(ss_mod, "normalize_performance_mode")
     assert callable(ss_mod.normalize_performance_mode)
 
 
 @pytest.mark.unit
-def test_health_module_has_build_health_settings_schema() -> None:
+def test_health_module_has_build_health_settings_schema() -> None:  # noqa: D103
     assert hasattr(health_mod, "build_health_settings_schema")
     assert callable(health_mod.build_health_settings_schema)
 
 
 @pytest.mark.unit
-def test_notifications_module_has_build_notifications_schema() -> None:
+def test_notifications_module_has_build_notifications_schema() -> None:  # noqa: D103
     assert hasattr(notif_mod, "build_notifications_schema")
     assert callable(notif_mod.build_notifications_schema)

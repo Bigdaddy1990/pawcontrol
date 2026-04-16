@@ -27,13 +27,13 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
     """
     if session is None:
         raise ValueError(
-            f"{owner} requires Home Assistant's shared aiohttp ClientSession; received None.",  # noqa: E501
+            f"{owner} requires Home Assistant's shared aiohttp ClientSession; received None.",
         )
 
     request = getattr(session, "request", None)
     if not callable(request):
         raise ValueError(
-            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",  # noqa: E501
+            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",
         )
 
     def _is_coroutine(func: Callable[..., Any] | None) -> bool:
@@ -46,7 +46,7 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
     request_attr = getattr(type(session), "request", None)
     if not _is_coroutine(request) and _is_coroutine(request_attr):
         raise ValueError(
-            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",  # noqa: E501
+            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",
         )
 
     if (
@@ -64,14 +64,14 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
         # private ``_request`` coroutine. Accept this pattern to avoid rejecting the
         # managed Home Assistant session while still guarding synchronous callables.
         raise ValueError(
-            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",  # noqa: E501
+            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",
         )
 
     closed_attr = getattr(session, "closed", False)
     closed = closed_attr if isinstance(closed_attr, bool) else False
     if closed:
         raise ValueError(
-            f"{owner} received a closed aiohttp ClientSession. Inject Home Assistant's managed session instead.",  # noqa: E501
+            f"{owner} received a closed aiohttp ClientSession. Inject Home Assistant's managed session instead.",
         )
 
     return cast(ClientSession, session)

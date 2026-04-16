@@ -28,54 +28,54 @@ from custom_components.pawcontrol.data_manager import (
 
 
 @pytest.mark.unit
-def test_serialize_datetime_none() -> None:
+def test_serialize_datetime_none() -> None:  # noqa: D103
     assert _serialize_datetime(None) is None
 
 
 @pytest.mark.unit
-def test_serialize_datetime_utc() -> None:
+def test_serialize_datetime_utc() -> None:  # noqa: D103
     dt = datetime(2025, 6, 1, 12, 0, 0, tzinfo=UTC)
     result = _serialize_datetime(dt)
     assert result is not None and "2025" in result and "T" in result
 
 
 @pytest.mark.unit
-def test_deserialize_datetime_none() -> None:
+def test_deserialize_datetime_none() -> None:  # noqa: D103
     assert _deserialize_datetime(None) is None
 
 
 @pytest.mark.unit
-def test_deserialize_datetime_string() -> None:
+def test_deserialize_datetime_string() -> None:  # noqa: D103
     result = _deserialize_datetime("2025-06-01T12:00:00+00:00")
     assert isinstance(result, datetime) and result.tzinfo is not None
 
 
 @pytest.mark.unit
-def test_deserialize_datetime_invalid() -> None:
+def test_deserialize_datetime_invalid() -> None:  # noqa: D103
     assert _deserialize_datetime("not-a-date") is None
 
 
 @pytest.mark.unit
-def test_coerce_mapping_none() -> None:
+def test_coerce_mapping_none() -> None:  # noqa: D103
     assert _coerce_mapping(None) == {}
 
 
 @pytest.mark.unit
-def test_coerce_mapping_dict() -> None:
+def test_coerce_mapping_dict() -> None:  # noqa: D103
     original = {"key": "value", "nested": {"a": 1}}
     result = _coerce_mapping(original)
     assert result == original and result is not original
 
 
 @pytest.mark.unit
-def test_merge_dicts_none_inputs() -> None:
+def test_merge_dicts_none_inputs() -> None:  # noqa: D103
     assert _merge_dicts(None, None) == {}
     assert _merge_dicts({"a": 1}, None) == {"a": 1}
     assert _merge_dicts(None, {"b": 2}) == {"b": 2}
 
 
 @pytest.mark.unit
-def test_merge_dicts_deep() -> None:
+def test_merge_dicts_deep() -> None:  # noqa: D103
     base = {"outer": {"a": 1, "b": 2}}
     result = _merge_dicts(base, {"outer": {"b": 99, "c": 3}})
     assert result["outer"]["a"] == 1
@@ -84,17 +84,17 @@ def test_merge_dicts_deep() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_history_entries_empty() -> None:
+def test_normalise_history_entries_empty() -> None:  # noqa: D103
     assert _normalise_history_entries([]) == []
 
 
 @pytest.mark.unit
-def test_normalise_history_entries_non_iterable() -> None:
+def test_normalise_history_entries_non_iterable() -> None:  # noqa: D103
     assert _normalise_history_entries(42) == []  # type: ignore[arg-type]
 
 
 @pytest.mark.unit
-def test_normalise_history_entries_filters_non_mapping() -> None:
+def test_normalise_history_entries_filters_non_mapping() -> None:  # noqa: D103
     result = _normalise_history_entries([{"key": "val"}, "not-a-dict", 42])
     assert len(result) == 1 and result[0]["key"] == "val"
 
@@ -105,7 +105,7 @@ def test_normalise_history_entries_filters_non_mapping() -> None:
 
 
 @pytest.mark.unit
-def test_coerce_health_payload_from_dict() -> None:
+def test_coerce_health_payload_from_dict() -> None:  # noqa: D103
     from custom_components.pawcontrol.data_manager import _coerce_health_payload
 
     payload = _coerce_health_payload({"weight": 20.0, "mood": "happy"})
@@ -113,7 +113,7 @@ def test_coerce_health_payload_from_dict() -> None:
 
 
 @pytest.mark.unit
-def test_coerce_medication_payload_sets_timestamps() -> None:
+def test_coerce_medication_payload_sets_timestamps() -> None:  # noqa: D103
     from custom_components.pawcontrol.data_manager import _coerce_medication_payload
 
     payload = _coerce_medication_payload({"name": "Frontline", "dose": "1 pill"})
@@ -126,7 +126,7 @@ def test_coerce_medication_payload_sets_timestamps() -> None:
 
 
 @pytest.mark.unit
-def test_dog_profile_as_dict() -> None:
+def test_dog_profile_as_dict() -> None:  # noqa: D103
     from custom_components.pawcontrol.data_manager import DailyStats, DogProfile
 
     stats = DailyStats(date=datetime(2025, 6, 1, tzinfo=UTC))
@@ -149,7 +149,7 @@ def test_dog_profile_as_dict() -> None:
 # PawControlDataManager — construction + namespace lock (no storage I/O)
 # ──────────────────────────────────────────────────────────────────────────────
 
-import tempfile
+import tempfile  # noqa: E402
 
 
 def _make_manager(mock_hass, dog_id: str = "rex") -> PawControlDataManager:
@@ -163,13 +163,13 @@ def _make_manager(mock_hass, dog_id: str = "rex") -> PawControlDataManager:
 
 
 @pytest.mark.unit
-def test_data_manager_init_stores_entry_id(mock_hass) -> None:
+def test_data_manager_init_stores_entry_id(mock_hass) -> None:  # noqa: D103
     mgr = _make_manager(mock_hass)
     assert mgr.entry_id == "test_entry"
 
 
 @pytest.mark.unit
-def test_data_manager_namespace_lock_reuse(mock_hass) -> None:
+def test_data_manager_namespace_lock_reuse(mock_hass) -> None:  # noqa: D103
     import asyncio
 
     mgr = _make_manager(mock_hass)

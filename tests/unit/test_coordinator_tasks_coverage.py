@@ -27,25 +27,25 @@ import custom_components.pawcontrol.coordinator_tasks as ct
 
 
 @pytest.mark.unit
-def test_normalise_breaker_state_string() -> None:
+def test_normalise_breaker_state_string() -> None:  # noqa: D103
     assert ct._normalise_breaker_state("open") == "open"
     assert ct._normalise_breaker_state("HALF-OPEN") == "half_open"
     assert ct._normalise_breaker_state("  closed  ") == "closed"
 
 
 @pytest.mark.unit
-def test_normalise_breaker_state_none() -> None:
+def test_normalise_breaker_state_none() -> None:  # noqa: D103
     assert ct._normalise_breaker_state(None) == "unknown"
 
 
 @pytest.mark.unit
-def test_normalise_breaker_state_empty_string() -> None:
+def test_normalise_breaker_state_empty_string() -> None:  # noqa: D103
     assert ct._normalise_breaker_state("") == "unknown"
     assert ct._normalise_breaker_state("   ") == "unknown"
 
 
 @pytest.mark.unit
-def test_normalise_breaker_state_object_with_value() -> None:
+def test_normalise_breaker_state_object_with_value() -> None:  # noqa: D103
     class _State:
         value = "half-open"
 
@@ -53,7 +53,7 @@ def test_normalise_breaker_state_object_with_value() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_breaker_state_non_string_coerced() -> None:
+def test_normalise_breaker_state_non_string_coerced() -> None:  # noqa: D103
     assert ct._normalise_breaker_state(42) == "42"
 
 
@@ -63,18 +63,18 @@ def test_normalise_breaker_state_non_string_coerced() -> None:
 
 
 @pytest.mark.unit
-def test_stringify_breaker_name_string() -> None:
+def test_stringify_breaker_name_string() -> None:  # noqa: D103
     assert ct._stringify_breaker_name("my_breaker") == "my_breaker"
 
 
 @pytest.mark.unit
-def test_stringify_breaker_name_non_string() -> None:
+def test_stringify_breaker_name_non_string() -> None:  # noqa: D103
     result = ct._stringify_breaker_name(42)
     assert "42" in result
 
 
 @pytest.mark.unit
-def test_stringify_breaker_name_empty_string() -> None:
+def test_stringify_breaker_name_empty_string() -> None:  # noqa: D103
     # Empty string is falsy so repr("") = "''" is used as fallback
     result = ct._stringify_breaker_name("")
     assert len(result) > 0
@@ -86,19 +86,19 @@ def test_stringify_breaker_name_empty_string() -> None:
 
 
 @pytest.mark.unit
-def test_coerce_int_bool() -> None:
+def test_coerce_int_bool() -> None:  # noqa: D103
     assert ct._coerce_int(True) == 1
     assert ct._coerce_int(False) == 0
 
 
 @pytest.mark.unit
-def test_coerce_int_string_float() -> None:
+def test_coerce_int_string_float() -> None:  # noqa: D103
     assert ct._coerce_int("3.9") == 3
     assert ct._coerce_int("7") == 7
 
 
 @pytest.mark.unit
-def test_coerce_int_invalid() -> None:
+def test_coerce_int_invalid() -> None:  # noqa: D103
     assert ct._coerce_int("bad") == 0
     assert ct._coerce_int(None) == 0
 
@@ -109,24 +109,24 @@ def test_coerce_int_invalid() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_string_list_none() -> None:
+def test_normalise_string_list_none() -> None:  # noqa: D103
     assert ct._normalise_string_list(None) == []
 
 
 @pytest.mark.unit
-def test_normalise_string_list_single_string() -> None:
+def test_normalise_string_list_single_string() -> None:  # noqa: D103
     assert ct._normalise_string_list("hello") == ["hello"]
     assert ct._normalise_string_list("  ") == []
 
 
 @pytest.mark.unit
-def test_normalise_string_list_list() -> None:
+def test_normalise_string_list_list() -> None:  # noqa: D103
     result = ct._normalise_string_list(["a", "b", "  ", "c"])
     assert result == ["a", "b", "c"]
 
 
 @pytest.mark.unit
-def test_normalise_string_list_non_string_items() -> None:
+def test_normalise_string_list_non_string_items() -> None:  # noqa: D103
     result = ct._normalise_string_list([1, "two", None])
     assert "two" in result
     assert "1" in result

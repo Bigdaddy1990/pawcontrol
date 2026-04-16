@@ -40,7 +40,7 @@ def _reset_global_state() -> None:
     logger.setLevel(original_level)
 
 
-def test_get_platforms_returns_default_without_dogs(_reset_global_state: None) -> None:
+def test_get_platforms_returns_default_without_dogs(_reset_global_state: None) -> None:  # noqa: D103
     platforms = get_platforms_for_profile_and_modules([], "standard")
 
     assert platforms == (
@@ -50,7 +50,7 @@ def test_get_platforms_returns_default_without_dogs(_reset_global_state: None) -
     )
 
 
-def test_get_platforms_merges_profile_modules_and_uses_cache(
+def test_get_platforms_merges_profile_modules_and_uses_cache(  # noqa: D103
     _reset_global_state: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -87,7 +87,7 @@ def test_get_platforms_merges_profile_modules_and_uses_cache(
     assert second is resolved
 
 
-def test_cleanup_platform_cache_expires_monotonic_and_wall_entries(
+def test_cleanup_platform_cache_expires_monotonic_and_wall_entries(  # noqa: D103
     _reset_global_state: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -111,7 +111,7 @@ def test_cleanup_platform_cache_expires_monotonic_and_wall_entries(
     assert len(_PLATFORM_CACHE) <= _MAX_CACHE_SIZE
 
 
-def test_disable_debug_logging_restores_default_level(
+def test_disable_debug_logging_restores_default_level(  # noqa: D103
     _reset_global_state: None,
 ) -> None:
     logger = logging.getLogger("custom_components.pawcontrol")
@@ -135,7 +135,7 @@ def test_disable_debug_logging_restores_default_level(
     assert not _DEBUG_LOGGER_ENTRIES
 
 
-def test_enable_debug_logging_returns_false_when_disabled(
+def test_enable_debug_logging_returns_false_when_disabled(  # noqa: D103
     _reset_global_state: None,
 ) -> None:
     logger = logging.getLogger("custom_components.pawcontrol")

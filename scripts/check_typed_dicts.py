@@ -68,7 +68,7 @@ def _audit_file(path: Path) -> list[str]:
             # AnnAssign without an annotation should not happen, but guard anyway.
             if ann.annotation is None:
                 errors.append(
-                    f"{path}:{ann.lineno} TypedDict '{node.name}' field missing annotation"  # noqa: E501
+                    f"{path}:{ann.lineno} TypedDict '{node.name}' field missing annotation"
                 )
 
     return errors

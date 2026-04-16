@@ -533,7 +533,7 @@ async def async_call_hass_service_if_available(
     if not callable(async_call):
         context_hint = f" for {description}" if description_hint else ""
         active_logger.debug(
-            "Skipping %s.%s service call%s because the Home Assistant services API is not available",  # noqa: E501
+            "Skipping %s.%s service call%s because the Home Assistant services API is not available",
             domain,
             service,
             context_hint,

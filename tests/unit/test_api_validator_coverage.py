@@ -15,7 +15,7 @@ from custom_components.pawcontrol.api_validator import (
 
 
 @pytest.mark.unit
-def test_api_validation_result_valid() -> None:
+def test_api_validation_result_valid() -> None:  # noqa: D103
     r = APIValidationResult(
         valid=True,
         reachable=True,
@@ -31,7 +31,7 @@ def test_api_validation_result_valid() -> None:
 
 
 @pytest.mark.unit
-def test_api_validation_result_invalid() -> None:
+def test_api_validation_result_invalid() -> None:  # noqa: D103
     r = APIValidationResult(
         valid=False,
         reachable=False,
@@ -46,7 +46,7 @@ def test_api_validation_result_invalid() -> None:
 
 
 @pytest.mark.unit
-def test_api_validation_result_partial() -> None:
+def test_api_validation_result_partial() -> None:  # noqa: D103
     r = APIValidationResult(
         valid=False,
         reachable=True,
@@ -65,13 +65,13 @@ def test_api_validation_result_partial() -> None:
 
 
 @pytest.mark.unit
-def test_api_health_status_dict() -> None:
+def test_api_health_status_dict() -> None:  # noqa: D103
     status: APIHealthStatus = {"healthy": True, "latency_ms": 35.0}
     assert status["healthy"] is True
 
 
 @pytest.mark.unit
-def test_api_health_status_unhealthy() -> None:
+def test_api_health_status_unhealthy() -> None:  # noqa: D103
     status: APIHealthStatus = {"healthy": False, "latency_ms": None, "error": "timeout"}
     assert status["healthy"] is False
 
@@ -80,12 +80,12 @@ def test_api_health_status_unhealthy() -> None:
 
 
 @pytest.mark.unit
-def test_api_auth_result_success() -> None:
+def test_api_auth_result_success() -> None:  # noqa: D103
     result: APIAuthenticationResult = {"authenticated": True, "token": "abc123"}
     assert result["authenticated"] is True
 
 
 @pytest.mark.unit
-def test_api_auth_result_failure() -> None:
+def test_api_auth_result_failure() -> None:  # noqa: D103
     result: APIAuthenticationResult = {"authenticated": False, "error": "Invalid token"}
     assert result["authenticated"] is False

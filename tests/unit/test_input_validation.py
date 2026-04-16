@@ -14,14 +14,14 @@ from custom_components.pawcontrol.input_validation import (
 )
 
 
-def test_validation_result_bool_uses_valid_flag() -> None:
+def test_validation_result_bool_uses_valid_flag() -> None:  # noqa: D103
     assert bool(ValidationResult(is_valid=True, sanitized_value="x", errors=[]))
     assert not bool(
         ValidationResult(is_valid=False, sanitized_value=None, errors=["e"])
     )
 
 
-def test_sanitize_sql_escapes_quotes_and_blocks_injection() -> None:
+def test_sanitize_sql_escapes_quotes_and_blocks_injection() -> None:  # noqa: D103
     sanitizer = InputSanitizer()
 
     assert sanitizer.sanitize_sql("O'Brien") == "O''Brien"
@@ -30,7 +30,7 @@ def test_sanitize_sql_escapes_quotes_and_blocks_injection() -> None:
         sanitizer.sanitize_sql("users; DELETE FROM accounts")
 
 
-def test_sanitize_html_and_string_filters() -> None:
+def test_sanitize_html_and_string_filters() -> None:  # noqa: D103
     sanitizer = InputSanitizer()
 
     assert sanitizer.sanitize_html("<b>Hi</b>") == "&lt;b&gt;Hi&lt;/b&gt;"
@@ -57,7 +57,7 @@ def test_sanitize_string_trims_truncates_and_preserves_safe_control_chars() -> N
     )
 
 
-def test_sanitize_url_rejects_invalid_protocols() -> None:
+def test_sanitize_url_rejects_invalid_protocols() -> None:  # noqa: D103
     sanitizer = InputSanitizer()
 
     assert (
@@ -73,7 +73,7 @@ def test_sanitize_url_rejects_invalid_protocols() -> None:
         sanitizer.sanitize_url("https://example.com/javascript:alert(1)")
 
 
-def test_sanitize_url_wraps_parse_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sanitize_url_wraps_parse_errors(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: D103
     sanitizer = InputSanitizer()
 
     monkeypatch.setattr(
@@ -85,7 +85,7 @@ def test_sanitize_url_wraps_parse_errors(monkeypatch: pytest.MonkeyPatch) -> Non
         sanitizer.sanitize_url("https://example.com")
 
 
-def test_sanitize_path_rejects_traversal_and_normalizes() -> None:
+def test_sanitize_path_rejects_traversal_and_normalizes() -> None:  # noqa: D103
     sanitizer = InputSanitizer()
 
     with pytest.raises(ValidationError, match="Path traversal"):
@@ -95,7 +95,7 @@ def test_sanitize_path_rejects_traversal_and_normalizes() -> None:
     assert normalized == str(Path("tests").resolve())
 
 
-def test_sanitize_path_rejects_parent_segment_without_trailing_separator() -> None:
+def test_sanitize_path_rejects_parent_segment_without_trailing_separator() -> None:  # noqa: D103
     sanitizer = InputSanitizer()
 
     with pytest.raises(ValidationError, match="Path traversal"):
@@ -110,14 +110,14 @@ def test_sanitize_path_rejects_parent_segment_without_trailing_separator() -> No
         "safe/%2E%2E/secrets.txt",
     ],
 )
-def test_sanitize_path_rejects_encoded_and_windows_traversal(path: str) -> None:
+def test_sanitize_path_rejects_encoded_and_windows_traversal(path: str) -> None:  # noqa: D103
     sanitizer = InputSanitizer()
 
     with pytest.raises(ValidationError, match="Path traversal"):
         sanitizer.sanitize_path(path)
 
 
-def test_validator_integer_float_and_dict_paths() -> None:
+def test_validator_integer_float_and_dict_paths() -> None:  # noqa: D103
     validator = InputValidator()
 
     type_error = validator.validate_integer(None)
@@ -153,7 +153,7 @@ def test_validator_integer_float_and_dict_paths() -> None:
     }
 
 
-def test_validator_numeric_bounds_and_dict_optional_fields() -> None:
+def test_validator_numeric_bounds_and_dict_optional_fields() -> None:  # noqa: D103
     validator = InputValidator()
 
     integer_bounds = validator.validate_integer("10", min_value=12, max_value=8)
@@ -186,7 +186,7 @@ def test_validator_numeric_bounds_and_dict_optional_fields() -> None:
     assert result.sanitized_value == {"weight": 6.5, "email": "owner@example.com"}
 
 
-def test_validator_email_phone_string_and_invalid_dict() -> None:
+def test_validator_email_phone_string_and_invalid_dict() -> None:  # noqa: D103
     validator = InputValidator()
 
     assert validator.validate_email("user@example.com").is_valid
@@ -249,7 +249,7 @@ def test_validator_phone_rejects_too_many_digits_even_with_valid_symbols() -> No
     assert result.errors == ["Invalid phone number length: 16"]
 
 
-def test_validate_and_sanitize_success_and_failure() -> None:
+def test_validate_and_sanitize_success_and_failure() -> None:  # noqa: D103
     assert sanitize_user_input("  hello\x01 ", max_length=10) == "hello"
     assert validate_and_sanitize("42", "validate_integer", min_value=0) == 42
 
@@ -300,7 +300,7 @@ def test_validator_collects_multiple_field_errors_from_schema() -> None:
     assert any(error.startswith("site:") for error in result.errors)
 
 
-def test_validate_integer_value_error_and_success_path() -> None:
+def test_validate_integer_value_error_and_success_path() -> None:  # noqa: D103
     validator = InputValidator()
 
     invalid = validator.validate_integer("not-an-int")

@@ -545,7 +545,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 self.async_write_ha_state()
 
                 _LOGGER.debug(
-                    "Updated GPS location for %s: %.6f,%.6f (accuracy: %dm, source: %s)",  # noqa: E501
+                    "Updated GPS location for %s: %.6f,%.6f (accuracy: %dm, source: %s)",
                     self._dog_name,
                     latitude,
                     longitude,
@@ -795,7 +795,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             if save_route:
                 # Save route (would normally store in database/coordinator)
                 _LOGGER.info(
-                    "Completed route recording for %s: %.2f km in %.1f minutes (%d points)",  # noqa: E501
+                    "Completed route recording for %s: %.2f km in %.1f minutes (%d points)",
                     self._dog_name,
                     distance / 1000,
                     duration / 60,
@@ -999,7 +999,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
 
         payload: GPSRouteExportJSONPayload = {
             "format": "json",
-            "filename": f"{self._dog_id}_route_{export_time.strftime('%Y%m%d_%H%M%S')}.json",  # noqa: E501
+            "filename": f"{self._dog_id}_route_{export_time.strftime('%Y%m%d_%H%M%S')}.json",
             "content": json_content,
             "routes_count": 1,
         }

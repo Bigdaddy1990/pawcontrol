@@ -987,7 +987,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         self,
         dog_data: CoordinatorDogData,
     ) -> float | None:
-        """PLATINUM: Compute activity score with memory-efficient single-pass algorithm."""  # noqa: E501
+        """PLATINUM: Compute activity score with memory-efficient single-pass algorithm."""
         weighted_sum = 0.0
         total_weight = 0.0
 

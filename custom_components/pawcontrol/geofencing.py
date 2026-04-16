@@ -164,7 +164,7 @@ class GeofenceZone:
             raise ValueError(f"Invalid longitude: {self.longitude}") from err
         if not (MIN_GEOFENCE_RADIUS <= self.radius <= MAX_GEOFENCE_RADIUS):
             raise ValueError(
-                f"Radius must be between {MIN_GEOFENCE_RADIUS} and {MAX_GEOFENCE_RADIUS} meters",  # noqa: E501
+                f"Radius must be between {MIN_GEOFENCE_RADIUS} and {MAX_GEOFENCE_RADIUS} meters",
             )
 
         self.metadata = _sanitize_zone_metadata(self.metadata)
@@ -936,7 +936,7 @@ class PawControlGeofencing:
         else:  # GeofenceEvent.DWELL
             if zone.type == GeofenceType.RESTRICTED_AREA:
                 title = f"⏱️ {dog_id} still in restricted area"
-                message = f"{dog_id} remains inside restricted zone '{zone.name}'{location_suffix}."  # noqa: E501
+                message = f"{dog_id} remains inside restricted zone '{zone.name}'{location_suffix}."
             else:
                 title = f"⏱️ {dog_id} still in {zone.name}"
                 message = (

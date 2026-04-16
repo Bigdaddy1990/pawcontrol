@@ -30,7 +30,7 @@ class _FakeConfigEntries:
         return list(self._entries)
 
 
-def test_format_expires_in_hours_error_fallback_and_range() -> None:
+def test_format_expires_in_hours_error_fallback_and_range() -> None:  # noqa: D103
     assert (
         services._format_expires_in_hours_error(
             ValidationError(
@@ -95,14 +95,14 @@ def test_format_expires_in_hours_error_fallback_and_range() -> None:
         ),
     ],
 )
-def test_format_expires_in_hours_error_full_branches(
+def test_format_expires_in_hours_error_full_branches(  # noqa: D103
     error: ValidationError,
     expected: str,
 ) -> None:
     assert services._format_expires_in_hours_error(error) == expected
 
 
-def test_service_validation_error_strips_and_rejects_empty() -> None:
+def test_service_validation_error_strips_and_rejects_empty() -> None:  # noqa: D103
     error = services._service_validation_error("  invalid value  ")
     assert isinstance(error, ServiceValidationError)
     assert str(error) == "invalid value"
@@ -113,7 +113,7 @@ def test_service_validation_error_strips_and_rejects_empty() -> None:
         services._service_validation_error("   ")
 
 
-def test_format_gps_validation_error_variants() -> None:
+def test_format_gps_validation_error_variants() -> None:  # noqa: D103
     assert (
         services._format_gps_validation_error(
             ValidationError(
@@ -148,7 +148,7 @@ def test_format_gps_validation_error_variants() -> None:
     )
 
 
-def test_format_text_validation_error_variants() -> None:
+def test_format_text_validation_error_variants() -> None:  # noqa: D103
     assert (
         services._format_text_validation_error(
             ValidationError("note", constraint="field_required")
@@ -176,27 +176,27 @@ def test_format_text_validation_error_variants() -> None:
 
 
 @pytest.mark.parametrize("value", [True, "yes", "enable", "1", 1])
-def test_coerce_service_bool_true_values(value: object) -> None:
+def test_coerce_service_bool_true_values(value: object) -> None:  # noqa: D103
     assert services._coerce_service_bool(value, field="enabled") is True
 
 
 @pytest.mark.parametrize("value", ["  TRUE ", "Enabled", " On "])
-def test_coerce_service_bool_true_string_normalization(value: object) -> None:
+def test_coerce_service_bool_true_string_normalization(value: object) -> None:  # noqa: D103
     assert services._coerce_service_bool(value, field="enabled") is True
 
 
 @pytest.mark.parametrize("value", [False, "off", "disable", "0", 0])
-def test_coerce_service_bool_false_values(value: object) -> None:
+def test_coerce_service_bool_false_values(value: object) -> None:  # noqa: D103
     assert services._coerce_service_bool(value, field="enabled") is False
 
 
 @pytest.mark.parametrize("value", ["  FALSE ", "Disabled", " Off "])
-def test_coerce_service_bool_false_string_normalization(value: object) -> None:
+def test_coerce_service_bool_false_string_normalization(value: object) -> None:  # noqa: D103
     assert services._coerce_service_bool(value, field="enabled") is False
 
 
 @pytest.mark.asyncio
-async def test_coerce_service_bool_invalid(
+async def test_coerce_service_bool_invalid(  # noqa: D103
     assert_service_error_handling,
 ) -> None:
     await assert_service_error_handling(
@@ -214,7 +214,7 @@ async def test_coerce_service_bool_invalid(
     ],
 )
 @pytest.mark.asyncio
-async def test_service_validation_error_requires_non_empty_message(
+async def test_service_validation_error_requires_non_empty_message(  # noqa: D103
     raw_message: str,
     expected_exception: type[Exception],
     message_match: str,
@@ -264,7 +264,7 @@ async def test_service_validation_error_requires_non_empty_message(
         ),
     ],
 )
-def test_format_gps_validation_error_variants(  # noqa: F811
+def test_format_gps_validation_error_variants(  # noqa: D103, F811
     error: ValidationError,
     unit: str | None,
     message: str,
@@ -293,7 +293,7 @@ def test_format_gps_validation_error_variants(  # noqa: F811
         ),
     ],
 )
-def test_format_text_validation_error_variants(  # noqa: F811
+def test_format_text_validation_error_variants(  # noqa: D103, F811
     error: ValidationError,
     message: str,
 ) -> None:
@@ -304,7 +304,7 @@ def test_format_text_validation_error_variants(  # noqa: F811
     ("value", "expected"),
     [(2.0, "2"), (2.5, "2.5"), ("3.0", "3.0")],
 )
-def test_format_numeric_value_preserves_stable_text(
+def test_format_numeric_value_preserves_stable_text(  # noqa: D103
     value: object,
     expected: str,
 ) -> None:
@@ -350,7 +350,7 @@ def test_format_numeric_value_preserves_stable_text(
         ),
     ],
 )
-def test_format_gps_validation_error_additional_constraints(
+def test_format_gps_validation_error_additional_constraints(  # noqa: D103
     error: ValidationError,
     unit: str | None,
     expected: str,
@@ -358,13 +358,13 @@ def test_format_gps_validation_error_additional_constraints(
     assert services._format_gps_validation_error(error, unit=unit) == expected
 
 
-def test_normalise_context_identifier_handles_bad_string_conversion() -> None:
+def test_normalise_context_identifier_handles_bad_string_conversion() -> None:  # noqa: D103
     assert services._normalise_context_identifier(None) is None
     assert services._normalise_context_identifier("  id ") == "id"
     assert services._normalise_context_identifier(_ExplodingStr()) is None
 
 
-def test_extract_service_context_from_mapping() -> None:
+def test_extract_service_context_from_mapping() -> None:  # noqa: D103
     call = SimpleNamespace(context={"id": " ctx ", "parent_id": None, "user_id": "u1"})
     context, metadata = services._extract_service_context(call)
 
@@ -373,7 +373,7 @@ def test_extract_service_context_from_mapping() -> None:
     assert metadata == {"context_id": "ctx", "parent_id": None, "user_id": "u1"}
 
 
-def test_merge_service_context_metadata_supports_include_none() -> None:
+def test_merge_service_context_metadata_supports_include_none() -> None:  # noqa: D103
     target: dict[str, object] = {}
     services._merge_service_context_metadata(
         target, {"context_id": "x", "parent_id": None}
@@ -475,7 +475,7 @@ async def test_daily_reset_scheduler_returns_none_when_time_parsing_fails() -> N
     entry.async_on_unload.assert_not_called()
 
 
-def test_record_delivery_failure_reason_updates_metrics() -> None:
+def test_record_delivery_failure_reason_updates_metrics() -> None:  # noqa: D103
     runtime_data = SimpleNamespace(performance_stats={})
     services._record_delivery_failure_reason(runtime_data, reason="network")
     services._record_delivery_failure_reason(runtime_data, reason=" ", error="boom")
@@ -485,7 +485,7 @@ def test_record_delivery_failure_reason_updates_metrics() -> None:
     assert metrics["last_failure_reason"] in metrics["failure_reasons"]
 
 
-def test_coordinator_resolver_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_coordinator_resolver_paths(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: D103
     coordinator = SimpleNamespace(
         hass=SimpleNamespace(),
         config_entry=SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="id-1"),
@@ -504,7 +504,7 @@ def test_coordinator_resolver_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resolver.resolve() is coordinator
 
 
-def test_coordinator_resolver_invalidate_respects_entry_id() -> None:
+def test_coordinator_resolver_invalidate_respects_entry_id() -> None:  # noqa: D103
     resolver = services._CoordinatorResolver(SimpleNamespace())
     resolver._cached_coordinator = SimpleNamespace()  # type: ignore[attr-defined]
     resolver._cached_entry_id = "entry-1"  # type: ignore[attr-defined]
@@ -516,7 +516,7 @@ def test_coordinator_resolver_invalidate_respects_entry_id() -> None:
     assert resolver._cached_coordinator is None  # type: ignore[attr-defined]
 
 
-def test_coordinator_resolver_get_cached_invalid_states() -> None:
+def test_coordinator_resolver_get_cached_invalid_states() -> None:  # noqa: D103
     wrong_hass = SimpleNamespace()
     current_hass = SimpleNamespace()
     coordinator = SimpleNamespace(
@@ -540,7 +540,7 @@ def test_coordinator_resolver_get_cached_invalid_states() -> None:
     assert resolver._get_cached_coordinator() is None  # type: ignore[attr-defined]
 
 
-def test_extract_service_context_none_and_passthrough_context_name() -> None:
+def test_extract_service_context_none_and_passthrough_context_name() -> None:  # noqa: D103
     call_without_context = SimpleNamespace()
     context, metadata = services._extract_service_context(call_without_context)
     assert context is None
@@ -562,21 +562,21 @@ def test_extract_service_context_none_and_passthrough_context_name() -> None:
     }
 
 
-def test_merge_service_context_metadata_ignores_non_string_keys() -> None:
+def test_merge_service_context_metadata_ignores_non_string_keys() -> None:  # noqa: D103
     target: dict[str, object] = {}
     source = cast(dict[str, object], {1: "skip", "context_id": "ctx"})
     services._merge_service_context_metadata(target, source)
     assert target == {"context_id": "ctx"}
 
 
-def test_coordinator_resolver_error_messages() -> None:
+def test_coordinator_resolver_error_messages() -> None:  # noqa: D103
     hass = SimpleNamespace(config_entries=_FakeConfigEntries([]))
     resolver = services._CoordinatorResolver(hass)
     with pytest.raises(ServiceValidationError, match="not set up"):
         resolver.resolve()
 
 
-def test_coordinator_resolver_initializing_and_runtime_not_ready_errors(
+def test_coordinator_resolver_initializing_and_runtime_not_ready_errors(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     loading_entry = SimpleNamespace(state=ConfigEntryState.SETUP_IN_PROGRESS)
@@ -592,7 +592,7 @@ def test_coordinator_resolver_initializing_and_runtime_not_ready_errors(
         services._CoordinatorResolver(hass_loaded).resolve()
 
 
-def test_coordinator_resolver_accessor_reuses_cached_instance() -> None:
+def test_coordinator_resolver_accessor_reuses_cached_instance() -> None:  # noqa: D103
     hass = SimpleNamespace(data={})
     first = services._coordinator_resolver(hass)
     second = services._coordinator_resolver(hass)
@@ -604,7 +604,7 @@ def test_coordinator_resolver_accessor_reuses_cached_instance() -> None:
     assert isinstance(replaced, services._CoordinatorResolver)
 
 
-def test_capture_cache_diagnostics_normalises_payloads(
+def test_capture_cache_diagnostics_normalises_payloads(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
@@ -631,14 +631,14 @@ def test_capture_cache_diagnostics_normalises_payloads(
     assert result["repair_summary"]["repaired"] == 1
 
 
-def test_capture_cache_diagnostics_handles_empty_capture(
+def test_capture_cache_diagnostics_handles_empty_capture(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(services, "capture_cache_diagnostics", lambda _runtime: None)
     assert services._capture_cache_diagnostics(SimpleNamespace()) is None
 
 
-def test_get_runtime_data_for_coordinator_handles_lookup_failure(
+def test_get_runtime_data_for_coordinator_handles_lookup_failure(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     coordinator = SimpleNamespace(
@@ -652,7 +652,7 @@ def test_get_runtime_data_for_coordinator_handles_lookup_failure(
     assert services._get_runtime_data_for_coordinator(coordinator) is None
 
 
-def test_normalise_service_details_and_error_details_helpers() -> None:
+def test_normalise_service_details_and_error_details_helpers() -> None:  # noqa: D103
     payload = {"a": 1, "b": {1, 2}, "c": {"nested": object()}}
     normalised = services._normalise_service_details(payload)
     assert normalised is not None
@@ -673,7 +673,7 @@ def test_normalise_service_details_and_error_details_helpers() -> None:
     assert details["notification_id"] == "notify-1"
 
 
-def test_record_service_result_collects_guard_and_metadata() -> None:
+def test_record_service_result_collects_guard_and_metadata() -> None:  # noqa: D103
     runtime_data = SimpleNamespace(performance_stats={})
 
     services._record_service_result(
@@ -719,7 +719,7 @@ def test_record_service_result_sets_resilience_summary_when_diagnostics_present(
 
 
 @pytest.mark.asyncio
-async def test_setup_and_unload_services_registers_handlers(
+async def test_setup_and_unload_services_registers_handlers(  # noqa: D103
     mock_hass: SimpleNamespace,
 ) -> None:
     mock_hass.data = {}
@@ -738,7 +738,7 @@ async def test_setup_and_unload_services_registers_handlers(
     assert mock_hass.services.async_remove.call_count > 10
 
 
-def test_extract_service_context_from_context_instance() -> None:
+def test_extract_service_context_from_context_instance() -> None:  # noqa: D103
     ctx = Context(context_id="ctx", parent_id="p", user_id="u")
     call = SimpleNamespace(context=ctx)
 
@@ -747,7 +747,7 @@ def test_extract_service_context_from_context_instance() -> None:
     assert metadata == {"context_id": "ctx", "parent_id": "p", "user_id": "u"}
 
 
-def test_coordinator_resolver_helper_stores_instance(
+def test_coordinator_resolver_helper_stores_instance(  # noqa: D103
     mock_hass: SimpleNamespace,
 ) -> None:
     mock_hass.data = {}
@@ -755,14 +755,14 @@ def test_coordinator_resolver_helper_stores_instance(
     assert resolver is services._coordinator_resolver(mock_hass)
 
 
-def test_capture_cache_diagnostics_returns_none_when_unavailable(
+def test_capture_cache_diagnostics_returns_none_when_unavailable(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(services, "capture_cache_diagnostics", lambda _runtime: None)
     assert services._capture_cache_diagnostics(SimpleNamespace()) is None
 
 
-def test_normalise_service_details_payloads() -> None:
+def test_normalise_service_details_payloads() -> None:  # noqa: D103
     set_payload = services._coerce_service_details_value({1, 2})
     assert isinstance(set_payload, list)
     assert sorted(set_payload) == [1, 2]
@@ -770,7 +770,7 @@ def test_normalise_service_details_payloads() -> None:
     assert services._normalise_service_details("x") == {"value": "x"}
 
 
-def test_build_error_details_includes_notification_id() -> None:
+def test_build_error_details_includes_notification_id() -> None:  # noqa: D103
     details = services._build_error_details(
         reason="network timeout",
         error="gateway timeout",
@@ -949,7 +949,7 @@ def test_record_service_result_keeps_existing_guard_details_payload() -> None:
     assert recorded["guard"]["executed"] == 0
 
 
-def test_coordinator_resolver_raises_when_runtime_data_not_ready() -> None:
+def test_coordinator_resolver_raises_when_runtime_data_not_ready() -> None:  # noqa: D103
     entry = SimpleNamespace(state=ConfigEntryState.LOADED, entry_id="id-1")
     hass = SimpleNamespace(config_entries=_FakeConfigEntries([entry]))
 
@@ -963,7 +963,7 @@ def test_coordinator_resolver_raises_when_runtime_data_not_ready() -> None:
         services._CoordinatorResolver(hass)._resolve_from_sources()
 
 
-def test_coordinator_resolver_raises_for_initializing_and_missing_setup() -> None:
+def test_coordinator_resolver_raises_for_initializing_and_missing_setup() -> None:  # noqa: D103
     initializing_entry = SimpleNamespace(
         state=ConfigEntryState.SETUP_IN_PROGRESS,
         entry_id="id-2",
@@ -980,7 +980,7 @@ def test_coordinator_resolver_raises_for_initializing_and_missing_setup() -> Non
         services._CoordinatorResolver(hass_missing)._resolve_from_sources()
 
 
-def test_coordinator_resolver_callback_reuses_cached_instance() -> None:
+def test_coordinator_resolver_callback_reuses_cached_instance() -> None:  # noqa: D103
     hass = SimpleNamespace(data={DOMAIN: {}})
 
     first = services._coordinator_resolver(hass)
@@ -989,7 +989,7 @@ def test_coordinator_resolver_callback_reuses_cached_instance() -> None:
     assert first is second
 
 
-def test_extract_service_context_from_attributes() -> None:
+def test_extract_service_context_from_attributes() -> None:  # noqa: D103
     call = SimpleNamespace(
         context=SimpleNamespace(id="  abc ", parent_id=None, user_id=" user-1 ")
     )

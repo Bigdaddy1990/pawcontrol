@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping  # noqa: D100
 from dataclasses import dataclass
 from datetime import UTC, datetime, timezone
 from typing import cast
@@ -68,14 +68,14 @@ def _make_feeding_payload(
     return cast(FeedingModuleTelemetry, base)
 
 
-def test_calculate_activity_level_prefers_health_snapshot() -> None:
+def test_calculate_activity_level_prefers_health_snapshot() -> None:  # noqa: D103
     walk_data = _make_walk_payload({"walks_today": 3, "total_duration_today": 95.0})
     health_data = _make_health_payload({"activity_level": "very_high"})
     assert calculate_activity_level(walk_data, health_data) == "very_high"
     assert calculate_activity_level(None, None) == "unknown"
 
 
-def test_module_payload_helpers_filter_non_mapping_module_data() -> None:
+def test_module_payload_helpers_filter_non_mapping_module_data() -> None:  # noqa: D103
     @dataclass(slots=True)
     class _Provider:
         value: object
@@ -87,7 +87,7 @@ def test_module_payload_helpers_filter_non_mapping_module_data() -> None:
     assert _walk_payload(_Provider(value=["unexpected"])) is None
 
 
-def test_health_and_feeding_payload_helpers_use_module_specific_keys() -> None:
+def test_health_and_feeding_payload_helpers_use_module_specific_keys() -> None:  # noqa: D103
     @dataclass(slots=True)
     class _Provider:
         values: dict[str, object]
@@ -106,7 +106,7 @@ def test_health_and_feeding_payload_helpers_use_module_specific_keys() -> None:
     assert _feeding_payload(provider) == {"last_feeding": "2024-01-01T10:00:00+00:00"}
 
 
-def test_normalise_attributes_converts_datetimes_to_isoformat() -> None:
+def test_normalise_attributes_converts_datetimes_to_isoformat() -> None:  # noqa: D103
     attrs = {
         "last_updated": datetime(2024, 1, 1, 12, 30, tzinfo=UTC),
         "count": 3,
@@ -138,7 +138,7 @@ def test_calculate_activity_level_uses_walk_baseline_when_health_level_not_strin
     assert calculate_activity_level(walk_data, health_data) == "low"
 
 
-def test_calculate_calories_burned_today_applies_multiplier() -> None:
+def test_calculate_calories_burned_today_applies_multiplier() -> None:  # noqa: D103
     walk_data = _make_walk_payload({
         "total_distance_today": 2000.0,
         "total_duration_today": 60.0,
@@ -155,7 +155,7 @@ def test_calculate_calories_burned_today_handles_invalid_numeric_input() -> None
     assert calculate_calories_burned_today(None, 25.0, None) == 0.0
 
 
-def test_calculate_hours_since_uses_reference_timestamp() -> None:
+def test_calculate_hours_since_uses_reference_timestamp() -> None:  # noqa: D103
     reference = datetime(2024, 1, 1, 16, 0, tzinfo=timezone.utc)  # noqa: UP017
     assert (
         calculate_hours_since("2024-01-01T10:00:00+00:00", reference=reference) == 6.0
@@ -163,12 +163,12 @@ def test_calculate_hours_since_uses_reference_timestamp() -> None:
     assert calculate_hours_since(None, reference=reference) is None
 
 
-def test_calculate_hours_since_rejects_unparseable_timestamps() -> None:
+def test_calculate_hours_since_rejects_unparseable_timestamps() -> None:  # noqa: D103
     reference = datetime(2024, 1, 1, 16, 0, tzinfo=UTC)
     assert calculate_hours_since("not-a-timestamp", reference=reference) is None
 
 
-def test_calculate_hours_since_uses_dt_util_now_when_reference_missing(
+def test_calculate_hours_since_uses_dt_util_now_when_reference_missing(  # noqa: D103
     monkeypatch,
 ) -> None:
     frozen_now = datetime(2024, 1, 1, 16, 0, tzinfo=UTC)
@@ -180,7 +180,7 @@ def test_calculate_hours_since_uses_dt_util_now_when_reference_missing(
     assert calculate_hours_since("2024-01-01T10:00:00+00:00") == 6.0
 
 
-def test_derive_next_feeding_time_respects_schedule() -> None:
+def test_derive_next_feeding_time_respects_schedule() -> None:  # noqa: D103
     feeding_data = _make_feeding_payload({"config": {"meals_per_day": 3}})
     assert derive_next_feeding_time(feeding_data) == "16:00"
     invalid_data = _make_feeding_payload({"config": {"meals_per_day": 0}})

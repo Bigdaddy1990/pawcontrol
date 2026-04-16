@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime  # noqa: D100
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -36,7 +36,7 @@ async def _create_manager(mock_hass: object, tmp_path: Path) -> PawControlDataMa
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_writes_markdown_for_export_single(
+async def test_async_export_data_writes_markdown_for_export_single(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -57,7 +57,7 @@ async def test_async_export_data_writes_markdown_for_export_single(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_routes_uses_gpx_fallback_and_default_filename(
+async def test_async_export_data_routes_uses_gpx_fallback_and_default_filename(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -79,7 +79,7 @@ async def test_async_export_data_routes_uses_gpx_fallback_and_default_filename(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_all_manifest_is_consistent_on_success(
+async def test_async_export_data_all_manifest_is_consistent_on_success(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -128,7 +128,7 @@ async def test_async_export_data_all_manifest_is_consistent_on_success(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_routes_rejects_missing_payload(
+async def test_async_export_data_routes_rejects_missing_payload(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -144,7 +144,7 @@ async def test_async_export_data_routes_rejects_missing_payload(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_supports_csv_export_single(
+async def test_async_export_data_supports_csv_export_single(  # noqa: D103
     mock_hass: object, tmp_path: Path
 ) -> None:
     manager = await _create_manager(mock_hass, tmp_path)
@@ -165,7 +165,7 @@ async def test_async_export_data_supports_csv_export_single(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_falls_back_to_json_for_unknown_format(
+async def test_async_export_data_falls_back_to_json_for_unknown_format(  # noqa: D103
     mock_hass: object, tmp_path: Path
 ) -> None:
     manager = await _create_manager(mock_hass, tmp_path)
@@ -182,7 +182,7 @@ async def test_async_export_data_falls_back_to_json_for_unknown_format(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_routes_json_wraps_invalid_content(
+async def test_async_export_data_routes_json_wraps_invalid_content(  # noqa: D103
     mock_hass: object, tmp_path: Path
 ) -> None:
     manager = await _create_manager(mock_hass, tmp_path)
@@ -201,7 +201,7 @@ async def test_async_export_data_routes_json_wraps_invalid_content(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_raises_when_export_single_receives_unsupported_type(
+async def test_async_export_data_raises_when_export_single_receives_unsupported_type(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -212,7 +212,7 @@ async def test_async_export_data_raises_when_export_single_receives_unsupported_
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_raises_without_garden_manager(
+async def test_async_export_data_raises_without_garden_manager(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -224,7 +224,7 @@ async def test_async_export_data_raises_without_garden_manager(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_raises_without_routes_manager(
+async def test_async_export_data_raises_without_routes_manager(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -236,7 +236,7 @@ async def test_async_export_data_raises_without_routes_manager(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_routes_bubbles_type_error_from_bad_filename(
+async def test_async_export_data_routes_bubbles_type_error_from_bad_filename(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -254,7 +254,7 @@ async def test_async_export_data_routes_bubbles_type_error_from_bad_filename(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_all_propagates_export_exception(
+async def test_async_export_data_all_propagates_export_exception(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -277,7 +277,7 @@ async def test_async_export_data_all_propagates_export_exception(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_all_allow_partial_records_errors_and_continues(
+async def test_async_export_data_all_allow_partial_records_errors_and_continues(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -315,7 +315,7 @@ async def test_async_export_data_all_allow_partial_records_errors_and_continues(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_all_allow_partial_raises_when_every_export_fails(
+async def test_async_export_data_all_allow_partial_raises_when_every_export_fails(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -344,7 +344,7 @@ async def test_async_export_data_all_allow_partial_raises_when_every_export_fail
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_all_allow_partial_collects_oserror_details(
+async def test_async_export_data_all_allow_partial_collects_oserror_details(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -378,7 +378,7 @@ async def test_async_export_data_all_allow_partial_collects_oserror_details(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_all_allow_partial_still_surfaces_manifest_io_failures(
+async def test_async_export_data_all_allow_partial_still_surfaces_manifest_io_failures(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:

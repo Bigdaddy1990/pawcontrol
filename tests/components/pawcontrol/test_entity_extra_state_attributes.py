@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable  # noqa: D100
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 import json

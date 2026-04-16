@@ -27,7 +27,7 @@ class DummyManager(BaseManager):
     MANAGER_NAME = "DummyManager"
     MANAGER_VERSION = "1.0.0"
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:  # noqa: D107
         super().__init__(*args, **kwargs)
         self.setup_called = False
         self.shutdown_called = False

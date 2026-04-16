@@ -469,7 +469,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
                 # Common mobile app service patterns
                 mobile_patterns = [
                     f"mobile_app_{source.split('.')[-1]}",
-                    f"mobile_app_{person_state.attributes.get('friendly_name', '').replace(' ', '_').lower()}",  # noqa: E501
+                    f"mobile_app_{person_state.attributes.get('friendly_name', '').replace(' ', '_').lower()}",
                     f"mobile_app_{person_entity_id.split('.')[-1]}",
                 ]
 

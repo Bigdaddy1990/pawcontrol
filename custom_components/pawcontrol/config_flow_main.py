@@ -419,7 +419,7 @@ class PawControlConfigFlow(
                             str(dog_name) if dog_name is not None else "unknown"
                         )
                         validation_errors.append(
-                            f"Profile '{profile}' may not be optimal for dog '{dog_name_str}'",  # noqa: E501
+                            f"Profile '{profile}' may not be optimal for dog '{dog_name_str}'",
                         )
 
                 if validation_errors:
@@ -1297,7 +1297,7 @@ class PawControlConfigFlow(
                                     "dogs_count": str(len(self._dogs)),
                                     "profiles_info": self._get_profiles_info_enhanced(),
                                     "profiles_summary": build_profile_summary_text(),
-                                    "recommendation": self._get_profile_recommendation(),  # noqa: E501
+                                    "recommendation": self._get_profile_recommendation(),
                                 },
                             ),
                         ),
@@ -1373,7 +1373,7 @@ class PawControlConfigFlow(
                     validation_results["errors"],
                 )
                 raise PawControlSetupError(
-                    f"Setup validation failed: {'; '.join(validation_results['errors'])}",  # noqa: E501
+                    f"Setup validation failed: {'; '.join(validation_results['errors'])}",
                 )
 
             if not self._validate_profile_compatibility():
@@ -2359,7 +2359,7 @@ class PawControlConfigFlow(
         if updated_name and updated_name != existing_name:
             if existing_name:
                 merge_notes.append(
-                    f"{dog_id}: your {source_label} renamed this dog from '{existing_name}' to '{updated_name}'.",  # noqa: E501
+                    f"{dog_id}: your {source_label} renamed this dog from '{existing_name}' to '{updated_name}'.",
                 )
             else:
                 merge_notes.append(

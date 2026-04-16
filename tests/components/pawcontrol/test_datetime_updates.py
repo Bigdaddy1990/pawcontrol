@@ -43,7 +43,7 @@ async def _setup_runtime_data(
 
 
 @pytest.mark.asyncio
-async def test_next_feeding_datetime_persists_and_refreshes(
+async def test_next_feeding_datetime_persists_and_refreshes(  # noqa: D103
     mock_hass,
     mock_config_entry,
     mock_coordinator,

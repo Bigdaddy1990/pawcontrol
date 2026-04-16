@@ -1123,7 +1123,7 @@ class GPSGeofenceManager:
             )
         except Exception as err:
             _LOGGER.debug(
-                "Failed to update location from device tracker for %s after retries: %s",  # noqa: E501
+                "Failed to update location from device tracker for %s after retries: %s",
                 dog_id,
                 err,
             )
@@ -1238,7 +1238,7 @@ class GPSGeofenceManager:
             else:
                 duration = event_payload.get("duration_seconds")
                 minutes = duration / 60 if isinstance(duration, int) else 0.0
-                message = f"{event.dog_id} has been outside {zone_name} for {minutes:.1f} minutes"  # noqa: E501
+                message = f"{event.dog_id} has been outside {zone_name} for {minutes:.1f} minutes"
                 priority = NotificationPriority.URGENT
 
             coordinates: GeofenceNotificationCoordinates = {

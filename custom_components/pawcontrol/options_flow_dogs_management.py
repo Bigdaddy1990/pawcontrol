@@ -149,7 +149,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                         "current_dogs_count": str(len(current_dogs)),
                         "dogs_list": "\n".join(
                             [
-                                f"• {dog.get(CONF_DOG_NAME, 'Unknown')} ({dog.get(CONF_DOG_ID, 'unknown')})"  # noqa: E501
+                                f"• {dog.get(CONF_DOG_NAME, 'Unknown')} ({dog.get(CONF_DOG_ID, 'unknown')})"
                                 for dog in current_dogs
                                 if isinstance(dog, Mapping)
                             ],
@@ -548,7 +548,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         }
 
         enabled_modules = [
-            f"• {module_labels.get(module, module)}: {module_descriptions.get(module, 'Module functionality')}"  # noqa: E501
+            f"• {module_labels.get(module, module)}: {module_descriptions.get(module, 'Module functionality')}"
             for module, enabled in current_modules_dict.items()
             if enabled
         ]
@@ -988,7 +988,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 freeze_placeholders(
                     {
                         "warning": (
-                            "This will permanently remove the selected dog and all associated data!"  # noqa: E501
+                            "This will permanently remove the selected dog and all associated data!"
                         ),
                     },
                 ),

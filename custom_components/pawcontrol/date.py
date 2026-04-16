@@ -863,7 +863,7 @@ class PawControlDewormingDate(PawControlDateBase):
                 "log_health_data",
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    "note": f"Deworming treatment recorded for {value.strftime('%Y-%m-%d')}",  # noqa: E501
+                    "note": f"Deworming treatment recorded for {value.strftime('%Y-%m-%d')}",
                     "health_status": "treated",
                 },
             ):

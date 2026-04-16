@@ -8,13 +8,13 @@ from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
 # Ensure Home Assistant stubs are available for helper imports.
 install_homeassistant_stubs()
 
-from homeassistant.util import dt as dt_util
+from homeassistant.util import dt as dt_util  # noqa: E402
 
 if not hasattr(dt_util, "utcnow"):
     dt_util.utcnow = lambda: datetime.now(UTC)
 
-from custom_components.pawcontrol import helpers as helpers_module
-from custom_components.pawcontrol.helpers import OptimizedDataCache
+from custom_components.pawcontrol import helpers as helpers_module  # noqa: E402
+from custom_components.pawcontrol.helpers import OptimizedDataCache  # noqa: E402
 
 
 def test_get_handles_expiration(monkeypatch) -> None:

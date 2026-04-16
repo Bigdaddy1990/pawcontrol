@@ -17,12 +17,12 @@ from custom_components.pawcontrol.coordinator_access_enforcement import (
 
 
 @pytest.mark.unit
-def test_log_direct_access_warning_no_raise() -> None:
+def test_log_direct_access_warning_no_raise() -> None:  # noqa: D103
     log_direct_access_warning("sensor.rex_weight", "weight")
 
 
 @pytest.mark.unit
-def test_log_direct_access_warning_with_method() -> None:
+def test_log_direct_access_warning_with_method() -> None:  # noqa: D103
     log_direct_access_warning(
         "sensor.rex_activity",
         "activity",
@@ -34,7 +34,7 @@ def test_log_direct_access_warning_with_method() -> None:
 
 
 @pytest.mark.unit
-def test_print_access_guidelines_no_raise() -> None:
+def test_print_access_guidelines_no_raise() -> None:  # noqa: D103
     print_access_guidelines()
 
 
@@ -42,19 +42,19 @@ def test_print_access_guidelines_no_raise() -> None:
 
 
 @pytest.mark.unit
-def test_coordinator_access_violation_init() -> None:
+def test_coordinator_access_violation_init() -> None:  # noqa: D103
     err = CoordinatorAccessViolation("direct access not allowed")
     assert isinstance(err, Exception)
 
 
 @pytest.mark.unit
-def test_coordinator_access_violation_with_entity_id() -> None:
+def test_coordinator_access_violation_with_entity_id() -> None:  # noqa: D103
     err = CoordinatorAccessViolation("access error", entity_id="sensor.rex_weight")
     assert err.entity_id == "sensor.rex_weight"
 
 
 @pytest.mark.unit
-def test_coordinator_access_violation_raise() -> None:
+def test_coordinator_access_violation_raise() -> None:  # noqa: D103
     with pytest.raises(CoordinatorAccessViolation):
         raise CoordinatorAccessViolation("test violation")
 
@@ -63,21 +63,21 @@ def test_coordinator_access_violation_raise() -> None:
 
 
 @pytest.mark.unit
-def test_coordinator_data_proxy_init() -> None:
+def test_coordinator_data_proxy_init() -> None:  # noqa: D103
     data = {"dog_id": "rex", "weight": 22.0}
     proxy = CoordinatorDataProxy(data, "sensor.rex_weight")
     assert proxy is not None
 
 
 @pytest.mark.unit
-def test_coordinator_data_proxy_no_log() -> None:
+def test_coordinator_data_proxy_no_log() -> None:  # noqa: D103
     data = {"feeding": {"meals": 2}}
     proxy = CoordinatorDataProxy(data, "sensor.rex_feeding", log_access=False)
     assert proxy is not None
 
 
 @pytest.mark.unit
-def test_coordinator_data_proxy_get() -> None:
+def test_coordinator_data_proxy_get() -> None:  # noqa: D103
     data = {"dog_id": "rex", "weight": 22.0}
     proxy = CoordinatorDataProxy(data, "test_accessor", log_access=False)
     result = proxy.get("dog_id")
@@ -85,7 +85,7 @@ def test_coordinator_data_proxy_get() -> None:
 
 
 @pytest.mark.unit
-def test_coordinator_data_proxy_get_missing_key() -> None:
+def test_coordinator_data_proxy_get_missing_key() -> None:  # noqa: D103
     proxy = CoordinatorDataProxy({}, "test", log_access=False)
     result = proxy.get("nonexistent", "default")
     assert result == "default" or result is None

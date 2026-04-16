@@ -25,7 +25,7 @@ async def _create_manager(mock_hass: object, tmp_path: Path) -> PawControlDataMa
     return manager
 
 
-def test_cache_repair_summary_uses_provider_and_returns_warning_without_errors(
+def test_cache_repair_summary_uses_provider_and_returns_warning_without_errors(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -52,7 +52,7 @@ def test_cache_repair_summary_uses_provider_and_returns_warning_without_errors(
     assert summary["caches_with_low_hit_rate"] == ["cache-a"]
 
 
-def test_cache_repair_summary_handles_value_error_and_type_fallbacks(
+def test_cache_repair_summary_handles_value_error_and_type_fallbacks(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -99,7 +99,7 @@ def test_cache_repair_summary_handles_value_error_and_type_fallbacks(
     assert summary["caches_with_timestamp_anomalies"] == ["cache-main"]
 
 
-def test_cache_repair_summary_returns_none_for_empty_snapshots(
+def test_cache_repair_summary_returns_none_for_empty_snapshots(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -110,7 +110,7 @@ def test_cache_repair_summary_returns_none_for_empty_snapshots(
 
 
 @pytest.mark.asyncio
-async def test_async_generate_report_defaults_sections_and_handles_notification_failure(
+async def test_async_generate_report_defaults_sections_and_handles_notification_failure(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -161,7 +161,7 @@ async def test_async_generate_report_defaults_sections_and_handles_notification_
 
 
 @pytest.mark.asyncio
-async def test_async_generate_report_adds_detailed_health_section_when_available(
+async def test_async_generate_report_adds_detailed_health_section_when_available(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -190,7 +190,7 @@ async def test_async_generate_report_adds_detailed_health_section_when_available
 
 
 @pytest.mark.asyncio
-async def test_async_generate_report_consistent_with_invalid_entries(
+async def test_async_generate_report_consistent_with_invalid_entries(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:

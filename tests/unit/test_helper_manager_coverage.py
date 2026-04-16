@@ -16,19 +16,19 @@ from custom_components.pawcontrol.helper_manager import (
 
 
 @pytest.mark.unit
-def test_ensure_dog_config_data_valid() -> None:
+def test_ensure_dog_config_data_valid() -> None:  # noqa: D103
     result = ensure_dog_config_data({"dog_id": "rex", "dog_name": "Rex"})
     assert result is not None or result is None
 
 
 @pytest.mark.unit
-def test_ensure_dog_config_data_empty() -> None:
+def test_ensure_dog_config_data_empty() -> None:  # noqa: D103
     result = ensure_dog_config_data({})
     assert result is None or isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_ensure_dog_config_data_full() -> None:
+def test_ensure_dog_config_data_full() -> None:  # noqa: D103
     data = {"dog_id": "rex", "dog_name": "Rex", "dog_breed": "Lab", "dog_weight": 22.0}
     result = ensure_dog_config_data(data)
     assert result is None or isinstance(result, dict)
@@ -38,13 +38,13 @@ def test_ensure_dog_config_data_full() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_dog_modules_config_empty() -> None:
+def test_ensure_dog_modules_config_empty() -> None:  # noqa: D103
     result = ensure_dog_modules_config({})
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_ensure_dog_modules_config_with_values() -> None:
+def test_ensure_dog_modules_config_with_values() -> None:  # noqa: D103
     result = ensure_dog_modules_config({"feeding": True, "walk": False})
     assert isinstance(result, dict)
     assert result.get("feeding") is True
@@ -54,19 +54,19 @@ def test_ensure_dog_modules_config_with_values() -> None:
 
 
 @pytest.mark.unit
-def test_cache_diagnostics_snapshot_init() -> None:
+def test_cache_diagnostics_snapshot_init() -> None:  # noqa: D103
     snap = CacheDiagnosticsSnapshot()
     assert snap is not None
 
 
 @pytest.mark.unit
-def test_cache_diagnostics_snapshot_with_stats() -> None:
+def test_cache_diagnostics_snapshot_with_stats() -> None:  # noqa: D103
     snap = CacheDiagnosticsSnapshot(stats={"hit_rate": 0.87, "total": 42})
     assert snap is not None
 
 
 @pytest.mark.unit
-def test_cache_diagnostics_snapshot_with_error() -> None:
+def test_cache_diagnostics_snapshot_with_error() -> None:  # noqa: D103
     snap = CacheDiagnosticsSnapshot(error="Cache unavailable")
     assert snap.error == "Cache unavailable"
 
@@ -75,7 +75,7 @@ def test_cache_diagnostics_snapshot_with_error() -> None:
 
 
 @pytest.mark.unit
-def test_helper_entity_metadata_as_dict() -> None:
+def test_helper_entity_metadata_as_dict() -> None:  # noqa: D103
     meta: HelperEntityMetadata = {
         "domain": "input_text",
         "name": "Dog Notes",

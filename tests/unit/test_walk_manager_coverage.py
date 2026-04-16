@@ -13,44 +13,44 @@ from custom_components.pawcontrol.walk_manager import is_number, normalize_value
 
 
 @pytest.mark.unit
-def test_is_number_int() -> None:
+def test_is_number_int() -> None:  # noqa: D103
     assert is_number(42) is True
 
 
 @pytest.mark.unit
-def test_is_number_float() -> None:
+def test_is_number_float() -> None:  # noqa: D103
     assert is_number(3.14) is True
 
 
 @pytest.mark.unit
-def test_is_number_zero() -> None:
+def test_is_number_zero() -> None:  # noqa: D103
     assert is_number(0) is True
 
 
 @pytest.mark.unit
-def test_is_number_negative() -> None:
+def test_is_number_negative() -> None:  # noqa: D103
     assert is_number(-7.5) is True
 
 
 @pytest.mark.unit
-def test_is_number_string_false() -> None:
+def test_is_number_string_false() -> None:  # noqa: D103
     assert is_number("42") is False
 
 
 @pytest.mark.unit
-def test_is_number_none_false() -> None:
+def test_is_number_none_false() -> None:  # noqa: D103
     assert is_number(None) is False
 
 
 @pytest.mark.unit
-def test_is_number_bool_behaviour() -> None:
+def test_is_number_bool_behaviour() -> None:  # noqa: D103
     # bool is subclass of int — behaviour depends on TypeGuard impl
     result = is_number(True)
     assert isinstance(result, bool)
 
 
 @pytest.mark.unit
-def test_is_number_list_false() -> None:
+def test_is_number_list_false() -> None:  # noqa: D103
     assert is_number([1, 2]) is False
 
 
@@ -60,47 +60,47 @@ def test_is_number_list_false() -> None:
 
 
 @pytest.mark.unit
-def test_normalize_value_int() -> None:
+def test_normalize_value_int() -> None:  # noqa: D103
     assert normalize_value(42) == 42
 
 
 @pytest.mark.unit
-def test_normalize_value_float() -> None:
+def test_normalize_value_float() -> None:  # noqa: D103
     result = normalize_value(3.14)
     assert result == pytest.approx(3.14)
 
 
 @pytest.mark.unit
-def test_normalize_value_string() -> None:
+def test_normalize_value_string() -> None:  # noqa: D103
     assert normalize_value("hello") == "hello"
 
 
 @pytest.mark.unit
-def test_normalize_value_none() -> None:
+def test_normalize_value_none() -> None:  # noqa: D103
     assert normalize_value(None) is None
 
 
 @pytest.mark.unit
-def test_normalize_value_bool() -> None:
+def test_normalize_value_bool() -> None:  # noqa: D103
     assert normalize_value(True) is True
 
 
 @pytest.mark.unit
-def test_normalize_value_dict() -> None:
+def test_normalize_value_dict() -> None:  # noqa: D103
     data = {"a": 1, "b": "x"}
     result = normalize_value(data)
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_normalize_value_list() -> None:
+def test_normalize_value_list() -> None:  # noqa: D103
     data = [1, "two", 3.0]
     result = normalize_value(data)
     assert isinstance(result, list)
 
 
 @pytest.mark.unit
-def test_normalize_value_nested() -> None:
+def test_normalize_value_nested() -> None:  # noqa: D103
     data = {"key": [1, {"inner": True}]}
     result = normalize_value(data)
     assert isinstance(result, dict)

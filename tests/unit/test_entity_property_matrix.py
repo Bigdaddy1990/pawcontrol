@@ -19,7 +19,7 @@ from custom_components.pawcontrol.text import PawControlDogNotesText
 
 
 @pytest.fixture
-def coordinator_stub() -> MagicMock:
+def coordinator_stub() -> MagicMock:  # noqa: D103
     coordinator = MagicMock()
     coordinator.last_update_success = True
     coordinator.available = True
@@ -66,7 +66,7 @@ def coordinator_stub() -> MagicMock:
         ),
     ],
 )
-def test_entity_common_properties(
+def test_entity_common_properties(  # noqa: D103
     coordinator_stub: MagicMock,
     entity: Any,
 ) -> None:

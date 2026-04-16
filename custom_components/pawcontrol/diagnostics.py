@@ -130,8 +130,8 @@ SETUP_FLAG_LABELS = {
 
 
 SETUP_FLAG_LABEL_TRANSLATION_KEYS = {
-    "enable_analytics": "component.pawcontrol.common.setup_flags_panel_flag_enable_analytics",  # noqa: E501
-    "enable_cloud_backup": "component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup",  # noqa: E501
+    "enable_analytics": "component.pawcontrol.common.setup_flags_panel_flag_enable_analytics",
+    "enable_cloud_backup": "component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup",
     "debug_logging": "component.pawcontrol.common.setup_flags_panel_flag_debug_logging",
 }
 
@@ -149,8 +149,8 @@ SETUP_FLAG_SOURCE_LABELS = {
 
 SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS = {
     "options": "component.pawcontrol.common.setup_flags_panel_source_options",
-    "system_settings": "component.pawcontrol.common.setup_flags_panel_source_system_settings",  # noqa: E501
-    "advanced_settings": "component.pawcontrol.common.setup_flags_panel_source_advanced_settings",  # noqa: E501
+    "system_settings": "component.pawcontrol.common.setup_flags_panel_source_system_settings",
+    "advanced_settings": "component.pawcontrol.common.setup_flags_panel_source_advanced_settings",
     "blueprint": "component.pawcontrol.common.setup_flags_panel_source_blueprint",
     "config_entry": "component.pawcontrol.common.setup_flags_panel_source_config_entry",
     "disabled": "component.pawcontrol.common.setup_flags_panel_source_disabled",

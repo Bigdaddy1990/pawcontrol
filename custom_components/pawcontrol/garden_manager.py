@@ -749,8 +749,8 @@ class GardenManager:
             await self._notification_manager.async_send_notification(
                 notification_type=NotificationType.SYSTEM_INFO,
                 title=f"🏠 {session.dog_name} finished garden time",
-                message=f"{session.dog_name} spent {session.duration_minutes:.1f} minutes in the garden. "  # noqa: E501
-                f"Activities: {len(session.activities)}, Poop events: {session.poop_count}.",  # noqa: E501
+                message=f"{session.dog_name} spent {session.duration_minutes:.1f} minutes in the garden. "
+                f"Activities: {len(session.activities)}, Poop events: {session.poop_count}.",
                 dog_id=dog_id,
                 priority=NotificationPriority.LOW,
             )
@@ -1030,7 +1030,7 @@ class GardenManager:
             await self._save_data()
         # Send notification
         if self._notification_manager:
-            poop_details = f"Quality: {quality or 'not_specified'}, Size: {size or 'not_specified'}"  # noqa: E501
+            poop_details = f"Quality: {quality or 'not_specified'}, Size: {size or 'not_specified'}"
             if location:
                 poop_details += f", Location: {location}"
 
@@ -1085,7 +1085,7 @@ class GardenManager:
                     notification_type=NotificationType.SYSTEM_INFO,
                     title=f"💩 Poop check: {session.dog_name}",
                     message=(
-                        f"Did {session.dog_name} have a poop in the garden? Tap to confirm or deny."  # noqa: E501
+                        f"Did {session.dog_name} have a poop in the garden? Tap to confirm or deny."
                     ),
                     dog_id=dog_id,
                     priority=NotificationPriority.NORMAL,

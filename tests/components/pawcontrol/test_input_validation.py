@@ -420,8 +420,9 @@ def test_validate_dict_handles_float_and_url_rules() -> None:
     assert result.sanitized_value == {"endpoint": "https://example.com"}
 
 
-def test_given_dispatch_mapping_to_noncallable_when_validating_then_fallback_to_raw_value(  # noqa: E501
-) -> None:
+def test_given_dispatch_mapping_to_noncallable_when_validating_then_fallback_to_raw_value() -> (
+    None
+):
     """Validation dispatch should gracefully fall back when mapping is not callable."""
     validator = InputValidator()
     validator._validator_dispatch["custom"] = "validate_missing"

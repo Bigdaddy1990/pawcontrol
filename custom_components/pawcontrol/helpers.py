@@ -1799,7 +1799,7 @@ class PawControlNotificationManager:
                 service_data = {
                     "title": notification["title"],
                     "message": notification["message"],
-                    "notification_id": f"pawcontrol_{notification['dog_id']}_{notification['timestamp']}",  # noqa: E501
+                    "notification_id": f"pawcontrol_{notification['dog_id']}_{notification['timestamp']}",
                 }
 
                 # Add priority-specific styling
@@ -1824,7 +1824,7 @@ class PawControlNotificationManager:
 
                 if not executed:
                     _LOGGER.debug(
-                        "Skipping persistent notification for %s because Home Assistant is not available",  # noqa: E501
+                        "Skipping persistent notification for %s because Home Assistant is not available",
                         notification["dog_id"],
                     )
                     return

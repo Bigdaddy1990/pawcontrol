@@ -317,7 +317,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):  # noqa: D101
                     current_dogs.append(normalised)
         dog_entries = cast(list[Mapping[str, JSONValue]], current_dogs)
 
-        cache_key = f"{profile}_{len(current_dogs)}_{hash(json.dumps(current_dogs, sort_keys=True))}"  # noqa: E501
+        cache_key = f"{profile}_{len(current_dogs)}_{hash(json.dumps(current_dogs, sort_keys=True))}"
 
         cached_preview = self._entity_estimates_cache.get(cache_key)
         if cached_preview is not None:
@@ -666,7 +666,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):  # noqa: D101
             profile_options.append(
                 {
                     "value": profile_name,
-                    "label": f"{profile_name.title()} ({max_entities}/dog) - {description}",  # noqa: E501
+                    "label": f"{profile_name.title()} ({max_entities}/dog) - {description}",
                 },
             )
 

@@ -69,7 +69,7 @@ class _SequentialGetSession:
 
 
 @pytest.mark.asyncio
-async def test_api_validation_rejects_invalid_endpoint(hass, mock_session) -> None:
+async def test_api_validation_rejects_invalid_endpoint(hass, mock_session) -> None:  # noqa: D103
     validator = APIValidator(hass, mock_session)
     # type: ignore[method-assign]
     validator._validate_endpoint_format = lambda _endpoint: False
@@ -81,7 +81,7 @@ async def test_api_validation_rejects_invalid_endpoint(hass, mock_session) -> No
 
 
 @pytest.mark.asyncio
-async def test_api_validation_handles_missing_token(hass, mock_session) -> None:
+async def test_api_validation_handles_missing_token(hass, mock_session) -> None:  # noqa: D103
     validator = APIValidator(hass, mock_session)
     # type: ignore[method-assign]
     validator._validate_endpoint_format = lambda _endpoint: True
@@ -97,7 +97,7 @@ async def test_api_validation_handles_missing_token(hass, mock_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_api_validator_session_property_exposes_shared_session(
+async def test_api_validator_session_property_exposes_shared_session(  # noqa: D103
     hass,
     mock_session,
 ) -> None:
@@ -107,7 +107,7 @@ async def test_api_validator_session_property_exposes_shared_session(
 
 
 @pytest.mark.asyncio
-async def test_api_validation_reports_unreachable_endpoint(hass, mock_session) -> None:
+async def test_api_validation_reports_unreachable_endpoint(hass, mock_session) -> None:  # noqa: D103
     validator = APIValidator(hass, mock_session)
     # type: ignore[method-assign]
     validator._validate_endpoint_format = lambda _endpoint: True
@@ -123,7 +123,7 @@ async def test_api_validation_reports_unreachable_endpoint(hass, mock_session) -
 
 
 @pytest.mark.asyncio
-async def test_api_validation_accepts_authenticated_response(
+async def test_api_validation_accepts_authenticated_response(  # noqa: D103
     hass, mock_session
 ) -> None:
     validator = APIValidator(hass, mock_session)
@@ -152,7 +152,7 @@ async def test_api_validation_accepts_authenticated_response(
 
 
 @pytest.mark.asyncio
-async def test_api_validation_reports_auth_failure(hass, mock_session) -> None:
+async def test_api_validation_reports_auth_failure(hass, mock_session) -> None:  # noqa: D103
     validator = APIValidator(hass, mock_session)
     # type: ignore[method-assign]
     validator._validate_endpoint_format = lambda _endpoint: True
@@ -211,7 +211,7 @@ async def test_api_validation_reports_unexpected_error(hass, mock_session) -> No
     assert result.error_message == "Validation error: boom"
 
 
-def test_validate_endpoint_format_checks_structure(
+def test_validate_endpoint_format_checks_structure(  # noqa: D103
     hass,
     mock_session,
     monkeypatch: pytest.MonkeyPatch,
@@ -230,7 +230,7 @@ def test_validate_endpoint_format_checks_structure(
 
 
 @pytest.mark.asyncio
-async def test_test_endpoint_reachability_success_and_ssl_override(hass) -> None:
+async def test_test_endpoint_reachability_success_and_ssl_override(hass) -> None:  # noqa: D103
     session = _SequentialGetSession([_MockResponse(200), _MockResponse(200)])
     validator = APIValidator(hass, session, verify_ssl=False)
 
@@ -241,7 +241,7 @@ async def test_test_endpoint_reachability_success_and_ssl_override(hass) -> None
 
 
 @pytest.mark.asyncio
-async def test_test_endpoint_reachability_handles_client_and_generic_errors(
+async def test_test_endpoint_reachability_handles_client_and_generic_errors(  # noqa: D103
     hass,
 ) -> None:
     session = _SequentialGetSession([
@@ -255,7 +255,7 @@ async def test_test_endpoint_reachability_handles_client_and_generic_errors(
 
 
 @pytest.mark.asyncio
-async def test_test_authentication_uses_payload_when_available(hass) -> None:
+async def test_test_authentication_uses_payload_when_available(hass) -> None:  # noqa: D103
     session = _SequentialGetSession([
         _MockResponse(200, {"version": "1.0", "capabilities": ["walk", 1]})
     ])
@@ -271,7 +271,7 @@ async def test_test_authentication_uses_payload_when_available(hass) -> None:
 
 
 @pytest.mark.asyncio
-async def test_test_authentication_handles_non_mapping_and_json_error(hass) -> None:
+async def test_test_authentication_handles_non_mapping_and_json_error(hass) -> None:  # noqa: D103
     non_mapping_session = _SequentialGetSession([_MockResponse(200, ["bad"])])
     validator_non_mapping = APIValidator(hass, non_mapping_session)
     assert await validator_non_mapping._test_authentication(
@@ -294,7 +294,7 @@ async def test_test_authentication_handles_non_mapping_and_json_error(hass) -> N
 
 
 @pytest.mark.asyncio
-async def test_test_authentication_retries_endpoints_and_reports_failure(hass) -> None:
+async def test_test_authentication_retries_endpoints_and_reports_failure(hass) -> None:  # noqa: D103
     session = _SequentialGetSession([
         aiohttp.ClientError("bad"),
         _MockResponse(401, {}),
@@ -311,7 +311,7 @@ async def test_test_authentication_retries_endpoints_and_reports_failure(hass) -
 
 
 @pytest.mark.asyncio
-async def test_test_authentication_returns_false_on_outer_exception(hass) -> None:
+async def test_test_authentication_returns_false_on_outer_exception(hass) -> None:  # noqa: D103
     session = _SequentialGetSession([RuntimeError("session broke")])
     validator = APIValidator(hass, session)
 
@@ -325,7 +325,7 @@ async def test_test_authentication_returns_false_on_outer_exception(hass) -> Non
 
 
 @pytest.mark.asyncio
-async def test_async_test_api_health_status_mappings(hass, mock_session) -> None:
+async def test_async_test_api_health_status_mappings(hass, mock_session) -> None:  # noqa: D103
     validator = APIValidator(hass, mock_session)
 
     validator.async_validate_api_connection = AsyncMock(  # type: ignore[method-assign]
@@ -384,7 +384,7 @@ async def test_async_test_api_health_status_mappings(hass, mock_session) -> None
 
 
 @pytest.mark.asyncio
-async def test_async_test_api_health_handles_timeout_and_error(
+async def test_async_test_api_health_handles_timeout_and_error(  # noqa: D103
     hass, mock_session
 ) -> None:
     validator = APIValidator(hass, mock_session)
@@ -403,7 +403,7 @@ async def test_async_test_api_health_handles_timeout_and_error(
 
 
 @pytest.mark.asyncio
-async def test_async_close_is_noop_for_shared_sessions(hass) -> None:
+async def test_async_close_is_noop_for_shared_sessions(hass) -> None:  # noqa: D103
     open_session = _SequentialGetSession([])
     open_validator = APIValidator(hass, open_session)
     await open_validator.async_close()
@@ -414,7 +414,7 @@ async def test_async_close_is_noop_for_shared_sessions(hass) -> None:
     assert open_session.closed is True
 
 
-def test_extract_helpers_cover_supported_shapes() -> None:
+def test_extract_helpers_cover_supported_shapes() -> None:  # noqa: D103
     assert _extract_api_version({"version": "1.2.3"}) == "1.2.3"
     assert _extract_api_version({"version": 1}) is None
     assert _extract_capabilities({"capabilities": ["a", 1]}) == ["a"]

@@ -338,7 +338,7 @@ class ReauthFlowMixin(ReauthFlowHost):
             if user_input.get("confirm", False):
                 try:
                     _LOGGER.debug(
-                        "Reauthentication confirmation received (event=reauth_confirm entry_id=%s)",  # noqa: E501
+                        "Reauthentication confirmation received (event=reauth_confirm entry_id=%s)",
                         self.reauth_entry.entry_id,
                     )
                     async with asyncio.timeout(REAUTH_TIMEOUT_SECONDS):
@@ -373,7 +373,7 @@ class ReauthFlowMixin(ReauthFlowHost):
                             )
                         except Exception as err:
                             _LOGGER.warning(
-                                "Config health check failed: %s - proceeding with reauth",  # noqa: E501
+                                "Config health check failed: %s - proceeding with reauth",
                                 err,
                             )
                             summary = cast(
@@ -418,7 +418,7 @@ class ReauthFlowMixin(ReauthFlowHost):
                         )
 
                         _LOGGER.info(
-                            "Reauthentication succeeded (event=reauth_success entry_id=%s dogs=%d issues=%d warnings=%d)",  # noqa: E501
+                            "Reauthentication succeeded (event=reauth_success entry_id=%s dogs=%d issues=%d warnings=%d)",
                             self.reauth_entry.entry_id,
                             summary.get("total_dogs", 0),
                             len(self._normalise_string_list(summary.get("issues", []))),

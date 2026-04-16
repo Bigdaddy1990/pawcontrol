@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Sequence  # noqa: D100
 from datetime import UTC, datetime
 import logging
 

@@ -315,7 +315,7 @@ class ProfileAwareButtonFactory:
         )
 
     def _initialize_button_rules(self) -> None:
-        """Pre-calculate button creation rules for each module to improve performance."""  # noqa: E501
+        """Pre-calculate button creation rules for each module to improve performance."""
         self._button_rules_cache = {
             MODULE_FEEDING: self._get_feeding_button_rules(),
             MODULE_WALK: self._get_walk_button_rules(),
@@ -791,7 +791,7 @@ async def async_setup_entry(
     )
 
     _LOGGER.info(
-        "Profile '%s': avg %.1f buttons/dog (max %d) - %.1f%% entity reduction efficiency",  # noqa: E501
+        "Profile '%s': avg %.1f buttons/dog (max %d) - %.1f%% entity reduction efficiency",
         profile,
         total_buttons_created / len(dog_configs),
         max_possible,

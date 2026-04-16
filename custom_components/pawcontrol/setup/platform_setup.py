@@ -182,7 +182,7 @@ async def _async_setup_helpers(
                         notification_type=NotificationType.SYSTEM_INFO,
                         title="PawControl Helper Setup Complete",
                         message=(
-                            f"Created {helper_count} helpers for automated feeding schedules, "  # noqa: E501
+                            f"Created {helper_count} helpers for automated feeding schedules, "
                             "health reminders, and other dog management tasks."
                         ),
                         priority=NotificationPriority.NORMAL,
@@ -197,7 +197,7 @@ async def _async_setup_helpers(
         helpers_duration = time.monotonic() - helpers_start
         _LOGGER.warning(
             "Helper creation timed out after %.2f seconds (non-critical) "
-            "You can manually create input_boolean and input_datetime helpers if needed",  # noqa: E501
+            "You can manually create input_boolean and input_datetime helpers if needed",
             helpers_duration,
         )
 
@@ -205,7 +205,7 @@ async def _async_setup_helpers(
         helpers_duration = time.monotonic() - helpers_start
         _LOGGER.warning(
             "Helper creation failed after %.2f seconds (non-critical): %s "
-            "You can manually create input_boolean and input_datetime helpers if needed",  # noqa: E501
+            "You can manually create input_boolean and input_datetime helpers if needed",
             helpers_duration,
             helper_err,
         )
@@ -255,7 +255,7 @@ async def _async_setup_scripts(
                 else ""
             )
             _LOGGER.info(
-                "Created %d PawControl automation script(s) for %d dog(s)%s in %.2f seconds",  # noqa: E501
+                "Created %d PawControl automation script(s) for %d dog(s)%s in %.2f seconds",
                 script_count,
                 dog_target_count,
                 entry_detail,

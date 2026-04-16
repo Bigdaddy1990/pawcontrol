@@ -31,34 +31,34 @@ def _coord(dog_id="rex"):
 
 
 @pytest.mark.unit
-def test_dog_weight_number_init() -> None:
+def test_dog_weight_number_init() -> None:  # noqa: D103
     e = PawControlDogWeightNumber(_coord(), "rex", "Rex")
     assert e._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_dog_weight_number_with_config() -> None:
+def test_dog_weight_number_with_config() -> None:  # noqa: D103
     config = {"dog_id": "rex", "dog_name": "Rex", "dog_weight": 22.5}
     e = PawControlDogWeightNumber(_coord(), "rex", "Rex", dog_config=config)
     assert e._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_dog_weight_native_value() -> None:
+def test_dog_weight_native_value() -> None:  # noqa: D103
     e = PawControlDogWeightNumber(_coord(), "rex", "Rex")
     result = e.native_value
     assert result is None or isinstance(result, int | float)
 
 
 @pytest.mark.unit
-def test_dog_weight_extra_attrs() -> None:
+def test_dog_weight_extra_attrs() -> None:  # noqa: D103
     e = PawControlDogWeightNumber(_coord(), "rex", "Rex")
     attrs = e.extra_state_attributes
     assert isinstance(attrs, dict)
 
 
 @pytest.mark.unit
-def test_dog_weight_unique_id() -> None:
+def test_dog_weight_unique_id() -> None:  # noqa: D103
     e = PawControlDogWeightNumber(_coord(), "rex", "Rex")
     assert "rex" in e._attr_unique_id
 
@@ -69,13 +69,13 @@ def test_dog_weight_unique_id() -> None:
 
 
 @pytest.mark.unit
-def test_meals_per_day_init() -> None:
+def test_meals_per_day_init() -> None:  # noqa: D103
     e = PawControlMealsPerDayNumber(_coord(), "rex", "Rex")
     assert e._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_meals_per_day_native_value() -> None:
+def test_meals_per_day_native_value() -> None:  # noqa: D103
     e = PawControlMealsPerDayNumber(_coord(), "rex", "Rex")
     result = e.native_value
     assert result is None or isinstance(result, int | float)
@@ -87,13 +87,13 @@ def test_meals_per_day_native_value() -> None:
 
 
 @pytest.mark.unit
-def test_daily_food_amount_init() -> None:
+def test_daily_food_amount_init() -> None:  # noqa: D103
     e = PawControlDailyFoodAmountNumber(_coord(), "rex", "Rex")
     assert e._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_daily_food_amount_native_value() -> None:
+def test_daily_food_amount_native_value() -> None:  # noqa: D103
     e = PawControlDailyFoodAmountNumber(_coord(), "rex", "Rex")
     result = e.native_value
     assert result is None or isinstance(result, int | float)
@@ -105,12 +105,12 @@ def test_daily_food_amount_native_value() -> None:
 
 
 @pytest.mark.unit
-def test_portion_size_number_init() -> None:
+def test_portion_size_number_init() -> None:  # noqa: D103
     e = PawControlPortionSizeNumber(_coord(), "rex", "Rex")
     assert e._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_portion_size_unique_id() -> None:
+def test_portion_size_unique_id() -> None:  # noqa: D103
     e = PawControlPortionSizeNumber(_coord(), "rex", "Rex")
     assert "rex" in e._attr_unique_id

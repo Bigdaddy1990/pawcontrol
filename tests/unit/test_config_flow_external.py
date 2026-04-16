@@ -197,7 +197,7 @@ async def test_async_step_configure_external_entities_rejects_invalid_door_senso
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_external_entities_rejects_unknown_notify_service() -> (  # noqa: E501
+async def test_async_step_configure_external_entities_rejects_unknown_notify_service() -> (
     None
 ):
     """Invalid notify service selections surface the validation error in the form."""
@@ -229,7 +229,7 @@ async def test_async_step_configure_external_entities_rejects_unknown_notify_ser
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_external_entities_rejects_invalid_notify_format() -> (  # noqa: E501
+async def test_async_step_configure_external_entities_rejects_invalid_notify_format() -> (
     None
 ):
     """Notify service formatting errors surface a field validation key."""

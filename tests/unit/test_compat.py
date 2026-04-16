@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterator  # noqa: D100
 from contextlib import contextmanager
 import importlib
 import sys

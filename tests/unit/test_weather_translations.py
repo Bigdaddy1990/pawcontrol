@@ -11,7 +11,7 @@ from tests.weather_test_support import ensure_weather_module_compat
 
 ensure_weather_module_compat()
 
-from custom_components.pawcontrol import weather_translations
+from custom_components.pawcontrol import weather_translations  # noqa: E402
 
 
 def _write_translation_fixture(
@@ -77,7 +77,7 @@ def test_load_static_common_translations_prefers_localized_overrides(
     _write_translation_fixture(
         tmp_path,
         "en",
-        '{"common": {"weather_alert_storm_warning_title": "English Storm", "weather_recommendation_extra_water": "Bring Water"}}',  # noqa: E501
+        '{"common": {"weather_alert_storm_warning_title": "English Storm", "weather_recommendation_extra_water": "Bring Water"}}',
     )
     _write_translation_fixture(
         tmp_path,

@@ -15,12 +15,12 @@ from custom_components.pawcontrol.optimized_entity_base import (
 
 
 @pytest.mark.unit
-def test_clear_global_entity_registry_no_raise() -> None:
+def test_clear_global_entity_registry_no_raise() -> None:  # noqa: D103
     clear_global_entity_registry()
 
 
 @pytest.mark.unit
-def test_clear_global_entity_registry_idempotent() -> None:
+def test_clear_global_entity_registry_idempotent() -> None:  # noqa: D103
     clear_global_entity_registry()
     clear_global_entity_registry()
 
@@ -29,14 +29,14 @@ def test_clear_global_entity_registry_idempotent() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_json_mapping_none() -> None:
+def test_ensure_json_mapping_none() -> None:  # noqa: D103
     result = ensure_json_mapping(None)
     assert isinstance(result, dict)
     assert len(result) == 0
 
 
 @pytest.mark.unit
-def test_ensure_json_mapping_dict() -> None:
+def test_ensure_json_mapping_dict() -> None:  # noqa: D103
     data = {"key": "value", "num": 42}
     result = ensure_json_mapping(data)
     assert result["key"] == "value"
@@ -44,7 +44,7 @@ def test_ensure_json_mapping_dict() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_json_mapping_empty() -> None:
+def test_ensure_json_mapping_empty() -> None:  # noqa: D103
     result = ensure_json_mapping({})
     assert isinstance(result, dict)
 
@@ -53,13 +53,13 @@ def test_ensure_json_mapping_empty() -> None:
 
 
 @pytest.mark.unit
-def test_entity_registry_init() -> None:
+def test_entity_registry_init() -> None:  # noqa: D103
     reg = EntityRegistry()
     assert reg is not None
 
 
 @pytest.mark.unit
-def test_entity_registry_add_and_check() -> None:
+def test_entity_registry_add_and_check() -> None:  # noqa: D103
     reg = EntityRegistry()
     reg.add("sensor.rex_weight")
     # Just verify add doesn't raise
@@ -67,7 +67,7 @@ def test_entity_registry_add_and_check() -> None:
 
 
 @pytest.mark.unit
-def test_entity_registry_discard() -> None:
+def test_entity_registry_discard() -> None:  # noqa: D103
     reg = EntityRegistry()
     reg.add("sensor.rex_activity")
     reg.discard("sensor.rex_activity")
@@ -75,7 +75,7 @@ def test_entity_registry_discard() -> None:
 
 
 @pytest.mark.unit
-def test_entity_registry_clear() -> None:
+def test_entity_registry_clear() -> None:  # noqa: D103
     reg = EntityRegistry()
     reg.add("sensor.rex_calories")
     reg.clear()

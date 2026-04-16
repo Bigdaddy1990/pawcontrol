@@ -38,7 +38,7 @@ def _make_coordinator() -> PawControlCoordinator:
 
 
 @pytest.mark.asyncio
-async def test_success_refresh_updates_state_and_keeps_availability() -> None:
+async def test_success_refresh_updates_state_and_keeps_availability() -> None:  # noqa: D103
     coordinator = _make_coordinator()
 
     async def _prepare_entry() -> None:
@@ -62,7 +62,7 @@ async def test_success_refresh_updates_state_and_keeps_availability() -> None:
 
 
 @pytest.mark.asyncio
-async def test_timeout_raises_update_failed_and_preserves_cached_state() -> None:
+async def test_timeout_raises_update_failed_and_preserves_cached_state() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     coordinator.last_update_success = False
     coordinator._metrics.consecutive_errors = 6
@@ -84,7 +84,7 @@ async def test_timeout_raises_update_failed_and_preserves_cached_state() -> None
 
 
 @pytest.mark.asyncio
-async def test_auth_error_is_propagated_and_state_remains_consistent() -> None:
+async def test_auth_error_is_propagated_and_state_remains_consistent() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     coordinator.last_update_success = False
     coordinator._metrics.consecutive_errors = 5
@@ -106,7 +106,7 @@ async def test_auth_error_is_propagated_and_state_remains_consistent() -> None:
 
 
 @pytest.mark.asyncio
-async def test_inconsistent_payload_is_returned_and_stored_without_crash() -> None:
+async def test_inconsistent_payload_is_returned_and_stored_without_crash() -> None:  # noqa: D103
     coordinator = _make_coordinator()
 
     async def _prepare_entry() -> None:
@@ -130,7 +130,7 @@ async def test_inconsistent_payload_is_returned_and_stored_without_crash() -> No
 
 
 @pytest.mark.asyncio
-async def test_recovery_after_error_restores_availability_with_fresh_state() -> None:
+async def test_recovery_after_error_restores_availability_with_fresh_state() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     coordinator.last_update_success = False
     coordinator._metrics.consecutive_errors = 8

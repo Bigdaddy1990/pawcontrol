@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime  # noqa: D100
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 

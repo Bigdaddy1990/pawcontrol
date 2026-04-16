@@ -63,24 +63,24 @@ def _make_coordinator(
 class TestNormalizeDogConfigs:
     """Tests for the _normalize_dog_configs helper."""
 
-    def test_returns_empty_list_for_none(self) -> None:
+    def test_returns_empty_list_for_none(self) -> None:  # noqa: D102
         result = _normalize_dog_configs(None)
         assert result == []
 
-    def test_skips_non_mapping_entries(self) -> None:
+    def test_skips_non_mapping_entries(self) -> None:  # noqa: D102
         result = _normalize_dog_configs(["not-a-dict", 42, None])
         assert result == []
 
-    def test_skips_mapping_missing_required_fields(self) -> None:
+    def test_skips_mapping_missing_required_fields(self) -> None:  # noqa: D102
         result = _normalize_dog_configs([{"random_key": "value"}])
         assert result == []
 
-    def test_accepts_minimal_valid_config(self) -> None:
+    def test_accepts_minimal_valid_config(self) -> None:  # noqa: D102
         result = _normalize_dog_configs([{"dog_id": "rex", "dog_name": "Rex"}])
         assert len(result) == 1
         assert result[0]["dog_id"] == "rex"
 
-    def test_modules_dict_is_preserved(self) -> None:
+    def test_modules_dict_is_preserved(self) -> None:  # noqa: D102
         config = {
             "dog_id": "rex",
             "dog_name": "Rex",
@@ -89,7 +89,7 @@ class TestNormalizeDogConfigs:
         result = _normalize_dog_configs([config])
         assert len(result) == 1
 
-    def test_multiple_valid_configs_returned(self) -> None:
+    def test_multiple_valid_configs_returned(self) -> None:  # noqa: D102
         configs = [
             {"dog_id": "rex", "dog_name": "Rex"},
             {"dog_id": "max", "dog_name": "Max"},
@@ -97,7 +97,7 @@ class TestNormalizeDogConfigs:
         result = _normalize_dog_configs(configs)
         assert len(result) == 2
 
-    def test_mixed_valid_invalid_returns_only_valid(self) -> None:
+    def test_mixed_valid_invalid_returns_only_valid(self) -> None:  # noqa: D102
         configs = [
             {"dog_id": "rex", "dog_name": "Rex"},
             "invalid",
@@ -116,7 +116,7 @@ class TestAsyncAddTextEntitiesInBatches:
     """Tests for _async_add_entities_in_batches."""
 
     @pytest.mark.asyncio
-    async def test_raises_on_zero_batch_size(self) -> None:
+    async def test_raises_on_zero_batch_size(self) -> None:  # noqa: D102
         coord = _make_coordinator()
         entities = [PawControlCustomLabelText(coord, "rex", "Rex")]
         callback = AsyncMock()
@@ -124,7 +124,7 @@ class TestAsyncAddTextEntitiesInBatches:
             await _async_add_entities_in_batches(callback, entities, batch_size=0)
 
     @pytest.mark.asyncio
-    async def test_empty_list_does_nothing(self) -> None:
+    async def test_empty_list_does_nothing(self) -> None:  # noqa: D102
         callback = AsyncMock()
         with patch(
             "custom_components.pawcontrol.text.async_call_add_entities",
@@ -134,7 +134,7 @@ class TestAsyncAddTextEntitiesInBatches:
             mock_add.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_small_batch_calls_add_once(self) -> None:
+    async def test_small_batch_calls_add_once(self) -> None:  # noqa: D102
         coord = _make_coordinator()
         entities = [PawControlCustomLabelText(coord, "rex", "Rex")]
         call_count = 0
@@ -167,30 +167,30 @@ class TestPawControlTextBase:
         coord = _make_coordinator(dog_data)
         return PawControlDogNotesText(coord, "rex", "Rex")
 
-    def test_unique_id_format(self) -> None:
+    def test_unique_id_format(self) -> None:  # noqa: D102
         entity = self._make_notes()
         assert entity._attr_unique_id == "pawcontrol_rex_notes"
 
-    def test_native_value_default_is_empty_string(self) -> None:
+    def test_native_value_default_is_empty_string(self) -> None:  # noqa: D102
         entity = self._make_notes()
         assert entity.native_value == ""
 
-    def test_translation_key_set(self) -> None:
+    def test_translation_key_set(self) -> None:  # noqa: D102
         entity = self._make_notes()
         assert entity._attr_translation_key == "notes"
 
-    def test_extra_state_attributes_include_text_type(self) -> None:
+    def test_extra_state_attributes_include_text_type(self) -> None:  # noqa: D102
         entity = self._make_notes()
         attrs = entity.extra_state_attributes
         assert attrs.get("text_type") == "notes"
 
-    def test_character_count_is_zero_initially(self) -> None:
+    def test_character_count_is_zero_initially(self) -> None:  # noqa: D102
         entity = self._make_notes()
         attrs = entity.extra_state_attributes
         assert attrs.get("character_count") == 0
 
     @pytest.mark.asyncio
-    async def test_async_set_value_updates_current_value(self) -> None:
+    async def test_async_set_value_updates_current_value(self) -> None:  # noqa: D102
         entity = self._make_notes()
         entity.async_write_ha_state = MagicMock()
         # Bypass actual persist by patching it
@@ -199,7 +199,7 @@ class TestPawControlTextBase:
         assert entity.native_value == "Hello dog!"
 
     @pytest.mark.asyncio
-    async def test_async_set_value_ignores_duplicate(self) -> None:
+    async def test_async_set_value_ignores_duplicate(self) -> None:  # noqa: D102
         entity = self._make_notes()
         entity.async_write_ha_state = MagicMock()
         entity._current_value = "same"
@@ -210,20 +210,20 @@ class TestPawControlTextBase:
         mock_persist.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_set_value_whitespace_only_becomes_empty(self) -> None:
+    async def test_async_set_value_whitespace_only_becomes_empty(self) -> None:  # noqa: D102
         entity = self._make_notes()
         entity.async_write_ha_state = MagicMock()
         with patch.object(entity, "_async_persist_text_value", new=AsyncMock()):
             await entity.async_set_value("   ")
         assert entity.native_value == ""
 
-    def test_clamp_value_truncates_to_max_length(self) -> None:
+    def test_clamp_value_truncates_to_max_length(self) -> None:  # noqa: D102
         entity = self._make_notes()
         entity._attr_native_max = 10
         result = entity._clamp_value("a" * 20)
         assert len(result) == 10
 
-    def test_clamp_value_preserves_short_strings(self) -> None:
+    def test_clamp_value_preserves_short_strings(self) -> None:  # noqa: D102
         entity = self._make_notes()
         entity._attr_native_max = 100
         result = entity._clamp_value("short")
@@ -241,31 +241,31 @@ class TestConcreteTextEntities:
     def _coord(self) -> PawControlCoordinator:
         return _make_coordinator()
 
-    def test_custom_label_max_length(self) -> None:
+    def test_custom_label_max_length(self) -> None:  # noqa: D102
         entity = PawControlCustomLabelText(self._coord(), "rex", "Rex")
         assert entity._attr_native_max == 50
 
-    def test_dog_notes_max_length(self) -> None:
+    def test_dog_notes_max_length(self) -> None:  # noqa: D102
         entity = PawControlDogNotesText(self._coord(), "rex", "Rex")
         assert entity._attr_native_max == 1000
 
-    def test_walk_notes_max_length(self) -> None:
+    def test_walk_notes_max_length(self) -> None:  # noqa: D102
         entity = PawControlWalkNotesText(self._coord(), "rex", "Rex")
         assert entity._attr_native_max == 500
 
-    def test_health_notes_translation_key(self) -> None:
+    def test_health_notes_translation_key(self) -> None:  # noqa: D102
         entity = PawControlHealthNotesText(self._coord(), "rex", "Rex")
         assert entity._attr_translation_key == "health_notes"
 
-    def test_microchip_translation_key(self) -> None:
+    def test_microchip_translation_key(self) -> None:  # noqa: D102
         entity = PawControlMicrochipText(self._coord(), "rex", "Rex")
         assert entity._attr_translation_key == "microchip"
 
-    def test_breeder_info_translation_key(self) -> None:
+    def test_breeder_info_translation_key(self) -> None:  # noqa: D102
         entity = PawControlBreederInfoText(self._coord(), "rex", "Rex")
         assert entity._attr_translation_key == "breeder_info"
 
-    def test_current_walk_label_unavailable_when_no_walk(self) -> None:
+    def test_current_walk_label_unavailable_when_no_walk(self) -> None:  # noqa: D102
         entity = PawControlCurrentWalkLabelText(
             _make_coordinator(
                 cast(CoordinatorDogData, {"walk": {"walk_in_progress": False}})
@@ -275,7 +275,7 @@ class TestConcreteTextEntities:
         )
         assert entity.available is False
 
-    def test_current_walk_label_available_during_walk(self) -> None:
+    def test_current_walk_label_available_during_walk(self) -> None:  # noqa: D102
         entity = PawControlCurrentWalkLabelText(
             _make_coordinator(
                 cast(CoordinatorDogData, {"walk": {"walk_in_progress": True}})

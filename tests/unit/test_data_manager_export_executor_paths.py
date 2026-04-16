@@ -31,7 +31,7 @@ async def _create_manager(mock_hass: object, tmp_path: Path) -> PawControlDataMa
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_routes_json_serializes_sequence_content(
+async def test_async_export_data_routes_json_serializes_sequence_content(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -59,7 +59,7 @@ async def test_async_export_data_routes_json_serializes_sequence_content(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_routes_json_wraps_none_content_with_raw_null(
+async def test_async_export_data_routes_json_wraps_none_content_with_raw_null(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:

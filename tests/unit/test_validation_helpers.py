@@ -70,18 +70,18 @@ def _build_state(state: str = "ok", **attributes: object) -> SimpleNamespace:
     return SimpleNamespace(state=state, attributes=attributes)
 
 
-def test_validate_dog_name_trims_and_accepts() -> None:
+def test_validate_dog_name_trims_and_accepts() -> None:  # noqa: D103
     assert validate_dog_name("  Luna ") == "Luna"
 
 
-def test_validate_dog_name_rejects_non_string() -> None:
+def test_validate_dog_name_rejects_non_string() -> None:  # noqa: D103
     with pytest.raises(ValidationError) as err:
         validate_dog_name(123)
 
     assert err.value.field == "dog_name"
 
 
-def test_validate_coordinate_bounds() -> None:
+def test_validate_coordinate_bounds() -> None:  # noqa: D103
     assert validate_coordinate(
         52.52, field="latitude", minimum=-90.0, maximum=90.0
     ) == pytest.approx(52.52)
@@ -107,7 +107,7 @@ def test_validate_coordinate_bounds() -> None:
     assert not_numeric.value.constraint == "coordinate_not_numeric"
 
 
-def test_validate_interval_clamps() -> None:
+def test_validate_interval_clamps() -> None:  # noqa: D103
     assert (
         validate_interval(2, field="interval", minimum=5, maximum=10, clamp=True) == 5
     )
@@ -116,7 +116,7 @@ def test_validate_interval_clamps() -> None:
     )
 
 
-def test_validate_float_range_defaults_and_rejects() -> None:
+def test_validate_float_range_defaults_and_rejects() -> None:  # noqa: D103
     assert validate_float_range(
         None,
         field="accuracy",
@@ -134,12 +134,12 @@ def test_validate_float_range_defaults_and_rejects() -> None:
         )
 
 
-def test_normalize_dog_id_normalizes_and_handles_none() -> None:
+def test_normalize_dog_id_normalizes_and_handles_none() -> None:  # noqa: D103
     assert normalize_dog_id(None) == ""
     assert normalize_dog_id("  Luna Bella ") == "luna_bella"
 
 
-def test_normalize_dog_id_rejects_non_strings() -> None:
+def test_normalize_dog_id_rejects_non_strings() -> None:  # noqa: D103
     with pytest.raises(InputCoercionError) as err:
         normalize_dog_id(42)
 
@@ -155,11 +155,11 @@ def test_normalize_dog_id_rejects_non_strings() -> None:
         ("ready", False),
     ],
 )
-def test_is_empty(value: object, expected: bool) -> None:
+def test_is_empty(value: object, expected: bool) -> None:  # noqa: D103
     assert _is_empty(value) is expected
 
 
-def test_parse_time_string_normalizes_multiple_input_types() -> None:
+def test_parse_time_string_normalizes_multiple_input_types() -> None:  # noqa: D103
     assert _parse_time_string("start", None, "invalid") is None
     assert _parse_time_string("start", "  ", "invalid") is None
     assert _parse_time_string("start", dt_time(6, 30), "invalid") == "06:30:00"
@@ -167,25 +167,25 @@ def test_parse_time_string_normalizes_multiple_input_types() -> None:
 
 
 @pytest.mark.parametrize("value", [42, "invalid-time"])
-def test_parse_time_string_rejects_invalid_input(value: object) -> None:
+def test_parse_time_string_rejects_invalid_input(value: object) -> None:  # noqa: D103
     with pytest.raises(ValidationError) as err:
         _parse_time_string("start", value, "invalid_time")
 
     assert err.value.field == "start"
 
 
-def test_coerce_float_handles_numeric_and_strips_strings() -> None:
+def test_coerce_float_handles_numeric_and_strips_strings() -> None:  # noqa: D103
     assert coerce_float("weight", 7) == pytest.approx(7.0)
     assert coerce_float("weight", " 7.5 ") == pytest.approx(7.5)
 
 
 @pytest.mark.parametrize("value", [True, "", "dog", object()])
-def test_coerce_float_rejects_non_numeric_values(value: object) -> None:
+def test_coerce_float_rejects_non_numeric_values(value: object) -> None:  # noqa: D103
     with pytest.raises(InputCoercionError):
         coerce_float("weight", value)
 
 
-def test_coerce_int_accepts_integer_like_inputs() -> None:
+def test_coerce_int_accepts_integer_like_inputs() -> None:  # noqa: D103
     assert coerce_int("count", 4) == 4
     assert coerce_int("count", 4.0) == 4
     assert coerce_int("count", " 4 ") == 4
@@ -193,12 +193,12 @@ def test_coerce_int_accepts_integer_like_inputs() -> None:
 
 
 @pytest.mark.parametrize("value", [True, 4.2, "", "4.2", "dog", object()])
-def test_coerce_int_rejects_fractional_or_non_numeric(value: object) -> None:
+def test_coerce_int_rejects_fractional_or_non_numeric(value: object) -> None:  # noqa: D103
     with pytest.raises(InputCoercionError):
         coerce_int("count", value)
 
 
-def test_validate_notification_targets_normalizes_values_and_tracks_invalids() -> None:
+def test_validate_notification_targets_normalizes_values_and_tracks_invalids() -> None:  # noqa: D103
     result = validate_notification_targets(
         ["app", _NotificationTarget.SMS, "app", "fax", 123],
         enum_type=_NotificationTarget,
@@ -223,7 +223,7 @@ def test_validate_notification_targets_normalizes_values_and_tracks_invalids() -
     ).invalid == ["[]"]
 
 
-def test_validate_time_window_uses_defaults_and_rejects_missing_values() -> None:
+def test_validate_time_window_uses_defaults_and_rejects_missing_values() -> None:  # noqa: D103
     assert validate_time_window(
         "06:00",
         None,
@@ -264,7 +264,7 @@ def test_validate_time_window_uses_defaults_and_rejects_missing_values() -> None
         ("x" * 100, True, "dog_name_too_long"),
     ],
 )
-def test_validate_dog_name_handles_optional_and_boundary_cases(
+def test_validate_dog_name_handles_optional_and_boundary_cases(  # noqa: D103
     value: object, required: bool, constraint: str | None
 ) -> None:
     if constraint is None:
@@ -277,7 +277,7 @@ def test_validate_dog_name_handles_optional_and_boundary_cases(
     assert err.value.constraint == constraint
 
 
-def test_validate_name_trims_valid_values_and_rejects_invalid_input() -> None:
+def test_validate_name_trims_valid_values_and_rejects_invalid_input() -> None:  # noqa: D103
     assert validate_name("  Bella  ") == "Bella"
 
     with pytest.raises(ValidationError) as invalid_type:
@@ -297,7 +297,7 @@ def test_validate_name_trims_valid_values_and_rejects_invalid_input() -> None:
     assert too_long.value.constraint == "name_too_long"
 
 
-def test_validate_gps_source_accepts_known_sources_and_rejects_missing_states() -> None:
+def test_validate_gps_source_accepts_known_sources_and_rejects_missing_states() -> None:  # noqa: D103
     hass = _build_hass(
         states={
             "device_tracker.fido": _build_state("home"),
@@ -331,7 +331,7 @@ def test_validate_gps_source_accepts_known_sources_and_rejects_missing_states() 
     assert disabled_manual.value.constraint == "gps_source_not_found"
 
 
-def test_validate_notify_service_requires_notify_domain_and_registered_service() -> (
+def test_validate_notify_service_requires_notify_domain_and_registered_service() -> (  # noqa: D103
     None
 ):
     hass = _build_hass(services={"notify": {"mobile_app_phone": object()}})
@@ -357,7 +357,7 @@ def test_validate_notify_service_requires_notify_domain_and_registered_service()
     assert missing.value.constraint == "notify_service_not_found"
 
 
-def test_validate_entity_id_enforces_domain_object_structure() -> None:
+def test_validate_entity_id_enforces_domain_object_structure() -> None:  # noqa: D103
     assert validate_entity_id("sensor.back_door") == "sensor.back_door"
 
     for value in (
@@ -373,7 +373,7 @@ def test_validate_entity_id_enforces_domain_object_structure() -> None:
             validate_entity_id(value)
 
 
-def test_validate_sensor_entity_id_checks_state_domain_and_device_class() -> None:
+def test_validate_sensor_entity_id_checks_state_domain_and_device_class() -> None:  # noqa: D103
     hass = _build_hass(
         states={
             "binary_sensor.door": _build_state("on", device_class="door"),
@@ -427,7 +427,7 @@ def test_validate_sensor_entity_id_checks_state_domain_and_device_class() -> Non
         (7, {}, 7),
     ],
 )
-def test_validate_interval_returns_defaults_and_valid_values(
+def test_validate_interval_returns_defaults_and_valid_values(  # noqa: D103
     value: object, kwargs: dict[str, object], expected: int
 ) -> None:
     assert (
@@ -442,7 +442,7 @@ def test_validate_interval_returns_defaults_and_valid_values(
     )
 
 
-def test_validate_interval_rejects_required_invalid_and_out_of_range_values() -> None:
+def test_validate_interval_rejects_required_invalid_and_out_of_range_values() -> None:  # noqa: D103
     with pytest.raises(ValidationError) as required:
         validate_interval(
             None,
@@ -466,7 +466,7 @@ def test_validate_interval_rejects_required_invalid_and_out_of_range_values() ->
     assert too_large.value.constraint == "Maximum interval is 10"
 
 
-def test_validate_gps_coordinates_handles_fast_path_and_wraps_validation_errors() -> (
+def test_validate_gps_coordinates_handles_fast_path_and_wraps_validation_errors() -> (  # noqa: D103
     None
 ):
     assert validate_gps_coordinates(52, -7) == (52.0, -7.0)
@@ -475,7 +475,7 @@ def test_validate_gps_coordinates_handles_fast_path_and_wraps_validation_errors(
         validate_gps_coordinates(True, 10)
 
 
-def test_validate_gps_update_interval_delegates_to_gps_interval_constraints() -> None:
+def test_validate_gps_update_interval_delegates_to_gps_interval_constraints() -> None:  # noqa: D103
     assert (
         validate_gps_update_interval(
             15,

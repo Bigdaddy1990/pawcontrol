@@ -20,22 +20,22 @@ from custom_components.pawcontrol.options_flow_door_sensor import (
 
 
 @pytest.mark.unit
-def test_cfr_is_valid_empty() -> None:
+def test_cfr_is_valid_empty() -> None:  # noqa: D103
     assert is_dog_config_payload_valid({}) is False
 
 
 @pytest.mark.unit
-def test_cfr_is_valid_with_id_and_name() -> None:
+def test_cfr_is_valid_with_id_and_name() -> None:  # noqa: D103
     assert is_dog_config_payload_valid({"dog_id": "rex", "dog_name": "Rex"}) is True
 
 
 @pytest.mark.unit
-def test_cfr_is_valid_missing_name() -> None:
+def test_cfr_is_valid_missing_name() -> None:  # noqa: D103
     assert is_dog_config_payload_valid({"dog_id": "rex"}) is False
 
 
 @pytest.mark.unit
-def test_cfr_is_valid_missing_id() -> None:
+def test_cfr_is_valid_missing_id() -> None:  # noqa: D103
     assert is_dog_config_payload_valid({"dog_name": "Rex"}) is False
 
 
@@ -43,19 +43,19 @@ def test_cfr_is_valid_missing_id() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_door_sensor_empty() -> None:
+def test_ensure_door_sensor_empty() -> None:  # noqa: D103
     result = ensure_door_sensor_settings_config({})
     assert result is not None  # DoorSensorSettingsConfig dataclass
 
 
 @pytest.mark.unit
-def test_ensure_door_sensor_none() -> None:
+def test_ensure_door_sensor_none() -> None:  # noqa: D103
     result = ensure_door_sensor_settings_config(None)
     assert result is not None
 
 
 @pytest.mark.unit
-def test_ensure_door_sensor_with_values() -> None:
+def test_ensure_door_sensor_with_values() -> None:  # noqa: D103
     result = ensure_door_sensor_settings_config({"auto_end_walks": True})
     assert result is not None
     assert hasattr(result, "auto_end_walks")
@@ -65,18 +65,18 @@ def test_ensure_door_sensor_with_values() -> None:
 
 
 @pytest.mark.unit
-def test_cfde_normalize_none() -> None:
+def test_cfde_normalize_none() -> None:  # noqa: D103
     assert normalize_dashboard_language(None) == "en"
 
 
 @pytest.mark.unit
-def test_cfde_normalize_de() -> None:
+def test_cfde_normalize_de() -> None:  # noqa: D103
     result = normalize_dashboard_language("de")
     assert isinstance(result, str)
 
 
 @pytest.mark.unit
-def test_cfde_normalize_unknown() -> None:
+def test_cfde_normalize_unknown() -> None:  # noqa: D103
     result = normalize_dashboard_language("xx")
     assert isinstance(result, str)
 
@@ -85,24 +85,24 @@ def test_cfde_normalize_unknown() -> None:
 
 
 @pytest.mark.unit
-def test_config_flow_base_importable() -> None:
+def test_config_flow_base_importable() -> None:  # noqa: D103
     assert hasattr(cfb_mod, "ConfigFlowGlobalSettings")
     assert hasattr(cfb_mod, "ensure_dog_modules_mapping")
 
 
 @pytest.mark.unit
-def test_config_flow_reauth_has_placeholders() -> None:
+def test_config_flow_reauth_has_placeholders() -> None:  # noqa: D103
     assert hasattr(cfr_mod, "freeze_placeholders")
     assert hasattr(cfr_mod, "clone_placeholders")
 
 
 @pytest.mark.unit
-def test_options_flow_door_sensor_has_mixin() -> None:
+def test_options_flow_door_sensor_has_mixin() -> None:  # noqa: D103
     assert hasattr(ofds_mod, "DoorSensorOptionsMixin")
     assert hasattr(ofds_mod, "ensure_dog_config_data")
 
 
 @pytest.mark.unit
-def test_config_flow_dashboard_extension_has_mixin() -> None:
+def test_config_flow_dashboard_extension_has_mixin() -> None:  # noqa: D103
     assert hasattr(cfde_mod, "DashboardFlowMixin")
     assert hasattr(cfde_mod, "freeze_placeholders")

@@ -17,7 +17,7 @@ analysis is now sound and deterministic.
 Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
-"""  # noqa: E501
+"""
 
 from collections.abc import Mapping
 import logging
@@ -563,7 +563,7 @@ class ModuleConfigurationMixin:
                         options=[
                             {
                                 "value": "full",
-                                "label": "📊 Full - Complete dashboard with all features",  # noqa: E501
+                                "label": "📊 Full - Complete dashboard with all features",
                             },
                             {
                                 "value": "cards",

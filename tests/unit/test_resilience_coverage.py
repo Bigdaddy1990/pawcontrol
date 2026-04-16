@@ -19,7 +19,7 @@ from custom_components.pawcontrol.resilience import (
 
 
 @pytest.mark.unit
-def test_circuit_breaker_config_defaults() -> None:
+def test_circuit_breaker_config_defaults() -> None:  # noqa: D103
     cfg = CircuitBreakerConfig()
     assert cfg.failure_threshold == 5
     assert cfg.success_threshold == 2
@@ -27,7 +27,7 @@ def test_circuit_breaker_config_defaults() -> None:
 
 
 @pytest.mark.unit
-def test_circuit_breaker_config_custom() -> None:
+def test_circuit_breaker_config_custom() -> None:  # noqa: D103
     cfg = CircuitBreakerConfig(failure_threshold=3, timeout_seconds=30.0)
     assert cfg.failure_threshold == 3
     assert cfg.timeout_seconds == pytest.approx(30.0)
@@ -37,45 +37,45 @@ def test_circuit_breaker_config_custom() -> None:
 
 
 @pytest.mark.unit
-def test_circuit_breaker_init() -> None:
+def test_circuit_breaker_init() -> None:  # noqa: D103
     cb = CircuitBreaker("test_breaker")
     assert cb is not None
 
 
 @pytest.mark.unit
-def test_circuit_breaker_starts_closed() -> None:
+def test_circuit_breaker_starts_closed() -> None:  # noqa: D103
     cb = CircuitBreaker("test_closed")
     assert cb._stats.state == CircuitState.CLOSED
 
 
 @pytest.mark.unit
-def test_circuit_breaker_custom_config() -> None:
+def test_circuit_breaker_custom_config() -> None:  # noqa: D103
     cfg = CircuitBreakerConfig(failure_threshold=2, timeout_seconds=10.0)
     cb = CircuitBreaker("test_custom", config=cfg)
     assert cb is not None
 
 
 @pytest.mark.unit
-def test_circuit_breaker_is_closed_initially() -> None:
+def test_circuit_breaker_is_closed_initially() -> None:  # noqa: D103
     cb = CircuitBreaker("test_is_closed")
     # is_closed is a property
     assert cb.is_closed is True
 
 
 @pytest.mark.unit
-def test_circuit_breaker_is_open_false_initially() -> None:
+def test_circuit_breaker_is_open_false_initially() -> None:  # noqa: D103
     cb = CircuitBreaker("test_is_open_init")
     assert cb.is_open is False
 
 
 @pytest.mark.unit
-def test_circuit_breaker_state_closed() -> None:
+def test_circuit_breaker_state_closed() -> None:  # noqa: D103
     cb = CircuitBreaker("test_state_closed")
     assert cb.state == CircuitState.CLOSED
 
 
 @pytest.mark.unit
-def test_circuit_breaker_get_stats() -> None:
+def test_circuit_breaker_get_stats() -> None:  # noqa: D103
     cb = CircuitBreaker("test_stats")
     stats = cb.get_stats()
     # Returns CircuitBreakerStats dataclass
@@ -84,7 +84,7 @@ def test_circuit_breaker_get_stats() -> None:
 
 
 @pytest.mark.unit
-def test_circuit_breaker_reset() -> None:
+def test_circuit_breaker_reset() -> None:  # noqa: D103
     cb = CircuitBreaker("test_reset")
     cb.reset()
     assert cb.is_closed is True
@@ -94,20 +94,20 @@ def test_circuit_breaker_reset() -> None:
 
 
 @pytest.mark.unit
-def test_get_circuit_breaker_creates_new() -> None:
+def test_get_circuit_breaker_creates_new() -> None:  # noqa: D103
     cb = get_circuit_breaker("fresh_breaker_xyz")
     assert isinstance(cb, CircuitBreaker)
 
 
 @pytest.mark.unit
-def test_get_circuit_breaker_returns_same() -> None:
+def test_get_circuit_breaker_returns_same() -> None:  # noqa: D103
     cb1 = get_circuit_breaker("shared_breaker_abc")
     cb2 = get_circuit_breaker("shared_breaker_abc")
     assert cb1 is cb2
 
 
 @pytest.mark.unit
-def test_get_all_circuit_breakers() -> None:
+def test_get_all_circuit_breakers() -> None:  # noqa: D103
     get_circuit_breaker("test_registry_breaker")
     all_cbs = get_all_circuit_breakers()
     assert isinstance(all_cbs, dict)
@@ -115,7 +115,7 @@ def test_get_all_circuit_breakers() -> None:
 
 
 @pytest.mark.unit
-def test_reset_all_circuit_breakers_no_raise() -> None:
+def test_reset_all_circuit_breakers_no_raise() -> None:  # noqa: D103
     get_circuit_breaker("test_reset_breaker")
     reset_all_circuit_breakers()
     # After reset all should be closed

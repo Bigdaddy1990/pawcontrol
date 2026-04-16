@@ -427,7 +427,7 @@ def parse_arguments() -> argparse.Namespace:
         "--pyyaml-archive",
         type=Path,
         default=None,
-        help="Use a pre-downloaded PyYAML source archive instead of downloading via pip.",  # noqa: E501
+        help="Use a pre-downloaded PyYAML source archive instead of downloading via pip.",
     )
     parser.add_argument(
         "--skip-pyyaml-metadata",

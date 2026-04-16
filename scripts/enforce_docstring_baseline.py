@@ -93,7 +93,7 @@ def main() -> int:  # noqa: D103
             f"baseline={baseline_coverage:.4f}",
         )
         print(
-            "Run 'python scripts/enforce_docstring_baseline.py --update' after adding docstrings.",  # noqa: E501
+            "Run 'python scripts/enforce_docstring_baseline.py --update' after adding docstrings.",
         )
         return 1
 

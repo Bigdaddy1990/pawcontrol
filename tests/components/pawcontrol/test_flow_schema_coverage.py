@@ -51,7 +51,7 @@ def _default(schema: vol.Schema, key_name: str):
     raise AssertionError(f"Missing marker {key_name}")
 
 
-def test_gps_and_geofence_schema_defaults_are_built() -> None:
+def test_gps_and_geofence_schema_defaults_are_built() -> None:  # noqa: D103
     dog_schema = build_dog_gps_schema({"device_tracker.fido": "Fido"})
     assert _default(dog_schema, CONF_GPS_SOURCE) is vol.UNDEFINED
 
@@ -63,7 +63,7 @@ def test_gps_and_geofence_schema_defaults_are_built() -> None:
     assert _default(geofence_schema, GEOFENCE_RADIUS_FIELD) == 150
 
 
-def test_health_and_walk_schemas_cover_dynamic_defaults() -> None:
+def test_health_and_walk_schemas_cover_dynamic_defaults() -> None:  # noqa: D103
     health_schema = build_dog_health_schema(
         dog_age=8,
         dog_size="large",
@@ -90,7 +90,7 @@ def test_health_and_walk_schemas_cover_dynamic_defaults() -> None:
     assert _default(vol.Schema(auto_end_field), "auto_end_walks") is True
 
 
-def test_notification_helpers_validate_and_coerce_values() -> None:
+def test_notification_helpers_validate_and_coerce_values() -> None:  # noqa: D103
     _validate_time_input(None, NOTIFICATION_QUIET_START_FIELD)
     _validate_time_input(0, NOTIFICATION_QUIET_START_FIELD)
     _validate_time_input("   ", NOTIFICATION_QUIET_START_FIELD)

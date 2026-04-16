@@ -21,25 +21,25 @@ from tests.helpers.homeassistant_test_stubs import IssueSeverity
 
 
 @pytest.mark.unit
-def test_normalise_severity_from_enum() -> None:
+def test_normalise_severity_from_enum() -> None:  # noqa: D103
     result = _normalise_issue_severity(IssueSeverity.ERROR)
     assert result == IssueSeverity.ERROR
 
 
 @pytest.mark.unit
-def test_normalise_severity_from_valid_string() -> None:
+def test_normalise_severity_from_valid_string() -> None:  # noqa: D103
     result = _normalise_issue_severity("error")
     assert result == IssueSeverity.ERROR
 
 
 @pytest.mark.unit
-def test_normalise_severity_from_invalid_string_falls_back() -> None:
+def test_normalise_severity_from_invalid_string_falls_back() -> None:  # noqa: D103
     result = _normalise_issue_severity("unknown_severity")
     assert result == IssueSeverity.WARNING
 
 
 @pytest.mark.unit
-def test_normalise_severity_non_string_falls_back() -> None:
+def test_normalise_severity_non_string_falls_back() -> None:  # noqa: D103
     result = _normalise_issue_severity(42)  # type: ignore[arg-type]
     assert result == IssueSeverity.WARNING
 
@@ -50,7 +50,7 @@ def test_normalise_severity_non_string_falls_back() -> None:
 
 
 @pytest.mark.unit
-def test_issue_registry_supports_kwarg_present() -> None:
+def test_issue_registry_supports_kwarg_present() -> None:  # noqa: D103
     def create_issue(
         hass: object,
         domain: str,
@@ -64,7 +64,7 @@ def test_issue_registry_supports_kwarg_present() -> None:
 
 
 @pytest.mark.unit
-def test_issue_registry_supports_kwarg_catch_all_kwargs() -> None:
+def test_issue_registry_supports_kwarg_catch_all_kwargs() -> None:  # noqa: D103
     def create_issue(hass: object, domain: str, **kwargs: object) -> None:
         return None
 
@@ -72,7 +72,7 @@ def test_issue_registry_supports_kwarg_catch_all_kwargs() -> None:
 
 
 @pytest.mark.unit
-def test_issue_registry_supports_kwarg_absent() -> None:
+def test_issue_registry_supports_kwarg_absent() -> None:  # noqa: D103
     def create_issue(hass: object, domain: str) -> None:
         return None
 
@@ -80,7 +80,7 @@ def test_issue_registry_supports_kwarg_absent() -> None:
 
 
 @pytest.mark.unit
-def test_issue_registry_supports_kwarg_not_callable() -> None:
+def test_issue_registry_supports_kwarg_not_callable() -> None:  # noqa: D103
     assert _issue_registry_supports_kwarg("not_callable", "key") is False
 
 
@@ -90,20 +90,20 @@ def test_issue_registry_supports_kwarg_not_callable() -> None:
 
 
 @pytest.mark.unit
-def test_classify_error_reason_with_string() -> None:
+def test_classify_error_reason_with_string() -> None:  # noqa: D103
     result = classify_error_reason("timeout")
     assert isinstance(result, str)
     assert len(result) > 0
 
 
 @pytest.mark.unit
-def test_classify_error_reason_none() -> None:
+def test_classify_error_reason_none() -> None:  # noqa: D103
     result = classify_error_reason(None)
     assert isinstance(result, str)
 
 
 @pytest.mark.unit
-def test_classify_error_reason_with_exception() -> None:
+def test_classify_error_reason_with_exception() -> None:  # noqa: D103
     err = ConnectionError("network down")
     result = classify_error_reason(None, error=err)
     assert isinstance(result, str)
@@ -115,12 +115,12 @@ def test_classify_error_reason_with_exception() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_cache_repair_aggregate_none() -> None:
+def test_ensure_cache_repair_aggregate_none() -> None:  # noqa: D103
     assert ensure_cache_repair_aggregate(None) is None
 
 
 @pytest.mark.unit
-def test_ensure_cache_repair_aggregate_valid_dict() -> None:
+def test_ensure_cache_repair_aggregate_valid_dict() -> None:  # noqa: D103
     data = {
         "total_repairs": 0,
         "repaired_entries": [],
@@ -132,7 +132,7 @@ def test_ensure_cache_repair_aggregate_valid_dict() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_cache_repair_aggregate_empty_dict() -> None:
+def test_ensure_cache_repair_aggregate_empty_dict() -> None:  # noqa: D103
     result = ensure_cache_repair_aggregate({})
     # Empty dict may or may not match the TypedDict structure
     assert result is None or isinstance(result, dict)

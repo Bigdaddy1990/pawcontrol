@@ -63,7 +63,7 @@ def _make_coordinator() -> PawControlCoordinator:
 
 
 @pytest.mark.asyncio
-async def test_refresh_subset_returns_early_for_empty_ids() -> None:
+async def test_refresh_subset_returns_early_for_empty_ids() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     called = False
 
@@ -83,7 +83,7 @@ async def test_refresh_subset_returns_early_for_empty_ids() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_apply_module_updates_ignores_unknown_and_invalid_module() -> None:
+async def test_async_apply_module_updates_ignores_unknown_and_invalid_module() -> None:  # noqa: D103
     coordinator = _make_coordinator()
 
     await coordinator.async_apply_module_updates("unknown", "gps", {"lat": 1})
@@ -93,7 +93,7 @@ async def test_async_apply_module_updates_ignores_unknown_and_invalid_module() -
 
 
 @pytest.mark.asyncio
-async def test_apply_module_updates_uses_empty_payload_for_non_mapping() -> None:
+async def test_apply_module_updates_uses_empty_payload_for_non_mapping() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     coordinator._data["dog-1"] = cast(Any, "stale")
 
@@ -105,7 +105,7 @@ async def test_apply_module_updates_uses_empty_payload_for_non_mapping() -> None
 
 
 @pytest.mark.asyncio
-async def test_synchronize_module_states_handles_non_mapping_and_inactive_walk() -> (
+async def test_synchronize_module_states_handles_non_mapping_and_inactive_walk() -> (  # noqa: D103
     None
 ):
     coordinator = _make_coordinator()
@@ -125,7 +125,7 @@ async def test_synchronize_module_states_handles_non_mapping_and_inactive_walk()
     assert data["dog-active"]["garden"]["state"] == "ended"
 
 
-def test_apply_adaptive_interval_skips_tiny_changes() -> None:
+def test_apply_adaptive_interval_skips_tiny_changes() -> None:  # noqa: D103
     coordinator = _make_coordinator()
 
     coordinator._apply_adaptive_interval(60.005)
@@ -134,7 +134,7 @@ def test_apply_adaptive_interval_skips_tiny_changes() -> None:
 
 
 @pytest.mark.asyncio
-async def test_refresh_subset_merges_data_and_updates_subscribers() -> None:
+async def test_refresh_subset_merges_data_and_updates_subscribers() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     coordinator._data = {"dog-2": {"health": {"status": "ok"}}}
     synchronized: list[dict[str, dict[str, dict[str, str]]]] = []
@@ -161,7 +161,7 @@ async def test_refresh_subset_merges_data_and_updates_subscribers() -> None:
 
 
 @pytest.mark.asyncio
-async def test_request_selective_refresh_handles_none_and_deduplicates_ids() -> None:
+async def test_request_selective_refresh_handles_none_and_deduplicates_ids() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     requested_full = False
     requested_subset: list[list[str]] = []
@@ -268,7 +268,7 @@ async def test_async_patch_gps_update_requests_refresh_when_state_not_ready() ->
 
 
 @pytest.mark.asyncio
-async def test_async_maintenance_delegates_to_runtime_helper(
+async def test_async_maintenance_delegates_to_runtime_helper(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     coordinator = _make_coordinator()
@@ -287,7 +287,7 @@ async def test_async_maintenance_delegates_to_runtime_helper(
 
 
 @pytest.mark.asyncio
-async def test_prepare_entry_returns_early_when_setup_completed() -> None:
+async def test_prepare_entry_returns_early_when_setup_completed() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     coordinator._setup_complete = True
     coordinator._modules = SimpleNamespace(
@@ -300,7 +300,7 @@ async def test_prepare_entry_returns_early_when_setup_completed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_fetch_dog_data_delegates_to_runtime_fetcher() -> None:
+async def test_fetch_dog_data_delegates_to_runtime_fetcher() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     expected = {"status": {"ok": True}}
 
@@ -316,7 +316,7 @@ async def test_fetch_dog_data_delegates_to_runtime_fetcher() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_patch_gps_update_updates_gps_and_geofencing_payloads() -> None:
+async def test_async_patch_gps_update_updates_gps_and_geofencing_payloads() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     coordinator._setup_complete = True
     coordinator.last_update_success = True
@@ -342,7 +342,7 @@ async def test_async_patch_gps_update_updates_gps_and_geofencing_payloads() -> N
     assert coordinator._last_updated["dog-1"]["gps"] == {"lat": 1.0, "lon": 2.0}
 
 
-def test_get_performance_snapshot_uses_default_rejection_metrics(
+def test_get_performance_snapshot_uses_default_rejection_metrics(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     coordinator = _make_coordinator()
@@ -399,7 +399,7 @@ def test_get_performance_snapshot_uses_default_rejection_metrics(
 
 
 @pytest.mark.asyncio
-async def test_async_update_data_handles_empty_registry_without_refresh() -> None:
+async def test_async_update_data_handles_empty_registry_without_refresh() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     coordinator.registry = _DummyRegistry([])
     coordinator.async_prepare_entry = cast(Any, pytest.fail)
@@ -410,7 +410,7 @@ async def test_async_update_data_handles_empty_registry_without_refresh() -> Non
 
 
 @pytest.mark.asyncio
-async def test_async_update_data_propagates_auth_failures() -> None:
+async def test_async_update_data_propagates_auth_failures() -> None:  # noqa: D103
     coordinator = _make_coordinator()
 
     async def _execute_cycle(
@@ -429,7 +429,7 @@ async def test_async_update_data_propagates_auth_failures() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_update_data_wraps_timeout_as_update_failed() -> None:
+async def test_async_update_data_wraps_timeout_as_update_failed() -> None:  # noqa: D103
     coordinator = _make_coordinator()
 
     async def _execute_cycle(
@@ -451,7 +451,7 @@ async def test_async_update_data_wraps_timeout_as_update_failed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_update_data_tolerates_inconsistent_payload_shapes() -> None:
+async def test_async_update_data_tolerates_inconsistent_payload_shapes() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     coordinator._data = {"dog-1": {"status": {"state": "old"}}}
 
@@ -505,7 +505,7 @@ async def test_async_update_data_keeps_state_update_when_sync_raises() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_update_data_recovery_after_failure_and_success() -> None:
+async def test_async_update_data_recovery_after_failure_and_success() -> None:  # noqa: D103
     coordinator = _make_coordinator()
     coordinator.last_update_success = False
     coordinator._metrics.consecutive_errors = 5

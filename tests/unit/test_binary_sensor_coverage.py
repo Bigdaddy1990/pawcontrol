@@ -30,27 +30,27 @@ def _coord(dog_id="rex"):
 
 
 @pytest.mark.unit
-def test_walk_in_progress_sensor_init() -> None:
+def test_walk_in_progress_sensor_init() -> None:  # noqa: D103
     s = PawControlWalkInProgressBinarySensor(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_walk_in_progress_is_on_false() -> None:
+def test_walk_in_progress_is_on_false() -> None:  # noqa: D103
     s = PawControlWalkInProgressBinarySensor(_coord(), "rex", "Rex")
     result = s.is_on
     assert isinstance(result, bool)
 
 
 @pytest.mark.unit
-def test_walk_in_progress_extra_attrs() -> None:
+def test_walk_in_progress_extra_attrs() -> None:  # noqa: D103
     s = PawControlWalkInProgressBinarySensor(_coord(), "rex", "Rex")
     attrs = s.extra_state_attributes
     assert isinstance(attrs, dict)
 
 
 @pytest.mark.unit
-def test_walk_in_progress_unique_id() -> None:
+def test_walk_in_progress_unique_id() -> None:  # noqa: D103
     s = PawControlWalkInProgressBinarySensor(_coord(), "rex", "Rex")
     assert "rex" in s._attr_unique_id
 
@@ -61,20 +61,20 @@ def test_walk_in_progress_unique_id() -> None:
 
 
 @pytest.mark.unit
-def test_feeding_due_sensor_init() -> None:
+def test_feeding_due_sensor_init() -> None:  # noqa: D103
     s = PawControlFeedingDueBinarySensor(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_feeding_due_is_on_type() -> None:
+def test_feeding_due_is_on_type() -> None:  # noqa: D103
     s = PawControlFeedingDueBinarySensor(_coord(), "rex", "Rex")
     result = s.is_on
     assert isinstance(result, bool)
 
 
 @pytest.mark.unit
-def test_feeding_due_extra_attrs() -> None:
+def test_feeding_due_extra_attrs() -> None:  # noqa: D103
     s = PawControlFeedingDueBinarySensor(_coord(), "rex", "Rex")
     attrs = s.extra_state_attributes
     assert isinstance(attrs, dict)
@@ -86,19 +86,19 @@ def test_feeding_due_extra_attrs() -> None:
 
 
 @pytest.mark.unit
-def test_activity_concern_sensor_init() -> None:
+def test_activity_concern_sensor_init() -> None:  # noqa: D103
     s = PawControlActivityLevelConcernBinarySensor(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_activity_concern_is_on_type() -> None:
+def test_activity_concern_is_on_type() -> None:  # noqa: D103
     s = PawControlActivityLevelConcernBinarySensor(_coord(), "rex", "Rex")
     result = s.is_on
     assert isinstance(result, bool)
 
 
 @pytest.mark.unit
-def test_activity_concern_unique_id() -> None:
+def test_activity_concern_unique_id() -> None:  # noqa: D103
     s = PawControlActivityLevelConcernBinarySensor(_coord(), "rex", "Rex")
     assert "rex" in s._attr_unique_id

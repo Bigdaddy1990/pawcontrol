@@ -11,7 +11,7 @@ from custom_components.pawcontrol.config_flow_placeholders import (
 )
 
 
-def test_build_add_dog_summary_placeholders_sets_expected_values() -> None:
+def test_build_add_dog_summary_placeholders_sets_expected_values() -> None:  # noqa: D103
     placeholders = _build_add_dog_summary_placeholders(
         dogs_configured=2,
         max_dogs=5,
@@ -29,7 +29,7 @@ def test_build_add_dog_summary_placeholders_sets_expected_values() -> None:
         placeholders["max_dogs"] = "7"  # type: ignore[index]
 
 
-def test_build_dog_modules_form_placeholders_sets_expected_values() -> None:
+def test_build_dog_modules_form_placeholders_sets_expected_values() -> None:  # noqa: D103
     placeholders = _build_dog_modules_form_placeholders(
         dog_name="Luna",
         dogs_configured=3,
@@ -43,7 +43,7 @@ def test_build_dog_modules_form_placeholders_sets_expected_values() -> None:
     }
 
 
-def test_build_add_another_placeholders_encodes_boolean_as_yes_no() -> None:
+def test_build_add_another_placeholders_encodes_boolean_as_yes_no() -> None:  # noqa: D103
     can_add_more = _build_add_another_placeholders(
         dogs_configured=4,
         dogs_list="Luna, Milo, Nala, Koda",

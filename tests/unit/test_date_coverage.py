@@ -32,7 +32,7 @@ class _TestDateEntity(PawControlDateBase):
 
 
 @pytest.mark.asyncio
-async def test_add_entities_in_batches_waits_between_batches() -> None:
+async def test_add_entities_in_batches_waits_between_batches() -> None:  # noqa: D103
     add_entities = AsyncMock()
     entities = [MagicMock() for _ in range(5)]
 
@@ -51,7 +51,7 @@ async def test_add_entities_in_batches_waits_between_batches() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_adds_expected_entities() -> None:
+async def test_async_setup_entry_adds_expected_entities() -> None:  # noqa: D103
     coordinator = MagicMock()
     runtime_data = SimpleNamespace(
         coordinator=coordinator,
@@ -86,7 +86,7 @@ async def test_async_setup_entry_adds_expected_entities() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_raises_pawcontrol_error_on_failure() -> None:
+async def test_async_setup_entry_raises_pawcontrol_error_on_failure() -> None:  # noqa: D103
     with (
         patch(
             "custom_components.pawcontrol.date.get_runtime_data",
@@ -98,7 +98,7 @@ async def test_async_setup_entry_raises_pawcontrol_error_on_failure() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_added_to_hass_restores_valid_date() -> None:
+async def test_async_added_to_hass_restores_valid_date() -> None:  # noqa: D103
     entity = _TestDateEntity(MagicMock())
     state = SimpleNamespace(state="2024-10-15")
 
@@ -118,7 +118,7 @@ async def test_async_added_to_hass_restores_valid_date() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_added_to_hass_handles_invalid_date() -> None:
+async def test_async_added_to_hass_handles_invalid_date() -> None:  # noqa: D103
     entity = _TestDateEntity(MagicMock())
     entity.entity_id = "date.dog_1_test_date"
     state = SimpleNamespace(state="not-a-date")
@@ -142,7 +142,7 @@ async def test_async_added_to_hass_handles_invalid_date() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_set_value_rejects_non_date() -> None:
+async def test_async_set_value_rejects_non_date() -> None:  # noqa: D103
     entity = _TestDateEntity(MagicMock())
 
     with pytest.raises(ValidationError):
@@ -150,7 +150,7 @@ async def test_async_set_value_rejects_non_date() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_set_value_wraps_subclass_error() -> None:
+async def test_async_set_value_wraps_subclass_error() -> None:  # noqa: D103
     entity = _TestDateEntity(MagicMock())
     entity.async_write_ha_state = MagicMock()
 
@@ -166,7 +166,7 @@ async def test_async_set_value_wraps_subclass_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_handle_coordinator_update_extracts_data() -> None:
+async def test_handle_coordinator_update_extracts_data() -> None:  # noqa: D103
     coordinator = MagicMock()
     coordinator.get_dog_data.return_value = {"profile": {"birthdate": "2020-01-01"}}
     entity = PawControlBirthdateDate(coordinator, "dog-1", "Rex")
@@ -210,7 +210,7 @@ async def test_handle_coordinator_update_extracts_data() -> None:
     ],
 )
 @pytest.mark.unit
-def test_extract_date_from_payload_variants(
+def test_extract_date_from_payload_variants(  # noqa: D103
     entity_cls: type[PawControlDateBase], payload: dict[str, object], expected: date
 ) -> None:
     entity = entity_cls(MagicMock(), "dog-1", "Rex")
@@ -221,7 +221,7 @@ def test_extract_date_from_payload_variants(
 
 
 @pytest.mark.asyncio
-async def test_health_service_date_entities_call_hass_service() -> None:
+async def test_health_service_date_entities_call_hass_service() -> None:  # noqa: D103
     for entity in (
         PawControlLastVetVisitDate(MagicMock(), "dog-1", "Rex"),
         PawControlVaccinationDate(MagicMock(), "dog-1", "Rex"),
@@ -233,7 +233,7 @@ async def test_health_service_date_entities_call_hass_service() -> None:
 
 
 @pytest.mark.unit
-def test_extra_state_attributes_today_date_flags(
+def test_extra_state_attributes_today_date_flags(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     entity = PawControlBirthdateDate(MagicMock(), "dog-1", "Rex")
@@ -251,7 +251,7 @@ def test_extra_state_attributes_today_date_flags(
 
 
 @pytest.mark.asyncio
-async def test_next_training_and_diet_handlers_do_not_raise() -> None:
+async def test_next_training_and_diet_handlers_do_not_raise() -> None:  # noqa: D103
     next_training = PawControlNextTrainingDate(MagicMock(), "dog-1", "Rex")
     diet_start = PawControlDietStartDate(MagicMock(), "dog-1", "Rex")
 

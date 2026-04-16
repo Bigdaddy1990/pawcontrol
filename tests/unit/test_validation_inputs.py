@@ -34,7 +34,7 @@ class _FakeHomeAssistant:
     services: _FakeServices
 
 
-def test_validate_gps_source_rejects_non_string() -> None:
+def test_validate_gps_source_rejects_non_string() -> None:  # noqa: D103
     hass = _FakeHomeAssistant(states=_FakeStates(), services=_FakeServices({}))
 
     with pytest.raises(ValidationError) as err:
@@ -43,7 +43,7 @@ def test_validate_gps_source_rejects_non_string() -> None:
     assert err.value.constraint == "gps_source_required"
 
 
-def test_validate_gps_source_rejects_unavailable_state() -> None:
+def test_validate_gps_source_rejects_unavailable_state() -> None:  # noqa: D103
     hass = _FakeHomeAssistant(
         states=_FakeStates({
             "device_tracker.gps": SimpleNamespace(state="unavailable")
@@ -57,7 +57,7 @@ def test_validate_gps_source_rejects_unavailable_state() -> None:
     assert err.value.constraint == "gps_source_unavailable"
 
 
-def test_validate_notify_service_rejects_invalid_format() -> None:
+def test_validate_notify_service_rejects_invalid_format() -> None:  # noqa: D103
     hass = _FakeHomeAssistant(
         states=_FakeStates(),
         services=_FakeServices({"notify": {"mobile_app": object()}}),
@@ -69,7 +69,7 @@ def test_validate_notify_service_rejects_invalid_format() -> None:
     assert err.value.constraint == "notify_service_invalid"
 
 
-def test_validate_notify_service_rejects_unknown_service() -> None:
+def test_validate_notify_service_rejects_unknown_service() -> None:  # noqa: D103
     hass = _FakeHomeAssistant(
         states=_FakeStates(),
         services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),

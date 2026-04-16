@@ -711,7 +711,7 @@ class DoorSensorManager:
         raw_settings: object,
         normalised: DoorSensorSettingsConfig,
     ) -> object:
-        """Return payload to persist when ``raw_settings`` differs from ``normalised``."""  # noqa: E501
+        """Return payload to persist when ``raw_settings`` differs from ``normalised``."""
         desired_payload = _settings_to_payload(normalised)
 
         current_payload: DoorSensorSettingsPayload | None
@@ -1285,7 +1285,7 @@ class DoorSensorManager:
                 await self._notification_manager.async_send_notification(
                     notification_type=NotificationType.SYSTEM_INFO,
                     title=f"🏠 {config.dog_name} returned",
-                    message=f"{config.dog_name} finished their walk (duration: {duration_minutes:.0f} minutes)",  # noqa: E501
+                    message=f"{config.dog_name} finished their walk (duration: {duration_minutes:.0f} minutes)",
                     dog_id=config.dog_id,
                     priority=NotificationPriority.LOW,
                 )

@@ -56,7 +56,7 @@ class HassInheritanceChecker(BaseChecker):
             self.add_message(
                 "hass-invalid-inheritance",
                 node=node,
-                args="SensorEntity and RestoreEntity should not be combined, please use RestoreSensor",  # noqa: E501
+                args="SensorEntity and RestoreEntity should not be combined, please use RestoreSensor",
             )
         elif (
             "RestoreEntity" in ancestors
@@ -66,7 +66,7 @@ class HassInheritanceChecker(BaseChecker):
             self.add_message(
                 "hass-invalid-inheritance",
                 node=node,
-                args="NumberEntity and RestoreEntity should not be combined, please use RestoreNumber",  # noqa: E501
+                args="NumberEntity and RestoreEntity should not be combined, please use RestoreNumber",
             )
 
 

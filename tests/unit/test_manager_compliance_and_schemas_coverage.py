@@ -81,7 +81,7 @@ def test_check_required_methods_accepts_valid_methods() -> None:
 
 
 @pytest.mark.unit
-def test_validate_json_schema_payload_valid() -> None:
+def test_validate_json_schema_payload_valid() -> None:  # noqa: D103
     schema = {
         "type": "object",
         "properties": {"name": {"type": "string"}},
@@ -93,7 +93,7 @@ def test_validate_json_schema_payload_valid() -> None:
 
 
 @pytest.mark.unit
-def test_validate_json_schema_payload_missing_required() -> None:
+def test_validate_json_schema_payload_missing_required() -> None:  # noqa: D103
     schema = {
         "type": "object",
         "properties": {"name": {"type": "string"}},
@@ -105,21 +105,21 @@ def test_validate_json_schema_payload_missing_required() -> None:
 
 
 @pytest.mark.unit
-def test_validate_json_schema_payload_wrong_type() -> None:
+def test_validate_json_schema_payload_wrong_type() -> None:  # noqa: D103
     schema = {"type": "object", "properties": {"age": {"type": "integer"}}}
     violations = validate_json_schema_payload({"age": "not_a_number"}, schema)
     assert isinstance(violations, list)
 
 
 @pytest.mark.unit
-def test_validate_json_schema_payload_empty_payload() -> None:
+def test_validate_json_schema_payload_empty_payload() -> None:  # noqa: D103
     schema = {"type": "object"}
     violations = validate_json_schema_payload({}, schema)
     assert isinstance(violations, list)
 
 
 @pytest.mark.unit
-def test_validate_json_schema_payload_rejects_non_dict_payload() -> None:
+def test_validate_json_schema_payload_rejects_non_dict_payload() -> None:  # noqa: D103
     schema = {"type": "object", "properties": {"name": {"type": "string"}}}
 
     violations = validate_json_schema_payload(["not", "a", "dict"], schema)
@@ -130,7 +130,7 @@ def test_validate_json_schema_payload_rejects_non_dict_payload() -> None:
 
 
 @pytest.mark.unit
-def test_validate_json_schema_payload_flags_additional_properties() -> None:
+def test_validate_json_schema_payload_flags_additional_properties() -> None:  # noqa: D103
     schema = {
         "type": "object",
         "properties": {"name": {"type": "string"}},
@@ -148,7 +148,7 @@ def test_validate_json_schema_payload_flags_additional_properties() -> None:
 
 
 @pytest.mark.unit
-def test_validate_json_schema_payload_applies_enum_length_and_numeric_constraints() -> (
+def test_validate_json_schema_payload_applies_enum_length_and_numeric_constraints() -> (  # noqa: D103
     None
 ):
     schema = {
@@ -183,7 +183,7 @@ def test_validate_json_schema_payload_applies_enum_length_and_numeric_constraint
 
 
 @pytest.mark.unit
-def test_validate_json_schema_payload_accepts_union_numeric_types() -> None:
+def test_validate_json_schema_payload_accepts_union_numeric_types() -> None:  # noqa: D103
     schema = {
         "type": "object",
         "properties": {
@@ -203,7 +203,7 @@ def test_validate_json_schema_payload_accepts_union_numeric_types() -> None:
 
 
 @pytest.mark.unit
-def test_schema_violation_init() -> None:
+def test_schema_violation_init() -> None:  # noqa: D103
     v = SchemaViolation(field="name", value=None, constraint="required")
     assert v.field == "name"
     assert v.constraint == "required"
@@ -230,7 +230,7 @@ class _CompliantManager(BaseManager):
 
 
 @pytest.mark.unit
-def test_compliance_report_add_issue_updates_score_and_counts() -> None:
+def test_compliance_report_add_issue_updates_score_and_counts() -> None:  # noqa: D103
     report = ComplianceReport(manager_name="ScoredManager")
 
     report.add_issue("warning", "lifecycle", "warn")
@@ -246,7 +246,7 @@ def test_compliance_report_add_issue_updates_score_and_counts() -> None:
 
 
 @pytest.mark.unit
-def test_lifecycle_constants_and_signature_checks_emit_expected_issues() -> None:
+def test_lifecycle_constants_and_signature_checks_emit_expected_issues() -> None:  # noqa: D103
     class SignatureManager:
         MANAGER_NAME = 123
 
@@ -276,7 +276,7 @@ def test_lifecycle_constants_and_signature_checks_emit_expected_issues() -> None
 
 
 @pytest.mark.unit
-def test_documentation_and_inheritance_checks_emit_expected_issues() -> None:
+def test_documentation_and_inheritance_checks_emit_expected_issues() -> None:  # noqa: D103
     class NoDocsManager:
         MANAGER_NAME = "NoDocs"
         MANAGER_VERSION = "1.0.0"
@@ -306,7 +306,7 @@ def test_documentation_and_inheritance_checks_emit_expected_issues() -> None:
 
 
 @pytest.mark.unit
-def test_validate_manager_and_summary_helpers() -> None:
+def test_validate_manager_and_summary_helpers() -> None:  # noqa: D103
     report_class = validate_manager_compliance(_CompliantManager)
     report_instance = validate_manager_compliance(_CompliantManager(hass=object()))
 
@@ -329,7 +329,7 @@ def test_validate_manager_and_summary_helpers() -> None:
 
 
 @pytest.mark.unit
-def test_print_report_and_compliance_levels(caplog: pytest.LogCaptureFixture) -> None:
+def test_print_report_and_compliance_levels(caplog: pytest.LogCaptureFixture) -> None:  # noqa: D103
     report = ComplianceReport(manager_name="LoggerManager")
     report.add_issue("warning", "interface", "warning-message")
     report.add_issue("error", "interface", "error-message")

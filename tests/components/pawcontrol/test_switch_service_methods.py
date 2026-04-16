@@ -40,7 +40,7 @@ def visitor_mode_switch_entity_fixture() -> PawControlVisitorModeSwitch:
 
 
 @pytest.mark.asyncio
-async def test_visitor_mode_switch_turn_on_calls_service_with_expected_payload(
+async def test_visitor_mode_switch_turn_on_calls_service_with_expected_payload(  # noqa: D103
     visitor_mode_switch_entity: PawControlVisitorModeSwitch,
 ) -> None:
     entity = visitor_mode_switch_entity
@@ -63,7 +63,7 @@ async def test_visitor_mode_switch_turn_on_calls_service_with_expected_payload(
 
 
 @pytest.mark.asyncio
-async def test_visitor_mode_switch_service_failure_keeps_state_consistent(
+async def test_visitor_mode_switch_service_failure_keeps_state_consistent(  # noqa: D103
     visitor_mode_switch_entity: PawControlVisitorModeSwitch,
 ) -> None:
     entity = visitor_mode_switch_entity
@@ -80,7 +80,7 @@ async def test_visitor_mode_switch_service_failure_keeps_state_consistent(
 
 
 @pytest.mark.asyncio
-async def test_visitor_mode_switch_turn_off_calls_service_with_expected_payload() -> (
+async def test_visitor_mode_switch_turn_off_calls_service_with_expected_payload() -> (  # noqa: D103
     None
 ):
     coordinator = _DummyCoordinator()

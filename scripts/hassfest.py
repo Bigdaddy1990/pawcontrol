@@ -77,7 +77,7 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
     expected_domain = manifest_path.parent.name
     if domain != expected_domain:
         errors.append(
-            f"manifest.domain '{domain}' does not match integration folder '{expected_domain}'",  # noqa: E501
+            f"manifest.domain '{domain}' does not match integration folder '{expected_domain}'",
         )
 
     quality_scale = manifest.get("quality_scale")

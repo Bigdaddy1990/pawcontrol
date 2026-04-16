@@ -1,4 +1,4 @@
-import asyncio
+import asyncio  # noqa: D100
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -354,7 +354,7 @@ def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> N
 
 
 def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None:
-    """Update statistics should provide default rejection metrics without resilience data."""  # noqa: E501
+    """Update statistics should provide default rejection metrics without resilience data."""
     coordinator = _build_coordinator(resilience_manager=None)
 
     runtime_data = SimpleNamespace(
@@ -402,7 +402,7 @@ def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None
 
 
 def test_derive_rejection_metrics_preserves_defaults() -> None:
-    """Derived metrics should keep seeded defaults when resilience payload omits values."""  # noqa: E501
+    """Derived metrics should keep seeded defaults when resilience payload omits values."""
     metrics = tasks.derive_rejection_metrics({
         "rejected_call_count": None,
         "rejection_breaker_count": None,
@@ -1108,7 +1108,7 @@ def test_build_runtime_statistics_omits_empty_repair_summary(monkeypatch) -> Non
 
 
 def test_build_runtime_statistics_omits_empty_resilience(monkeypatch) -> None:
-    """Runtime statistics should skip resilience telemetry when no payload is available."""  # noqa: E501
+    """Runtime statistics should skip resilience telemetry when no payload is available."""
     coordinator = _build_coordinator(resilience_manager=_DummyResilience({}))
     runtime_data = SimpleNamespace(
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None)
@@ -1123,7 +1123,7 @@ def test_build_runtime_statistics_omits_empty_resilience(monkeypatch) -> None:
 
 
 def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> None:
-    """Runtime statistics should include default rejection metrics when none recorded."""  # noqa: E501
+    """Runtime statistics should include default rejection metrics when none recorded."""
     coordinator = _build_coordinator(resilience_manager=None)
     runtime_data = SimpleNamespace(
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None),

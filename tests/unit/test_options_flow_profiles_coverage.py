@@ -97,7 +97,7 @@ class _ProfileFlowHost(ProfileOptionsMixin):
 
 
 @pytest.mark.asyncio
-async def test_async_step_entity_profiles_handles_vol_invalid(
+async def test_async_step_entity_profiles_handles_vol_invalid(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _ProfileFlowHost()
@@ -118,7 +118,7 @@ async def test_async_step_entity_profiles_handles_vol_invalid(
 
 
 @pytest.mark.asyncio
-async def test_async_step_entity_profiles_handles_generic_error(
+async def test_async_step_entity_profiles_handles_generic_error(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _ProfileFlowHost()
@@ -138,7 +138,7 @@ async def test_async_step_entity_profiles_handles_generic_error(
 
 
 @pytest.mark.asyncio
-async def test_async_step_entity_profiles_preview_and_save_paths(
+async def test_async_step_entity_profiles_preview_and_save_paths(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _ProfileFlowHost()
@@ -164,7 +164,7 @@ async def test_async_step_entity_profiles_preview_and_save_paths(
 
 
 @pytest.mark.asyncio
-async def test_async_step_profile_preview_apply_or_return() -> None:
+async def test_async_step_profile_preview_apply_or_return() -> None:  # noqa: D103
     host = _ProfileFlowHost()
 
     apply_result = await host.async_step_profile_preview({
@@ -180,7 +180,7 @@ async def test_async_step_profile_preview_apply_or_return() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_step_performance_settings_success_and_error(
+async def test_async_step_performance_settings_success_and_error(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _ProfileFlowHost()
@@ -325,7 +325,7 @@ def _install_profile_module_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_description_placeholders_cached_handles_invalid_dogs_and_cache(
+async def test_profile_description_placeholders_cached_handles_invalid_dogs_and_cache(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _install_profile_module_stubs(monkeypatch)
@@ -364,7 +364,7 @@ async def test_profile_description_placeholders_cached_handles_invalid_dogs_and_
         TypeError("bad"),
     ],
 )
-async def test_profile_description_placeholders_cached_handles_telemetry_normalise_errors(
+async def test_profile_description_placeholders_cached_handles_telemetry_normalise_errors(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
     error: Exception,
 ) -> None:
@@ -380,7 +380,7 @@ async def test_profile_description_placeholders_cached_handles_telemetry_normali
 
 
 @pytest.mark.asyncio
-async def test_calculate_profile_preview_optimized_builds_and_caches_preview(
+async def test_calculate_profile_preview_optimized_builds_and_caches_preview(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _install_profile_module_stubs(monkeypatch)
@@ -423,7 +423,7 @@ async def test_calculate_profile_preview_optimized_builds_and_caches_preview(
 
 
 @pytest.mark.asyncio
-async def test_calculate_profile_preview_optimized_skips_invalid_dog_entries(
+async def test_calculate_profile_preview_optimized_skips_invalid_dog_entries(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _install_profile_module_stubs(monkeypatch)
@@ -446,7 +446,7 @@ async def test_calculate_profile_preview_optimized_skips_invalid_dog_entries(
 
 
 @pytest.mark.asyncio
-async def test_calculate_profile_preview_optimized_handles_non_sequence_dogs_input(
+async def test_calculate_profile_preview_optimized_handles_non_sequence_dogs_input(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _install_profile_module_stubs(monkeypatch)
@@ -469,7 +469,7 @@ async def test_calculate_profile_preview_optimized_handles_non_sequence_dogs_inp
         (0, "ignored-string", "same", "No warnings"),
     ],
 )
-async def test_async_step_profile_preview_formats_performance_change_and_warnings(
+async def test_async_step_profile_preview_formats_performance_change_and_warnings(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
     entity_difference: int,
     warnings: Any,
@@ -514,7 +514,7 @@ async def test_async_step_profile_preview_formats_performance_change_and_warning
 
 
 @pytest.mark.asyncio
-async def test_async_step_performance_settings_uses_stored_int_defaults_and_no_input_form(
+async def test_async_step_performance_settings_uses_stored_int_defaults_and_no_input_form(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _install_profile_module_stubs(monkeypatch)

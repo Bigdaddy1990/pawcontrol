@@ -20,7 +20,7 @@ class SamplePayload:
 class UnserializableObject:
     """Object without JSON representation."""
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # noqa: D105
         return "UnserializableObject()"
 
 

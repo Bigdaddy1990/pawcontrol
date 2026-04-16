@@ -19,33 +19,33 @@ from custom_components.pawcontrol.coordinator_runtime import (
 
 
 @pytest.mark.unit
-def test_build_dog_status_snapshot_empty_data() -> None:
+def test_build_dog_status_snapshot_empty_data() -> None:  # noqa: D103
     result = build_dog_status_snapshot("rex", {})
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_build_dog_status_snapshot_with_walk_data() -> None:
+def test_build_dog_status_snapshot_with_walk_data() -> None:  # noqa: D103
     dog_data = {"walk": {"walk_in_progress": True, "distance_today_km": 2.5}}
     result = build_dog_status_snapshot("rex", dog_data)
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_build_dog_status_snapshot_with_feeding_data() -> None:
+def test_build_dog_status_snapshot_with_feeding_data() -> None:  # noqa: D103
     dog_data = {"feeding": {"meals_today": 2, "last_feeding": None}}
     result = build_dog_status_snapshot("rex", dog_data)
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_build_dog_status_snapshot_dog_id_preserved() -> None:
+def test_build_dog_status_snapshot_dog_id_preserved() -> None:  # noqa: D103
     result = build_dog_status_snapshot("buddy", {})
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_build_dog_status_snapshot_full_payload() -> None:
+def test_build_dog_status_snapshot_full_payload() -> None:  # noqa: D103
     dog_data = {
         "walk": {"walk_in_progress": False, "total_distance_today": 3.0},
         "feeding": {"meals_today": 1},
@@ -61,13 +61,13 @@ def test_build_dog_status_snapshot_full_payload() -> None:
 
 
 @pytest.mark.unit
-def test_summarize_entity_budgets_empty() -> None:
+def test_summarize_entity_budgets_empty() -> None:  # noqa: D103
     result = summarize_entity_budgets([])
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_summarize_entity_budgets_single() -> None:
+def test_summarize_entity_budgets_single() -> None:  # noqa: D103
     from datetime import datetime
 
     from custom_components.pawcontrol.coordinator_runtime import EntityBudgetSnapshot
@@ -87,7 +87,7 @@ def test_summarize_entity_budgets_single() -> None:
 
 
 @pytest.mark.unit
-def test_summarize_entity_budgets_multiple() -> None:
+def test_summarize_entity_budgets_multiple() -> None:  # noqa: D103
     from datetime import datetime
 
     from custom_components.pawcontrol.coordinator_runtime import EntityBudgetSnapshot
@@ -109,20 +109,20 @@ def test_summarize_entity_budgets_multiple() -> None:
 
 
 @pytest.mark.unit
-def test_ensure_dog_modules_mapping_empty() -> None:
+def test_ensure_dog_modules_mapping_empty() -> None:  # noqa: D103
     result = ensure_dog_modules_mapping({})
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_ensure_dog_modules_mapping_with_modules() -> None:
+def test_ensure_dog_modules_mapping_with_modules() -> None:  # noqa: D103
     data = {"feeding": True, "walk": False, "gps": True}
     result = ensure_dog_modules_mapping(data)
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_ensure_dog_modules_mapping_coerces_bools() -> None:
+def test_ensure_dog_modules_mapping_coerces_bools() -> None:  # noqa: D103
     data = {"feeding": 1, "walk": 0}
     result = ensure_dog_modules_mapping(data)
     assert isinstance(result, dict)

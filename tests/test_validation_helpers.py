@@ -16,33 +16,33 @@ from custom_components.pawcontrol.validation_helpers import (
 )
 
 
-def test_normalise_existing_names_filters_and_normalises_values() -> None:
+def test_normalise_existing_names_filters_and_normalises_values() -> None:  # noqa: D103
     names = {"  Luna  ", "", "MILO", "   ", 123}
 
     assert normalise_existing_names(names) == {"luna", "milo"}
 
 
-def test_validate_unique_dog_name_detects_duplicates_case_insensitive() -> None:
+def test_validate_unique_dog_name_detects_duplicates_case_insensitive() -> None:  # noqa: D103
     with pytest.raises(ValidationError) as err:
         validate_unique_dog_name("Luna", existing_names={" luna "})
 
     assert err.value.constraint == "dog_name_already_exists"
 
 
-def test_validate_unique_dog_name_allows_optional_empty_name() -> None:
+def test_validate_unique_dog_name_allows_optional_empty_name() -> None:  # noqa: D103
     assert (
         validate_unique_dog_name(None, required=False, existing_names={"luna"}) is None
     )
 
 
-def test_validate_unique_dog_name_returns_valid_non_duplicate_name() -> None:
+def test_validate_unique_dog_name_returns_valid_non_duplicate_name() -> None:  # noqa: D103
     assert (
         validate_unique_dog_name("Milo", required=True, existing_names={"luna"})
         == "Milo"
     )
 
 
-def test_validate_coordinate_pair_returns_validated_float_values() -> None:
+def test_validate_coordinate_pair_returns_validated_float_values() -> None:  # noqa: D103
     latitude, longitude = validate_coordinate_pair("52.52", "13.405")
 
     assert latitude == pytest.approx(52.52)
@@ -80,19 +80,19 @@ def test_validate_coordinate_pair_returns_validated_float_values() -> None:
         ),
     ],
 )
-def test_format_coordinate_validation_error_messages(
+def test_format_coordinate_validation_error_messages(  # noqa: D103
     error: ValidationError,
     expected: str,
 ) -> None:
     assert format_coordinate_validation_error(error) == expected
 
 
-def test_validate_service_coordinates_wraps_validation_error() -> None:
+def test_validate_service_coordinates_wraps_validation_error() -> None:  # noqa: D103
     with pytest.raises(ServiceValidationError, match="latitude must be a number"):
         validate_service_coordinates("bad", 10)
 
 
-def test_safe_validate_interval_returns_default_on_validation_error() -> None:
+def test_safe_validate_interval_returns_default_on_validation_error() -> None:  # noqa: D103
     assert (
         safe_validate_interval(
             "bad",
@@ -106,7 +106,7 @@ def test_safe_validate_interval_returns_default_on_validation_error() -> None:
     )
 
 
-def test_safe_validate_interval_returns_validated_interval() -> None:
+def test_safe_validate_interval_returns_validated_interval() -> None:  # noqa: D103
     assert (
         safe_validate_interval(
             45,

@@ -338,7 +338,7 @@ async def async_setup_entry(
         )
 
         _LOGGER.info(
-            "PawControl setup completed in %.2f seconds: %d dogs, %d platforms, %d helpers, "  # noqa: E501
+            "PawControl setup completed in %.2f seconds: %d dogs, %d platforms, %d helpers, "
             "profile '%s', geofencing %s, door sensors %d",
             setup_duration,
             len(dogs_config),
@@ -716,7 +716,7 @@ async def async_remove_config_entry_device(
     still_present = configured & set(active_ids)
     if still_present:
         _LOGGER.debug(
-            "Refusing to remove PawControl device %s because dogs %s are still configured",  # noqa: E501
+            "Refusing to remove PawControl device %s because dogs %s are still configured",
             device_entry.id,
             ", ".join(sorted(active_ids[dog] for dog in still_present)),
         )

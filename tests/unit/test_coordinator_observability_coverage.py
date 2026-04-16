@@ -2,7 +2,7 @@
 
 Covers: default_rejection_metrics, derive_rejection_metrics,
         normalise_webhook_status, build_security_scorecard
-"""  # noqa: E501
+"""
 
 from unittest.mock import MagicMock
 
@@ -20,20 +20,20 @@ from custom_components.pawcontrol.coordinator_observability import (
 
 
 @pytest.mark.unit
-def test_default_rejection_metrics_returns_dict() -> None:
+def test_default_rejection_metrics_returns_dict() -> None:  # noqa: D103
     result = default_rejection_metrics()
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_default_rejection_metrics_has_expected_keys() -> None:
+def test_default_rejection_metrics_has_expected_keys() -> None:  # noqa: D103
     result = default_rejection_metrics()
     # Should have counter fields
     assert len(result) >= 1
 
 
 @pytest.mark.unit
-def test_default_rejection_metrics_has_schema_version() -> None:
+def test_default_rejection_metrics_has_schema_version() -> None:  # noqa: D103
     result = default_rejection_metrics()
     assert "schema_version" in result
     assert "rejected_call_count" in result
@@ -45,19 +45,19 @@ def test_default_rejection_metrics_has_schema_version() -> None:
 
 
 @pytest.mark.unit
-def test_derive_rejection_metrics_none() -> None:
+def test_derive_rejection_metrics_none() -> None:  # noqa: D103
     result = derive_rejection_metrics(None)
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_derive_rejection_metrics_empty_dict() -> None:
+def test_derive_rejection_metrics_empty_dict() -> None:  # noqa: D103
     result = derive_rejection_metrics({})
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_derive_rejection_metrics_with_data() -> None:
+def test_derive_rejection_metrics_with_data() -> None:  # noqa: D103
     data = {
         "total_rejections": 5,
         "rate_limited": 2,
@@ -69,7 +69,7 @@ def test_derive_rejection_metrics_with_data() -> None:
 
 
 @pytest.mark.unit
-def test_derive_rejection_metrics_partial_data() -> None:
+def test_derive_rejection_metrics_partial_data() -> None:  # noqa: D103
     data = {"total_rejections": 10}
     result = derive_rejection_metrics(data)
     assert isinstance(result, dict)
@@ -81,13 +81,13 @@ def test_derive_rejection_metrics_partial_data() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_webhook_status_none_manager() -> None:
+def test_normalise_webhook_status_none_manager() -> None:  # noqa: D103
     result = normalise_webhook_status(None)
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_normalise_webhook_status_mock_manager() -> None:
+def test_normalise_webhook_status_mock_manager() -> None:  # noqa: D103
     manager = MagicMock()
     manager.is_configured = False
     manager.token_count = 0
@@ -96,7 +96,7 @@ def test_normalise_webhook_status_mock_manager() -> None:
 
 
 @pytest.mark.unit
-def test_normalise_webhook_status_configured_manager() -> None:
+def test_normalise_webhook_status_configured_manager() -> None:  # noqa: D103
     manager = MagicMock()
     manager.is_configured = True
     manager.token_count = 3

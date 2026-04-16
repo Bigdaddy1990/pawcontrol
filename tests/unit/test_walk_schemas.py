@@ -4,11 +4,11 @@ import pytest
 
 vol = pytest.importorskip("voluptuous")
 
-from custom_components.pawcontrol.flows.walk_schemas import (
+from custom_components.pawcontrol.flows.walk_schemas import (  # noqa: E402
     build_auto_end_walks_field,
     build_walk_timing_schema_fields,
 )
-from custom_components.pawcontrol.types import DoorSensorSettingsConfig
+from custom_components.pawcontrol.types import DoorSensorSettingsConfig  # noqa: E402
 
 
 def _markers_by_name(

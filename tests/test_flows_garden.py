@@ -5,7 +5,7 @@ import voluptuous as vol
 from custom_components.pawcontrol.flows.garden import GardenModuleSelectorMixin
 
 
-def test_build_garden_module_selector_returns_expected_optional_mapping() -> None:
+def test_build_garden_module_selector_returns_expected_optional_mapping() -> None:  # noqa: D103
     selector_mapping = GardenModuleSelectorMixin._build_garden_module_selector(
         field="enable_garden_mode",
         default=True,

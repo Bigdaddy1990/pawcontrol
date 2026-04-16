@@ -185,7 +185,7 @@ async def _async_initialize_coordinator(
     except TimeoutError as err:
         coordinator_refresh_duration = time.monotonic() - coordinator_refresh_start
         raise ConfigEntryNotReady(
-            f"Coordinator initialization timeout after {coordinator_refresh_duration:.2f}s",  # noqa: E501
+            f"Coordinator initialization timeout after {coordinator_refresh_duration:.2f}s",
         ) from err
     except ConfigEntryAuthFailed:
         raise

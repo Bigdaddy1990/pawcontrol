@@ -33,21 +33,21 @@ from tests.helpers.homeassistant_test_stubs import (
 
 install_homeassistant_stubs()
 
-from custom_components.pawcontrol import compat as pawcontrol_compat
+from custom_components.pawcontrol import compat as pawcontrol_compat  # noqa: E402
 
 pawcontrol_compat.ensure_homeassistant_config_entry_symbols()
 pawcontrol_compat.ensure_homeassistant_exception_symbols()
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry  # noqa: E402
 
-from custom_components.pawcontrol.feeding_manager import FeedingBatchEntry
-from custom_components.pawcontrol.types import (
+from custom_components.pawcontrol.feeding_manager import FeedingBatchEntry  # noqa: E402
+from custom_components.pawcontrol.types import (  # noqa: E402
     CoordinatorDogData,
     FeedingManagerDogSetupPayload,
     JSONMutableMapping,
 )
-from tests.helpers import typed_deepcopy
-from tests.helpers.factories import (
+from tests.helpers import typed_deepcopy  # noqa: E402
+from tests.helpers.factories import (  # noqa: E402
     build_api_client_mock,
     build_coordinator_payload,
     build_coordinator_payload_variant,
@@ -509,7 +509,7 @@ def entity_factory(mock_coordinator: Any) -> Any:
 
 
 @pytest.fixture
-def mock_feeding_manager(
+def mock_feeding_manager(  # noqa: D417
     mock_dog_config: FeedingManagerDogSetupPayload,
     mock_hass: object,
 ) -> FeedingManager:
@@ -569,7 +569,7 @@ def mock_gps_manager(mock_hass, mock_resilience_manager):
 
 
 @pytest.fixture
-def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):
+def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):  # noqa: D417
     """Mock PawControlNotificationManager for testing.
 
     Args:

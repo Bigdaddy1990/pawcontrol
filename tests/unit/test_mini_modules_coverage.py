@@ -16,7 +16,7 @@ import custom_components.pawcontrol.options_flow_support as ofs
 
 
 @pytest.mark.unit
-def test_walk_helpers_importable() -> None:
+def test_walk_helpers_importable() -> None:  # noqa: D103
     assert walk_helpers is not None
 
 
@@ -24,12 +24,12 @@ def test_walk_helpers_importable() -> None:
 
 
 @pytest.mark.unit
-def test_config_flow_schemas_importable() -> None:
+def test_config_flow_schemas_importable() -> None:  # noqa: D103
     assert cfs is not None
 
 
 @pytest.mark.unit
-def test_config_flow_schemas_has_selector() -> None:
+def test_config_flow_schemas_has_selector() -> None:  # noqa: D103
     assert hasattr(cfs, "selector")
 
 
@@ -37,12 +37,12 @@ def test_config_flow_schemas_has_selector() -> None:
 
 
 @pytest.mark.unit
-def test_options_flow_hosts_importable() -> None:
+def test_options_flow_hosts_importable() -> None:  # noqa: D103
     assert ofh is not None
 
 
 @pytest.mark.unit
-def test_options_flow_hosts_has_dog_options_host() -> None:
+def test_options_flow_hosts_has_dog_options_host() -> None:  # noqa: D103
     assert hasattr(ofh, "DogOptionsHost")
 
 
@@ -50,12 +50,12 @@ def test_options_flow_hosts_has_dog_options_host() -> None:
 
 
 @pytest.mark.unit
-def test_options_flow_menu_importable() -> None:
+def test_options_flow_menu_importable() -> None:  # noqa: D103
     assert ofm is not None
 
 
 @pytest.mark.unit
-def test_options_flow_menu_has_mixin() -> None:
+def test_options_flow_menu_has_mixin() -> None:  # noqa: D103
     assert hasattr(ofm, "MenuOptionsMixin")
 
 
@@ -63,11 +63,11 @@ def test_options_flow_menu_has_mixin() -> None:
 
 
 @pytest.mark.unit
-def test_options_flow_support_importable() -> None:
+def test_options_flow_support_importable() -> None:  # noqa: D103
     assert ofs is not None
 
 
 @pytest.mark.unit
-def test_options_flow_support_has_get_runtime_data() -> None:
+def test_options_flow_support_has_get_runtime_data() -> None:  # noqa: D103
     assert hasattr(ofs, "get_runtime_data")
     assert callable(ofs.get_runtime_data)

@@ -137,10 +137,10 @@ def main() -> int:
     print(f"✅ Files checked: {files_checked}")
     print(f"{'❌' if total_errors > 0 else '✅'} Syntax errors: {total_errors}")
     print(
-        f"{'⚠️' if total_missing_return_types > 0 else '✅'} Missing return types: {total_missing_return_types}"  # noqa: E501
+        f"{'⚠️' if total_missing_return_types > 0 else '✅'} Missing return types: {total_missing_return_types}"
     )
     print(
-        f"{'⚠️' if total_missing_param_types > 0 else '✅'} Missing parameter types: {total_missing_param_types}\n"  # noqa: E501
+        f"{'⚠️' if total_missing_param_types > 0 else '✅'} Missing parameter types: {total_missing_param_types}\n"
     )
 
     # Show details if there are issues
@@ -172,7 +172,7 @@ def main() -> int:
 
     if total_missing_return_types > 0 or total_missing_param_types > 0:
         print(
-            f"⚠️  Type safety check completed with {total_missing_return_types + total_missing_param_types} warnings"  # noqa: E501
+            f"⚠️  Type safety check completed with {total_missing_return_types + total_missing_param_types} warnings"
         )
         return 0  # Warnings don't fail the check, but should be addressed
 

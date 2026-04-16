@@ -129,7 +129,7 @@ def _reset_debug_logging_state() -> None:
         ),
     ],
 )
-def test_get_platforms_for_profile_and_modules(
+def test_get_platforms_for_profile_and_modules(  # noqa: D103
     profile: str,
     modules: Mapping[str, bool],
     expected: tuple[Platform, ...],
@@ -144,7 +144,7 @@ def test_get_platforms_for_profile_and_modules(
     assert platforms == expected
 
 
-def test_get_platforms_cache_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_platforms_cache_ttl(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: D103
     dogs = [_build_dog_config({MODULE_GPS: True})]
     profile = "standard"
     cache_key = (1, profile, frozenset({MODULE_GPS}))
@@ -182,7 +182,7 @@ def test_get_platforms_cache_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
     assert refreshed_timestamp == now_holder["now"]
 
 
-def test_get_platforms_cache_key_ignores_unknown_modules() -> None:
+def test_get_platforms_cache_key_ignores_unknown_modules() -> None:  # noqa: D103
     dogs = [_build_dog_config({MODULE_GPS: True, "unknown_module": True})]
     profile = "standard"
 
@@ -194,7 +194,7 @@ def test_get_platforms_cache_key_ignores_unknown_modules() -> None:
     ]
 
 
-def test_get_platforms_for_empty_dogs_config() -> None:
+def test_get_platforms_for_empty_dogs_config() -> None:  # noqa: D103
     platforms = pawcontrol_init.get_platforms_for_profile_and_modules(
         [],
         "standard",
@@ -203,7 +203,7 @@ def test_get_platforms_for_empty_dogs_config() -> None:
     assert platforms == pawcontrol_init._DEFAULT_PLATFORMS
 
 
-def test_get_platforms_for_multiple_dogs() -> None:
+def test_get_platforms_for_multiple_dogs() -> None:  # noqa: D103
     dogs = [
         _build_dog_config({MODULE_GPS: True}, dog_id="buddy"),
         _build_dog_config({MODULE_HEALTH: True}, dog_id="lady"),
@@ -229,7 +229,7 @@ def test_get_platforms_for_multiple_dogs() -> None:
     assert platforms == expected
 
 
-def test_platform_cache_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_platform_cache_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: D103
     max_size = pawcontrol_init._MAX_CACHE_SIZE
     ttl = pawcontrol_init._CACHE_TTL_SECONDS
     now = 1000.0
@@ -257,7 +257,7 @@ def test_platform_cache_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
         assert cache_key not in pawcontrol_init._PLATFORM_CACHE
 
 
-def test_platform_cache_cleanup_short_circuits_below_half_capacity() -> None:
+def test_platform_cache_cleanup_short_circuits_below_half_capacity() -> None:  # noqa: D103
     half_capacity = pawcontrol_init._MAX_CACHE_SIZE // 2
     cache_key = (1, "standard", frozenset({MODULE_GPS}))
     pawcontrol_init._PLATFORM_CACHE[cache_key] = ((Platform.SENSOR,), 0.0)
@@ -267,7 +267,7 @@ def test_platform_cache_cleanup_short_circuits_below_half_capacity() -> None:
     assert cache_key in pawcontrol_init._PLATFORM_CACHE
 
 
-def test_platform_cache_cleanup_uses_wall_clock_for_large_timestamps(
+def test_platform_cache_cleanup_uses_wall_clock_for_large_timestamps(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now_wall = 2_000_000_000.0
@@ -292,7 +292,7 @@ def test_platform_cache_cleanup_uses_wall_clock_for_large_timestamps(
     assert wall_expired_key not in pawcontrol_init._PLATFORM_CACHE
 
 
-def test_enable_and_disable_debug_logging_restores_logger_level(
+def test_enable_and_disable_debug_logging_restores_logger_level(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     package_logger = Mock()
@@ -311,7 +311,7 @@ def test_enable_and_disable_debug_logging_restores_logger_level(
     assert package_logger.setLevel.call_args_list[-1].args == (logging.INFO,)
 
 
-def test_disable_debug_logging_keeps_debug_when_other_entries_remain(
+def test_disable_debug_logging_keeps_debug_when_other_entries_remain(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     package_logger = Mock()
@@ -335,7 +335,7 @@ def test_disable_debug_logging_keeps_debug_when_other_entries_remain(
 
 
 @pytest.mark.asyncio
-async def test_async_unload_entry_clears_platform_cache(
+async def test_async_unload_entry_clears_platform_cache(  # noqa: D103
     hass: HomeAssistant,
 ) -> None:
     dogs = [_build_dog_config({MODULE_HEALTH: True})]

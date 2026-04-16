@@ -9,9 +9,9 @@ import pytest
 
 pawcontrol_init = importlib.import_module("custom_components.pawcontrol")
 
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady  # noqa: E402
 
-from custom_components.pawcontrol.exceptions import (
+from custom_components.pawcontrol.exceptions import (  # noqa: E402
     ConfigEntryAuthFailed,
     PawControlSetupError,
 )
@@ -40,7 +40,7 @@ class _MockApiAuthError(Exception):
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_success_forwards_platform_setup(
+async def test_async_setup_entry_success_forwards_platform_setup(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     runtime_data = SimpleNamespace(
@@ -371,7 +371,7 @@ async def test_async_setup_entry_optional_daily_reset_none_does_not_store_unsub(
         (ConfigEntryAuthFailed("token expired"), ConfigEntryAuthFailed),
     ],
 )
-async def test_async_setup_entry_propagates_known_failures(
+async def test_async_setup_entry_propagates_known_failures(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
     setup_error: Exception,
     expected_exc: type[Exception],
@@ -485,7 +485,7 @@ async def test_async_setup_entry_propagates_mock_api_mapped_exceptions(
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_rolls_back_partial_initialization_on_error(
+async def test_async_setup_entry_rolls_back_partial_initialization_on_error(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     runtime_data = SimpleNamespace()
@@ -563,7 +563,7 @@ async def test_async_setup_entry_rolls_back_partial_initialization_on_error(
 
 
 @pytest.mark.asyncio
-async def test_async_unload_entry_cleans_runtime_resources(
+async def test_async_unload_entry_cleans_runtime_resources(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     runtime_data = SimpleNamespace(
@@ -669,7 +669,7 @@ async def test_async_unload_entry_runs_platform_cleanup_and_manager_cleanup(
 
 
 @pytest.mark.asyncio
-async def test_async_reload_entry_is_idempotent_when_repeated(
+async def test_async_reload_entry_is_idempotent_when_repeated(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     entry = SimpleNamespace(entry_id="entry-id", data={}, options={})

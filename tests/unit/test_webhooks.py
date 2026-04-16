@@ -77,7 +77,7 @@ def _make_hass(entries: list[MagicMock] | None = None) -> SimpleNamespace:
     return SimpleNamespace(config_entries=_ConfigEntries(entries))
 
 
-def test_any_dog_expects_webhook_variants() -> None:
+def test_any_dog_expects_webhook_variants() -> None:  # noqa: D103
     assert webhooks._any_dog_expects_webhook(_make_entry()) is True
     assert (
         webhooks._any_dog_expects_webhook(
@@ -91,7 +91,7 @@ def test_any_dog_expects_webhook_variants() -> None:
     )
 
 
-def test_new_webhook_credentials_use_token_urlsafe(
+def test_new_webhook_credentials_use_token_urlsafe(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr("secrets.token_urlsafe", lambda length: f"token-{length}")
@@ -100,7 +100,7 @@ def test_new_webhook_credentials_use_token_urlsafe(
 
 
 @pytest.mark.asyncio
-async def test_async_ensure_webhook_config_generated_and_skipped_paths() -> None:
+async def test_async_ensure_webhook_config_generated_and_skipped_paths() -> None:  # noqa: D103
     hass = _make_hass()
     entry = _make_entry()
 
@@ -136,7 +136,7 @@ async def test_async_ensure_webhook_config_generated_and_skipped_paths() -> None
 
 
 @pytest.mark.asyncio
-async def test_register_and_unregister_webhook_paths(
+async def test_register_and_unregister_webhook_paths(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     entry = _make_entry(
@@ -190,7 +190,7 @@ async def test_register_and_unregister_webhook_paths(
 
 
 @pytest.mark.asyncio
-async def test_register_handles_unregister_exception(
+async def test_register_handles_unregister_exception(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     entry = _make_entry(options={CONF_WEBHOOK_ENABLED: True, CONF_WEBHOOK_ID: "abc"})
@@ -209,7 +209,7 @@ async def test_register_handles_unregister_exception(
     register.assert_called_once()
 
 
-def test_get_entry_webhook_url_handles_missing_id() -> None:
+def test_get_entry_webhook_url_handles_missing_id() -> None:  # noqa: D103
     hass = _make_hass()
     assert webhooks.get_entry_webhook_url(hass, _make_entry(options={})) is None
 
@@ -229,7 +229,7 @@ def test_get_entry_webhook_url_handles_missing_id() -> None:
         )
 
 
-def test_resolve_entry_for_webhook_id() -> None:
+def test_resolve_entry_for_webhook_id() -> None:  # noqa: D103
     entry = _make_entry(options={CONF_WEBHOOK_ID: "id-1"})
     hass = _make_hass([entry])
     assert webhooks._resolve_entry_for_webhook_id(hass, "id-1") is entry
@@ -237,7 +237,7 @@ def test_resolve_entry_for_webhook_id() -> None:
 
 
 @pytest.mark.asyncio
-async def test_handle_webhook_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_handle_webhook_paths(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: D103
     entry = _make_entry(
         options={
             CONF_WEBHOOK_ID: "id-1",
@@ -335,7 +335,7 @@ async def test_handle_webhook_paths(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_handle_webhook_requires_secret_when_signatures_enabled() -> None:
+async def test_handle_webhook_requires_secret_when_signatures_enabled() -> None:  # noqa: D103
     entry = _make_entry(
         options={CONF_WEBHOOK_ID: "id-1", CONF_WEBHOOK_REQUIRE_SIGNATURE: True}
     )

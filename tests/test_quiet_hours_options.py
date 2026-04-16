@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime  # noqa: D100
 import sys
 from types import ModuleType
 

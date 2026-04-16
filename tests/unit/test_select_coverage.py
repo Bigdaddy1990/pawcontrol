@@ -31,27 +31,27 @@ def _coord(dog_id="rex"):
 
 
 @pytest.mark.unit
-def test_feeding_mode_select_init() -> None:
+def test_feeding_mode_select_init() -> None:  # noqa: D103
     s = PawControlFeedingModeSelect(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_feeding_mode_select_has_options() -> None:
+def test_feeding_mode_select_has_options() -> None:  # noqa: D103
     s = PawControlFeedingModeSelect(_coord(), "rex", "Rex")
     assert isinstance(s.options, list)
     assert len(s.options) > 0
 
 
 @pytest.mark.unit
-def test_feeding_mode_current_option_default() -> None:
+def test_feeding_mode_current_option_default() -> None:  # noqa: D103
     s = PawControlFeedingModeSelect(_coord(), "rex", "Rex")
     result = s.current_option
     assert result is None or isinstance(result, str)
 
 
 @pytest.mark.unit
-def test_feeding_mode_extra_attrs() -> None:
+def test_feeding_mode_extra_attrs() -> None:  # noqa: D103
     s = PawControlFeedingModeSelect(_coord(), "rex", "Rex")
     attrs = s.extra_state_attributes
     assert isinstance(attrs, dict)
@@ -63,13 +63,13 @@ def test_feeding_mode_extra_attrs() -> None:
 
 
 @pytest.mark.unit
-def test_food_type_select_init() -> None:
+def test_food_type_select_init() -> None:  # noqa: D103
     s = PawControlFoodTypeSelect(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_food_type_select_options_non_empty() -> None:
+def test_food_type_select_options_non_empty() -> None:  # noqa: D103
     s = PawControlFoodTypeSelect(_coord(), "rex", "Rex")
     assert len(s.options) >= 1
 
@@ -80,20 +80,20 @@ def test_food_type_select_options_non_empty() -> None:
 
 
 @pytest.mark.unit
-def test_dog_size_select_init() -> None:
+def test_dog_size_select_init() -> None:  # noqa: D103
     s = PawControlDogSizeSelect(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_dog_size_select_with_config() -> None:
+def test_dog_size_select_with_config() -> None:  # noqa: D103
     config = {"dog_id": "rex", "dog_name": "Rex", "dog_size": "large"}
     s = PawControlDogSizeSelect(_coord(), "rex", "Rex", dog_config=config)
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_dog_size_select_has_size_options() -> None:
+def test_dog_size_select_has_size_options() -> None:  # noqa: D103
     s = PawControlDogSizeSelect(_coord(), "rex", "Rex")
     opts = s.options
     assert isinstance(opts, list)
@@ -106,12 +106,12 @@ def test_dog_size_select_has_size_options() -> None:
 
 
 @pytest.mark.unit
-def test_feeding_schedule_select_init() -> None:
+def test_feeding_schedule_select_init() -> None:  # noqa: D103
     s = PawControlFeedingScheduleSelect(_coord(), "rex", "Rex")
     assert s._dog_id == "rex"
 
 
 @pytest.mark.unit
-def test_feeding_schedule_select_unique_id() -> None:
+def test_feeding_schedule_select_unique_id() -> None:  # noqa: D103
     s = PawControlFeedingScheduleSelect(_coord(), "rex", "Rex")
     assert "rex" in s._attr_unique_id

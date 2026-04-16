@@ -46,7 +46,7 @@ _ensure_package("custom_components.pawcontrol", PAWCONTROL_ROOT)
 
 _runtime_stub = types.ModuleType("custom_components.pawcontrol.coordinator_runtime")
 
-from custom_components.pawcontrol.types import (  # isort:skip
+from custom_components.pawcontrol.types import (  # isort:skip  # noqa: E402
     AdaptivePollingDiagnostics,
     CoordinatorPerformanceSnapshot,
     CoordinatorSecurityScorecard,
@@ -148,7 +148,7 @@ record_bool_coercion_event = _telemetry.record_bool_coercion_event
 class DummyMetrics:
     """Minimal metrics stub mirroring the coordinator counters."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self, *, update_count: int, failed_cycles: int, consecutive_errors: int
     ) -> None:
         self.update_count = update_count
@@ -156,11 +156,11 @@ class DummyMetrics:
         self.consecutive_errors = consecutive_errors
 
     @property
-    def successful_cycles(self) -> int:
+    def successful_cycles(self) -> int:  # noqa: D102
         return max(self.update_count - self.failed_cycles, 0)
 
     @property
-    def success_rate_percent(self) -> float:
+    def success_rate_percent(self) -> float:  # noqa: D102
         if self.update_count == 0:
             return 0.0
         return (self.successful_cycles / self.update_count) * 100
@@ -169,7 +169,7 @@ class DummyMetrics:
 class DummySnapshot:
     """Lightweight stand-in for :class:`EntityBudgetSnapshot`."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         *,
         dog_id: str,
@@ -187,15 +187,15 @@ class DummySnapshot:
         self.denied_requests = denied_requests
 
     @property
-    def total_allocated(self) -> int:
+    def total_allocated(self) -> int:  # noqa: D102
         return self.base_allocation + self.dynamic_allocation
 
     @property
-    def remaining(self) -> int:
+    def remaining(self) -> int:  # noqa: D102
         return max(self.capacity - self.total_allocated, 0)
 
     @property
-    def saturation(self) -> float:
+    def saturation(self) -> float:  # noqa: D102
         if self.capacity <= 0:
             return 0.0
         return self.total_allocated / self.capacity

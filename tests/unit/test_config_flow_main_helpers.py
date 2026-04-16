@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping  # noqa: D100
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -10,17 +10,17 @@ from custom_components.pawcontrol.config_flow_main import (
 
 
 @pytest.fixture
-def flow() -> PawControlConfigFlow:
+def flow() -> PawControlConfigFlow:  # noqa: D103
     return PawControlConfigFlow()
 
 
-def test_is_supported_device_matches_known_prefixes(flow: PawControlConfigFlow) -> None:
+def test_is_supported_device_matches_known_prefixes(flow: PawControlConfigFlow) -> None:  # noqa: D103
     assert flow._is_supported_device("tractive-123", {})
     assert flow._is_supported_device("Whistle-abc", {})
     assert not flow._is_supported_device("random-device", {})
 
 
-def test_extract_device_id_uses_precedence_and_handles_none(
+def test_extract_device_id_uses_precedence_and_handles_none(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     assert flow._extract_device_id({"serial": "S-1", "device_id": "D-2"}) == "S-1"
@@ -29,7 +29,7 @@ def test_extract_device_id_uses_precedence_and_handles_none(
     assert flow._extract_device_id({}) is None
 
 
-def test_normalise_discovery_metadata_normalizes_all_supported_fields(
+def test_normalise_discovery_metadata_normalizes_all_supported_fields(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     payload: Mapping[str, object] = {
@@ -60,7 +60,7 @@ def test_normalise_discovery_metadata_normalizes_all_supported_fields(
     assert result["service_uuids"] == ["uuid-1", "uuid-2", "123"]
 
 
-def test_normalise_discovery_metadata_handles_integer_port_and_nonstr_fields(
+def test_normalise_discovery_metadata_handles_integer_port_and_nonstr_fields(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     result = flow._normalise_discovery_metadata(
@@ -75,14 +75,14 @@ def test_normalise_discovery_metadata_handles_integer_port_and_nonstr_fields(
 
 
 @pytest.mark.asyncio
-async def test_async_get_entry_for_unique_id_without_id_returns_none(
+async def test_async_get_entry_for_unique_id_without_id_returns_none(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     flow._unique_id = None
     assert await flow._async_get_entry_for_unique_id() is None
 
 
-def test_strip_dynamic_discovery_fields_removes_last_seen(
+def test_strip_dynamic_discovery_fields_removes_last_seen(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     assert flow._strip_dynamic_discovery_fields(
@@ -90,7 +90,7 @@ def test_strip_dynamic_discovery_fields_removes_last_seen(
     ) == {"source": "dhcp", "host": "1.1.1.1"}
 
 
-def test_prepare_discovery_updates_sets_cached_info_and_optional_fields(
+def test_prepare_discovery_updates_sets_cached_info_and_optional_fields(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     updates, comparison = flow._prepare_discovery_updates(
@@ -111,7 +111,7 @@ def test_prepare_discovery_updates_sets_cached_info_and_optional_fields(
     assert flow._discovery_info["hostname"] == "paw"
 
 
-def test_format_discovery_info_handles_sources(flow: PawControlConfigFlow) -> None:
+def test_format_discovery_info_handles_sources(flow: PawControlConfigFlow) -> None:  # noqa: D103
     flow._discovery_info = {"source": "zeroconf", "hostname": "dev", "host": "1.2.3.4"}
     assert flow._format_discovery_info() == "Device: dev\nHost: 1.2.3.4"
 
@@ -123,7 +123,7 @@ def test_format_discovery_info_handles_sources(flow: PawControlConfigFlow) -> No
 
 
 @pytest.mark.asyncio
-async def test_async_get_entry_for_unique_id_direct_and_casefold_match(
+async def test_async_get_entry_for_unique_id_direct_and_casefold_match(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     matching = MockConfigEntry(domain="pawcontrol", unique_id="PawControl")
@@ -139,7 +139,7 @@ async def test_async_get_entry_for_unique_id_direct_and_casefold_match(
 
 
 @pytest.mark.asyncio
-async def test_async_get_entry_for_unique_id_awaitable_entries(
+async def test_async_get_entry_for_unique_id_awaitable_entries(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     entry = MockConfigEntry(domain="pawcontrol", unique_id="abc")
@@ -153,7 +153,7 @@ async def test_async_get_entry_for_unique_id_awaitable_entries(
 
 
 @pytest.mark.asyncio
-async def test_validate_dog_input_cached_reuses_recent_cached_result(
+async def test_validate_dog_input_cached_reuses_recent_cached_result(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     calls: list[dict[str, object]] = []
@@ -181,7 +181,7 @@ async def test_validate_dog_input_cached_reuses_recent_cached_result(
     assert len(calls) in {1, 2}
 
 
-def test_discovery_update_required_detects_changes(flow: PawControlConfigFlow) -> None:
+def test_discovery_update_required_detects_changes(flow: PawControlConfigFlow) -> None:  # noqa: D103
     entry = MockConfigEntry(
         domain="pawcontrol",
         data={"name": "Paw", "discovery_info": {"source": "dhcp", "host": "1.1.1.1"}},
@@ -208,7 +208,7 @@ def test_discovery_update_required_detects_changes(flow: PawControlConfigFlow) -
 
 
 @pytest.mark.asyncio
-async def test_handle_existing_discovery_entry_paths(
+async def test_handle_existing_discovery_entry_paths(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     entry = MockConfigEntry(domain="pawcontrol", unique_id="uid", data={"name": "paw"})
@@ -265,7 +265,7 @@ async def test_handle_existing_discovery_entry_paths(
     assert result["data_updates"] == {"name": "paw2"}
 
 
-def test_discovery_update_required_when_existing_discovery_missing_mapping(
+def test_discovery_update_required_when_existing_discovery_missing_mapping(  # noqa: D103
     flow: PawControlConfigFlow,
 ) -> None:
     entry = MockConfigEntry(domain="pawcontrol", data={"discovery_info": "invalid"})

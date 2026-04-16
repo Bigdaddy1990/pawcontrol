@@ -13,13 +13,13 @@ from custom_components.pawcontrol.base_manager import (
 
 
 @pytest.mark.unit
-def test_get_registered_managers_returns_dict() -> None:
+def test_get_registered_managers_returns_dict() -> None:  # noqa: D103
     result = get_registered_managers()
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_register_manager_registers_class() -> None:
+def test_register_manager_registers_class() -> None:  # noqa: D103
     from custom_components.pawcontrol.base_manager import BaseManager
 
     class MockManager(BaseManager):
@@ -37,19 +37,19 @@ def test_register_manager_registers_class() -> None:
 
 
 @pytest.mark.unit
-def test_manager_lifecycle_error_init() -> None:
+def test_manager_lifecycle_error_init() -> None:  # noqa: D103
     err = ManagerLifecycleError("FeedingManager", "initialize", "timeout")
     assert err is not None
 
 
 @pytest.mark.unit
-def test_manager_lifecycle_error_with_manager_name() -> None:
+def test_manager_lifecycle_error_with_manager_name() -> None:  # noqa: D103
     err = ManagerLifecycleError("WalkManager", "shutdown", "coordinator unavailable")
     assert err is not None
 
 
 @pytest.mark.unit
-def test_get_registered_managers_not_empty_after_import() -> None:
+def test_get_registered_managers_not_empty_after_import() -> None:  # noqa: D103
     # After import, at least some managers should be pre-registered
     managers = get_registered_managers()
     # May be empty in test env — just verify type

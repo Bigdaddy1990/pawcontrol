@@ -92,7 +92,7 @@ class _DogManagementCoverageHost(DogManagementOptionsMixin):
 
 
 @pytest.mark.asyncio
-async def test_select_dog_for_modules_handles_empty_found_missing_and_form(
+async def test_select_dog_for_modules_handles_empty_found_missing_and_form(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _DogManagementCoverageHost()
@@ -119,7 +119,7 @@ async def test_select_dog_for_modules_handles_empty_found_missing_and_form(
 
 
 @pytest.mark.asyncio
-async def test_configure_dog_modules_handles_no_current_and_invalid_dog_id() -> None:
+async def test_configure_dog_modules_handles_no_current_and_invalid_dog_id() -> None:  # noqa: D103
     host = _DogManagementCoverageHost()
 
     no_current = await host.async_step_configure_dog_modules({"module_feeding": True})
@@ -132,7 +132,7 @@ async def test_configure_dog_modules_handles_no_current_and_invalid_dog_id() -> 
 
 
 @pytest.mark.asyncio
-async def test_configure_dog_modules_handles_validation_and_runtime_failures(
+async def test_configure_dog_modules_handles_validation_and_runtime_failures(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _DogManagementCoverageHost()
@@ -159,7 +159,7 @@ async def test_configure_dog_modules_handles_validation_and_runtime_failures(
 
 
 @pytest.mark.asyncio
-async def test_configure_dog_modules_updates_options_when_selected_dog_not_in_list() -> (
+async def test_configure_dog_modules_updates_options_when_selected_dog_not_in_list() -> (  # noqa: D103
     None
 ):
     host = _DogManagementCoverageHost()
@@ -183,7 +183,7 @@ async def test_configure_dog_modules_updates_options_when_selected_dog_not_in_li
     assert rendered["step_id"] == "configure_dog_modules"
 
 
-def test_door_sensor_schema_handles_text_input_fallback_and_module_schema_empty() -> (
+def test_door_sensor_schema_handles_text_input_fallback_and_module_schema_empty() -> (  # noqa: D103
     None
 ):
     host = _DogManagementCoverageHost()
@@ -202,7 +202,7 @@ def test_door_sensor_schema_handles_text_input_fallback_and_module_schema_empty(
     assert empty_modules_schema.schema == {}
 
 
-def test_available_door_sensors_skips_none_state_entries() -> None:
+def test_available_door_sensors_skips_none_state_entries() -> None:  # noqa: D103
     host = _DogManagementCoverageHost()
     host.hass.states = _States({
         "binary_sensor.ghost": None,
@@ -215,7 +215,7 @@ def test_available_door_sensors_skips_none_state_entries() -> None:
 
 
 @pytest.mark.asyncio
-async def test_module_description_helpers_cover_async_and_sync_language_branches(
+async def test_module_description_helpers_cover_async_and_sync_language_branches(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _DogManagementCoverageHost()
@@ -252,7 +252,7 @@ async def test_module_description_helpers_cover_async_and_sync_language_branches
 
 
 @pytest.mark.asyncio
-async def test_async_module_description_placeholders_skips_preload_without_hass() -> (
+async def test_async_module_description_placeholders_skips_preload_without_hass() -> (  # noqa: D103
     None
 ):
     host = _DogManagementCoverageHost()
@@ -268,7 +268,7 @@ async def test_async_module_description_placeholders_skips_preload_without_hass(
 
 
 @pytest.mark.asyncio
-async def test_add_new_dog_error_paths_and_schema(
+async def test_add_new_dog_error_paths_and_schema(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _DogManagementCoverageHost()
@@ -298,7 +298,7 @@ async def test_add_new_dog_error_paths_and_schema(
 
 
 @pytest.mark.asyncio
-async def test_add_new_dog_without_input_returns_form() -> None:
+async def test_add_new_dog_without_input_returns_form() -> None:  # noqa: D103
     host = _DogManagementCoverageHost()
 
     result = await host.async_step_add_new_dog()
@@ -307,7 +307,7 @@ async def test_add_new_dog_without_input_returns_form() -> None:
 
 
 @pytest.mark.asyncio
-async def test_remove_schema_and_select_dog_to_edit_branches(
+async def test_remove_schema_and_select_dog_to_edit_branches(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _DogManagementCoverageHost()
@@ -355,7 +355,7 @@ async def test_remove_schema_and_select_dog_to_edit_branches(
 
 
 @pytest.mark.asyncio
-async def test_edit_dog_branches_and_edit_schema_empty(
+async def test_edit_dog_branches_and_edit_schema_empty(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _DogManagementCoverageHost()
@@ -398,7 +398,7 @@ async def test_edit_dog_branches_and_edit_schema_empty(
 
 
 @pytest.mark.asyncio
-async def test_select_dog_to_remove_branches(
+async def test_select_dog_to_remove_branches(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _DogManagementCoverageHost()

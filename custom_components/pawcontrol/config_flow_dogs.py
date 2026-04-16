@@ -144,7 +144,7 @@ DIET_COMPATIBILITY_RULES = {
             "sensitive_stomach",
         ],
         "type": "warning",
-        "message": "Raw diets may require veterinary supervision with medical conditions",  # noqa: E501
+        "message": "Raw diets may require veterinary supervision with medical conditions",
     },
 }
 
@@ -555,7 +555,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         current_dog = self._current_dog_config
         if current_dog is None:
             _LOGGER.error(
-                "Feeding configuration step invoked without active dog; restarting add_dog",  # noqa: E501
+                "Feeding configuration step invoked without active dog; restarting add_dog",
             )
             return await self.async_step_add_dog()
         if user_input is not None:
@@ -1163,7 +1163,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                 "Conflicting diet combinations detected: %s",
                 validation_result["conflicts"],
             )
-            # Log conflicts but don't prevent configuration - user might have vet guidance  # noqa: E501
+            # Log conflicts but don't prevent configuration - user might have vet guidance
 
         _LOGGER.debug(
             "Collected special diet requirements: %s from input: %s",
@@ -1210,7 +1210,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                 {
                     "type": "weight_puppy_warning",
                     "diets": ["weight_control", "puppy_formula"],
-                    "message": "Weight control diets are typically not recommended for growing puppies",  # noqa: E501
+                    "message": "Weight control diets are typically not recommended for growing puppies",
                 },
             )
 
@@ -1231,7 +1231,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                     {
                         "type": "raw_medical_warning",
                         "diets": ["raw_diet", *conflicting_medical],
-                        "message": "Raw diets may require veterinary supervision with medical conditions",  # noqa: E501
+                        "message": "Raw diets may require veterinary supervision with medical conditions",
                     },
                 )
 
@@ -1250,7 +1250,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                 {
                     "type": "multiple_prescription_warning",
                     "diets": selected_prescriptions,
-                    "message": "Multiple prescription diets should be coordinated with veterinarian",  # noqa: E501
+                    "message": "Multiple prescription diets should be coordinated with veterinarian",
                 },
             )
 
@@ -1265,7 +1265,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                     {
                         "type": "hypoallergenic_warning",
                         "diets": ["hypoallergenic", *conflicting_allergens],
-                        "message": "Hypoallergenic diets should be carefully managed with other diet types",  # noqa: E501
+                        "message": "Hypoallergenic diets should be carefully managed with other diet types",
                     },
                 )
 
@@ -1275,7 +1275,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                 {
                     "type": "low_fat_activity_warning",
                     "diets": ["low_fat", "high_activity"],
-                    "message": "Low fat diets may need veterinary review for highly active dogs",  # noqa: E501
+                    "message": "Low fat diets may need veterinary review for highly active dogs",
                 },
             )
 
@@ -1385,7 +1385,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
             # UPDATED: Redirect to entity profile selection for performance optimization
             _LOGGER.info(
-                "Global modules configured for %d dogs, proceeding to entity profile selection",  # noqa: E501
+                "Global modules configured for %d dogs, proceeding to entity profile selection",
                 len(self._dogs),
             )
             return await self.async_step_entity_profile()

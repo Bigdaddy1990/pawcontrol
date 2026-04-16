@@ -15,7 +15,7 @@ The module is designed for Platinum-targeted quality with:
 Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
-"""  # noqa: E501
+"""
 
 from asyncio import Task
 from collections import deque
@@ -3712,7 +3712,7 @@ class PersonEntityDiscoveryResult(TypedDict):
 
 
 class PersonEntityValidationResult(TypedDict):
-    """Validation payload produced by ``PersonEntityManager.async_validate_configuration``."""  # noqa: E501
+    """Validation payload produced by ``PersonEntityManager.async_validate_configuration``."""
 
     valid: bool
     issues: list[str]
@@ -5927,7 +5927,7 @@ class OptimizedEntityMemoryEstimate(TypedDict):
 
 
 class OptimizedEntityPerformanceMetrics(TypedDict):
-    """Composite telemetry returned by :meth:`OptimizedEntityBase.get_performance_metrics`."""  # noqa: E501
+    """Composite telemetry returned by :meth:`OptimizedEntityBase.get_performance_metrics`."""
 
     entity_id: str
     dog_id: str

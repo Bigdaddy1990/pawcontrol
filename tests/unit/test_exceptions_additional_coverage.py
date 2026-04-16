@@ -1,8 +1,8 @@
-import pytest
+import pytest  # noqa: D100
 
 """Additional branch coverage for ``custom_components.pawcontrol.exceptions``."""
 
-from custom_components.pawcontrol.exceptions import (
+from custom_components.pawcontrol.exceptions import (  # noqa: E402
     DataExportError,
     DataImportError,
     ErrorSeverity,

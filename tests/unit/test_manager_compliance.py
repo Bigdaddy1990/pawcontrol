@@ -33,7 +33,7 @@ class GoodManager(BaseManager):
         return {"ok": "yes"}
 
 
-class MissingManagerBits:
+class MissingManagerBits:  # noqa: D101
     pass
 
 
@@ -48,7 +48,7 @@ class WrongSignatureManager(BaseManager):
     async def async_shutdown(self, extra: str) -> None:  # type: ignore[override]
         """Shut down manager."""
 
-    def get_diagnostics(self, full: bool = False) -> dict[str, bool]:  # type: ignore[override]
+    def get_diagnostics(self, full: bool = False) -> dict[str, bool]:  # type: ignore[override]  # noqa: D102
         return {"full": full}
 
 

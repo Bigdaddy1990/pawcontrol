@@ -44,7 +44,7 @@ async def _create_manager(mock_hass: object, tmp_path: Path) -> PawControlDataMa
 
 
 @pytest.mark.asyncio
-async def test_get_walk_history_handles_missing_profile_sorting_and_limit(
+async def test_get_walk_history_handles_missing_profile_sorting_and_limit(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -65,7 +65,7 @@ async def test_get_walk_history_handles_missing_profile_sorting_and_limit(
 
 
 @pytest.mark.asyncio
-async def test_async_update_walk_route_handles_missing_dog_and_missing_walk(
+async def test_async_update_walk_route_handles_missing_dog_and_missing_walk(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -81,7 +81,7 @@ async def test_async_update_walk_route_handles_missing_dog_and_missing_walk(
 
 
 @pytest.mark.asyncio
-async def test_async_update_walk_route_returns_false_when_walk_cleared_inside_lock(
+async def test_async_update_walk_route_returns_false_when_walk_cleared_inside_lock(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -107,7 +107,7 @@ async def test_async_update_walk_route_returns_false_when_walk_cleared_inside_lo
 
 
 @pytest.mark.asyncio
-async def test_async_update_walk_route_records_optional_fields_and_persists(
+async def test_async_update_walk_route_records_optional_fields_and_persists(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -138,7 +138,7 @@ async def test_async_update_walk_route_records_optional_fields_and_persists(
 
 
 @pytest.mark.asyncio
-async def test_async_update_walk_route_returns_false_on_homeassistant_persist_error(
+async def test_async_update_walk_route_returns_false_on_homeassistant_persist_error(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -159,7 +159,7 @@ async def test_async_update_walk_route_returns_false_on_homeassistant_persist_er
 
 
 @pytest.mark.asyncio
-async def test_health_and_profile_update_false_paths(
+async def test_health_and_profile_update_false_paths(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -179,7 +179,7 @@ async def test_health_and_profile_update_false_paths(
 
 
 @pytest.mark.asyncio
-async def test_async_update_dog_data_handles_invalid_payload_and_persist_flag(
+async def test_async_update_dog_data_handles_invalid_payload_and_persist_flag(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -209,7 +209,7 @@ async def test_async_update_dog_data_handles_invalid_payload_and_persist_flag(
 
 
 @pytest.mark.asyncio
-async def test_get_health_history_missing_and_limit(
+async def test_get_health_history_missing_and_limit(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -232,7 +232,7 @@ async def test_get_health_history_missing_and_limit(
     ]
 
 
-def test_get_health_trends_returns_none_for_unknown_dog(
+def test_get_health_trends_returns_none_for_unknown_dog(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -244,7 +244,7 @@ def test_get_health_trends_returns_none_for_unknown_dog(
 
 
 @pytest.mark.asyncio
-async def test_get_health_trends_returns_empty_payload_when_no_relevant_entries(
+async def test_get_health_trends_returns_empty_payload_when_no_relevant_entries(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -275,7 +275,7 @@ async def test_get_health_trends_returns_empty_payload_when_no_relevant_entries(
     ],
 )
 @pytest.mark.asyncio
-async def test_get_health_trends_builds_weight_mood_and_status_sections(
+async def test_get_health_trends_builds_weight_mood_and_status_sections(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -318,7 +318,7 @@ async def test_get_health_trends_builds_weight_mood_and_status_sections(
 
 
 @pytest.mark.asyncio
-async def test_get_health_trends_sets_weight_trend_none_when_weights_are_non_numeric(
+async def test_get_health_trends_sets_weight_trend_none_when_weights_are_non_numeric(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -342,7 +342,7 @@ async def test_get_health_trends_sets_weight_trend_none_when_weights_are_non_num
     assert trends["mood_distribution"] == {"calm": 1}
 
 
-def test_get_metrics_includes_storage_and_cache_snapshots(
+def test_get_metrics_includes_storage_and_cache_snapshots(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -364,7 +364,7 @@ def test_get_metrics_includes_storage_and_cache_snapshots(
 
 
 @pytest.mark.asyncio
-async def test_daily_feeding_stats_history_reset_and_module_data_paths(
+async def test_daily_feeding_stats_history_reset_and_module_data_paths(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -424,7 +424,7 @@ async def test_daily_feeding_stats_history_reset_and_module_data_paths(
 
 
 @pytest.mark.asyncio
-async def test_async_shutdown_handles_uninitialized_and_persist_failures(
+async def test_async_shutdown_handles_uninitialized_and_persist_failures(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -444,7 +444,7 @@ async def test_async_shutdown_handles_uninitialized_and_persist_failures(
 
 
 @pytest.mark.asyncio
-async def test_async_set_visitor_mode_and_status_validation_paths(
+async def test_async_set_visitor_mode_and_status_validation_paths(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -483,7 +483,7 @@ async def test_async_set_visitor_mode_and_status_validation_paths(
 
 
 @pytest.mark.asyncio
-async def test_walk_lifecycle_false_paths_and_optional_end_walk_branches(
+async def test_walk_lifecycle_false_paths_and_optional_end_walk_branches(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -528,7 +528,7 @@ async def test_walk_lifecycle_false_paths_and_optional_end_walk_branches(
 
 
 @pytest.mark.asyncio
-async def test_async_set_gps_log_poop_and_grooming_paths(
+async def test_async_set_gps_log_poop_and_grooming_paths(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -584,7 +584,7 @@ async def test_async_set_gps_log_poop_and_grooming_paths(
 
 
 @pytest.mark.asyncio
-async def test_async_analyze_patterns_comprehensive_and_advanced_paths(
+async def test_async_analyze_patterns_comprehensive_and_advanced_paths(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -643,7 +643,7 @@ async def test_async_analyze_patterns_comprehensive_and_advanced_paths(
 
 
 @pytest.mark.asyncio
-async def test_register_cache_monitor_and_manager_registration_paths(
+async def test_register_cache_monitor_and_manager_registration_paths(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -696,7 +696,7 @@ async def test_register_cache_monitor_and_manager_registration_paths(
 
 
 @pytest.mark.asyncio
-async def test_adaptive_cache_expiration_and_cleanup_override_paths(
+async def test_adaptive_cache_expiration_and_cleanup_override_paths(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2026, 1, 4, tzinfo=UTC)
@@ -733,7 +733,7 @@ async def test_adaptive_cache_expiration_and_cleanup_override_paths(
 
 
 @pytest.mark.asyncio
-async def test_adaptive_cache_expiry_without_override_and_default_cleanup_paths(
+async def test_adaptive_cache_expiry_without_override_and_default_cleanup_paths(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2026, 1, 4, tzinfo=UTC)
@@ -761,7 +761,7 @@ async def test_adaptive_cache_expiry_without_override_and_default_cleanup_paths(
 
 
 @pytest.mark.asyncio
-async def test_adaptive_cache_cleanup_handles_untyped_created_at_when_normalizer_is_overridden(
+async def test_adaptive_cache_cleanup_handles_untyped_created_at_when_normalizer_is_overridden(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2026, 1, 4, tzinfo=UTC)
@@ -778,7 +778,7 @@ async def test_adaptive_cache_cleanup_handles_untyped_created_at_when_normalizer
     assert "raw" in cache._metadata
 
 
-def test_constructor_runtime_and_helper_fallback_branches(tmp_path: Path) -> None:
+def test_constructor_runtime_and_helper_fallback_branches(tmp_path: Path) -> None:  # noqa: D103
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
     coordinator = SimpleNamespace(config_entry=SimpleNamespace(entry_id=123))
     manager = PawControlDataManager(
@@ -849,7 +849,7 @@ def test_constructor_runtime_and_helper_fallback_branches(tmp_path: Path) -> Non
             sys.modules["homeassistant.util.dt"] = original_module
 
 
-def test_import_alias_branch_executes_when_module_name_not_registered(
+def test_import_alias_branch_executes_when_module_name_not_registered(  # noqa: D103
     tmp_path: Path,
 ) -> None:
     file_path = Path(data_manager_module.__file__)
@@ -870,7 +870,7 @@ def test_import_alias_branch_executes_when_module_name_not_registered(
 
 
 @pytest.mark.asyncio
-async def test_namespace_update_restore_and_profile_persistence_errors(
+async def test_namespace_update_restore_and_profile_persistence_errors(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -905,7 +905,7 @@ async def test_namespace_update_restore_and_profile_persistence_errors(
 
 
 @pytest.mark.asyncio
-async def test_async_initialize_uses_mapping_payload_and_invalid_config_raises(
+async def test_async_initialize_uses_mapping_payload_and_invalid_config_raises(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -942,7 +942,7 @@ async def test_async_initialize_uses_mapping_payload_and_invalid_config_raises(
 
 
 @pytest.mark.asyncio
-async def test_internal_monitor_payloads_cover_error_and_stats_paths(
+async def test_internal_monitor_payloads_cover_error_and_stats_paths(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -996,7 +996,7 @@ async def test_internal_monitor_payloads_cover_error_and_stats_paths(
 
 
 @pytest.mark.asyncio
-async def test_register_coordinator_and_cache_monitor_diagnostic_branches(
+async def test_register_coordinator_and_cache_monitor_diagnostic_branches(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -1028,7 +1028,7 @@ async def test_register_coordinator_and_cache_monitor_diagnostic_branches(
 
 
 @pytest.mark.asyncio
-async def test_register_cache_monitor_diagnostics_non_mapping_branch(
+async def test_register_cache_monitor_diagnostics_non_mapping_branch(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -1062,7 +1062,7 @@ async def test_register_cache_monitor_diagnostics_non_mapping_branch(
 
 
 @pytest.mark.asyncio
-async def test_module_history_generate_report_and_weekly_report_branches(
+async def test_module_history_generate_report_and_weekly_report_branches(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1136,7 +1136,7 @@ async def test_module_history_generate_report_and_weekly_report_branches(
 
 
 @pytest.mark.asyncio
-async def test_history_and_export_sort_key_fallback_branches(
+async def test_history_and_export_sort_key_fallback_branches(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1169,7 +1169,7 @@ async def test_history_and_export_sort_key_fallback_branches(
 
 
 @pytest.mark.asyncio
-async def test_export_route_csv_and_all_error_branches(
+async def test_export_route_csv_and_all_error_branches(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -1199,7 +1199,7 @@ async def test_export_route_csv_and_all_error_branches(
 
 
 @pytest.mark.asyncio
-async def test_namespace_roundtrip_and_payload_guards(
+async def test_namespace_roundtrip_and_payload_guards(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -1225,7 +1225,7 @@ async def test_namespace_roundtrip_and_payload_guards(
 
 
 @pytest.mark.asyncio
-async def test_get_namespace_data_raises_on_oserror_and_handles_filenotfound(
+async def test_get_namespace_data_raises_on_oserror_and_handles_filenotfound(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -1248,7 +1248,7 @@ async def test_get_namespace_data_raises_on_oserror_and_handles_filenotfound(
 
 
 @pytest.mark.asyncio
-async def test_save_namespace_updates_state_and_wraps_oserror(
+async def test_save_namespace_updates_state_and_wraps_oserror(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -1270,7 +1270,7 @@ async def test_save_namespace_updates_state_and_wraps_oserror(
 
 
 @pytest.mark.asyncio
-async def test_async_add_executor_job_supports_mock_real_and_fallback_paths(
+async def test_async_add_executor_job_supports_mock_real_and_fallback_paths(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -1292,7 +1292,7 @@ async def test_async_add_executor_job_supports_mock_real_and_fallback_paths(
 
 
 @pytest.mark.asyncio
-async def test_async_load_storage_primary_paths(
+async def test_async_load_storage_primary_paths(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -1313,7 +1313,7 @@ async def test_async_load_storage_primary_paths(
 
 
 @pytest.mark.asyncio
-async def test_async_load_storage_backup_paths_after_corruption(
+async def test_async_load_storage_backup_paths_after_corruption(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -1353,7 +1353,7 @@ async def test_async_load_storage_backup_paths_after_corruption(
 
 
 @pytest.mark.asyncio
-async def test_async_save_dog_data_wraps_oserror(
+async def test_async_save_dog_data_wraps_oserror(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -1364,7 +1364,7 @@ async def test_async_save_dog_data_wraps_oserror(
         await manager._async_save_dog_data("buddy")
 
 
-def test_read_storage_payload_and_create_backup(
+def test_read_storage_payload_and_create_backup(  # noqa: D103
     tmp_path: Path, mock_hass: object
 ) -> None:
     mock_hass.config.config_dir = str(tmp_path)  # type: ignore[attr-defined]

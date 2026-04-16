@@ -43,7 +43,7 @@ def test_update_markdown_table_writes_expected_rows(tmp_path: Path) -> None:
     assert updated is True
     content = markdown.read_text(encoding="utf-8")
     assert (
-        "| component.pawcontrol.common.setup_flags_panel_flag_test | English | Deutsch |"  # noqa: E501
+        "| component.pawcontrol.common.setup_flags_panel_flag_test | English | Deutsch |"
         in content
     )
 
@@ -57,7 +57,7 @@ def test_update_markdown_table_check_mode_detects_drift(tmp_path: Path) -> None:
             sync_localization_flags.TABLE_START_MARKER,
             "| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) |",
             "| --- | --- | --- |",
-            "| component.pawcontrol.common.setup_flags_panel_flag_test | English | Deutsch |",  # noqa: E501
+            "| component.pawcontrol.common.setup_flags_panel_flag_test | English | Deutsch |",
             sync_localization_flags.TABLE_END_MARKER,
         ])
         + "\n",

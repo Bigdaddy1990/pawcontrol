@@ -38,7 +38,7 @@ from custom_components.pawcontrol.feeding_translations import (
 def _limited_generator(
     limit: int, factory: Callable[[int], object]
 ) -> Iterable[object]:
-    """Yield a bounded sequence that raises if more than ``limit`` items are requested."""  # noqa: E501
+    """Yield a bounded sequence that raises if more than ``limit`` items are requested."""
 
     def _generator() -> Iterator[object]:
         for index in count():
@@ -237,17 +237,17 @@ async def test_async_get_feeding_compliance_translations_returns_runtime_values(
     ) -> tuple[dict[str, str], dict[str, str]]:
         return (
             {
-                "component.pawcontrol.common.feeding_compliance_no_data_title": "Custom no-data",  # noqa: E501
-                "component.pawcontrol.common.feeding_compliance_no_data_fallback": "No data available",  # noqa: E501
-                "component.pawcontrol.common.feeding_compliance_alert_title": "Feeding alert",  # noqa: E501
-                "component.pawcontrol.common.feeding_compliance_score_line": "Score: {score:.1f}% over {days} days",  # noqa: E501
-                "component.pawcontrol.common.feeding_compliance_missed_meals_header": "Missed meals:",  # noqa: E501
-                "component.pawcontrol.common.feeding_compliance_missed_meal_item": "{date}: {actual}/{expected} meals",  # noqa: E501
-                "component.pawcontrol.common.feeding_compliance_issues_header": "Issues:",  # noqa: E501
-                "component.pawcontrol.common.feeding_compliance_issue_item": "{date}: {issue}",  # noqa: E501
-                "component.pawcontrol.common.feeding_compliance_recommendations_header": "Next steps:",  # noqa: E501
-                "component.pawcontrol.common.feeding_compliance_recommendation_item": "- {recommendation}",  # noqa: E501
-                "component.pawcontrol.common.feeding_compliance_no_recommendations": "Keep current routine",  # noqa: E501
+                "component.pawcontrol.common.feeding_compliance_no_data_title": "Custom no-data",
+                "component.pawcontrol.common.feeding_compliance_no_data_fallback": "No data available",
+                "component.pawcontrol.common.feeding_compliance_alert_title": "Feeding alert",
+                "component.pawcontrol.common.feeding_compliance_score_line": "Score: {score:.1f}% over {days} days",
+                "component.pawcontrol.common.feeding_compliance_missed_meals_header": "Missed meals:",
+                "component.pawcontrol.common.feeding_compliance_missed_meal_item": "{date}: {actual}/{expected} meals",
+                "component.pawcontrol.common.feeding_compliance_issues_header": "Issues:",
+                "component.pawcontrol.common.feeding_compliance_issue_item": "{date}: {issue}",
+                "component.pawcontrol.common.feeding_compliance_recommendations_header": "Next steps:",
+                "component.pawcontrol.common.feeding_compliance_recommendation_item": "- {recommendation}",
+                "component.pawcontrol.common.feeding_compliance_no_recommendations": "Keep current routine",
             },
             {},
         )

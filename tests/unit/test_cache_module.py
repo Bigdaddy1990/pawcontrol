@@ -6,7 +6,7 @@ from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
 
 install_homeassistant_stubs()
 
-from custom_components.pawcontrol import cache as cache_module
+from custom_components.pawcontrol import cache as cache_module  # noqa: E402
 
 
 class _FakeStore:

@@ -16,37 +16,37 @@ from custom_components.pawcontrol.number import (
 
 
 @pytest.mark.unit
-def test_extract_gps_tracking_empty() -> None:
+def test_extract_gps_tracking_empty() -> None:  # noqa: D103
     result = _extract_gps_tracking_input({})
     assert result == {}
 
 
 @pytest.mark.unit
-def test_extract_gps_tracking_with_accuracy() -> None:
+def test_extract_gps_tracking_with_accuracy() -> None:  # noqa: D103
     result = _extract_gps_tracking_input({"gps_accuracy_filter": 15.0})
     assert result["gps_accuracy_threshold"] == pytest.approx(15.0)
 
 
 @pytest.mark.unit
-def test_extract_gps_tracking_legacy_accuracy() -> None:
+def test_extract_gps_tracking_legacy_accuracy() -> None:  # noqa: D103
     result = _extract_gps_tracking_input({"accuracy_threshold": 20})
     assert result["gps_accuracy_threshold"] == pytest.approx(20.0)
 
 
 @pytest.mark.unit
-def test_extract_gps_tracking_update_interval() -> None:
+def test_extract_gps_tracking_update_interval() -> None:  # noqa: D103
     result = _extract_gps_tracking_input({"gps_update_interval": 30})
     assert result["update_interval_seconds"] == 30
 
 
 @pytest.mark.unit
-def test_extract_gps_tracking_distance_filter() -> None:
+def test_extract_gps_tracking_distance_filter() -> None:  # noqa: D103
     result = _extract_gps_tracking_input({"gps_distance_filter": 10.0})
     assert result["min_distance_for_point"] == pytest.approx(10.0)
 
 
 @pytest.mark.unit
-def test_extract_gps_tracking_all_fields() -> None:
+def test_extract_gps_tracking_all_fields() -> None:  # noqa: D103
     config = {
         "gps_accuracy_filter": 5.0,
         "gps_update_interval": 60,
@@ -59,6 +59,6 @@ def test_extract_gps_tracking_all_fields() -> None:
 
 
 @pytest.mark.unit
-def test_extract_gps_tracking_non_numeric_ignored() -> None:
+def test_extract_gps_tracking_non_numeric_ignored() -> None:  # noqa: D103
     result = _extract_gps_tracking_input({"gps_accuracy_filter": "bad"})
     assert "gps_accuracy_threshold" not in result

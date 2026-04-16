@@ -30,7 +30,7 @@ def test_build_snapshot_handles_non_mapping_sections_and_blank_zone() -> None:
 
 
 def test_build_snapshot_converts_numeric_flags_and_unknown_zones() -> None:
-    """Numeric truthy/falsy values should coerce to bool and zone state should render."""  # noqa: E501
+    """Numeric truthy/falsy values should coerce to bool and zone state should render."""
     snapshot = build_dog_status_snapshot(
         "fido",
         {

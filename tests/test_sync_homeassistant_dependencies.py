@@ -162,7 +162,7 @@ dependencies = [
     )
     assert (
         test_requirements_path.read_text(encoding="utf-8")
-        == "aiofiles>=24.1.0\npytest-homeassistant-custom-component  # follows daily HA version\n"  # noqa: E501
+        == "aiofiles>=24.1.0\npytest-homeassistant-custom-component  # follows daily HA version\n"
     )
 
     vendor_version = (

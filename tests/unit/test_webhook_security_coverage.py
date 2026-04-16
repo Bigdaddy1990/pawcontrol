@@ -16,7 +16,7 @@ from custom_components.pawcontrol.webhook_security import (
 
 
 @pytest.mark.unit
-def test_rate_limit_config_defaults() -> None:
+def test_rate_limit_config_defaults() -> None:  # noqa: D103
     config = RateLimitConfig()
     assert config.requests_per_minute == 60
     assert config.requests_per_hour == 1000
@@ -25,7 +25,7 @@ def test_rate_limit_config_defaults() -> None:
 
 
 @pytest.mark.unit
-def test_rate_limit_config_custom() -> None:
+def test_rate_limit_config_custom() -> None:  # noqa: D103
     config = RateLimitConfig(
         requests_per_minute=30,
         requests_per_hour=500,
@@ -42,13 +42,13 @@ def test_rate_limit_config_custom() -> None:
 
 
 @pytest.mark.unit
-def test_rate_limiter_init_default() -> None:
+def test_rate_limiter_init_default() -> None:  # noqa: D103
     limiter = WebhookRateLimiter()
     assert limiter is not None
 
 
 @pytest.mark.unit
-def test_rate_limiter_init_custom_config() -> None:
+def test_rate_limiter_init_custom_config() -> None:  # noqa: D103
     config = RateLimitConfig(requests_per_minute=10, burst_size=3)
     limiter = WebhookRateLimiter(config=config)
     assert limiter is not None
@@ -62,7 +62,7 @@ def test_rate_limiter_check_limit_no_raise() -> None:
 
 
 @pytest.mark.unit
-def test_rate_limiter_multiple_requests_same_ip() -> None:
+def test_rate_limiter_multiple_requests_same_ip() -> None:  # noqa: D103
     config = RateLimitConfig(requests_per_minute=100, burst_size=50)
     limiter = WebhookRateLimiter(config=config)
     for _ in range(5):
@@ -70,14 +70,14 @@ def test_rate_limiter_multiple_requests_same_ip() -> None:
 
 
 @pytest.mark.unit
-def test_rate_limiter_different_ips_independent() -> None:
+def test_rate_limiter_different_ips_independent() -> None:  # noqa: D103
     limiter = WebhookRateLimiter()
     limiter.check_limit("192.168.1.1")
     limiter.check_limit("192.168.1.2")
 
 
 @pytest.mark.unit
-def test_rate_limiter_stats_structure() -> None:
+def test_rate_limiter_stats_structure() -> None:  # noqa: D103
     limiter = WebhookRateLimiter()
     limiter.check_limit("10.0.0.99")
     stats = limiter.get_stats()
@@ -86,7 +86,7 @@ def test_rate_limiter_stats_structure() -> None:
 
 
 @pytest.mark.unit
-def test_rate_limiter_reset_source() -> None:
+def test_rate_limiter_reset_source() -> None:  # noqa: D103
     limiter = WebhookRateLimiter()
     limiter.check_limit("192.168.1.50")
     limiter.reset_source("192.168.1.50")

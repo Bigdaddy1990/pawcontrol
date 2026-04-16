@@ -21,14 +21,14 @@ from custom_components.pawcontrol.system_health import (
 
 
 @pytest.mark.unit
-def test_get_runtime_data_no_data(mock_hass) -> None:
+def test_get_runtime_data_no_data(mock_hass) -> None:  # noqa: D103
     mock_hass.data = {}
     result = get_runtime_data(mock_hass, "test_entry_id")
     assert result is None or isinstance(result, object)
 
 
 @pytest.mark.unit
-def test_get_runtime_data_with_entry(mock_hass) -> None:
+def test_get_runtime_data_with_entry(mock_hass) -> None:  # noqa: D103
     from custom_components.pawcontrol.const import DOMAIN
 
     mock_runtime = MagicMock()
@@ -41,20 +41,20 @@ def test_get_runtime_data_with_entry(mock_hass) -> None:
 
 
 @pytest.mark.unit
-def test_get_runtime_performance_stats_none() -> None:
+def test_get_runtime_performance_stats_none() -> None:  # noqa: D103
     result = get_runtime_performance_stats(None)
     assert result is None
 
 
 @pytest.mark.unit
-def test_get_runtime_performance_stats_no_attr() -> None:
+def test_get_runtime_performance_stats_no_attr() -> None:  # noqa: D103
     runtime_data = SimpleNamespace()
     result = get_runtime_performance_stats(runtime_data)
     assert result is None
 
 
 @pytest.mark.unit
-def test_get_runtime_performance_stats_present() -> None:
+def test_get_runtime_performance_stats_present() -> None:  # noqa: D103
     stats = {"update_count": 42, "avg_duration_ms": 15.3}
     runtime_data = SimpleNamespace(performance_stats=stats)
     result = get_runtime_performance_stats(runtime_data)
@@ -65,20 +65,20 @@ def test_get_runtime_performance_stats_present() -> None:
 
 
 @pytest.mark.unit
-def test_default_rejection_metrics_keys() -> None:
+def test_default_rejection_metrics_keys() -> None:  # noqa: D103
     r = default_rejection_metrics()
     assert "rejected_call_count" in r
     assert "open_breakers" in r
 
 
 @pytest.mark.unit
-def test_derive_rejection_metrics_none() -> None:
+def test_derive_rejection_metrics_none() -> None:  # noqa: D103
     result = derive_rejection_metrics(None)
     assert isinstance(result, dict)
 
 
 @pytest.mark.unit
-def test_derive_rejection_metrics_with_counts() -> None:
+def test_derive_rejection_metrics_with_counts() -> None:  # noqa: D103
     data = {"total_rejections": 3, "rate_limited": 1}
     result = derive_rejection_metrics(data)
     assert isinstance(result, dict)

@@ -15,11 +15,11 @@ class DummyCoordinator:
 
     available = True
 
-    def __init__(self, dog_data: Mapping[str, object] | None) -> None:
+    def __init__(self, dog_data: Mapping[str, object] | None) -> None:  # noqa: D107
         self._dog_data = dog_data
         self.config_entry = None
 
-    def get_dog_data(self, dog_id: str) -> Mapping[str, object] | None:
+    def get_dog_data(self, dog_id: str) -> Mapping[str, object] | None:  # noqa: D102
         return self._dog_data
 
 

@@ -516,7 +516,7 @@ class HealthCalculator:
                 # Age conflicts require veterinary guidance - use conservative portions
                 adjustment *= 0.9
                 _LOGGER.warning(
-                    "Age-based diet conflict detected: applying conservative 10%% portion reduction",  # noqa: E501
+                    "Age-based diet conflict detected: applying conservative 10%% portion reduction",
                 )
 
         # Handle warnings (milder adjustments)
@@ -526,7 +526,7 @@ class HealthCalculator:
                 # Multiple prescription diets need careful portion control
                 adjustment *= 0.95
                 _LOGGER.info(
-                    "Multiple prescription diets: applying 5%% portion reduction for safety",  # noqa: E501
+                    "Multiple prescription diets: applying 5%% portion reduction for safety",
                 )
 
             elif warning_type == "raw_medical_warning":
@@ -540,21 +540,21 @@ class HealthCalculator:
                 # Weight control for puppies - less restrictive than adults
                 adjustment *= 1.05  # Actually increase slightly for growing puppy
                 _LOGGER.info(
-                    "Weight control for puppy: applying 5%% portion increase for growth",  # noqa: E501
+                    "Weight control for puppy: applying 5%% portion increase for growth",
                 )
 
             elif warning_type == "hypoallergenic_warning":
                 # Hypoallergenic with other diets - standard portions but monitor
                 adjustment *= 0.98  # Very minor reduction for safety
                 _LOGGER.info(
-                    "Hypoallergenic diet combination: minor portion adjustment for monitoring",  # noqa: E501
+                    "Hypoallergenic diet combination: minor portion adjustment for monitoring",
                 )
 
             elif warning_type == "low_fat_activity_warning":
                 # Low fat with joint support - may need calorie compensation
                 adjustment *= 1.05  # Slight increase to compensate for low fat
                 _LOGGER.info(
-                    "Low fat diet with joint support needs: applying 5%% portion increase",  # noqa: E501
+                    "Low fat diet with joint support needs: applying 5%% portion increase",
                 )
 
         # Additional adjustments based on total diet complexity
@@ -563,7 +563,7 @@ class HealthCalculator:
             # Complex diet combinations need careful monitoring
             adjustment *= 0.97  # 3% reduction for very complex diets
             _LOGGER.info(
-                "Complex diet combination (%d diets): applying 3%% portion reduction for safety",  # noqa: E501
+                "Complex diet combination (%d diets): applying 3%% portion reduction for safety",
                 total_diets,
             )
 
@@ -572,7 +572,7 @@ class HealthCalculator:
             # When vet consultation is recommended, use more conservative portions
             adjustment *= 0.95
             _LOGGER.info(
-                "Veterinary consultation recommended: applying 5%% conservative portion adjustment",  # noqa: E501
+                "Veterinary consultation recommended: applying 5%% conservative portion adjustment",
             )
 
         # Ensure reasonable bounds (more conservative than general adjustments)
@@ -630,7 +630,7 @@ class HealthCalculator:
 
             if portion_per_kg < min_threshold:
                 safety_result["warnings"].append(
-                    f"Portion may be too small: {portion_per_kg:.1f}g/kg (minimum: {min_threshold}g/kg)",  # noqa: E501
+                    f"Portion may be too small: {portion_per_kg:.1f}g/kg (minimum: {min_threshold}g/kg)",
                 )
                 safety_result["recommendations"].append(
                     "Consider increasing portion size or adding additional meals",
@@ -638,7 +638,7 @@ class HealthCalculator:
 
             elif portion_per_kg > max_threshold:
                 safety_result["warnings"].append(
-                    f"Portion may be too large: {portion_per_kg:.1f}g/kg (maximum: {max_threshold}g/kg)",  # noqa: E501
+                    f"Portion may be too large: {portion_per_kg:.1f}g/kg (maximum: {max_threshold}g/kg)",
                 )
                 safety_result["recommendations"].append(
                     "Consider reducing portion size or splitting into smaller meals",
@@ -732,17 +732,17 @@ class HealthCalculator:
 
         if interactions["synergistic"]:
             recommendations.append(
-                f"Good diet combinations detected: {len(interactions['synergistic'])} synergistic pairs",  # noqa: E501
+                f"Good diet combinations detected: {len(interactions['synergistic'])} synergistic pairs",
             )
 
         if interactions["caution"]:
             recommendations.append(
-                f"Monitor carefully: {len(interactions['caution'])} combinations need attention",  # noqa: E501
+                f"Monitor carefully: {len(interactions['caution'])} combinations need attention",
             )
 
         if interactions["conflicting"]:
             recommendations.append(
-                f"Conflicting diets detected: {len(interactions['conflicting'])} pairs need resolution",  # noqa: E501
+                f"Conflicting diets detected: {len(interactions['conflicting'])} pairs need resolution",
             )
 
         interactions["recommendations"] = recommendations
@@ -1183,7 +1183,7 @@ class HealthCalculator:
 
         Returns:
             Weather-adjusted activity level
-        """  # noqa: E501
+        """
         if not weather_conditions or not weather_conditions.is_valid:
             return base_activity_level
         # Start with base level

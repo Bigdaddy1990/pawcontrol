@@ -62,7 +62,7 @@ class QualityVerifier:
         self.issues: list[ComplianceIssue] = []
 
     def verify_json_serialization(self) -> None:
-        """Verify all entity platforms use JSON serialization for extra_state_attributes."""  # noqa: E501
+        """Verify all entity platforms use JSON serialization for extra_state_attributes."""
         _LOGGER.info("Checking JSON serialization in entity platforms...")
 
         for platform_file in ENTITY_PLATFORMS:
@@ -89,7 +89,7 @@ class QualityVerifier:
                         file=platform_file,
                         line=None,
                         issue_type="JSON_SERIALIZATION",
-                        description="Entity platform has extra_state_attributes but doesn't use normalise_entity_attributes()",  # noqa: E501
+                        description="Entity platform has extra_state_attributes but doesn't use normalise_entity_attributes()",
                         severity="ERROR",
                     )
                 )
@@ -102,7 +102,7 @@ class QualityVerifier:
                         file=platform_file,
                         line=None,
                         issue_type="JSON_SERIALIZATION",
-                        description="Potential non-serialized datetime/timedelta in extra_state_attributes",  # noqa: E501
+                        description="Potential non-serialized datetime/timedelta in extra_state_attributes",
                         severity="WARNING",
                     )
                 )
@@ -201,13 +201,13 @@ class QualityVerifier:
                                 file=py_file.name,
                                 line=line_no,
                                 issue_type="VALIDATION_DECENTRALIZED",
-                                description=f"Validation function {match.group()} should be in validation.py",  # noqa: E501
+                                description=f"Validation function {match.group()} should be in validation.py",
                                 severity="WARNING",
                             )
                         )
 
     def verify_coordinator_architecture(self) -> None:
-        """Verify entities use coordinator-based architecture (no direct client access)."""  # noqa: E501
+        """Verify entities use coordinator-based architecture (no direct client access)."""
         _LOGGER.info("Checking coordinator-based architecture...")
 
         # Patterns that indicate direct client access
@@ -237,7 +237,7 @@ class QualityVerifier:
                                 file=platform_file,
                                 line=line_no,
                                 issue_type="DIRECT_CLIENT_ACCESS",
-                                description=f"Potential direct client/API access detected: {match.group()}",  # noqa: E501
+                                description=f"Potential direct client/API access detected: {match.group()}",
                                 severity="ERROR",
                             )
                         )
@@ -266,7 +266,7 @@ class QualityVerifier:
                                     file=py_file.name,
                                     line=node.lineno,
                                     issue_type="MISSING_RETURN_TYPE",
-                                    description=f"Function {node.name} missing return type annotation",  # noqa: E501
+                                    description=f"Function {node.name} missing return type annotation",
                                     severity="WARNING",
                                 )
                             )
@@ -282,7 +282,7 @@ class QualityVerifier:
                                         file=py_file.name,
                                         line=node.lineno,
                                         issue_type="MISSING_PARAM_TYPE",
-                                        description=f"Parameter {arg.arg} in {node.name} missing type annotation",  # noqa: E501
+                                        description=f"Parameter {arg.arg} in {node.name} missing type annotation",
                                         severity="WARNING",
                                     )
                                 )

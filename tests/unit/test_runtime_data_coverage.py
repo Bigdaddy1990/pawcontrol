@@ -18,19 +18,19 @@ from custom_components.pawcontrol.runtime_data import (
 
 
 @pytest.mark.unit
-def test_runtime_data_unavailable_error_raise() -> None:
+def test_runtime_data_unavailable_error_raise() -> None:  # noqa: D103
     with pytest.raises(RuntimeDataUnavailableError):
         raise RuntimeDataUnavailableError("entry_123")
 
 
 @pytest.mark.unit
-def test_runtime_data_unavailable_is_exception() -> None:
+def test_runtime_data_unavailable_is_exception() -> None:  # noqa: D103
     err = RuntimeDataUnavailableError("entry_abc")
     assert isinstance(err, Exception)
 
 
 @pytest.mark.unit
-def test_runtime_data_unavailable_message() -> None:
+def test_runtime_data_unavailable_message() -> None:  # noqa: D103
     err = RuntimeDataUnavailableError("test_entry")
     assert err is not None
 
@@ -39,13 +39,13 @@ def test_runtime_data_unavailable_message() -> None:
 
 
 @pytest.mark.unit
-def test_runtime_data_incompatible_error_raise() -> None:
+def test_runtime_data_incompatible_error_raise() -> None:  # noqa: D103
     with pytest.raises(RuntimeDataIncompatibleError):
         raise RuntimeDataIncompatibleError("entry_xyz", "expected v2, got v1")
 
 
 @pytest.mark.unit
-def test_runtime_data_incompatible_is_exception() -> None:
+def test_runtime_data_incompatible_is_exception() -> None:  # noqa: D103
     err = RuntimeDataIncompatibleError("entry_abc", "version mismatch")
     assert isinstance(err, Exception)
 
@@ -54,7 +54,7 @@ def test_runtime_data_incompatible_is_exception() -> None:
 
 
 @pytest.mark.unit
-def test_get_runtime_data_missing_returns_none() -> None:
+def test_get_runtime_data_missing_returns_none() -> None:  # noqa: D103
     hass = MagicMock()
     hass.data = {}
     result = get_runtime_data(hass, "nonexistent_entry")
@@ -62,7 +62,7 @@ def test_get_runtime_data_missing_returns_none() -> None:
 
 
 @pytest.mark.unit
-def test_get_runtime_data_empty_hass_data() -> None:
+def test_get_runtime_data_empty_hass_data() -> None:  # noqa: D103
     hass = MagicMock()
     hass.data = {}
     result = get_runtime_data(hass, "entry_001")

@@ -405,7 +405,7 @@ class DogConfigRegistry:
             webhook_enabled = bool(
                 options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)
             )
-            # When GPS is driven by webhook push, keep periodic polling low and rely on push events.  # noqa: E501
+            # When GPS is driven by webhook push, keep periodic polling low and rely on push events.
             if gps_source == "webhook" and webhook_enabled:
                 baseline = UPDATE_INTERVALS.get("minimal", 300)
                 if validated_interval is not None:

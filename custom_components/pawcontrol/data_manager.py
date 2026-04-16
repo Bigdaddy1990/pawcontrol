@@ -2338,7 +2338,7 @@ class PawControlDataManager:
                     await notification_manager.async_send_notification(
                         notification_type=NotificationType.REPORT_READY,
                         title=(
-                            f"{profile.config.get('dog_name', dog_id)} {report_type} report"  # noqa: E501
+                            f"{profile.config.get('dog_name', dog_id)} {report_type} report"
                         ),
                         message="Your PawControl report is ready for review.",
                         priority=NotificationPriority.NORMAL,

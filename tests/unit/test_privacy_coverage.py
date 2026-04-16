@@ -18,26 +18,26 @@ from custom_components.pawcontrol.privacy import (
 
 
 @pytest.mark.unit
-def test_mask_string_basic() -> None:
+def test_mask_string_basic() -> None:  # noqa: D103
     result = mask_string("secret123", visible_chars=4)
     assert isinstance(result, str)
     assert result.endswith("3123") or "***" in result or "*" in result
 
 
 @pytest.mark.unit
-def test_mask_string_short() -> None:
+def test_mask_string_short() -> None:  # noqa: D103
     result = mask_string("ab", visible_chars=4)
     assert isinstance(result, str)
 
 
 @pytest.mark.unit
-def test_mask_string_empty() -> None:
+def test_mask_string_empty() -> None:  # noqa: D103
     result = mask_string("", visible_chars=4)
     assert isinstance(result, str)
 
 
 @pytest.mark.unit
-def test_mask_string_zero_visible() -> None:
+def test_mask_string_zero_visible() -> None:  # noqa: D103
     result = mask_string("hello", visible_chars=0)
     assert isinstance(result, str)
 
@@ -48,21 +48,21 @@ def test_mask_string_zero_visible() -> None:
 
 
 @pytest.mark.unit
-def test_anonymize_user_id_returns_string() -> None:
+def test_anonymize_user_id_returns_string() -> None:  # noqa: D103
     result = anonymize_user_id("rex_owner_123")
     assert isinstance(result, str)
     assert result != "rex_owner_123"
 
 
 @pytest.mark.unit
-def test_anonymize_user_id_deterministic() -> None:
+def test_anonymize_user_id_deterministic() -> None:  # noqa: D103
     r1 = anonymize_user_id("user42")
     r2 = anonymize_user_id("user42")
     assert r1 == r2
 
 
 @pytest.mark.unit
-def test_anonymize_user_id_different_inputs() -> None:
+def test_anonymize_user_id_different_inputs() -> None:  # noqa: D103
     r1 = anonymize_user_id("alice")
     r2 = anonymize_user_id("bob")
     assert r1 != r2
@@ -74,13 +74,13 @@ def test_anonymize_user_id_different_inputs() -> None:
 
 
 @pytest.mark.unit
-def test_data_hasher_init() -> None:
+def test_data_hasher_init() -> None:  # noqa: D103
     hasher = DataHasher()
     assert hasher is not None
 
 
 @pytest.mark.unit
-def test_data_hasher_hash_string() -> None:
+def test_data_hasher_hash_string() -> None:  # noqa: D103
     hasher = DataHasher(algorithm="sha256")
     result = hasher.hash_string("test_data")
     assert isinstance(result, str)
@@ -88,7 +88,7 @@ def test_data_hasher_hash_string() -> None:
 
 
 @pytest.mark.unit
-def test_data_hasher_deterministic() -> None:
+def test_data_hasher_deterministic() -> None:  # noqa: D103
     hasher = DataHasher()
     r1 = hasher.hash_string("same_input")
     r2 = hasher.hash_string("same_input")
@@ -96,7 +96,7 @@ def test_data_hasher_deterministic() -> None:
 
 
 @pytest.mark.unit
-def test_data_hasher_different_inputs() -> None:
+def test_data_hasher_different_inputs() -> None:  # noqa: D103
     hasher = DataHasher()
     r1 = hasher.hash_string("input_a")
     r2 = hasher.hash_string("input_b")
@@ -109,13 +109,13 @@ def test_data_hasher_different_inputs() -> None:
 
 
 @pytest.mark.unit
-def test_gps_anonymizer_init() -> None:
+def test_gps_anonymizer_init() -> None:  # noqa: D103
     anon = GPSAnonymizer(precision=3)
     assert anon is not None
 
 
 @pytest.mark.unit
-def test_gps_anonymizer_anonymize() -> None:
+def test_gps_anonymizer_anonymize() -> None:  # noqa: D103
     anon = GPSAnonymizer(precision=2)
     lat, lon = anon.anonymize(52.5200, 13.4050)
     assert isinstance(lat, float)
@@ -125,7 +125,7 @@ def test_gps_anonymizer_anonymize() -> None:
 
 
 @pytest.mark.unit
-def test_gps_anonymizer_high_precision() -> None:
+def test_gps_anonymizer_high_precision() -> None:  # noqa: D103
     anon = GPSAnonymizer(precision=5)
     lat, lon = anon.anonymize(48.1351, 11.5820)
     assert isinstance(lat, float)

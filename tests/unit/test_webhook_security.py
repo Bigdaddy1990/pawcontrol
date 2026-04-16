@@ -158,14 +158,14 @@ async def test_security_manager_processes_valid_request() -> None:
     assert manager.get_security_stats()["rate_limiter"]["total_requests"] == 1
 
 
-def test_webhook_authenticator_rejects_invalid_algorithm() -> None:
+def test_webhook_authenticator_rejects_invalid_algorithm() -> None:  # noqa: D103
     auth = WebhookAuthenticator("secret", algorithm="sha999")
 
     with pytest.raises(ValueError, match="Unsupported HMAC algorithm"):
         auth.generate_signature(b"payload", 100.0)
 
 
-def test_webhook_authenticator_verify_signature_paths(
+def test_webhook_authenticator_verify_signature_paths(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     auth = WebhookAuthenticator("secret", max_timestamp_diff=10)
@@ -187,7 +187,7 @@ def test_webhook_authenticator_verify_signature_paths(
     assert auth.verify_signature(b"ok", signature, timestamp) is True
 
 
-def test_rate_limit_state_counts_and_ban(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_rate_limit_state_counts_and_ban(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: D103
     state = RateLimitState(source="1.2.3.4")
 
     state.add_request(30.0)
@@ -209,7 +209,7 @@ def test_rate_limit_state_counts_and_ban(monkeypatch: pytest.MonkeyPatch) -> Non
     assert state.is_banned() is False
 
 
-def test_rate_limiter_limit_ban_stats_and_reset(
+def test_rate_limiter_limit_ban_stats_and_reset(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     config = RateLimitConfig(
@@ -236,7 +236,7 @@ def test_rate_limiter_limit_ban_stats_and_reset(
     assert limiter.get_stats()["total_sources"] == 0
 
 
-def test_webhook_validator_rejects_invalid_payloads() -> None:
+def test_webhook_validator_rejects_invalid_payloads() -> None:  # noqa: D103
     validator = WebhookValidator(required_fields=["dog_id"])
 
     with pytest.raises(ValidationError, match="Maximum allowed size"):
@@ -252,7 +252,7 @@ def test_webhook_validator_rejects_invalid_payloads() -> None:
         validator.validate_payload({"event": "walk"})
 
 
-def test_webhook_validator_sanitizes_nested_payload() -> None:
+def test_webhook_validator_sanitizes_nested_payload() -> None:  # noqa: D103
     validator = WebhookValidator(required_fields=["dog_id"])
 
     payload = {
@@ -269,7 +269,7 @@ def test_webhook_validator_sanitizes_nested_payload() -> None:
 
 
 @pytest.mark.asyncio
-async def test_webhook_security_manager_process_and_stats(
+async def test_webhook_security_manager_process_and_stats(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     secret = "secret"
@@ -303,7 +303,7 @@ async def test_webhook_security_manager_process_and_stats(
 
 
 @pytest.mark.asyncio
-async def test_webhook_security_manager_missing_signature() -> None:
+async def test_webhook_security_manager_missing_signature() -> None:  # noqa: D103
     manager = WebhookSecurityManager(hass=None, secret="secret")  # type: ignore[arg-type]
 
     with pytest.raises(AuthenticationError, match="Missing signature"):

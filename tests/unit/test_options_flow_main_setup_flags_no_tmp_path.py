@@ -29,7 +29,7 @@ def _workspace_temp_dir() -> Path:
     return path
 
 
-def test_setup_flag_supported_languages_defaults_to_en_without_files() -> None:
+def test_setup_flag_supported_languages_defaults_to_en_without_files() -> None:  # noqa: D103
     temp_dir = _workspace_temp_dir()
     try:
         translations_dir = temp_dir / "translations"
@@ -46,7 +46,7 @@ def test_setup_flag_supported_languages_defaults_to_en_without_files() -> None:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def test_setup_flag_supported_languages_includes_strings_and_translation_files() -> (
+def test_setup_flag_supported_languages_includes_strings_and_translation_files() -> (  # noqa: D103
     None
 ):
     temp_dir = _workspace_temp_dir()
@@ -68,7 +68,7 @@ def test_setup_flag_supported_languages_includes_strings_and_translation_files()
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def test_setup_flag_supported_languages_uses_translation_stems_without_strings() -> (
+def test_setup_flag_supported_languages_uses_translation_stems_without_strings() -> (  # noqa: D103
     None
 ):
     temp_dir = _workspace_temp_dir()
@@ -88,7 +88,7 @@ def test_setup_flag_supported_languages_uses_translation_stems_without_strings()
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def test_load_setup_flag_translations_from_mapping_handles_missing_common_and_invalid_entries() -> (
+def test_load_setup_flag_translations_from_mapping_handles_missing_common_and_invalid_entries() -> (  # noqa: D103
     None
 ):
     assert PawControlOptionsFlow._load_setup_flag_translations_from_mapping({}) == {}
@@ -112,7 +112,7 @@ def test_load_setup_flag_translations_from_mapping_handles_missing_common_and_in
 
 
 @pytest.mark.asyncio
-async def test_translation_loaders_handle_missing_non_mapping_and_malformed_json(
+async def test_translation_loaders_handle_missing_non_mapping_and_malformed_json(  # noqa: D103
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     temp_dir = _workspace_temp_dir()
@@ -178,7 +178,7 @@ async def test_translation_loaders_handle_missing_non_mapping_and_malformed_json
 
 
 @pytest.mark.asyncio
-async def test_translation_loaders_return_filtered_mapping_for_valid_json() -> None:
+async def test_translation_loaders_return_filtered_mapping_for_valid_json() -> None:  # noqa: D103
     temp_dir = _workspace_temp_dir()
     hass = _ExecutorHass()
     try:
@@ -218,7 +218,7 @@ async def test_translation_loaders_return_filtered_mapping_for_valid_json() -> N
 
 
 @pytest.mark.asyncio
-async def test_setup_flag_translation_lookup_merges_and_caches_without_tmp_path() -> (
+async def test_setup_flag_translation_lookup_merges_and_caches_without_tmp_path() -> (  # noqa: D103
     None
 ):
     temp_dir = _workspace_temp_dir()
@@ -286,7 +286,7 @@ async def test_setup_flag_translation_lookup_merges_and_caches_without_tmp_path(
 
 
 @pytest.mark.asyncio
-async def test_async_setup_flag_translations_initializes_base_and_overlay_without_sync() -> (
+async def test_async_setup_flag_translations_initializes_base_and_overlay_without_sync() -> (  # noqa: D103
     None
 ):
     temp_dir = _workspace_temp_dir()
@@ -344,14 +344,14 @@ async def test_async_setup_flag_translations_initializes_base_and_overlay_withou
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def test_determine_language_defaults_to_en_without_hass() -> None:
+def test_determine_language_defaults_to_en_without_hass() -> None:  # noqa: D103
     flow = PawControlOptionsFlow()
     flow.hass = None
 
     assert flow._determine_language() == "en"
 
 
-def test_determine_language_handles_hass_without_config_object() -> None:
+def test_determine_language_handles_hass_without_config_object() -> None:  # noqa: D103
     flow = PawControlOptionsFlow()
     flow.hass = SimpleNamespace(config=None)
 
@@ -359,7 +359,7 @@ def test_determine_language_handles_hass_without_config_object() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_prepare_setup_flag_translations_returns_for_non_homeassistant_hass(
+async def test_async_prepare_setup_flag_translations_returns_for_non_homeassistant_hass(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     flow = PawControlOptionsFlow()
@@ -372,7 +372,7 @@ async def test_async_prepare_setup_flag_translations_returns_for_non_homeassista
     loader.assert_not_awaited()
 
 
-def test_collect_manual_event_sources_handles_empty_default_value(
+def test_collect_manual_event_sources_handles_empty_default_value(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     flow = PawControlOptionsFlow()
@@ -398,7 +398,7 @@ def test_collect_manual_event_sources_handles_empty_default_value(
     assert options_flow_main.DEFAULT_MANUAL_GUARD_EVENT not in sources
 
 
-def test_manual_event_choices_omit_disabled_badge_and_help_when_unavailable(
+def test_manual_event_choices_omit_disabled_badge_and_help_when_unavailable(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     flow = PawControlOptionsFlow()

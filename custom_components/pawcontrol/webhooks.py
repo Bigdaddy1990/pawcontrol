@@ -66,7 +66,7 @@ async def async_ensure_webhook_config(
 ) -> None:
     """Ensure the config entry has webhook credentials when push is enabled."""
     enabled = bool(entry.options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED))
-    # Only create/maintain webhook credentials when at least one dog uses webhook AND webhook is enabled.  # noqa: E501
+    # Only create/maintain webhook credentials when at least one dog uses webhook AND webhook is enabled.
     if not enabled or not _any_dog_expects_webhook(entry):
         return
 
@@ -248,7 +248,7 @@ def _resolve_entry_for_webhook_id(
 
 
 def _json_response(payload: dict[str, Any], *, status: int = 200) -> Any:
-    # Avoid importing aiohttp at import-time for type-checkers; Home Assistant already uses it.  # noqa: E501
+    # Avoid importing aiohttp at import-time for type-checkers; Home Assistant already uses it.
     from aiohttp import web
 
     return web.json_response(payload, status=status)

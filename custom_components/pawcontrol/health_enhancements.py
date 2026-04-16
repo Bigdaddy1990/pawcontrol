@@ -395,7 +395,7 @@ class EnhancedHealthCalculator:
                 days_until_due = vaccine.days_until_due()
                 if days_until_due is None:
                     _LOGGER.debug(
-                        "Skipping overdue vaccination alert for %s because the next due date is unknown",  # noqa: E501
+                        "Skipping overdue vaccination alert for %s because the next due date is unknown",
                         vaccine.vaccine_type,
                     )
                     continue
@@ -416,7 +416,7 @@ class EnhancedHealthCalculator:
                 days_until_due = vaccine.days_until_due()
                 if days_until_due is None:
                     _LOGGER.debug(
-                        "Skipping due-soon vaccination reminder for %s because the next due date is unknown",  # noqa: E501
+                        "Skipping due-soon vaccination reminder for %s because the next due date is unknown",
                         vaccine.vaccine_type,
                     )
                     continue
@@ -444,7 +444,7 @@ class EnhancedHealthCalculator:
                 days_until_due = deworming.days_until_due()
                 if days_until_due is None:
                     _LOGGER.debug(
-                        "Skipping overdue deworming alert for %s because the next due date is unknown",  # noqa: E501
+                        "Skipping overdue deworming alert for %s because the next due date is unknown",
                         deworming.treatment_type,
                     )
                     continue
@@ -468,7 +468,7 @@ class EnhancedHealthCalculator:
                 days_until_due = deworming.days_until_due()
                 if days_until_due is None:
                     _LOGGER.debug(
-                        "Skipping due-soon deworming reminder for %s because the next due date is unknown",  # noqa: E501
+                        "Skipping due-soon deworming reminder for %s because the next due date is unknown",
                         deworming.treatment_type,
                     )
                     continue
@@ -500,7 +500,7 @@ class EnhancedHealthCalculator:
                 {
                     "type": "vet_appointment",
                     "message": (
-                        f"{appointment.appointment_type.title()} appointment in {days_until} days"  # noqa: E501
+                        f"{appointment.appointment_type.title()} appointment in {days_until} days"
                     ),
                     "due_date": appointment.appointment_date.isoformat(),
                     "priority": "medium",
@@ -513,7 +513,7 @@ class EnhancedHealthCalculator:
             days_since_checkup = (current_date - health_profile.last_checkup_date).days
             if days_since_checkup > 365:
                 recommendations.append(
-                    f"Annual checkup recommended - last visit was {days_since_checkup} days ago",  # noqa: E501
+                    f"Annual checkup recommended - last visit was {days_since_checkup} days ago",
                 )
                 health_status["overall_score"] -= 5
         else:

@@ -2,7 +2,7 @@
 
 This repository uses a lightweight variant of Home Assistant's localization validation.
 In CI we run this script in --check mode to ensure the expected files exist and are valid JSON.
-"""  # noqa: E501
+"""
 
 import argparse
 import json
@@ -131,8 +131,8 @@ def main() -> int:  # noqa: D103
         if translations_dir.exists():
             for tfile in translations_dir.glob("*.json"):
                 data = _load_json(tfile)
-                # Optional minimal sanity: remove keys listed in allowlist from consideration  # noqa: E501
-                # (This script is intentionally conservative; hassfest performs schema validation.)  # noqa: E501
+                # Optional minimal sanity: remove keys listed in allowlist from consideration
+                # (This script is intentionally conservative; hassfest performs schema validation.)
                 if allowlist:
                     # noop usage to avoid unused variable warnings in strict linters
                     _ = data

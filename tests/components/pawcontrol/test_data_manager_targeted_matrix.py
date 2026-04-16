@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta  # noqa: D100
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -31,7 +31,7 @@ async def _create_manager(mock_hass: object, tmp_path: Path) -> PawControlDataMa
 
 
 @pytest.mark.asyncio
-async def test_async_get_module_history_filters_sorts_and_limits(
+async def test_async_get_module_history_filters_sorts_and_limits(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -57,7 +57,7 @@ async def test_async_get_module_history_filters_sorts_and_limits(
 
 
 @pytest.mark.asyncio
-async def test_async_get_module_history_handles_inconsistent_entries(
+async def test_async_get_module_history_handles_inconsistent_entries(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -78,7 +78,7 @@ async def test_async_get_module_history_handles_inconsistent_entries(
 
 
 @pytest.mark.asyncio
-async def test_async_get_module_history_returns_empty_for_unknown_module_or_profile(
+async def test_async_get_module_history_returns_empty_for_unknown_module_or_profile(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -89,7 +89,7 @@ async def test_async_get_module_history_returns_empty_for_unknown_module_or_prof
 
 
 @pytest.mark.asyncio
-async def test_async_get_module_history_returns_empty_when_profile_payload_not_list(
+async def test_async_get_module_history_returns_empty_when_profile_payload_not_list(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -103,7 +103,7 @@ async def test_async_get_module_history_returns_empty_when_profile_payload_not_l
 
 
 @pytest.mark.asyncio
-async def test_async_get_module_history_filters_bad_entries_with_bounds(
+async def test_async_get_module_history_filters_bad_entries_with_bounds(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -128,7 +128,7 @@ async def test_async_get_module_history_filters_bad_entries_with_bounds(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_json_path_returns_business_payload(
+async def test_async_export_data_json_path_returns_business_payload(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -153,7 +153,7 @@ async def test_async_export_data_json_path_returns_business_payload(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_routes_adapter_failures_and_fallback(
+async def test_async_export_data_routes_adapter_failures_and_fallback(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -175,7 +175,7 @@ async def test_async_export_data_routes_adapter_failures_and_fallback(
 
 
 @pytest.mark.asyncio
-async def test_async_generate_report_tolerates_adapter_exceptions_and_persists(
+async def test_async_generate_report_tolerates_adapter_exceptions_and_persists(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -223,7 +223,7 @@ async def test_async_generate_report_tolerates_adapter_exceptions_and_persists(
 
 
 @pytest.mark.asyncio
-async def test_async_export_data_all_allow_partial_captures_homeassistant_and_io_errors(
+async def test_async_export_data_all_allow_partial_captures_homeassistant_and_io_errors(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
@@ -288,7 +288,7 @@ async def test_async_export_data_rejects_unsupported_data_type(
         await manager.async_export_data("buddy", "sleeping")
 
 
-def test_cache_repair_summary_classifies_normal_corrupt_and_error_states(
+def test_cache_repair_summary_classifies_normal_corrupt_and_error_states(  # noqa: D103
     mock_hass: object,
     tmp_path: Path,
 ) -> None:
