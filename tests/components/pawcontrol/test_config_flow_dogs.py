@@ -1465,7 +1465,8 @@ async def test_async_step_configure_modules_form_suggests_minimal_for_simple_set
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_modules_form_suggests_balanced_for_mid_complexity() -> (  # noqa: E501
+async def test_async_step_configure_modules_form_suggests_balanced_for_mid_complexity(
+) -> (
     None
 ):
     """Three-dog setup should suggest balanced performance and auto-backup."""
