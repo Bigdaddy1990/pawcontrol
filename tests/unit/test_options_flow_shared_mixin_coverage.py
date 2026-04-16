@@ -8,7 +8,6 @@ from typing import Any
 
 import pytest
 
-import custom_components.pawcontrol.options_flow_shared as shared_module
 from custom_components.pawcontrol.const import (
     CONF_API_ENDPOINT,
     CONF_API_TOKEN,
@@ -17,6 +16,7 @@ from custom_components.pawcontrol.const import (
     CONF_WEATHER_ENTITY,
     DEFAULT_MANUAL_CHECK_EVENT,
 )
+import custom_components.pawcontrol.options_flow_shared as shared_module
 from custom_components.pawcontrol.options_flow_shared import (
     ADVANCED_SETTINGS_FIELD,
     DOG_ID_FIELD,
@@ -50,10 +50,16 @@ class _SharedCoverageHost(OptionsFlowSharedMixin):
     def _manual_events_snapshot(self) -> Mapping[str, Any] | None:
         return self._manual_snapshot
 
-    def _manual_event_defaults(self, current: Mapping[str, Any]) -> dict[str, str | None]:
+    def _manual_event_defaults(
+        self, current: Mapping[str, Any]
+    ) -> dict[str, str | None]:
         return {
-            "manual_check_event": current.get("manual_check_event", DEFAULT_MANUAL_CHECK_EVENT),  # type: ignore[dict-item]
-            "manual_guard_event": current.get("manual_guard_event", "pawcontrol_manual_guard"),  # type: ignore[dict-item]
+            "manual_check_event": current.get(
+                "manual_check_event", DEFAULT_MANUAL_CHECK_EVENT
+            ),  # type: ignore[dict-item]
+            "manual_guard_event": current.get(
+                "manual_guard_event", "pawcontrol_manual_guard"
+            ),  # type: ignore[dict-item]
             "manual_breaker_event": current.get(
                 "manual_breaker_event",
                 "pawcontrol_manual_breaker",
@@ -81,7 +87,9 @@ def test_build_export_payload_removes_empty_modules_field(
 ) -> None:
     host = _SharedCoverageHost()
     host._entry.data = {
-        CONF_DOGS: [{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna", DOG_MODULES_FIELD: {}}]
+        CONF_DOGS: [
+            {DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna", DOG_MODULES_FIELD: {}}
+        ]
     }
     monkeypatch.setattr(shared_module, "ensure_dog_modules_mapping", lambda _dog: {})
 
@@ -106,7 +114,10 @@ def test_weather_dog_options_and_selection_helpers_cover_fallback_branches(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = _SharedCoverageHost()
-    host._entry.options = {"weather_settings": "bad", CONF_WEATHER_ENTITY: "  weather.home  "}
+    host._entry.options = {
+        "weather_settings": "bad",
+        CONF_WEATHER_ENTITY: "  weather.home  ",
+    }
     weather = host._current_weather_options()
     assert weather[CONF_WEATHER_ENTITY] == "weather.home"
 
@@ -188,7 +199,9 @@ def test_manual_event_context_without_snapshot_uses_current_defaults_only() -> N
     assert context["breaker_default"] == "breaker_current"
 
 
-def test_manual_event_context_prefers_specific_check_event_when_preferred_not_mapping() -> None:
+def test_manual_event_context_prefers_specific_check_event_when_preferred_not_mapping() -> (
+    None
+):
     host = _SharedCoverageHost()
 
     context = host._resolve_manual_event_context(
@@ -254,11 +267,15 @@ def test_resilience_threshold_helpers_cover_all_fallback_paths() -> None:
         )
         == 4
     )
-    assert host._resolve_script_threshold_fallbacks(has_skip=True, has_breaker=True) == (
+    assert host._resolve_script_threshold_fallbacks(
+        has_skip=True, has_breaker=True
+    ) == (
         None,
         None,
     )
-    assert host._resolve_script_threshold_fallbacks(has_skip=False, has_breaker=False) == (
+    assert host._resolve_script_threshold_fallbacks(
+        has_skip=False, has_breaker=False
+    ) == (
         None,
         None,
     )
@@ -304,10 +321,9 @@ def test_coercion_helpers_cover_bool_int_time_float_and_choice_fallbacks(
     )
     assert host._coerce_optional_float("bad", 1.5) == 1.5
 
-    assert (
-        host._coerce_clamped_float("2.5", 1.0, minimum=0.0, maximum=5.0)
-        == pytest.approx(2.5)
-    )
+    assert host._coerce_clamped_float(
+        "2.5", 1.0, minimum=0.0, maximum=5.0
+    ) == pytest.approx(2.5)
     assert host._normalize_choice("invalid", valid={"a", "b"}, default="invalid") == "a"
     assert host._normalize_choice(5, valid={"a", "b"}, default=1) == "a"
 

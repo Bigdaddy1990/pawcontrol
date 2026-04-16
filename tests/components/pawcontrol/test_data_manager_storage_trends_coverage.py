@@ -170,7 +170,9 @@ async def test_health_and_profile_update_false_paths(
 
     assert await manager.async_log_health_data("missing", {"weight": 22.0}) is False
     assert await manager.async_log_medication("missing", {"name": "med"}) is False
-    assert await manager.async_update_dog_data("missing", {"profile": {"x": 1}}) is False
+    assert (
+        await manager.async_update_dog_data("missing", {"profile": {"x": 1}}) is False
+    )
 
     manager._async_save_dog_data = AsyncMock(  # type: ignore[method-assign]
         side_effect=HomeAssistantError("save failed"),
@@ -226,7 +228,9 @@ async def test_get_health_history_missing_and_limit(
         "new",
         "old",
     ]
-    assert [entry["status"] for entry in manager.get_health_history("buddy", limit=1)] == [
+    assert [
+        entry["status"] for entry in manager.get_health_history("buddy", limit=1)
+    ] == [
         "new",
     ]
 
@@ -236,7 +240,9 @@ def test_get_health_trends_returns_none_for_unknown_dog(
     tmp_path: Path,
 ) -> None:
     mock_hass.config.config_dir = str(tmp_path)  # type: ignore[attr-defined]
-    manager = PawControlDataManager(mock_hass, entry_id="entry-storage-trends", dogs_config=[])  # type: ignore[arg-type]
+    manager = PawControlDataManager(
+        mock_hass, entry_id="entry-storage-trends", dogs_config=[]
+    )  # type: ignore[arg-type]
     assert manager.get_health_trends("missing") is None
 
 
@@ -349,7 +355,9 @@ def test_get_metrics_includes_storage_and_cache_snapshots(
         entry_id="entry-storage-trends",
         dogs_config=[{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}],
     )
-    manager.register_cache_monitor("fake", type("Cache", (), {"get_stats": lambda *_: {}})())
+    manager.register_cache_monitor(
+        "fake", type("Cache", (), {"get_stats": lambda *_: {}})()
+    )
 
     metrics = manager.get_metrics()
 
@@ -544,10 +552,14 @@ async def test_async_set_gps_log_poop_and_grooming_paths(
     assert captured_payloads[-1]["gps"]["enabled"] is True
     assert "updated_at" in captured_payloads[-1]["gps"]
 
-    assert await manager.async_log_poop_data("missing", {"consistency": "normal"}) is False
+    assert (
+        await manager.async_log_poop_data("missing", {"consistency": "normal"}) is False
+    )
 
     manager._async_save_profile = AsyncMock(return_value=None)  # type: ignore[method-assign]
-    assert await manager.async_log_poop_data("buddy", {"consistency": "normal"}, limit=1)
+    assert await manager.async_log_poop_data(
+        "buddy", {"consistency": "normal"}, limit=1
+    )
     assert await manager.async_log_poop_data("buddy", {"consistency": "soft"}, limit=1)
     assert len(manager._dog_profiles["buddy"].poop_history) == 1
     assert manager._dog_profiles["buddy"].poop_history[0]["consistency"] == "soft"
@@ -565,7 +577,9 @@ async def test_async_set_gps_log_poop_and_grooming_paths(
     manager._session_id_factory = lambda: "session-1"  # type: ignore[method-assign]
     profile = manager._dog_profiles["buddy"]
     profile.grooming_sessions = [{"session_id": f"s-{idx}"} for idx in range(50)]
-    session_id = await manager.async_start_grooming_session("buddy", {"action": "brush"})
+    session_id = await manager.async_start_grooming_session(
+        "buddy", {"action": "brush"}
+    )
     assert session_id == "session-1"
     assert len(profile.grooming_sessions) == 50
     assert profile.grooming_sessions[-1]["session_id"] == "session-1"
@@ -579,7 +593,9 @@ async def test_async_analyze_patterns_comprehensive_and_advanced_paths(
 ) -> None:
     manager = await _create_manager(mock_hass, tmp_path)
 
-    async def _history(module: str, _dog_id: str, **_kwargs: Any) -> list[dict[str, Any]]:
+    async def _history(
+        module: str, _dog_id: str, **_kwargs: Any
+    ) -> list[dict[str, Any]]:
         if module == "feeding":
             return [
                 {"timestamp": "invalid", "portion_size": 10.0},
@@ -636,7 +652,9 @@ async def test_register_cache_monitor_and_manager_registration_paths(
 ) -> None:
     manager = await _create_manager(mock_hass, tmp_path)
 
-    with pytest.raises(ValueError, match="Cache monitor name must be a non-empty string"):
+    with pytest.raises(
+        ValueError, match="Cache monitor name must be a non-empty string"
+    ):
         manager.register_cache_monitor("", object())
 
     class _LegacyCache:
@@ -672,7 +690,9 @@ async def test_register_cache_monitor_and_manager_registration_paths(
     registrar = _Registrar()
     manager._register_manager_cache_monitors(registrar, prefix=None, label="custom")
     assert registrar.called
-    manager._register_manager_cache_monitors(SimpleNamespace(), prefix=None, label="none")
+    manager._register_manager_cache_monitors(
+        SimpleNamespace(), prefix=None, label="none"
+    )
 
     manager._get_runtime_data = lambda: None  # type: ignore[method-assign]
     manager.register_runtime_cache_monitors()
@@ -915,7 +935,9 @@ async def test_async_initialize_uses_mapping_payload_and_invalid_config_raises(
     )
     assert profile.daily_stats is not None
 
-    with pytest.raises(HomeAssistantError, match="Invalid dog configuration in storage"):
+    with pytest.raises(
+        HomeAssistantError, match="Invalid dog configuration in storage"
+    ):
         data_manager_module.DogProfile.from_storage(
             {"dog_name": "Buddy"},  # type: ignore[arg-type]
             {},
@@ -956,7 +978,9 @@ async def test_internal_monitor_payloads_cover_error_and_stats_paths(
     assert budget_snapshot["diagnostics"]["snapshots"][0]["recorded_at"] is None
     assert budget_snapshot["diagnostics"]["snapshots"][1]["recorded_at"] is not None
 
-    modules = SimpleNamespace(cache_metrics=lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+    modules = SimpleNamespace(
+        cache_metrics=lambda: (_ for _ in ()).throw(RuntimeError("boom"))
+    )
     modules_monitor = data_manager_module._CoordinatorModuleCacheMonitor(modules)  # type: ignore[attr-defined]
     assert "errors" in modules_monitor.coordinator_snapshot()["diagnostics"]
     assert "errors" in modules_monitor.get_diagnostics()
@@ -1090,7 +1114,9 @@ async def test_module_history_generate_report_and_weekly_report_branches(
     monkeypatch.setattr(
         data_manager_module,
         "_deserialize_datetime",
-        lambda value: None if isinstance(value, datetime) else original_deserialize(value),
+        lambda value: (
+            None if isinstance(value, datetime) else original_deserialize(value)
+        ),
     )
     profile.feeding_history = [
         {"timestamp": datetime(2026, 1, 3, 8, tzinfo=UTC), "portion_size": 5.0},
@@ -1131,7 +1157,9 @@ async def test_history_and_export_sort_key_fallback_branches(
     monkeypatch.setattr(
         data_manager_module,
         "_deserialize_datetime",
-        lambda value: None if not isinstance(value, str) else original_deserialize(value),
+        lambda value: (
+            None if not isinstance(value, str) else original_deserialize(value)
+        ),
     )
     history = await manager.async_get_module_history("feeding", "buddy")
     assert len(history) == 2
@@ -1216,7 +1244,9 @@ async def test_get_namespace_data_raises_on_oserror_and_handles_filenotfound(
     manager._async_add_executor_job = AsyncMock(  # type: ignore[method-assign]
         side_effect=OSError("disk failure"),
     )
-    with pytest.raises(HomeAssistantError, match="Unable to read PawControl reports data"):
+    with pytest.raises(
+        HomeAssistantError, match="Unable to read PawControl reports data"
+    ):
         await manager._get_namespace_data("reports")
 
 
@@ -1236,7 +1266,9 @@ async def test_save_namespace_updates_state_and_wraps_oserror(
     manager._async_add_executor_job = AsyncMock(  # type: ignore[method-assign]
         side_effect=OSError("read only"),
     )
-    with pytest.raises(HomeAssistantError, match="Unable to persist PawControl reports"):
+    with pytest.raises(
+        HomeAssistantError, match="Unable to persist PawControl reports"
+    ):
         await manager._save_namespace("reports", {"buddy": {"count": 2}})
 
 
@@ -1257,7 +1289,9 @@ async def test_async_add_executor_job_supports_mock_real_and_fallback_paths(
     assert await manager._async_add_executor_job(lambda x, y: x + y, 2, 3) == 5
 
     mock_hass.async_add_executor_job = None  # type: ignore[attr-defined]
-    assert await manager._async_add_executor_job(lambda text: text.upper(), "ok") == "OK"
+    assert (
+        await manager._async_add_executor_job(lambda text: text.upper(), "ok") == "OK"
+    )
 
 
 @pytest.mark.asyncio
@@ -1333,7 +1367,9 @@ async def test_async_save_dog_data_wraps_oserror(
         await manager._async_save_dog_data("buddy")
 
 
-def test_read_storage_payload_and_create_backup(tmp_path: Path, mock_hass: object) -> None:
+def test_read_storage_payload_and_create_backup(
+    tmp_path: Path, mock_hass: object
+) -> None:
     mock_hass.config.config_dir = str(tmp_path)  # type: ignore[attr-defined]
     manager = PawControlDataManager(
         mock_hass,  # type: ignore[arg-type]

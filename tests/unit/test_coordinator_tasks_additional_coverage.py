@@ -54,7 +54,7 @@ class _TimestampFailure:
         self._exc = exc
         self.tzinfo = None
 
-    def replace(self, *, tzinfo: object) -> "_TimestampFailure":
+    def replace(self, *, tzinfo: object) -> _TimestampFailure:
         self.tzinfo = tzinfo
         return self
 
@@ -131,11 +131,15 @@ def test_summarise_resilience_tracks_other_state_and_stale_recovery() -> None:
 
 @pytest.mark.unit
 def test_normalise_breaker_id_falls_back_when_stringified_value_empty() -> None:
-    assert ct._normalise_breaker_id("breaker-x", {"id": _EmptyStringId()}) == "breaker-x"
+    assert (
+        ct._normalise_breaker_id("breaker-x", {"id": _EmptyStringId()}) == "breaker-x"
+    )
 
 
 @pytest.mark.unit
-def test_merge_rejection_metric_values_handles_empty_sources_and_missing_mapping() -> None:
+def test_merge_rejection_metric_values_handles_empty_sources_and_missing_mapping() -> (
+    None
+):
     target = ct.default_rejection_metrics()
     target["rejected_call_count"] = 7
     ct.merge_rejection_metric_values(target)
@@ -357,7 +361,9 @@ def test_build_update_statistics_keeps_default_rejection_metrics_for_non_mapping
     monkeypatch.setattr(ct, "_fetch_reconfigure_summary", lambda *_: None)
     monkeypatch.setattr(ct, "_build_runtime_store_summary", lambda *_1, **_2: {})
     monkeypatch.setattr(ct, "get_runtime_data", lambda *_: None)
-    monkeypatch.setattr(ct, "collect_resilience_diagnostics", lambda *_: {"summary": []})
+    monkeypatch.setattr(
+        ct, "collect_resilience_diagnostics", lambda *_: {"summary": []}
+    )
 
     stats = ct.build_update_statistics(coordinator)
     assert stats["rejection_metrics"]["rejected_call_count"] == 0
@@ -372,7 +378,9 @@ def test_build_runtime_statistics_merges_error_summary_and_reconfigure(
     )
 
     monkeypatch.setattr(ct, "_fetch_cache_repair_summary", lambda *_: None)
-    monkeypatch.setattr(ct, "_fetch_reconfigure_summary", lambda *_: {"source": "options"})
+    monkeypatch.setattr(
+        ct, "_fetch_reconfigure_summary", lambda *_: {"source": "options"}
+    )
     monkeypatch.setattr(ct, "_build_runtime_store_summary", lambda *_1, **_2: {})
     monkeypatch.setattr(ct, "get_runtime_data", lambda *_: None)
     monkeypatch.setattr(
@@ -381,7 +389,9 @@ def test_build_runtime_statistics_merges_error_summary_and_reconfigure(
         lambda *_: {"converted": 0},
     )
     monkeypatch.setattr(ct, "get_runtime_performance_stats", lambda *_: {})
-    monkeypatch.setattr(ct, "collect_resilience_diagnostics", lambda *_: {"summary": []})
+    monkeypatch.setattr(
+        ct, "collect_resilience_diagnostics", lambda *_: {"summary": []}
+    )
 
     stats = ct.build_runtime_statistics(coordinator)
     assert stats["reconfigure"] == {"source": "options"}
@@ -496,7 +506,9 @@ async def test_run_maintenance_error_branch_collects_diagnostics_when_missing(
         hass=object(),
         config_entry=object(),
         logger=MagicMock(),
-        _modules=SimpleNamespace(cleanup_expired=MagicMock(side_effect=RuntimeError("boom"))),
+        _modules=SimpleNamespace(
+            cleanup_expired=MagicMock(side_effect=RuntimeError("boom"))
+        ),
         _metrics=SimpleNamespace(consecutive_errors=0),
         last_update_success=False,
     )

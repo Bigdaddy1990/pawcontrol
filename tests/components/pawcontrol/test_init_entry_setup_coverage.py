@@ -107,7 +107,9 @@ async def test_async_setup_entry_optional_setup_starts_background_health_monitor
     """Non-mocked environments should run optional scheduler/task health setup."""
     start_background_tasks = Mock()
     runtime_data = SimpleNamespace(
-        coordinator=SimpleNamespace(async_start_background_tasks=start_background_tasks),
+        coordinator=SimpleNamespace(
+            async_start_background_tasks=start_background_tasks
+        ),
         helper_manager=SimpleNamespace(get_helper_count=lambda: 0),
         door_sensor_manager=SimpleNamespace(get_configured_dogs=lambda: []),
         geofencing_manager=SimpleNamespace(is_enabled=lambda: False),
@@ -194,7 +196,9 @@ async def test_async_setup_entry_optional_daily_reset_failure_is_non_critical(
     """Optional scheduler failures should not fail the overall setup."""
     start_background_tasks = Mock()
     runtime_data = SimpleNamespace(
-        coordinator=SimpleNamespace(async_start_background_tasks=start_background_tasks),
+        coordinator=SimpleNamespace(
+            async_start_background_tasks=start_background_tasks
+        ),
         helper_manager=SimpleNamespace(get_helper_count=lambda: 0),
         door_sensor_manager=SimpleNamespace(get_configured_dogs=lambda: []),
         geofencing_manager=SimpleNamespace(is_enabled=lambda: False),
@@ -279,7 +283,9 @@ async def test_async_setup_entry_optional_daily_reset_none_does_not_store_unsub(
     """A missing unsubscribe callback should skip runtime storage gracefully."""
     start_background_tasks = Mock()
     runtime_data = SimpleNamespace(
-        coordinator=SimpleNamespace(async_start_background_tasks=start_background_tasks),
+        coordinator=SimpleNamespace(
+            async_start_background_tasks=start_background_tasks
+        ),
         helper_manager=SimpleNamespace(get_helper_count=lambda: 0),
         door_sensor_manager=SimpleNamespace(get_configured_dogs=lambda: []),
         geofencing_manager=SimpleNamespace(is_enabled=lambda: False),

@@ -10,9 +10,9 @@ from unittest.mock import AsyncMock
 import pytest
 import voluptuous as vol
 
-import custom_components.pawcontrol.options_flow_dogs_management as dogs_module
 from custom_components.pawcontrol.const import CONF_DOGS
 from custom_components.pawcontrol.exceptions import FlowValidationError
+import custom_components.pawcontrol.options_flow_dogs_management as dogs_module
 from custom_components.pawcontrol.options_flow_dogs_management import (
     CONF_DOOR_SENSOR,
     DOG_ID_FIELD,
@@ -102,7 +102,9 @@ async def test_select_dog_for_modules_handles_empty_found_missing_and_form(
     no_dogs = await host.async_step_select_dog_for_modules()
     assert no_dogs["step_id"] == "manage_dogs"
 
-    host._dogs = [{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna", DOG_MODULES_FIELD: {}}]
+    host._dogs = [
+        {DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna", DOG_MODULES_FIELD: {}}
+    ]
     configure_step = AsyncMock(return_value={"step": "configure"})
     monkeypatch.setattr(host, "async_step_configure_dog_modules", configure_step)
 
@@ -152,19 +154,25 @@ async def test_configure_dog_modules_handles_validation_and_runtime_failures(
         "ensure_dog_modules_config",
         lambda _modules: (_ for _ in ()).throw(RuntimeError("boom")),
     )
-    runtime_failed = await host.async_step_configure_dog_modules({"module_feeding": True})
+    runtime_failed = await host.async_step_configure_dog_modules({
+        "module_feeding": True
+    })
     assert runtime_failed["errors"] == {"base": "module_config_failed"}
 
 
 @pytest.mark.asyncio
-async def test_configure_dog_modules_updates_options_when_selected_dog_not_in_list() -> None:
+async def test_configure_dog_modules_updates_options_when_selected_dog_not_in_list() -> (
+    None
+):
     host = _DogManagementCoverageHost()
     host._current_dog = {
         DOG_ID_FIELD: "ghost",
         DOG_NAME_FIELD: "Ghost",
         DOG_MODULES_FIELD: {"feeding": False},
     }
-    host._dogs = [{DOG_ID_FIELD: "other", DOG_NAME_FIELD: "Other", DOG_MODULES_FIELD: {}}]
+    host._dogs = [
+        {DOG_ID_FIELD: "other", DOG_NAME_FIELD: "Other", DOG_MODULES_FIELD: {}}
+    ]
     host._entry.options = {DOG_OPTIONS_FIELD: {}}
 
     saved = await host.async_step_configure_dog_modules({"module_feeding": False})
@@ -177,7 +185,9 @@ async def test_configure_dog_modules_updates_options_when_selected_dog_not_in_li
     assert rendered["step_id"] == "configure_dog_modules"
 
 
-def test_door_sensor_schema_handles_text_input_fallback_and_module_schema_empty() -> None:
+def test_door_sensor_schema_handles_text_input_fallback_and_module_schema_empty() -> (
+    None
+):
     host = _DogManagementCoverageHost()
 
     schema = host._get_door_sensor_settings_schema(
@@ -236,13 +246,17 @@ async def test_module_description_helpers_cover_async_and_sync_language_branches
     placeholders_no_hass = host._get_module_description_placeholders()
     assert placeholders_no_hass["dog_name"] == "Luna"
 
-    host.hass = SimpleNamespace(config=None, states=_States({}), config_entries=_ConfigEntries())
+    host.hass = SimpleNamespace(
+        config=None, states=_States({}), config_entries=_ConfigEntries()
+    )
     placeholders_no_config = host._get_module_description_placeholders()
     assert placeholders_no_config["dog_name"] == "Luna"
 
 
 @pytest.mark.asyncio
-async def test_async_module_description_placeholders_skips_preload_without_hass() -> None:
+async def test_async_module_description_placeholders_skips_preload_without_hass() -> (
+    None
+):
     host = _DogManagementCoverageHost()
     host._current_dog = {
         DOG_ID_FIELD: "dog-1",
@@ -403,16 +417,18 @@ async def test_select_dog_to_remove_branches(
     host._entry.options = {DOG_OPTIONS_FIELD: {"dog-2": {DOG_ID_FIELD: "dog-2"}}}
     monkeypatch.setattr(host, "_normalise_options_snapshot", lambda data: dict(data))
 
-    removed = await host.async_step_select_dog_to_remove(
-        {"dog_id": "dog-1", "confirm_remove": True}
-    )
+    removed = await host.async_step_select_dog_to_remove({
+        "dog_id": "dog-1",
+        "confirm_remove": True,
+    })
     assert removed["type"] == "create_entry"
     assert host._current_dog == host._dogs[0]
     assert removed["data"][DOG_OPTIONS_FIELD] == {"dog-2": {DOG_ID_FIELD: "dog-2"}}
 
-    cancel = await host.async_step_select_dog_to_remove(
-        {"dog_id": "dog-2", "confirm_remove": False}
-    )
+    cancel = await host.async_step_select_dog_to_remove({
+        "dog_id": "dog-2",
+        "confirm_remove": False,
+    })
     assert cancel == {"step": "init"}
 
     confirm_form = await host.async_step_select_dog_to_remove()

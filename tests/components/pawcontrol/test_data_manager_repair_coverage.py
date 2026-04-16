@@ -227,9 +227,8 @@ async def test_async_initialize_raises_error_when_storage_dir_creation_fails(
         entry_id="entry-1",
         dogs_config=[{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}],
     )
-    def _raise_mkdir(
-        _self: Path, *_args: object, **_kwargs: object
-    ) -> None:
+
+    def _raise_mkdir(_self: Path, *_args: object, **_kwargs: object) -> None:
         raise OSError("read-only filesystem")
 
     monkeypatch.setattr(
