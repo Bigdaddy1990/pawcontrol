@@ -3,7 +3,6 @@
 Covers: require_runtime_data decorator, LocationSource
 """
 
-from unittest.mock import MagicMock
 
 import pytest
 

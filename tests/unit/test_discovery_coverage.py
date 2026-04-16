@@ -5,11 +5,7 @@ Covers: DiscoveredDevice, DiscoveryConnectionInfo, DiscoveredDeviceMetadata
 
 import pytest
 
-from custom_components.pawcontrol.discovery import (
-    DiscoveredDevice,
-    DiscoveryCategory,
-    DiscoveryConnectionType,
-)
+from custom_components.pawcontrol.discovery import DiscoveredDevice
 
 
 def _make_device(device_id="dev_001"):

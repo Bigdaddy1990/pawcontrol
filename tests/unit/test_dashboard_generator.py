@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 import json
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

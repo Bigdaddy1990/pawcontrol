@@ -13,7 +13,6 @@ import argparse
 import ast
 import pathlib
 import sys
-import tomllib
 
 from packaging.requirements import Requirement
 

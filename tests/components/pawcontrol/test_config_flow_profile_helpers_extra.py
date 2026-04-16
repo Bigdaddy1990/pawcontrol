@@ -1,7 +1,6 @@
 """Additional branch coverage for config flow profile helpers."""
 
 import pytest
-import voluptuous as vol
 
 import custom_components.pawcontrol.config_flow_profile as profile_helpers
 

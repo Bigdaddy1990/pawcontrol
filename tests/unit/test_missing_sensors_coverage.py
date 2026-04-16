@@ -3,7 +3,7 @@
 Covers: calculate_hours_since, ensure_utc_datetime
 """
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 

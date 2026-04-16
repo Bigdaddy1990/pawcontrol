@@ -21,7 +21,6 @@ from custom_components.pawcontrol.data_manager import (
 from custom_components.pawcontrol.types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
-    FeedingData,
     GPSLocation,
     WalkData,
 )

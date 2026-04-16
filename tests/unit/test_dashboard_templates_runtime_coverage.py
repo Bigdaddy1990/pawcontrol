@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any, cast
-from unittest.mock import AsyncMock
 
 from homeassistant.const import STATE_UNKNOWN
 import pytest

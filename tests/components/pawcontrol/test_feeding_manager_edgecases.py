@@ -1,6 +1,5 @@
 """Edge-case and regression tests for feeding manager internals."""
 
-import asyncio
 from collections.abc import Coroutine
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast

@@ -1,6 +1,5 @@
 """Tests for notification flow schema builders."""
 
-import voluptuous as vol
 
 from custom_components.pawcontrol.const import DEFAULT_REMINDER_REPEAT_MIN
 from custom_components.pawcontrol.flow_steps.notifications_schemas import (

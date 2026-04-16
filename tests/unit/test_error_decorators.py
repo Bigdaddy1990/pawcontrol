@@ -24,7 +24,6 @@ from custom_components.pawcontrol.error_decorators import (
 )
 from custom_components.pawcontrol.exceptions import (
     DogNotFoundError,
-    ErrorCategory,
     ErrorSeverity,
     InvalidCoordinatesError,
     NetworkError,

@@ -4,7 +4,6 @@ Covers: ActionDefinition, ConditionDefinition, TriggerDefinition dataclasses
         and resolve_device_context helpers.
 """  # noqa: E501
 
-from unittest.mock import MagicMock
 
 import pytest
 

@@ -17,7 +17,6 @@ from custom_components.pawcontrol.const import MAX_DOG_NAME_LENGTH
 from custom_components.pawcontrol.coordinator_diffing import (
     compute_coordinator_diff,
     compute_data_diff,
-    compute_dog_diff,
 )
 from custom_components.pawcontrol.exceptions import (
     InvalidCoordinatesError,

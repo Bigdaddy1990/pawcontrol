@@ -712,8 +712,6 @@ def create_feeding_event() -> Callable[..., FeedingBatchEntry]:
         timestamp: datetime | None = None,
     ) -> FeedingBatchEntry:
         """Create feeding event data."""
-        from custom_components.pawcontrol.feeding_manager import FeedingBatchEntry
-
         event: FeedingBatchEntry = {
             "dog_id": dog_id,
             "amount": amount,

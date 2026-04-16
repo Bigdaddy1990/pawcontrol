@@ -1,6 +1,5 @@
 """Unit tests for resilience helpers."""
 
-from collections.abc import Awaitable, Callable
 
 import pytest
 

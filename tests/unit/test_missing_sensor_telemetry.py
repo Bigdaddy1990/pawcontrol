@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timezone
 from typing import cast
 
-from homeassistant.util import dt as dt_util
-
 from custom_components.pawcontrol.missing_sensors import (
     _feeding_payload,
     _health_payload,

@@ -9,7 +9,6 @@ Python: 3.13+
 
 from datetime import UTC, datetime, timedelta
 import json
-from unittest.mock import Mock
 
 import pytest
 
@@ -18,11 +17,7 @@ from custom_components.pawcontrol.walk_manager import dt_util as walk_dt_util
 
 if not hasattr(walk_dt_util, "UTC"):
     walk_dt_util.UTC = UTC  # type: ignore[attr-defined]
-from custom_components.pawcontrol.walk_manager import (
-    WalkManager,
-    WalkSession,
-    WeatherCondition,
-)
+from custom_components.pawcontrol.walk_manager import WalkManager, WeatherCondition
 
 
 @pytest.mark.unit

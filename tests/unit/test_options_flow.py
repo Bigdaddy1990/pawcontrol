@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 
-from custom_components.pawcontrol import options_flow_door_sensor, options_flow_main
+from custom_components.pawcontrol import options_flow_main
 from custom_components.pawcontrol.const import (
     CONF_API_ENDPOINT,
     CONF_API_TOKEN,

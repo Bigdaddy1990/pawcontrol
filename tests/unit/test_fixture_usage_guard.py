@@ -2,7 +2,7 @@
 
 import ast
 from pathlib import Path
-from typing import Final, TypeAlias
+from typing import Final
 
 type DynamicPath = tuple[str, ...]
 type DynamicFixture = str | tuple[tuple[DynamicPath, str], ...]

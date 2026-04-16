@@ -1,13 +1,11 @@
 """Runtime-focused coverage tests for ``dashboard_renderer.py``."""
 
-import asyncio
 import json
 import os
 from pathlib import Path
 import shutil
 import time
 from typing import Any
-from unittest.mock import AsyncMock
 
 from homeassistant.exceptions import HomeAssistantError
 import pytest

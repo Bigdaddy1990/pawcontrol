@@ -5,9 +5,7 @@ FallbackStrategy default/fallback resolution, ResilienceManager composition,
 global registry helpers, and decorator wrappers.
 """
 
-import asyncio
-import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 

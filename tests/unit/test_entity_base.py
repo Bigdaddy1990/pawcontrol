@@ -8,17 +8,13 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 pytest.importorskip("homeassistant")
 
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.entity import (
-    PawControlDogEntityBase,
-    PawControlEntity,
-)
+from custom_components.pawcontrol.entity import PawControlDogEntityBase
 from custom_components.pawcontrol.types import CoordinatorDogData, PawControlConfigEntry
 
 # ---------------------------------------------------------------------------

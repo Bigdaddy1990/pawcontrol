@@ -9,16 +9,13 @@ Covers lines identified in the CI coverage report:
 
 from datetime import datetime
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from custom_components.pawcontrol import coordinator as coordinator_module
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.coordinator_runtime import (
-    EntityBudgetSnapshot,
-    RuntimeCycleInfo,
-)
+from custom_components.pawcontrol.coordinator_runtime import RuntimeCycleInfo
 from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed, UpdateFailed
 
 

@@ -1,6 +1,6 @@
 """Unit tests for coordinator observability helpers."""
 
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 import sys
 from typing import Any, cast
 

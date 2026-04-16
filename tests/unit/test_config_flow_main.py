@@ -1,7 +1,7 @@
 """Focused regression tests for config_flow_main helper logic."""
 
 from collections.abc import Mapping
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 from homeassistant.data_entry_flow import FlowResultType

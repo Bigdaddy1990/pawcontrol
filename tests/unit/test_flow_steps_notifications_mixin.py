@@ -7,7 +7,6 @@ import pytest
 import voluptuous as vol
 
 from custom_components.pawcontrol.const import CONF_NOTIFICATIONS
-from custom_components.pawcontrol.exceptions import FlowValidationError
 from custom_components.pawcontrol.flow_steps.notifications import (
     NotificationOptionsMixin,
     NotificationOptionsNormalizerMixin,

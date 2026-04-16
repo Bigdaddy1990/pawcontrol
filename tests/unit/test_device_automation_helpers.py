@@ -4,7 +4,6 @@ from types import SimpleNamespace
 
 from custom_components.pawcontrol import device_automation_helpers as helpers
 from custom_components.pawcontrol.const import DOMAIN
-import custom_components.pawcontrol.device_automation_helpers as automation_helpers
 from custom_components.pawcontrol.device_automation_helpers import (
     _coerce_runtime_data,
     _extract_dog_id,
