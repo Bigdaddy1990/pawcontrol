@@ -27,12 +27,13 @@ jobs:
           python -m scripts.sync_localization_flags \
             --allowlist scripts/sync_localization_flags.allowlist \
             --check
+          ruff check . --preview || true
           ruff check . --fix all || true
           ruff check . --fix --unsafe-fixes || true
           ruff check . --extend-select RUF100 --fix || true
           ruff check . --output-format=github || true
           ruff check . --exit-non-zero-on-fix || true
-          ruff format
+          ruff format .
 
       - uses: peter-evans/create-pull-request@v8
         with:

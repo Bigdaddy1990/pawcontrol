@@ -19,7 +19,6 @@ Exit codes:
 
 import ast
 from pathlib import Path
-import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "custom_components" / "pawcontrol"

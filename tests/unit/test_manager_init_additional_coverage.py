@@ -1,7 +1,7 @@
 """Additional coverage tests for setup.manager_init."""
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 

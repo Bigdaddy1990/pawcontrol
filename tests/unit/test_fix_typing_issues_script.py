@@ -1,7 +1,6 @@
 """Tests for ``scripts.fix_typing_issues``."""
 
 from pathlib import Path
-from typing import Any
 
 from scripts.fix_typing_issues import (
     FixStats,

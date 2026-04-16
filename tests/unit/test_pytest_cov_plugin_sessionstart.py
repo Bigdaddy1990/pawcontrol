@@ -1,7 +1,6 @@
 """Tests for pytest_cov plugin session start configuration."""
 
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 from pytest_cov import plugin

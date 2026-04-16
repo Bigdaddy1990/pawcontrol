@@ -1,9 +1,6 @@
 """Tests for webhook registration and request handling."""
 
 import json
-import logging
-import sys
-from types import SimpleNamespace
 from typing import Any
 
 from homeassistant.core import HomeAssistant

@@ -1,6 +1,6 @@
 """High-signal unit tests for the health calculator helpers."""
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 

@@ -13,13 +13,11 @@ until mypy reports no errors or the iteration limit is hit.
 """
 
 from argparse import ArgumentParser, Namespace
-from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 import re
 import subprocess
 import sys
-from typing import Any
 
 _MYPY_LINE_RE = re.compile(
     r"^(?P<path>[^:\n]+):(?P<line>\d+):(?:\d+:)? error: "

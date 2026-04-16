@@ -13,7 +13,6 @@ Returns:
 import ast
 from pathlib import Path
 import sys
-from typing import Any
 
 
 class TypeSafetyChecker(ast.NodeVisitor):

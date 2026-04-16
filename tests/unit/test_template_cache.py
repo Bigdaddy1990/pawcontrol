@@ -1,7 +1,6 @@
 """Tests for the template cache diagnostics helpers."""
 
 from datetime import UTC, datetime, timedelta
-from typing import TypeAlias
 
 import pytest
 

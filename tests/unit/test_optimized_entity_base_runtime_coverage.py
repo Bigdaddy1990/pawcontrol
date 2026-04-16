@@ -1,10 +1,8 @@
 """Runtime-heavy coverage tests for ``optimized_entity_base.py``."""
 
-import asyncio
 from collections.abc import Mapping
 from datetime import timedelta
 import gc
-from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 import weakref

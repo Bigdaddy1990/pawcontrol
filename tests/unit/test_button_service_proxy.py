@@ -12,7 +12,6 @@ from custom_components.pawcontrol.button import (
     _resolve_profile_button_limit,
     _ServiceRegistryProxy,
 )
-from tests.helpers.homeassistant_test_stubs import ServiceCall, ServiceRegistry
 
 
 @pytest.mark.asyncio

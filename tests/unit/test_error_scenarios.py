@@ -9,22 +9,19 @@ Python: 3.13+
 """
 
 import asyncio
-import importlib
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from custom_components.pawcontrol.exceptions import (
     ConfigurationError,
     DogNotFoundError,
-    GPSUnavailableError,
     InvalidCoordinatesError,
     NetworkError,
     RateLimitError,
     StorageError,
     ValidationError,
     WalkAlreadyInProgressError,
-    WalkError,
     WalkNotInProgressError,
 )
 from tests.helpers.factories import (

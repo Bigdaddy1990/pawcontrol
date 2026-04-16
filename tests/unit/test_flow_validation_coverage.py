@@ -16,7 +16,6 @@ from custom_components.pawcontrol.flow_validation import (
     ensure_json_mapping,
     is_dog_config_payload_valid,
     normalize_dog_id,
-    validate_dog_config_payload,
 )
 from custom_components.pawcontrol.validation import InputCoercionError
 

@@ -17,8 +17,6 @@ import pytest
 from tests.helpers.factories import (
     create_mock_coordinator,
     create_test_coordinator_data,
-    create_test_entry_data,
-    create_test_entry_options,
 )
 
 

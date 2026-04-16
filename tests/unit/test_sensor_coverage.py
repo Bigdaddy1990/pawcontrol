@@ -7,8 +7,7 @@ Covers lines from coverage report:
   _get_cache_ttl, PawControlLastActionSensor, PawControlDogStatusSensor)
 """
 
-from datetime import UTC, date, datetime, timezone
-from unittest.mock import MagicMock, PropertyMock, patch
+from datetime import UTC, datetime
 
 import pytest
 

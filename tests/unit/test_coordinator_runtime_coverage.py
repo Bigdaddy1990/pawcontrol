@@ -68,7 +68,7 @@ def test_summarize_entity_budgets_empty() -> None:
 
 @pytest.mark.unit
 def test_summarize_entity_budgets_single() -> None:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from custom_components.pawcontrol.coordinator_runtime import EntityBudgetSnapshot
 
@@ -88,7 +88,7 @@ def test_summarize_entity_budgets_single() -> None:
 
 @pytest.mark.unit
 def test_summarize_entity_budgets_multiple() -> None:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from custom_components.pawcontrol.coordinator_runtime import EntityBudgetSnapshot
 

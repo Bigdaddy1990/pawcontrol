@@ -1,7 +1,5 @@
 """Coverage tests for language.py + grooming_translations.py + weather_translations.py."""  # noqa: E501
 
-from unittest.mock import MagicMock
-
 import pytest
 
 from custom_components.pawcontrol.grooming_translations import (

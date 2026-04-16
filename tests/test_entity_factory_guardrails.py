@@ -8,14 +8,13 @@ the minimal interfaces that the entity factory relies on so the module can be
 imported and exercised directly.
 """
 
-from enum import Enum, StrEnum
+from enum import Enum
 import types
 
 import pytest
 
 from custom_components.pawcontrol.entity_factory import (
     _MIN_OPERATION_DURATION,
-    _RUNTIME_CONTRACT_FACTOR,
     _RUNTIME_CONTRACT_THRESHOLD,
     _RUNTIME_EXPAND_THRESHOLD,
     _RUNTIME_MAX_FLOOR,

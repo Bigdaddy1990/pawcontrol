@@ -5,12 +5,11 @@ from functools import lru_cache
 import importlib.util
 import io
 import json
-import os
 from pathlib import Path
 import sys
 import types
 from types import CodeType, FrameType
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import coverage
 import pytest
@@ -46,7 +45,6 @@ except ImportError:  # pragma: no cover - coverage API differs across versions
                 return None
 
 
-from homeassistant.helpers import aiohttp_client
 from pytest_cov import plugin as pytest_cov_plugin
 
 ha_util_logging = types.ModuleType("homeassistant.util.logging")
@@ -401,7 +399,6 @@ class TestHandleLineEvent:
 
     def test_handle_line_event_computes_timestamps_if_omitted(self) -> None:
         """_handle_line_event should compute now and thread_ident if not provided."""
-        import threading
         import time
 
         cov = coverage.Coverage(source=("tests/unit/test_coverage_shim.py",))

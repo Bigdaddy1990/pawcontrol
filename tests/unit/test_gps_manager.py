@@ -10,14 +10,12 @@ Python: 3.13+
 import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import cast
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 from homeassistant.core import HomeAssistant
 import pytest
 
 from custom_components.pawcontrol.gps_manager import (
-    GeofenceEvent,
-    GeofenceEventType,
     GeofenceZone,
     GPSAccuracy,
     GPSGeofenceManager,

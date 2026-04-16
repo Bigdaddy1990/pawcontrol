@@ -9,7 +9,6 @@ binary sensor class construction.
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
-from unittest.mock import MagicMock
 
 import pytest
 

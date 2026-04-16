@@ -1,7 +1,5 @@
 """Targeted branch coverage for PawControlDataManager storage and trend helpers."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 import importlib.util
 import json
@@ -23,7 +21,6 @@ from custom_components.pawcontrol.data_manager import (
 from custom_components.pawcontrol.types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
-    FeedingData,
     GPSLocation,
     WalkData,
 )

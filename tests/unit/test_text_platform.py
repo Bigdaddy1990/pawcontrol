@@ -4,7 +4,6 @@ Covers _normalize_dog_configs, _async_add_entities_in_batches,
 PawControlTextBase core behaviour, and concrete text entity subclasses.
 """
 
-from collections.abc import Mapping
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -18,7 +17,6 @@ from custom_components.pawcontrol.text import (
     PawControlDogNotesText,
     PawControlHealthNotesText,
     PawControlMicrochipText,
-    PawControlTextBase,
     PawControlWalkNotesText,
     _async_add_entities_in_batches,
     _normalize_dog_configs,

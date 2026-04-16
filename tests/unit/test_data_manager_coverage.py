@@ -8,9 +8,8 @@ Covers:
   register_cache_monitor, _get_namespace_lock
 """
 
-from collections.abc import Mapping
-from datetime import UTC, datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

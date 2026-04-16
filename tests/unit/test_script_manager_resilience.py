@@ -20,7 +20,6 @@ from custom_components.pawcontrol.script_manager import (
     _parse_manual_resilience_options,
     _resolve_resilience_entity_id,
     _resolve_resilience_object_id,
-    _ScriptManagerCacheMonitor,
     _serialise_event_data,
     resolve_resilience_script_thresholds,
 )

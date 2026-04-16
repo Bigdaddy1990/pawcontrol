@@ -5,8 +5,6 @@ import sys
 
 import pytest
 
-from custom_components.pawcontrol.utils import serialize
-
 
 def _reloaded_utils_module() -> object:
     """Reload the utils package so module-level export wiring is exercised."""

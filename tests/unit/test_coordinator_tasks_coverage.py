@@ -15,7 +15,7 @@ Pure helpers tested directly:
 
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -426,9 +426,7 @@ async def test_run_maintenance_resets_consecutive_errors(
     mock_hass, mock_config_entry, mock_session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Consecutive errors are reset after >1h of stability."""
-    from datetime import datetime, timezone
-
-    import homeassistant.util.dt as dt_util_mod
+    from datetime import datetime
 
     from custom_components.pawcontrol.coordinator import PawControlCoordinator
 

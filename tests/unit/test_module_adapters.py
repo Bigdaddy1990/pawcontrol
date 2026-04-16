@@ -1,7 +1,7 @@
 """Unit tests for the lightweight parts of module_adapters."""
 
 import asyncio
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 import importlib
 from pathlib import Path
 import sys

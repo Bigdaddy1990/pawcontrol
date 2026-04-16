@@ -1,6 +1,6 @@
 """Coverage tests for geofencing metadata sanitization and serialization."""
 
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 
 from homeassistant.util import dt as dt_util
 import pytest

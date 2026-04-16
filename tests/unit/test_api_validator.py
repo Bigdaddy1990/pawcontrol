@@ -1,6 +1,6 @@
 from collections.abc import Generator, Iterable
 from types import TracebackType
-from typing import TypeAlias, cast
+from typing import cast
 
 import aiohttp
 from aiohttp import ClientSession

@@ -8,22 +8,18 @@ Home Assistant runtime.
 
 import asyncio
 from collections.abc import Mapping
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 import importlib.util
 from pathlib import Path
 import sys
 from types import ModuleType, SimpleNamespace
 from typing import Any, cast
-from unittest.mock import AsyncMock, call
+from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.pawcontrol.types import (
-    CacheRepairAggregate,
-    ConfigEntryDataPayload,
-    PawControlOptionsData,
-)
+from custom_components.pawcontrol.types import CacheRepairAggregate
 from tests.helpers import homeassistant_test_stubs
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

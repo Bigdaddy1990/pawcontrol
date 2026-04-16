@@ -11,8 +11,8 @@ Covers:
                   get_feeding_data, get_active_emergency
 """
 
-from datetime import datetime, time, timedelta
-from unittest.mock import MagicMock, patch
+from datetime import datetime, time
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -22,7 +22,6 @@ from custom_components.pawcontrol.feeding_manager import (
     FeedingScheduleType,
     MealSchedule,
     MealType,
-    _normalise_health_override,
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
