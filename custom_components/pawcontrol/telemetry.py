@@ -1550,10 +1550,7 @@ def update_runtime_entity_factory_guard_metrics(
     metrics["recent_events"] = recent_events
     recent_stable_samples = sum(1 for name in recent_events if name == "stable")
     metrics["recent_stable_samples"] = recent_stable_samples
-    if recent_events:
-        recent_stable_ratio = recent_stable_samples / len(recent_events)
-    else:
-        recent_stable_ratio = 0.0
+    recent_stable_ratio = recent_stable_samples / len(recent_events)
     metrics["recent_stable_ratio"] = recent_stable_ratio
     duration_span = max(metrics["max_duration"] - metrics["min_duration"], 0.0)
     metrics["duration_span"] = duration_span
@@ -1563,16 +1560,13 @@ def update_runtime_entity_factory_guard_metrics(
         if previous_stable_ratio is not None
         else metrics["stable_ratio"]
     )
-    if recent_events:
-        trend_delta = recent_stable_ratio - baseline_ratio
-        if trend_delta > 0.05:
-            trend: EntityFactoryGuardStabilityTrend = "improving"
-        elif trend_delta < -0.05:
-            trend = "regressing"
-        else:
-            trend = "steady"
+    trend_delta = recent_stable_ratio - baseline_ratio
+    if trend_delta > 0.05:
+        trend: EntityFactoryGuardStabilityTrend = "improving"
+    elif trend_delta < -0.05:
+        trend = "regressing"
     else:
-        trend = "unknown"
+        trend = "steady"
 
     metrics["stability_trend"] = trend
     return metrics
