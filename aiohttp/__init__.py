@@ -47,7 +47,7 @@ class ClientSession:
         """Mirror aiohttp session shutdown semantics for tests."""
         self.closed = True
 
-    async def __aenter__(self) -> "ClientSession":
+    async def __aenter__(self) -> ClientSession:
         """Support ``async with ClientSession()`` patterns in tests."""
         return self
 

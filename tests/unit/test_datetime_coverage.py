@@ -7,7 +7,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from homeassistant.exceptions import HomeAssistantError
 import pytest
 
-from custom_components.pawcontrol.const import MODULE_FEEDING, MODULE_HEALTH, MODULE_WALK
+from custom_components.pawcontrol.const import (
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
 from custom_components.pawcontrol.datetime import (
     PawControlAdoptionDateDateTime,
     PawControlBirthdateDateTime,
@@ -41,7 +45,9 @@ def _make_coordinator(data: dict[str, dict[str, object]] | None = None) -> Magic
     coordinator.data = data or {}
     coordinator.available = True
     coordinator.last_update_success = True
-    coordinator.get_dog_data.side_effect = lambda dog_id: coordinator.data.get(dog_id, {})
+    coordinator.get_dog_data.side_effect = lambda dog_id: coordinator.data.get(
+        dog_id, {}
+    )
     coordinator.async_apply_module_updates = AsyncMock()
     return coordinator
 
@@ -52,9 +58,11 @@ def _make_datetime_entity(
     dog_id: str = "rex",
     dog_name: str = "Rex",
 ):
-    """Construct a datetime entity with minimal mocks."""  # noqa: ANN202
+    """Construct a datetime entity with minimal mocks."""
     if coordinator is None:
-        coordinator = _make_coordinator({"rex": {"feeding": {}, "walk": {}, "health": {}}})
+        coordinator = _make_coordinator({
+            "rex": {"feeding": {}, "walk": {}, "health": {}}
+        })
     return cls(coordinator, dog_id, dog_name)
 
 
@@ -84,7 +92,8 @@ async def test_add_entities_in_batches_waits_between_batches() -> None:  # noqa:
     assert add_entities.await_count == 3
     assert sleep_mock.await_count == 2
     assert all(
-        call.kwargs["update_before_add"] is False for call in add_entities.await_args_list
+        call.kwargs["update_before_add"] is False
+        for call in add_entities.await_args_list
     )
 
 
@@ -92,7 +101,9 @@ async def test_add_entities_in_batches_waits_between_batches() -> None:  # noqa:
 @pytest.mark.asyncio
 async def test_async_setup_entry_returns_when_runtime_data_is_missing() -> None:  # noqa: D103
     with (
-        patch("custom_components.pawcontrol.datetime.get_runtime_data", return_value=None),
+        patch(
+            "custom_components.pawcontrol.datetime.get_runtime_data", return_value=None
+        ),
         patch(
             "custom_components.pawcontrol.datetime._async_add_entities_in_batches",
             new=AsyncMock(),
@@ -145,7 +156,9 @@ async def test_async_setup_entry_creates_entities_for_enabled_modules() -> None:
     entities = add_batches.await_args.args[1]
     assert len(entities) == 17
 
-    full_types = {entity._datetime_type for entity in entities if entity._dog_id == "dog-full"}
+    full_types = {
+        entity._datetime_type for entity in entities if entity._dog_id == "dog-full"
+    }
     assert "breakfast_time" in full_types
     assert "next_medication" in full_types
     assert "next_walk_reminder" in full_types
@@ -182,7 +195,9 @@ def test_entity_constructors_assign_expected_icons() -> None:  # noqa: D103
     assert PawControlTrainingSessionDateTime(coordinator, "rex", "Rex")._attr_icon == (
         "mdi:school"
     )
-    assert PawControlEmergencyDateTime(coordinator, "rex", "Rex")._attr_icon == "mdi:alert"
+    assert (
+        PawControlEmergencyDateTime(coordinator, "rex", "Rex")._attr_icon == "mdi:alert"
+    )
 
 
 @pytest.mark.unit
@@ -233,7 +248,9 @@ async def test_async_added_to_hass_skips_unavailable_state() -> None:  # noqa: D
             new=AsyncMock(),
         ),
         patch.object(entity, "async_get_last_state", new=AsyncMock(return_value=state)),
-        patch("custom_components.pawcontrol.datetime.ensure_utc_datetime") as parse_mock,
+        patch(
+            "custom_components.pawcontrol.datetime.ensure_utc_datetime"
+        ) as parse_mock,
     ):
         await entity.async_added_to_hass()
 
@@ -243,11 +260,15 @@ async def test_async_added_to_hass_skips_unavailable_state() -> None:  # noqa: D
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_birthdate_set_value_calculates_age(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: D103
+async def test_birthdate_set_value_calculates_age(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:  # noqa: D103
     entity = _make_datetime_entity(PawControlBirthdateDateTime)
     entity.async_write_ha_state = MagicMock()
     fixed_now = datetime(2025, 1, 1, tzinfo=UTC)
-    monkeypatch.setattr("custom_components.pawcontrol.datetime._dt_now", lambda: fixed_now)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.datetime._dt_now", lambda: fixed_now
+    )
 
     birth = datetime(2020, 1, 1, tzinfo=UTC)
     await entity.async_set_value(birth)
@@ -275,7 +296,12 @@ def test_native_value_returns_current_when_module_payload_missing(  # noqa: D103
     entity._current_value = fallback
 
     assert entity.native_value == fallback
-    assert field_name in {"last_feeding", "last_vet_visit", "last_grooming", "last_walk"}
+    assert field_name in {
+        "last_feeding",
+        "last_vet_visit",
+        "last_grooming",
+        "last_walk",
+    }
 
 
 @pytest.mark.parametrize(
@@ -288,7 +314,9 @@ def test_native_value_returns_current_when_module_payload_missing(  # noqa: D103
     ],
 )
 @pytest.mark.unit
-def test_native_value_returns_current_when_dog_payload_missing(entity_cls: type) -> None:  # noqa: D103
+def test_native_value_returns_current_when_dog_payload_missing(
+    entity_cls: type,
+) -> None:  # noqa: D103
     coordinator = _make_coordinator({})
     entity = _make_datetime_entity(entity_cls, coordinator=coordinator)
     fallback = datetime(2024, 5, 1, 9, 15, tzinfo=UTC)
@@ -312,9 +340,9 @@ def test_native_value_uses_parsed_timestamp_when_available(  # noqa: D103
     module_name: str,
     field_name: str,
 ) -> None:
-    coordinator = _make_coordinator(
-        {"rex": {module_name: {field_name: "2024-01-01T12:30:00+00:00"}}}
-    )
+    coordinator = _make_coordinator({
+        "rex": {module_name: {field_name: "2024-01-01T12:30:00+00:00"}}
+    })
     entity = _make_datetime_entity(entity_cls, coordinator=coordinator)
     parsed_value = datetime(2024, 1, 1, 12, 30, tzinfo=UTC)
 
@@ -355,7 +383,9 @@ def test_native_value_falls_back_when_timestamp_parse_fails(  # noqa: D103
 @pytest.mark.unit
 @pytest.mark.asyncio
 @pytest.mark.parametrize("service_result", [True, False])
-async def test_last_feeding_set_value_covers_service_branches(service_result: bool) -> None:  # noqa: D103
+async def test_last_feeding_set_value_covers_service_branches(
+    service_result: bool,
+) -> None:  # noqa: D103
     entity = _make_datetime_entity(PawControlLastFeedingDateTime)
     entity.async_write_ha_state = MagicMock()
     entity._async_call_hass_service = AsyncMock(return_value=service_result)
@@ -374,7 +404,9 @@ async def test_last_feeding_set_value_covers_service_branches(service_result: bo
 @pytest.mark.asyncio
 async def test_next_feeding_set_value_persists_updates_and_refreshes() -> None:  # noqa: D103
     coordinator = _make_coordinator()
-    entity = _make_datetime_entity(PawControlNextFeedingDateTime, coordinator=coordinator)
+    entity = _make_datetime_entity(
+        PawControlNextFeedingDateTime, coordinator=coordinator
+    )
     entity.async_write_ha_state = MagicMock()
 
     data_manager = SimpleNamespace(async_update_dog_data=AsyncMock())
@@ -400,7 +432,9 @@ async def test_next_feeding_set_value_persists_updates_and_refreshes() -> None: 
 @pytest.mark.asyncio
 async def test_next_feeding_set_value_handles_data_manager_failure() -> None:  # noqa: D103
     coordinator = _make_coordinator()
-    entity = _make_datetime_entity(PawControlNextFeedingDateTime, coordinator=coordinator)
+    entity = _make_datetime_entity(
+        PawControlNextFeedingDateTime, coordinator=coordinator
+    )
     entity.async_write_ha_state = MagicMock()
 
     data_manager = SimpleNamespace(
@@ -420,7 +454,9 @@ async def test_next_feeding_set_value_handles_data_manager_failure() -> None:  #
 @pytest.mark.asyncio
 async def test_next_feeding_set_value_handles_missing_data_manager() -> None:  # noqa: D103
     coordinator = _make_coordinator()
-    entity = _make_datetime_entity(PawControlNextFeedingDateTime, coordinator=coordinator)
+    entity = _make_datetime_entity(
+        PawControlNextFeedingDateTime, coordinator=coordinator
+    )
     entity.async_write_ha_state = MagicMock()
     entity._get_data_manager = MagicMock(return_value=None)  # type: ignore[method-assign]
     entity._get_runtime_managers = MagicMock(  # type: ignore[method-assign]
@@ -470,7 +506,9 @@ async def test_last_medication_set_value_covers_service_branches(  # noqa: D103
 @pytest.mark.unit
 @pytest.mark.asyncio
 @pytest.mark.parametrize("service_result", [True, False])
-async def test_vaccination_set_value_covers_service_branches(service_result: bool) -> None:  # noqa: D103
+async def test_vaccination_set_value_covers_service_branches(
+    service_result: bool,
+) -> None:  # noqa: D103
     entity = _make_datetime_entity(PawControlVaccinationDateDateTime)
     entity.async_write_ha_state = MagicMock()
     entity._async_call_hass_service = AsyncMock(return_value=service_result)
@@ -558,7 +596,9 @@ async def test_last_walk_set_value_covers_all_service_paths(  # noqa: D103
         PawControlNextWalkReminderDateTime,
     ],
 )
-async def test_next_datetime_entities_set_value_without_services(entity_cls: type) -> None:  # noqa: D103
+async def test_next_datetime_entities_set_value_without_services(
+    entity_cls: type,
+) -> None:  # noqa: D103
     entity = _make_datetime_entity(entity_cls)
     entity.async_write_ha_state = MagicMock()
 

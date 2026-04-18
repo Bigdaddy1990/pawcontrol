@@ -1319,7 +1319,9 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
 
 
 @pytest.mark.asyncio
-async def test_dashboard_cards_covers_remaining_map_quick_actions_walk_and_notifications_branches() -> None:
+async def test_dashboard_cards_covers_remaining_map_quick_actions_walk_and_notifications_branches() -> (
+    None
+):
     """Cover remaining map-option, quick-action, walk-history, and notification branches."""
     templates = _TemplatesStub()
 
@@ -1336,7 +1338,10 @@ async def test_dashboard_cards_covers_remaining_map_quick_actions_walk_and_notif
     assert nested_mapping_map_options["zoom"] == 7
     assert nested_mapping_map_options["hours_to_show"] == 5
 
-    fallback_map_options = dc._coerce_map_options({1: "invalid", "unsupported": "value"})
+    fallback_map_options = dc._coerce_map_options({
+        1: "invalid",
+        "unsupported": "value",
+    })
     assert fallback_map_options == default_map_options
 
     overview_generator = dc.OverviewCardGenerator(_hass(), templates)
