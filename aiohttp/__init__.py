@@ -35,11 +35,25 @@ class ClientResponse:
 class ClientSession:
     """Minimal client session stub."""
 
-    closed = False
+    def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+        """Accept real-session constructor signatures used by tests."""
+        self.closed = False
 
     async def request(self, *_args: Any, **_kwargs: Any) -> ClientResponse:
         """Return a generic successful response for all request calls."""
         return ClientResponse()
+
+    async def close(self) -> None:
+        """Mirror aiohttp session shutdown semantics for tests."""
+        self.closed = True
+
+    async def __aenter__(self) -> "ClientSession":
+        """Support ``async with ClientSession()`` patterns in tests."""
+        return self
+
+    async def __aexit__(self, *_args: Any) -> None:
+        """Close the session when context manager scope exits."""
+        await self.close()
 
 
 __all__ = [
