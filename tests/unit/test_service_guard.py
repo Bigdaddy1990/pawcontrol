@@ -1,10 +1,13 @@
 """Unit tests for service guard telemetry models."""
 
 from collections.abc import Iterator, MutableMapping
+from contextlib import suppress
 import importlib.util
 from pathlib import Path
+from shutil import rmtree
 import sys
 from types import ModuleType
+from uuid import uuid4
 
 import pytest
 
@@ -16,6 +19,20 @@ from custom_components.pawcontrol.service_guard import (
     normalise_guard_result_payload,
 )
 from custom_components.pawcontrol.types import JSONMutableMapping
+
+
+@pytest.fixture
+def tmp_path() -> Iterator[Path]:
+    """Provide a local temp directory path without pytest tmpdir plugin."""
+    base = Path(__file__).resolve().parents[2] / ".tmp_test_paths"
+    base.mkdir(parents=True, exist_ok=True)
+    temp_dir = base / f"service-guard-{uuid4().hex}"
+    temp_dir.mkdir(parents=True, exist_ok=False)
+    try:
+        yield temp_dir
+    finally:
+        with suppress(PermissionError):
+            rmtree(temp_dir, ignore_errors=True)
 
 
 def test_service_guard_module_load_keeps_public_api_available(tmp_path) -> None:

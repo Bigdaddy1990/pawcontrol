@@ -66,6 +66,51 @@ def test_load_static_common_translations_handles_invalid_files(
     assert french_common["weather_alert_storm_warning_title"] == "English Storm"
 
 
+def test_load_static_common_translations_handles_missing_files(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Missing translation files should resolve to an empty mapping."""
+    module_file = tmp_path / "weather_translations.py"
+    module_file.write_text("# fixture module path", encoding="utf-8")
+    monkeypatch.setattr(weather_translations, "__file__", str(module_file))
+
+    assert weather_translations._load_static_common_translations("de") == {}
+
+
+def test_load_static_common_translations_handles_oserror_during_read(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """I/O errors while reading should be swallowed and fall back safely."""
+    module_file = tmp_path / "weather_translations.py"
+    module_file.write_text("# fixture module path", encoding="utf-8")
+
+    _write_translation_fixture(
+        tmp_path,
+        "en",
+        '{"common": {"weather_alert_storm_warning_title": "English Storm"}}',
+    )
+    _write_translation_fixture(
+        tmp_path,
+        "de",
+        '{"common": {"weather_alert_storm_warning_title": "Deutscher Sturm"}}',
+    )
+    monkeypatch.setattr(weather_translations, "__file__", str(module_file))
+
+    original_read_text = Path.read_text
+
+    def _patched_read_text(self: Path, *args: object, **kwargs: object) -> str:
+        if self.name == "en.json":
+            raise OSError("read-failed")
+        return original_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", _patched_read_text)
+
+    common = weather_translations._load_static_common_translations("de")
+    assert common["weather_alert_storm_warning_title"] == "Deutscher Sturm"
+
+
 def test_load_static_common_translations_prefers_localized_overrides(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

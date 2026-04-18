@@ -188,6 +188,28 @@ def test_current_notification_options_falls_back_to_defaults_for_invalid_legacy(
     assert options == dict(DEFAULT_NOTIFICATION_OPTIONS)
 
 
+def test_current_notification_options_with_none_dog_id_uses_legacy_payload() -> None:
+    """A missing dog identifier should use legacy/root notifications directly."""
+    host = _NotificationHost()
+    host._options[CONF_NOTIFICATIONS] = cast(
+        JSONValue,
+        {
+            "quiet_hours": True,
+            "quiet_start": "23:00:00",
+            "quiet_end": "07:00:00",
+            "reminder_repeat_min": 10,
+            "priority_notifications": True,
+            "mobile_notifications": False,
+        },
+    )
+
+    options = host._current_notification_options(None)
+
+    assert options["quiet_hours"] is True
+    assert options["quiet_start"] == "23:00:00"
+    assert options["mobile_notifications"] is False
+
+
 def test_normalise_notification_options_populates_root_and_per_dog_payloads() -> None:
     """Normalisation should type root notifications and fill missing dog entries."""
     host = _NotificationHost()
@@ -247,6 +269,32 @@ def test_normalise_notification_options_returns_none_when_key_missing() -> None:
 
     assert normalised is None
     assert CONF_NOTIFICATIONS not in mutable
+
+
+def test_normalise_notification_options_handles_non_mapping_dog_options() -> None:
+    """Non-mapping dog options should still normalise root notifications safely."""
+    host = _NotificationHost()
+    mutable: dict[str, JSONValue] = {
+        CONF_NOTIFICATIONS: cast(
+            JSONValue,
+            {
+                "quiet_hours": False,
+                "quiet_start": "20:00:00",
+                "quiet_end": "06:00:00",
+                "reminder_repeat_min": 15,
+                "priority_notifications": True,
+                "mobile_notifications": True,
+            },
+        ),
+        DOG_OPTIONS_FIELD: cast(JSONValue, "invalid"),
+    }
+
+    normalised = host._normalise_notification_options(mutable)
+
+    assert normalised is not None
+    assert mutable[CONF_NOTIFICATIONS] == normalised
+    # The non-mapping dog options payload should be left untouched.
+    assert mutable[DOG_OPTIONS_FIELD] == "invalid"
 
 
 def test_build_notification_settings_wrapper_uses_class_payload_builder() -> None:
@@ -335,6 +383,30 @@ async def test_async_step_notifications_creates_typed_entry() -> None:
     assert created_data[DOG_OPTIONS_FIELD]["buddy"][CONF_NOTIFICATIONS][
         "quiet_end"
     ] == ("06:30:00")
+
+
+@pytest.mark.asyncio
+async def test_async_step_notifications_skips_per_dog_write_when_other_dogs_exist() -> None:
+    """Per-dog options should remain unchanged when current dog is absent from map."""
+    host = _NotificationHost()
+    host._options[DOG_OPTIONS_FIELD] = cast(
+        JSONValue,
+        {"other": {DOG_ID_FIELD: "other", CONF_NOTIFICATIONS: {"quiet_hours": False}}},
+    )
+
+    result = await host.async_step_notifications({
+        "quiet_hours": True,
+        "quiet_start": "21:00:00",
+        "quiet_end": "06:30:00",
+        "reminder_repeat_min": "45",
+        "priority_notifications": False,
+        "mobile_notifications": True,
+    })
+
+    assert result["type"] == "create_entry"
+    created_data = cast(dict[str, Any], result["data"])
+    assert "buddy" not in cast(dict[str, Any], created_data[DOG_OPTIONS_FIELD])
+    assert created_data[CONF_NOTIFICATIONS]["quiet_hours"] is True
 
 
 @pytest.mark.asyncio

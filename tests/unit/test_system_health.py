@@ -310,6 +310,12 @@ def test_manual_event_helper_coercions_handle_invalid_shapes() -> None:
     assert _coerce_preferred_events("not-a-mapping") == {}
 
 
+def test_coerce_int_mapping_skips_non_string_keys() -> None:
+    """Integer mapping coercion should ignore keys that cannot be normalized."""
+    mapping = _coerce_int_mapping({None: 1, "  ": 2, "valid": "3"})
+    assert mapping == {"valid": 3}
+
+
 def test_normalise_manual_events_snapshot_uses_preference_fallbacks() -> None:
     """Preferred event values should fall back to nested preferred_events keys."""
     payload = _normalise_manual_events_snapshot({
@@ -371,6 +377,16 @@ def test_coerce_automation_entries_preserves_explicit_boolean_values() -> None:
             "configured_check": True,
         }
     ]
+
+
+def test_coerce_automation_entries_skips_empty_items_and_none_config_flags() -> None:
+    """Entries without usable fields should be skipped while later entries are kept."""
+    entries = _coerce_automation_entries([
+        {"configured_guard": None, "configured_breaker": None, "configured_check": None},
+        {"title": "  Active automation  "},
+    ])
+
+    assert entries == [{"title": "Active automation"}]
 
 
 def test_resolve_indicator_thresholds_uses_script_snapshot_before_options() -> None:

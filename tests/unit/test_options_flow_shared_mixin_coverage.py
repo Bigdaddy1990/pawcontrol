@@ -14,6 +14,7 @@ from custom_components.pawcontrol.const import (
     CONF_WEATHER_ENTITY,
     DEFAULT_MANUAL_CHECK_EVENT,
 )
+from custom_components.pawcontrol.exceptions import FlowValidationError
 import custom_components.pawcontrol.options_flow_shared as shared_module
 from custom_components.pawcontrol.options_flow_shared import (
     ADVANCED_SETTINGS_FIELD,
@@ -426,3 +427,345 @@ def test_build_advanced_settings_sanitizes_mapping_sequence_and_repr(  # noqa: D
     assert CONF_API_ENDPOINT not in result
     assert CONF_API_TOKEN not in result
     assert "non-JSON-serializable value" in caplog.text
+
+
+def test_manual_and_reconfigure_placeholder_builders_cover_branches(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _SharedCoverageHost()
+
+    monkeypatch.setattr(
+        host,
+        "_resolve_manual_event_choices",
+        lambda: {"check": ["event_a", "event_b"], "guard": []},
+    )
+    manual = host._manual_event_description_placeholders()
+    assert manual["check_options"] == "event_a, event_b"
+    assert manual["guard_options"] == "—"
+
+    no_telemetry = host._get_reconfigure_description_placeholders()
+    assert no_telemetry["reconfigure_requested_profile"] == "Not recorded"
+    assert no_telemetry["reconfigure_merge_notes"] == "No merge adjustments recorded"
+
+    monkeypatch.setattr(
+        host,
+        "_reconfigure_telemetry",
+        lambda: {
+            "requested_profile": "advanced",
+            "previous_profile": "standard",
+            "dogs_count": 2,
+            "estimated_entities": 18,
+            "compatibility_warnings": ["warn_a", "warn_b"],
+            "merge_notes": ["merged one", "merged two"],
+            "health_summary": {"healthy": 2},
+            "timestamp": "",
+        },
+    )
+    monkeypatch.setattr(
+        host,
+        "_last_reconfigure_timestamp",
+        lambda: "2026-04-18T00:00:00+00:00",
+    )
+    monkeypatch.setattr(
+        host,
+        "_format_local_timestamp",
+        lambda value: f"TS:{value}" if value else "Never",
+    )
+
+    with_telemetry = host._get_reconfigure_description_placeholders()
+    assert with_telemetry["last_reconfigure"].startswith("TS:2026-04-18")
+    assert with_telemetry["reconfigure_requested_profile"] == "advanced"
+    assert with_telemetry["reconfigure_previous_profile"] == "standard"
+    assert with_telemetry["reconfigure_entities"] == "18"
+    assert with_telemetry["reconfigure_dogs"] == "2"
+    assert with_telemetry["reconfigure_warnings"] == "warn_a, warn_b"
+    assert with_telemetry["reconfigure_merge_notes"] == "merged one\nmerged two"
+
+
+def test_build_export_payload_filters_invalid_entries_and_keeps_modules(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _SharedCoverageHost()
+    host._entry.options = {"existing": True}
+    host._entry.data = {
+        CONF_DOGS: [
+            123,
+            {DOG_ID_FIELD: "", DOG_NAME_FIELD: "Skip"},
+            {DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna", DOG_MODULES_FIELD: {}},
+            {DOG_ID_FIELD: "dog-2", DOG_NAME_FIELD: "Milo", DOG_MODULES_FIELD: {}},
+        ],
+    }
+
+    def _modules(dog: Mapping[str, Any]) -> dict[str, bool]:
+        if dog.get(DOG_ID_FIELD) == "dog-1":
+            return {"walk": True}
+        return {}
+
+    monkeypatch.setattr(shared_module, "ensure_dog_modules_mapping", _modules)
+
+    payload = host._build_export_payload()
+
+    assert payload["options"]["existing"] is True
+    assert [dog[DOG_ID_FIELD] for dog in payload["dogs"]] == ["dog-1", "dog-2"]
+    assert payload["dogs"][0][DOG_MODULES_FIELD] == {"walk": True}
+    assert DOG_MODULES_FIELD not in payload["dogs"][1]
+
+
+def test_validate_import_payload_success_and_error_paths(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _SharedCoverageHost()
+    host._entry.options = {"existing": "yes"}
+
+    monkeypatch.setattr(
+        shared_module,
+        "validate_dog_config_payload",
+        lambda payload, **_kwargs: {
+            DOG_ID_FIELD: str(payload[DOG_ID_FIELD]),
+            DOG_NAME_FIELD: str(payload.get(DOG_NAME_FIELD, payload[DOG_ID_FIELD])),
+        },
+    )
+
+    validated = host._validate_import_payload(
+        {
+            "version": 1,
+            "options": {"new": 1},
+            "dogs": [{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna"}],
+            "created_at": "",
+        },
+    )
+    assert validated["version"] == 1
+    assert validated["options"]["existing"] == "yes"
+    assert validated["options"]["new"] == 1
+    assert validated["dogs"][0][DOG_ID_FIELD] == "dog-1"
+    assert isinstance(validated["created_at"], str)
+    assert validated["created_at"]
+
+    with pytest.raises(FlowValidationError) as not_mapping:
+        host._validate_import_payload("invalid")
+    assert not_mapping.value.field_errors["payload"] == "payload_not_mapping"
+
+    with pytest.raises(FlowValidationError) as bad_version:
+        host._validate_import_payload({"version": 2, "options": {}, "dogs": []})
+    assert bad_version.value.field_errors["payload"] == "unsupported_version"
+
+    with pytest.raises(FlowValidationError) as missing_options:
+        host._validate_import_payload({"version": 1, "options": [], "dogs": []})
+    assert missing_options.value.field_errors["payload"] == "options_missing"
+
+    with pytest.raises(FlowValidationError) as dogs_not_list:
+        host._validate_import_payload({"version": 1, "options": {}, "dogs": {}})
+    assert dogs_not_list.value.field_errors["payload"] == "dogs_invalid"
+
+    with pytest.raises(FlowValidationError) as invalid_dog_payload:
+        host._validate_import_payload({"version": 1, "options": {}, "dogs": [1]})
+    assert invalid_dog_payload.value.field_errors["payload"] == "dog_invalid"
+
+    monkeypatch.setattr(
+        shared_module,
+        "validate_dog_config_payload",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            FlowValidationError(field_errors={DOG_ID_FIELD: "dog_id_already_exists"})
+        ),
+    )
+    with pytest.raises(FlowValidationError) as mapped_payload_error:
+        host._validate_import_payload(
+            {
+                "version": 1,
+                "options": {},
+                "dogs": [{DOG_ID_FIELD: "dog-1"}],
+            },
+        )
+    assert mapped_payload_error.value.field_errors["payload"] == "dog_duplicate"
+
+
+def test_validate_import_payload_preserves_non_empty_created_at(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _SharedCoverageHost()
+    monkeypatch.setattr(
+        shared_module,
+        "validate_dog_config_payload",
+        lambda payload, **_kwargs: {
+            DOG_ID_FIELD: str(payload[DOG_ID_FIELD]),
+            DOG_NAME_FIELD: str(payload.get(DOG_NAME_FIELD, payload[DOG_ID_FIELD])),
+        },
+    )
+
+    payload = host._validate_import_payload(
+        {
+            "version": 1,
+            "options": {},
+            "dogs": [{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna"}],
+            "created_at": "2026-04-18T01:02:03+00:00",
+        },
+    )
+    assert payload["created_at"] == "2026-04-18T01:02:03+00:00"
+
+
+def test_selection_and_system_option_helpers_cover_remaining_branches(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _SharedCoverageHost()
+    host._dogs = [{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna"}]
+    host._current_dog = None
+
+    required = host._require_current_dog()
+    assert required is not None
+    assert required[DOG_ID_FIELD] == "dog-1"
+
+    assert host._select_dog_by_id("dog-1") is not None
+    assert host._select_dog_by_id("missing") is None
+
+    selector_schema = host._build_dog_selector_schema()
+    assert isinstance(selector_schema, shared_module.vol.Schema)
+
+    host._entry.options = {
+        "system_settings": {},
+        "enable_analytics": True,
+        "enable_cloud_backup": False,
+    }
+    system = host._current_system_options()
+    assert system["enable_analytics"] is True
+    assert system["enable_cloud_backup"] is False
+
+    host.hass = object()
+    monkeypatch.setattr(
+        shared_module,
+        "resolve_resilience_script_thresholds",
+        lambda _hass, _entry: (11, 22),
+    )
+    assert host._resolve_script_threshold_fallbacks(has_skip=False, has_breaker=True) == (
+        11,
+        22,
+    )
+
+    host._entry.options = {"dashboard_settings": {"show_alerts": False}}
+    assert host._current_dashboard_options()["show_alerts"] is False
+
+    monkeypatch.setattr(
+        shared_module,
+        "ensure_advanced_options",
+        lambda source, defaults: {"source": dict(source), "defaults": dict(defaults)},
+    )
+    host._entry.options = {ADVANCED_SETTINGS_FIELD: {"api": "x"}, "root_flag": True}
+    advanced = host._current_advanced_options()
+    assert advanced["source"] == {"api": "x"}
+    assert advanced["defaults"]["root_flag"] is True
+
+    class _IsoValue:
+        def isoformat(self) -> str:
+            return "09:15:00"
+
+    assert host._coerce_time_string(_IsoValue(), "00:00:00") == "09:15:00"
+    assert host._normalize_choice("ignored", valid={"a", "b"}, default="b") == "b"
+
+
+def test_current_option_helpers_cover_remaining_fast_paths(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _SharedCoverageHost()
+
+    host._entry.options = {
+        "weather_settings": {CONF_WEATHER_ENTITY: "weather.preserved"},
+        CONF_WEATHER_ENTITY: "weather.root",
+    }
+    weather = host._current_weather_options()
+    assert weather[CONF_WEATHER_ENTITY] == "weather.preserved"
+
+    monkeypatch.setattr(
+        shared_module,
+        "ensure_dog_options_entry",
+        lambda value, dog_id: {DOG_ID_FIELD: dog_id, **dict(value)},
+    )
+    host._entry.options = {DOG_OPTIONS_FIELD: {"dog-1": {"sample": 1}}}
+    dog_options = host._current_dog_options()
+    assert dog_options["dog-1"][DOG_ID_FIELD] == "dog-1"
+
+    host._current_dog = {DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna"}
+    assert host._require_current_dog()[DOG_ID_FIELD] == "dog-1"  # type: ignore[index]
+
+    host._entry.options = {
+        "system_settings": {
+            "enable_analytics": False,
+            "enable_cloud_backup": True,
+        },
+        "enable_analytics": True,
+        "enable_cloud_backup": False,
+    }
+    system = host._current_system_options()
+    assert system["enable_analytics"] is False
+    assert system["enable_cloud_backup"] is True
+
+    assert host._coerce_time_string("08:00:00", "00:00:00") == "08:00:00"
+
+
+def test_build_weather_system_dashboard_and_advanced_cover_extra_paths(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _SharedCoverageHost()
+
+    weather = host._build_weather_settings(
+        {
+            "weather_entity": " none ",
+            "weather_update_interval": 45,
+            "notification_threshold": "invalid",
+        },
+        {
+            "notification_threshold": "moderate",
+            "weather_health_monitoring": True,
+            "weather_alerts": True,
+        },
+    )
+    assert weather[CONF_WEATHER_ENTITY] is None
+
+    system, _reset_time = host._build_system_settings(
+        {
+            "manual_guard_event": "guard_now",
+            "manual_breaker_event": "   ",
+        },
+        {
+            "manual_guard_event": "guard_old",
+            "manual_breaker_event": "breaker_old",
+        },
+        reset_default="00:00:00",
+    )
+    assert system["manual_guard_event"] == "guard_now"
+    assert system["manual_breaker_event"] is None
+
+    dashboard, mode = host._build_dashboard_settings(
+        {
+            "dashboard_mode": "compact",
+            "show_statistics": False,
+            "show_alerts": True,
+            "compact_mode": True,
+            "show_maps": False,
+        },
+        {
+            "show_statistics": True,
+            "show_alerts": False,
+            "compact_mode": False,
+            "show_maps": True,
+        },
+        default_mode="full",
+    )
+    assert mode in {"full", "compact", "minimal"}
+    assert dashboard["compact_mode"] is True
+
+    monkeypatch.setattr(
+        shared_module,
+        "ensure_advanced_options",
+        lambda source, defaults: dict(source) | {"_defaults": dict(defaults)},
+    )
+    host._entry.options = {ADVANCED_SETTINGS_FIELD: {"persisted": "yes"}}
+    advanced = host._build_advanced_settings(
+        {
+            CONF_API_ENDPOINT: " https://api.example.test ",
+            CONF_API_TOKEN: " token-value ",
+            "simple": 1,
+        },
+        {CONF_API_ENDPOINT: "old", CONF_API_TOKEN: "old"},
+    )
+    assert advanced[CONF_API_ENDPOINT] == "https://api.example.test"
+    assert advanced[CONF_API_TOKEN] == "token-value"
+    assert advanced["simple"] == 1

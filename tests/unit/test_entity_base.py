@@ -7,6 +7,7 @@ and extra_state_attributes enrichment without requiring a full HA stack.
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -15,7 +16,11 @@ pytest.importorskip("homeassistant")
 
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.entity import PawControlDogEntityBase
-from custom_components.pawcontrol.types import CoordinatorDogData, PawControlConfigEntry
+from custom_components.pawcontrol.types import (
+    CoordinatorDogData,
+    CoordinatorRuntimeManagers,
+    PawControlConfigEntry,
+)
 
 # ---------------------------------------------------------------------------
 # Minimal stubs
@@ -104,6 +109,33 @@ def test_entity_name_defaults_to_dog_name_when_no_translation_key() -> None:
 
 
 @pytest.mark.unit
+def test_entity_name_prefers_attr_name_and_supports_translated_none() -> None:
+    """Name property should return explicit attr name or None for translated entities."""
+    coord = _StubCoordinator()
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "milo", "Milo")
+
+    entity._attr_name = "Custom Milo"
+    assert entity.name == "Custom Milo"
+
+    entity._attr_name = None
+    entity._attr_translation_key = "status"
+    entity._attr_has_entity_name = True
+    assert entity.name is None
+
+
+@pytest.mark.unit
+def test_entity_device_class_and_icon_properties() -> None:
+    """Device class and icon properties should expose configured attributes."""
+    coord = _StubCoordinator()
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "luna", "Luna")
+    entity._attr_device_class = "connectivity"
+    entity._attr_icon = "mdi:dog"
+
+    assert entity.device_class == "connectivity"
+    assert entity.icon == "mdi:dog"
+
+
+@pytest.mark.unit
 def test_entity_unique_id_exposed() -> None:
     """unique_id must equal the value assigned during construction."""
     coord = _StubCoordinator()
@@ -182,6 +214,51 @@ def test_set_cache_ttl_changes_ttl() -> None:
     assert entity._cache_ttl == 5.0
 
 
+@pytest.mark.unit
+def test_get_dog_data_alias_uses_cached_lookup() -> None:
+    """_get_dog_data should call the cached getter alias path."""
+    dog_data: CoordinatorDogData = cast(
+        CoordinatorDogData,
+        {
+            "dog_info": {"dog_id": "buddy", "dog_name": "Buddy"},
+            "status": "online",
+            "last_update": datetime.now(UTC).isoformat(),
+        },
+    )
+    coord = _StubCoordinator({"buddy": dog_data})
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "buddy", "Buddy")
+
+    result = entity._get_dog_data()
+    assert result is not None
+    assert result["status"] == "online"
+
+
+@pytest.mark.unit
+def test_get_runtime_data_returns_none_when_config_entry_missing(hass: Any) -> None:
+    """_get_runtime_data should short-circuit when coordinator has no config entry."""
+    coord = _StubCoordinator()
+    coord.config_entry = None
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "cfg", "Cfg")
+    entity.hass = hass
+
+    assert entity._get_runtime_data() is None
+
+
+@pytest.mark.unit
+def test_get_runtime_managers_builds_container_from_coordinator_attributes() -> None:
+    """Runtime manager fallback should build and attach a CoordinatorRuntimeManagers."""
+    coord = _StubCoordinator()
+    coord.runtime_managers = object()
+    coord.data_manager = SimpleNamespace(name="data")
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "dog", "Dog")
+
+    managers = entity._get_runtime_managers()
+
+    assert isinstance(managers, CoordinatorRuntimeManagers)
+    assert managers.data_manager is coord.data_manager
+    assert coord.runtime_managers is managers
+
+
 # ---------------------------------------------------------------------------
 # Module data lookup
 # ---------------------------------------------------------------------------
@@ -219,6 +296,28 @@ def test_get_module_data_returns_module_payload() -> None:
     })
     entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "runner", "Runner")
     result = entity._get_module_data("walk")
+    assert isinstance(result, Mapping)
+    assert result.get("walk_in_progress") is True
+
+
+@pytest.mark.unit
+def test_get_module_data_normalizes_whitespace_module_keys() -> None:
+    """Module lookup should normalize whitespace-surrounded module names."""
+    walk_data = {"walk_in_progress": True}
+    coord = _StubCoordinator({
+        "runner": cast(
+            CoordinatorDogData,
+            {
+                "dog_info": {"dog_id": "runner", "dog_name": "Runner"},
+                "status": "online",
+                "last_update": datetime.now(UTC).isoformat(),
+                "walk": walk_data,
+            },
+        )
+    })
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "runner", "Runner")
+
+    result = entity._get_module_data(" walk ")
     assert isinstance(result, Mapping)
     assert result.get("walk_in_progress") is True
 
@@ -274,6 +373,18 @@ def test_extra_state_attributes_includes_last_updated(hass: Any) -> None:
 
 
 @pytest.mark.unit
+def test_extra_state_attributes_localize_last_update_timestamp(hass: Any) -> None:
+    """A datetime last_update_success_time should be converted to an ISO local string."""
+    coord = _StubCoordinator()
+    coord.last_update_success_time = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "atlas", "Atlas")
+    entity.hass = hass
+
+    attrs = entity.extra_state_attributes
+    assert isinstance(attrs.get("last_updated"), str)
+
+
+@pytest.mark.unit
 def test_append_dog_info_attributes_adds_breed(hass: Any) -> None:
     """Dog info attributes are appended when breed is available."""
     dog_data: CoordinatorDogData = cast(
@@ -284,6 +395,7 @@ def test_append_dog_info_attributes_adds_breed(hass: Any) -> None:
                 "dog_name": "Bree",
                 "dog_breed": "Poodle",
                 "dog_age": 4,
+                "dog_size": "medium",
                 "dog_weight": 12.0,
             },
             "status": "online",
@@ -296,4 +408,184 @@ def test_append_dog_info_attributes_adds_breed(hass: Any) -> None:
     attrs = entity.extra_state_attributes
     assert attrs.get("dog_breed") == "Poodle"
     assert attrs.get("dog_age") == 4
+    assert attrs.get("dog_size") == "medium"
     assert attrs.get("dog_weight") == 12.0
+
+
+@pytest.mark.unit
+def test_get_status_snapshot_returns_none_for_non_mapping_data() -> None:
+    """Status snapshot lookup should return None when cached dog data is invalid."""
+
+    class _BadDataCoordinator(_StubCoordinator):
+        def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
+            return cast(CoordinatorDogData, "invalid")
+
+    coord = _BadDataCoordinator()
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "ghost", "Ghost")
+
+    assert entity._get_status_snapshot() is None
+
+
+@pytest.mark.unit
+def test_get_status_snapshot_prefers_existing_snapshot_mapping() -> None:
+    """When a mapping snapshot exists it should be returned without rebuilding."""
+    snapshot = {"state": "home", "is_home": True}
+    coord = _StubCoordinator({
+        "buddy": cast(
+            CoordinatorDogData,
+            {
+                "dog_info": {"dog_id": "buddy", "dog_name": "Buddy"},
+                "status": "online",
+                "last_update": datetime.now(UTC).isoformat(),
+                "status_snapshot": snapshot,
+            },
+        )
+    })
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "buddy", "Buddy")
+
+    assert entity._get_status_snapshot() == snapshot
+
+
+@pytest.mark.unit
+def test_get_runtime_data_returns_runtime_value_when_available(
+    monkeypatch: pytest.MonkeyPatch,
+    hass: Any,
+) -> None:
+    """Runtime lookup should return get_runtime_data output when hass and entry exist."""
+    coord = _StubCoordinator()
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "r1", "R1")
+    entity.hass = hass
+    runtime_value = SimpleNamespace(marker="runtime")
+    monkeypatch.setattr("custom_components.pawcontrol.entity.get_runtime_data", lambda *_args: runtime_value)
+
+    assert entity._get_runtime_data() is runtime_value
+
+
+@pytest.mark.unit
+def test_get_runtime_managers_prefers_runtime_data_container(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runtime manager container should be hydrated from runtime_data attributes."""
+    coord = _StubCoordinator()
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "hydrated", "Hydrated")
+
+    data_manager = SimpleNamespace(name="dm")
+    runtime_container = CoordinatorRuntimeManagers()
+    runtime_data = SimpleNamespace(
+        runtime_managers=runtime_container,
+        data_manager=data_manager,
+    )
+    monkeypatch.setattr(entity, "_get_runtime_data", lambda: runtime_data)
+
+    managers = entity._get_runtime_managers()
+    assert managers is runtime_container
+    assert managers.data_manager is data_manager
+
+
+@pytest.mark.unit
+def test_get_runtime_managers_returns_existing_container_instance() -> None:
+    """Existing CoordinatorRuntimeManagers should be returned directly."""
+    coord = _StubCoordinator()
+    existing = CoordinatorRuntimeManagers(notification_manager=SimpleNamespace(name="notify"))
+    coord.runtime_managers = existing
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "existing", "Existing")
+
+    assert entity._get_runtime_managers() is existing
+
+
+@pytest.mark.unit
+def test_get_runtime_managers_returns_empty_container_when_no_sources() -> None:
+    """Without runtime data or coordinator managers an empty container should be returned."""
+    coord = _StubCoordinator()
+    coord.runtime_managers = None
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "empty", "Empty")
+
+    managers = entity._get_runtime_managers()
+    assert isinstance(managers, CoordinatorRuntimeManagers)
+    assert managers.data_manager is None
+
+
+@pytest.mark.unit
+def test_get_data_manager_and_notification_manager_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Manager accessors should use runtime_data first and fallback containers second."""
+    coord = _StubCoordinator()
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "mgr", "Mgr")
+
+    runtime_data_manager = SimpleNamespace(name="runtime_dm")
+    runtime_data = SimpleNamespace(data_manager=runtime_data_manager)
+    monkeypatch.setattr(entity, "_get_runtime_data", lambda: runtime_data)
+    assert entity._get_data_manager() is runtime_data_manager
+
+    fallback_dm = SimpleNamespace(name="fallback_dm")
+    fallback_nm = SimpleNamespace(name="fallback_nm")
+    coord.runtime_managers = CoordinatorRuntimeManagers(
+        data_manager=fallback_dm,
+        notification_manager=fallback_nm,
+    )
+    monkeypatch.setattr(entity, "_get_runtime_data", lambda: None)
+    assert entity._get_data_manager() is fallback_dm
+    assert entity._get_notification_manager() is fallback_nm
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_call_hass_service_wrapper_forwards_arguments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Service-call wrapper should delegate to async_call_hass_service_if_available."""
+    coord = _StubCoordinator()
+    entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "svc", "Svc")
+    entity.hass = SimpleNamespace()
+    entity.entity_id = "sensor.svc"
+    expected = object()
+
+    async def _fake_call(*args: Any, **kwargs: Any) -> object:
+        assert args[0] is entity.hass
+        assert args[1] == "notify"
+        assert args[2] == "mobile_app"
+        assert args[3] == {"message": "hi"}
+        assert kwargs["blocking"] is True
+        assert "dog svc" in kwargs["description"]
+        return expected
+
+    monkeypatch.setattr("custom_components.pawcontrol.entity.async_call_hass_service_if_available", _fake_call)
+
+    result = await entity._async_call_hass_service(
+        "notify",
+        "mobile_app",
+        {"message": "hi"},
+        blocking=True,
+    )
+
+    assert result is expected
+
+
+def test_get_module_data_handles_lookup_type_value_and_generic_errors() -> None:
+    """Lookup/Type/Value and generic exceptions should return empty mappings."""
+
+    class _LookupCoordinator(_StubCoordinator):
+        def get_module_data(self, dog_id: str, module: str) -> None:
+            raise LookupError("missing")
+
+    class _TypeCoordinator(_StubCoordinator):
+        def get_module_data(self, dog_id: str, module: str) -> None:
+            raise TypeError("bad type")
+
+    class _ValueCoordinator(_StubCoordinator):
+        def get_module_data(self, dog_id: str, module: str) -> None:
+            raise ValueError("bad value")
+
+    class _GenericCoordinator(_StubCoordinator):
+        def get_module_data(self, dog_id: str, module: str) -> None:
+            raise RuntimeError("boom")
+
+    for coordinator in (
+        _LookupCoordinator(),
+        _TypeCoordinator(),
+        _ValueCoordinator(),
+        _GenericCoordinator(),
+    ):
+        entity = _ConcreteEntity(cast(PawControlCoordinator, coordinator), "dog", "Dog")
+        assert entity._get_module_data("walk") == {}

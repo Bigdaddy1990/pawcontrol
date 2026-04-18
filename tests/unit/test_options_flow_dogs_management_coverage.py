@@ -183,6 +183,33 @@ async def test_configure_dog_modules_updates_options_when_selected_dog_not_in_li
     assert rendered["step_id"] == "configure_dog_modules"
 
 
+@pytest.mark.asyncio
+async def test_configure_dog_modules_updates_entry_when_selected_dog_exists(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _DogManagementCoverageHost()
+    host._current_dog = {
+        DOG_ID_FIELD: "dog-1",
+        DOG_NAME_FIELD: "Luna",
+        DOG_MODULES_FIELD: {"feeding": False},
+    }
+    host._dogs = [dict(host._current_dog)]
+    host._entry.data = {CONF_DOGS: [dict(host._current_dog)]}
+    host._entry.options = {DOG_OPTIONS_FIELD: {}}
+
+    monkeypatch.setattr(dogs_module, "ensure_dog_config_data", lambda dog: dict(dog))
+
+    saved = await host.async_step_configure_dog_modules({"module_feeding": True})
+    assert saved["type"] == "create_entry"
+    assert host._current_dog is not None
+    assert host._current_dog[DOG_ID_FIELD] == "dog-1"
+    assert host._dogs[0][DOG_ID_FIELD] == "dog-1"
+    assert bool(host._dogs[0][DOG_MODULES_FIELD]["feeding"]) is True
+    assert host.hass.config_entries.updates[-1]["data"][CONF_DOGS][0][DOG_ID_FIELD] == (
+        "dog-1"
+    )
+
+
 def test_door_sensor_schema_handles_text_input_fallback_and_module_schema_empty() -> (  # noqa: D103
     None
 ):
@@ -200,6 +227,18 @@ def test_door_sensor_schema_handles_text_input_fallback_and_module_schema_empty(
     empty_modules_schema = host._get_dog_modules_schema()
     assert isinstance(empty_modules_schema, vol.Schema)
     assert empty_modules_schema.schema == {}
+
+
+def test_door_sensor_schema_builds_select_options_when_sensors_available() -> None:  # noqa: D103
+    host = _DogManagementCoverageHost()
+
+    schema = host._get_door_sensor_settings_schema(
+        {"binary_sensor.front": "Front Door"},
+        current_sensor=None,
+        defaults=DoorSensorSettingsConfig(),
+        user_input={CONF_DOOR_SENSOR: "binary_sensor.front"},
+    )
+    assert isinstance(schema, vol.Schema)
 
 
 def test_available_door_sensors_skips_none_state_entries() -> None:  # noqa: D103
@@ -295,6 +334,41 @@ async def test_add_new_dog_error_paths_and_schema(  # noqa: D103
 
     add_schema = host._get_add_dog_schema()
     assert isinstance(add_schema, vol.Schema)
+
+
+@pytest.mark.asyncio
+async def test_add_new_dog_success_updates_entry_and_resets_to_init(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _DogManagementCoverageHost()
+    host._dogs = [{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna"}]
+    host._entry.data = {CONF_DOGS: [dict(host._dogs[0])]}
+
+    monkeypatch.setattr(
+        dogs_module,
+        "validate_dog_setup_input",
+        lambda *_args, **_kwargs: {
+            "dog_id": "dog-2",
+            "dog_name": "Milo",
+            "dog_weight": 18.5,
+            "dog_size": "medium",
+            "dog_age": 4,
+            "dog_breed": "Beagle",
+        },
+    )
+
+    result = await host.async_step_add_new_dog(
+        {DOG_ID_FIELD: "dog-2", DOG_NAME_FIELD: "Milo"},
+    )
+
+    assert result == {"step": "init"}
+    assert host._dogs[-1][DOG_ID_FIELD] == "dog-2"
+    assert host._current_dog is not None
+    assert host._current_dog[DOG_ID_FIELD] == "dog-2"
+    assert host.hass.config_entries.updates[-1]["data"][CONF_DOGS][-1][DOG_ID_FIELD] == (
+        "dog-2"
+    )
+    assert host.invalidations == 1
 
 
 @pytest.mark.asyncio
@@ -398,6 +472,33 @@ async def test_edit_dog_branches_and_edit_schema_empty(  # noqa: D103
 
 
 @pytest.mark.asyncio
+async def test_edit_dog_success_updates_entry_and_invalidates_cache(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _DogManagementCoverageHost()
+    host._current_dog = {DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna"}
+    host._dogs = [{DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna"}]
+    host._entry.data = {CONF_DOGS: [dict(host._dogs[0])]}
+
+    monkeypatch.setattr(
+        dogs_module,
+        "validate_dog_update_input",
+        lambda *_args, **_kwargs: {DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna-2"},
+    )
+    monkeypatch.setattr(dogs_module, "ensure_dog_config_data", lambda dog: dict(dog))
+
+    result = await host.async_step_edit_dog({"dog_name": "Luna-2"})
+    assert result == {"step": "init"}
+    assert host._dogs[0][DOG_NAME_FIELD] == "Luna-2"
+    assert host._current_dog is not None
+    assert host._current_dog[DOG_NAME_FIELD] == "Luna-2"
+    assert host.hass.config_entries.updates[-1]["data"][CONF_DOGS][0][DOG_NAME_FIELD] == (
+        "Luna-2"
+    )
+    assert host.invalidations == 1
+
+
+@pytest.mark.asyncio
 async def test_select_dog_to_remove_branches(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -431,3 +532,32 @@ async def test_select_dog_to_remove_branches(  # noqa: D103
 
     confirm_form = await host.async_step_select_dog_to_remove()
     assert confirm_form["step_id"] == "select_dog_to_remove"
+
+
+@pytest.mark.asyncio
+async def test_select_dog_to_remove_removes_selected_dog_options_entry(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _DogManagementCoverageHost()
+    host._dogs = [
+        {DOG_ID_FIELD: "dog-1", DOG_NAME_FIELD: "Luna"},
+        {DOG_ID_FIELD: "dog-2", DOG_NAME_FIELD: "Milo"},
+    ]
+    host._current_dog = {DOG_ID_FIELD: "dog-2", DOG_NAME_FIELD: "Milo"}
+    host._entry.options = {
+        DOG_OPTIONS_FIELD: {
+            "dog-1": {DOG_ID_FIELD: "dog-1"},
+            "dog-2": {DOG_ID_FIELD: "dog-2"},
+        }
+    }
+    monkeypatch.setattr(host, "_normalise_options_snapshot", lambda data: dict(data))
+
+    removed = await host.async_step_select_dog_to_remove(
+        {"dog_id": "dog-1", "confirm_remove": True},
+    )
+
+    assert removed["type"] == "create_entry"
+    assert host._current_dog is not None
+    assert host._current_dog[DOG_ID_FIELD] == "dog-2"
+    assert "dog-1" not in removed["data"][DOG_OPTIONS_FIELD]
+    assert "dog-2" in removed["data"][DOG_OPTIONS_FIELD]

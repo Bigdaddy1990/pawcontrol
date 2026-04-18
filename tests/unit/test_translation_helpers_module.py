@@ -1,11 +1,29 @@
 """Unit tests for translation helper utilities."""
 
+from collections.abc import Iterator
+from contextlib import suppress
 from pathlib import Path
+from shutil import rmtree
 from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
 
 from custom_components.pawcontrol import translation_helpers
+
+
+@pytest.fixture
+def tmp_path() -> Iterator[Path]:
+    """Provide a temp directory path without relying on pytest tmpdir plugin."""
+    base = Path(__file__).resolve().parents[2] / ".tmp_test_paths"
+    base.mkdir(parents=True, exist_ok=True)
+    temp_dir = base / f"translation-helpers-{uuid4().hex}"
+    temp_dir.mkdir(parents=True, exist_ok=False)
+    try:
+        yield temp_dir
+    finally:
+        with suppress(PermissionError):
+            rmtree(temp_dir, ignore_errors=True)
 
 
 def test_resolve_translation_prefers_primary_then_fallback_then_default() -> None:

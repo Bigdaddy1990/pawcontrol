@@ -380,6 +380,27 @@ async def test_profile_description_placeholders_cached_handles_telemetry_normali
 
 
 @pytest.mark.asyncio
+async def test_profile_description_placeholders_cached_skips_telemetry_digest_when_empty(  # noqa: D103
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_profile_module_stubs(monkeypatch)
+    host = _ProfileFlowHostDeep(
+        dogs=[
+            {
+                "dog_name": "Milo",
+                "dog_id": "dog-1",
+                "modules": {"standard_estimate": 2},
+            },
+        ],
+        options={"entity_profile": "standard"},
+        telemetry={},
+    )
+
+    placeholders = await host._get_profile_description_placeholders_cached()
+    assert placeholders["current_profile"] == "standard"
+
+
+@pytest.mark.asyncio
 async def test_calculate_profile_preview_optimized_builds_and_caches_preview(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

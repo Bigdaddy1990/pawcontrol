@@ -288,6 +288,15 @@ class TestComputeDogDiff:
 
         assert diff.module_diffs["battery"].modified_keys == frozenset({"battery"})
 
+    def test_compute_dog_diff_scalar_module_unchanged(self) -> None:
+        """Equal non-mapping scalar modules should not be marked as changed."""
+        old = {"battery": 88}
+        new = {"battery": 88}
+
+        diff = compute_dog_diff("buddy", old, new)
+
+        assert "battery" not in diff.module_diffs
+
 
 class TestComputeCoordinatorDiff:
     """Test compute_coordinator_diff function."""
@@ -604,6 +613,22 @@ class TestGetChangedFields:
         )
         assert fields == frozenset({"x"})
 
+    def test_get_changed_fields_excludes_added_when_disabled(self) -> None:
+        """Added keys should be omitted when include_added is False."""
+        diff = DataDiff(
+            added_keys=frozenset({"x"}),
+            modified_keys=frozenset({"y"}),
+            removed_keys=frozenset({"z"}),
+        )
+
+        fields = get_changed_fields(
+            diff,
+            include_added=False,
+            include_modified=True,
+            include_removed=False,
+        )
+        assert fields == frozenset({"y"})
+
 
 class TestLogDiffSummary:
     """Test log_diff_summary function."""
@@ -678,6 +703,13 @@ class TestLogDiffSummary:
 
         assert "1 added" in caplog.text
         assert "dogs changed" not in caplog.text
+
+    def test_log_diff_summary_uses_explicit_logger(self) -> None:
+        """Providing a logger should use it instead of resolving module default."""
+        logger = logging.getLogger("tests.coordinator_diffing.explicit")
+        diff = CoordinatorDataDiff(added_dogs=frozenset({"new_dog"}))
+
+        log_diff_summary(diff, logger=logger)
 
 
 class TestEdgeCases:

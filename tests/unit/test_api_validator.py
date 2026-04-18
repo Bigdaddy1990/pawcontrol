@@ -394,6 +394,18 @@ async def test_async_close_keeps_shared_session_open(hass: HomeAssistant) -> Non
     assert session.closed is False
 
 
+@pytest.mark.asyncio
+async def test_async_close_noops_when_session_already_closed(hass: HomeAssistant) -> None:
+    """Closing should be a no-op when the shared session is already closed."""
+    session = DummySession([])
+    validator = APIValidator(hass, cast(ClientSession, session))
+    session.closed = True
+
+    await validator.async_close()
+
+    assert session.closed is True
+
+
 def test_session_property_returns_configured_session(hass: HomeAssistant) -> None:
     """The public session property should expose the shared session reference."""
     session = DummySession([])
@@ -419,6 +431,23 @@ async def test_async_validate_api_connection_unreachable_endpoint(
     assert result.valid is False
     assert result.reachable is False
     assert result.error_message == "API endpoint not reachable"
+
+
+@pytest.mark.asyncio
+async def test_async_validate_api_connection_without_token_skips_auth(
+    hass: HomeAssistant,
+) -> None:
+    """Validation without a token should skip auth and still return a valid result."""
+    session = DummySession([DummyResponse(200)])
+    validator = APIValidator(hass, cast(ClientSession, session))
+
+    result = await validator.async_validate_api_connection("https://example.test")
+
+    assert result.valid is True
+    assert result.reachable is True
+    assert result.authenticated is False
+    assert result.api_version is None
+    assert result.capabilities is None
 
 
 def test_validate_endpoint_format_handles_non_string_and_parse_errors(
@@ -525,6 +554,29 @@ async def test_async_test_api_health_reports_unreachable_and_healthy_statuses(
 
 
 @pytest.mark.asyncio
+async def test_async_test_api_health_reports_degraded_status(
+    hass: HomeAssistant,
+) -> None:
+    """Reachable-but-invalid health payloads should keep the default degraded status."""
+    validator = APIValidator(hass, cast(ClientSession, DummySession([])))
+
+    async def _degraded(*args: object, **kwargs: object) -> APIValidationResult:
+        return APIValidationResult(
+            valid=False,
+            reachable=True,
+            authenticated=False,
+            response_time_ms=2.0,
+            error_message="partial failure",
+            api_version=None,
+            capabilities=None,
+        )
+
+    validator.async_validate_api_connection = _degraded  # type: ignore[method-assign]
+    degraded = await validator.async_test_api_health("https://example.test")
+    assert degraded["status"] == "degraded"
+
+
+@pytest.mark.asyncio
 async def test_async_validate_api_connection_rejects_invalid_endpoint(
     hass: HomeAssistant,
 ) -> None:
@@ -592,6 +644,11 @@ def test_extract_api_version_handles_supported_payload_shapes(
     assert _extract_api_version(cast(dict[str, JSONValue], payload)) == expected
 
 
+def test_extract_api_version_returns_none_for_non_mapping_payload() -> None:
+    """Version extraction should return None when payload is not a mapping."""
+    assert _extract_api_version(cast(dict[str, JSONValue], ["1.0.0"])) is None
+
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -603,3 +660,9 @@ def test_extract_api_version_handles_supported_payload_shapes(
 def test_extract_capabilities_rejects_string_like_sequences(payload: object) -> None:
     """String-like sequences should not be treated as capability collections."""
     assert _extract_capabilities({"capabilities": cast(JSONValue, payload)}) is None
+
+
+def test_extract_capabilities_returns_none_when_no_string_values() -> None:
+    """Capability extraction should return None when a collection has no strings."""
+    payload = {"capabilities": cast(JSONValue, [1, 2, {"ignored": True}])}
+    assert _extract_capabilities(payload) is None

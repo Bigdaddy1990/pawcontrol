@@ -1,22 +1,32 @@
+from datetime import UTC, datetime
+
 import pytest  # noqa: D100
 
 """Additional branch coverage for ``custom_components.pawcontrol.exceptions``."""
 
 from custom_components.pawcontrol.exceptions import (  # noqa: E402
+    ConfigurationError,
     DataExportError,
     DataImportError,
     ErrorSeverity,
     FlowValidationError,
+    InvalidCoordinatesError,
+    InvalidMealTypeError,
     InvalidWeightError,
     NetworkError,
     NotificationError,
     PawControlError,
+    PawControlSetupError,
     RateLimitError,
     ReauthRequiredError,
     ReconfigureRequiredError,
     RepairRequiredError,
     ServiceUnavailableError,
     StorageError,
+    ValidationError,
+    WalkAlreadyInProgressError,
+    WalkError,
+    WalkNotInProgressError,
     handle_exception_gracefully,
     raise_from_error_code,
 )
@@ -229,3 +239,84 @@ def test_handle_exception_gracefully_logs_non_critical_errors(
 
     assert result == "fallback"
     assert "PawControl error in _raise_non_critical" in caplog.text
+
+
+def test_configuration_error_message_variants_cover_reason_branches() -> None:
+    """ConfigurationError should format value+reason and reason-only branches."""
+    with_value_and_reason = ConfigurationError(
+        "timeout",
+        value=0,
+        reason="must be greater than zero",
+    )
+    with_reason_only = ConfigurationError("host", reason="missing")
+
+    assert "value: 0" in str(with_value_and_reason)
+    assert "must be greater than zero" in str(with_value_and_reason)
+    assert str(with_reason_only) == "Invalid configuration for 'host': missing"
+
+
+def test_setup_error_and_walk_error_context_merge_branches() -> None:
+    """Setup/Walk errors should execute setup super-call and context merge branches."""
+    setup_error = PawControlSetupError("setup failed")
+    walk_error = WalkError(
+        "walk failed",
+        dog_id="dog-1",
+        walk_id="walk-1",
+        context={"phase": "stop"},
+    )
+
+    assert setup_error.error_code == "setup_failed"
+    assert walk_error.context["phase"] == "stop"
+
+
+def test_walk_error_specializations_capture_optional_timestamps() -> None:
+    """Walk specialization constructors should preserve optional datetime metadata."""
+    last_walk = datetime(2024, 6, 1, 8, 30, tzinfo=UTC)
+    not_in_progress = WalkNotInProgressError("dog-1", last_walk_time=last_walk)
+    already_in_progress = WalkAlreadyInProgressError(
+        "dog-1",
+        "walk-2",
+        start_time=None,
+    )
+
+    assert not_in_progress.context["last_walk_time"] == last_walk.isoformat()
+    assert not_in_progress.last_walk_time == last_walk
+    assert "start_time" not in already_in_progress.context
+    assert already_in_progress.start_time is None
+
+
+def test_validation_error_message_and_suggestion_branches() -> None:
+    """ValidationError should cover value-only, constraint-only, and valid-values paths."""
+    value_only = ValidationError("mode", value="turbo")
+    constraint_only = ValidationError("mode", constraint="must be provided")
+    with_valid_values = ValidationError("mode", value="turbo", valid_values=["eco", "normal"])
+
+    assert "invalid value turbo" in str(value_only)
+    assert str(constraint_only) == "Validation failed for 'mode': must be provided"
+    assert any(
+        "Valid values: eco, normal" in suggestion
+        for suggestion in with_valid_values.recovery_suggestions
+    )
+
+
+def test_invalid_coordinates_meal_type_and_weight_constraint_branches() -> None:
+    """GPS/meal/weight errors should cover coordinate and min/max constraint branches."""
+    invalid_coordinates = InvalidCoordinatesError(91.0, 181.0)
+    invalid_meal = InvalidMealTypeError("brunch")
+    bounded_weight = InvalidWeightError(20.0, min_weight=5.0, max_weight=35.0)
+    min_only_weight = InvalidWeightError(0.4, min_weight=1.0)
+    max_only_weight = InvalidWeightError(80.0, max_weight=40.0)
+
+    assert str(invalid_coordinates) == "Invalid GPS coordinates: (91.0, 181.0)"
+    assert "Latitude must be between -90 and 90" in invalid_coordinates.technical_details
+    assert invalid_meal.meal_type == "brunch"
+    assert invalid_meal.valid_types == []
+    assert "between 5.0kg and 35.0kg" in str(bounded_weight)
+    assert "at least 1.0kg" in str(min_only_weight)
+    assert "at most 40.0kg" in str(max_only_weight)
+
+
+def test_data_export_error_appends_reason_when_provided() -> None:
+    """DataExportError should include optional reason text when available."""
+    export_error = DataExportError("history", reason="disk full")
+    assert str(export_error) == "Failed to export history data: disk full"

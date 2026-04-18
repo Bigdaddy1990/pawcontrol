@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.pawcontrol.exceptions import ValidationError
+from custom_components.pawcontrol.exceptions import InvalidCoordinatesError, ValidationError
 from custom_components.pawcontrol.validation import (
     InputCoercionError,
     InputValidator,
@@ -17,9 +17,12 @@ from custom_components.pawcontrol.validation import (
     coerce_int,
     convert_validation_error_to_service_error,
     normalize_dog_id,
+    validate_coordinate,
     validate_dog_name,
+    validate_expires_in_hours,
     validate_float_range,
     validate_gps_accuracy_value,
+    validate_gps_coordinates,
     validate_int_range,
     validate_interval,
     validate_notification_targets,
@@ -111,6 +114,21 @@ def test_validate_time_window_rejects_invalid_end() -> None:  # noqa: D103
             start_field="start",
             end_field="end",
         )
+
+
+@pytest.mark.unit
+def test_validate_time_window_accepts_explicit_start_end() -> None:
+    """Explicit values should bypass default substitution branches."""
+    start, end = validate_time_window(
+        "08:00",
+        "09:30",
+        start_field="start",
+        end_field="end",
+        default_start="06:00",
+        default_end="22:00",
+    )
+    assert start == "08:00:00"
+    assert end == "09:30:00"
 
 
 def test_coercion_error_branches_for_float_and_int_wrappers() -> None:
@@ -214,6 +232,32 @@ def test_validate_sensor_entity_id_handles_blank_candidate_after_strip() -> None
         )
 
 
+@pytest.mark.unit
+def test_validate_sensor_entity_id_without_domain_or_device_class_filters() -> None:
+    """Domain/device_class checks should be optional when not configured."""
+    hass = SimpleNamespace(
+        states=SimpleNamespace(
+            get=lambda entity_id: (
+                SimpleNamespace(state="on", attributes={"device_class": "door"})
+                if entity_id == "binary_sensor.front_door"
+                else None
+            )
+        )
+    )
+
+    assert (
+        validate_sensor_entity_id(
+            hass,
+            "binary_sensor.front_door",
+            field="door_sensor",
+            required=True,
+            domain=None,
+            device_classes=None,
+        )
+        == "binary_sensor.front_door"
+    )
+
+
 def test_validate_interval_required_and_out_of_range_branches() -> None:
     """Interval validation should cover required, min, and max error branches."""
     with pytest.raises(ValidationError, match="Interval is required"):
@@ -255,6 +299,61 @@ def test_validate_gps_accuracy_value_none_low_high_and_valid_paths() -> None:
         validate_gps_accuracy_value(7.0, min_value=1.0, max_value=5.0, clamp=False)
 
     assert validate_gps_accuracy_value(3.0, min_value=1.0, max_value=5.0) == 3.0
+
+
+@pytest.mark.unit
+def test_validate_gps_accuracy_value_default_required_and_clamp_edges() -> None:
+    """Cover default/required handling and both clamped bounds."""
+    assert (
+        validate_gps_accuracy_value(
+            None,
+            required=False,
+            default=2.5,
+            min_value=1.0,
+            max_value=5.0,
+        )
+        == pytest.approx(2.5)
+    )
+
+    with pytest.raises(ValidationError, match="gps_accuracy_required"):
+        validate_gps_accuracy_value(
+            None,
+            required=True,
+            default=None,
+            min_value=1.0,
+            max_value=5.0,
+        )
+
+    assert (
+        validate_gps_accuracy_value(0.5, min_value=1.0, max_value=5.0, clamp=True)
+        == pytest.approx(1.0)
+    )
+    assert (
+        validate_gps_accuracy_value(8.0, min_value=1.0, max_value=5.0, clamp=True)
+        == pytest.approx(5.0)
+    )
+
+
+@pytest.mark.unit
+def test_validate_expires_in_hours_required_numeric_and_bounds_paths() -> None:
+    """Expiry helper should cover empty, coercion, bounds and valid paths."""
+    assert validate_expires_in_hours(None, required=False) is None
+
+    with pytest.raises(ValidationError, match="expires_in_hours_required"):
+        validate_expires_in_hours(None, required=True)
+
+    with pytest.raises(ValidationError, match="expires_in_hours_not_numeric"):
+        validate_expires_in_hours("invalid", required=False)
+
+    with pytest.raises(ValidationError, match="expires_in_hours_out_of_range"):
+        validate_expires_in_hours(0.0, minimum=0.0, maximum=8.0)
+
+    with pytest.raises(ValidationError, match="expires_in_hours_out_of_range"):
+        validate_expires_in_hours(9.0, minimum=0.0, maximum=8.0)
+
+    assert validate_expires_in_hours("4.5", minimum=0.0, maximum=8.0) == pytest.approx(
+        4.5
+    )
 
 
 def test_validate_float_and_int_range_remaining_error_paths() -> None:
@@ -300,6 +399,26 @@ def test_validate_float_and_int_range_remaining_error_paths() -> None:
             clamp=False,
         )
 
+    with pytest.raises(ValidationError, match="Value is required"):
+        validate_float_range(
+            None,
+            minimum=1.0,
+            maximum=5.0,
+            field="ratio",
+            required=True,
+        )
+
+    assert (
+        validate_float_range(
+            0.5,
+            minimum=1.0,
+            maximum=5.0,
+            field="ratio",
+            clamp=True,
+        )
+        == pytest.approx(1.0)
+    )
+
     assert (
         validate_int_range(
             None,
@@ -328,6 +447,71 @@ def test_validate_float_and_int_range_remaining_error_paths() -> None:
             maximum=10,
             clamp=False,
         )
+
+    assert (
+        validate_int_range(
+            None,
+            field="count",
+            minimum=1,
+            maximum=10,
+            default=4,
+            required=False,
+        )
+        == 4
+    )
+
+    with pytest.raises(ValidationError, match="value_not_numeric"):
+        validate_int_range(
+            "invalid",
+            field="count",
+            minimum=1,
+            maximum=10,
+            required=False,
+        )
+
+    with pytest.raises(ValidationError, match="value_out_of_range"):
+        validate_int_range(
+            11,
+            field="count",
+            minimum=1,
+            maximum=10,
+            clamp=False,
+        )
+
+
+@pytest.mark.unit
+def test_validate_coordinate_required_and_clamp_int_error_path() -> None:
+    """Cover required-coordinate errors and clamp-int fallback exceptions."""
+    with pytest.raises(ValidationError, match="coordinate_required"):
+        validate_coordinate(
+            None,
+            field="latitude",
+            minimum=-90.0,
+            maximum=90.0,
+            required=True,
+        )
+
+    assert (
+        clamp_int_range(
+            "not-numeric",
+            field="count",
+            minimum=1,
+            maximum=10,
+            default=5,
+        )
+        == 5
+    )
+
+
+@pytest.mark.unit
+def test_validate_gps_coordinates_out_of_range_and_static_wrapper_path() -> None:
+    """Out-of-range numerics should leave fast-path and wrapper should return tuple."""
+    with pytest.raises(InvalidCoordinatesError):
+        validate_gps_coordinates(95.0, 13.0)
+
+    assert InputValidator.validate_gps_coordinates("52.52", "13.405") == pytest.approx(
+        (52.52, 13.405)
+    )
 
 
 def test_input_validator_dog_id_and_wrapper_paths() -> None:

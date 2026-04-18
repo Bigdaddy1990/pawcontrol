@@ -36,3 +36,27 @@ def test_validate_schema_property_reports_type_before_other_constraints() -> Non
 
     assert len(violations) == 1
     assert violations[0].constraint == "type"
+
+
+def test_validate_schema_property_reports_max_length_violation() -> None:
+    """String fields should report maxLength violations."""
+    violations = _validate_schema_property(
+        "topic",
+        "pawcontrol-too-long",
+        {"type": "string", "maxLength": 8},
+    )
+
+    assert len(violations) == 1
+    assert violations[0].constraint == "maxLength"
+
+
+def test_validate_schema_property_unknown_type_reports_type_violation() -> None:
+    """Unknown JSON schema types should be treated as mismatches."""
+    violations = _validate_schema_property(
+        "field",
+        "value",
+        {"type": "unexpected"},
+    )
+
+    assert len(violations) == 1
+    assert violations[0].constraint == "type"

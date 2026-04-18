@@ -894,3 +894,459 @@ def test_summarise_runtime_store_events_sets_guard_alerts() -> None:
     assert alert["guard_limit_seconds"] == pytest.approx(21600.0)
     assert alert["severity"] == "warning"
     assert alert["recommended_action"] is not None
+
+
+def test_build_runtime_store_assessment_segments_handles_invalid_entries() -> None:
+    """Segment construction should skip malformed timestamps and candidate windows."""
+    assert telemetry_module._build_runtime_store_assessment_segments([]) == []
+
+    events = [
+        {
+            "timestamp": "2024-01-02T00:00:00+00:00",
+            "level": "ok",
+            "status": 123,
+            "reason": 456,
+            "recommended_action": 789,
+        },
+        {
+            "timestamp": None,
+            "level": "watch",
+            "status": "diverged",
+        },
+        {
+            "timestamp": "2024-01-01T00:00:00+00:00",
+            "level": "watch",
+            "status": "diverged",
+        },
+    ]
+
+    segments = telemetry_module._build_runtime_store_assessment_segments(events)
+    assert len(segments) == 2
+    assert "status" not in segments[0]
+    assert "reason" not in segments[0]
+    assert "recommended_action" not in segments[0]
+
+
+def test_record_runtime_store_assessment_event_uses_previous_and_timestamp_fallback(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Recording should seed from previous events and derive timestamp when absent."""
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.telemetry.dt_util.utcnow",
+        lambda: datetime(2024, 6, 1, tzinfo=UTC),
+    )
+
+    history: RuntimeStoreHealthHistory = {
+        "assessment_events": [],
+    }
+    previous_assessment: RuntimeStoreHealthAssessment = {
+        "level": "ok",
+        "events": [
+            {
+                "timestamp": "2024-05-31T00:00:00+00:00",
+                "level": "ok",
+                "status": "current",
+                "reason": "baseline",
+            }
+        ],
+    }
+    assessment: RuntimeStoreHealthAssessment = {
+        "level": "watch",
+        "previous_level": "ok",
+        "reason": "drift",
+        "recommended_action": "investigate",
+        "checks": 2,
+        "divergence_events": 1,
+        "current_level_duration_seconds": "invalid",
+    }
+
+    events, summary = telemetry_module._record_runtime_store_assessment_event(
+        history,
+        assessment,
+        recorded=True,
+        previous_assessment=previous_assessment,
+        status="diverged",
+        entry_status="upgrade_pending",
+        store_status="current",
+    )
+
+    assert len(events) == 2
+    assert events[-1]["timestamp"] == "2024-06-01T00:00:00+00:00"
+    assert events[-1]["level"] == "watch"
+    assert isinstance(summary, dict)
+
+
+def test_runtime_store_getters_and_status_count_fallbacks(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Getter helpers should handle None and malformed runtime containers safely."""
+    assert telemetry_module.get_runtime_entity_factory_guard_metrics(None) is None
+    assert telemetry_module.get_runtime_store_health(None) is None
+
+    runtime_with_metrics = SimpleNamespace(
+        performance_stats={"entity_factory_guard_metrics": {"samples": 3}},
+    )
+    metrics = telemetry_module.get_runtime_entity_factory_guard_metrics(
+        runtime_with_metrics,
+    )
+    assert metrics is not None
+    assert metrics["samples"] == 3
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.telemetry.dt_util.utcnow",
+        lambda: datetime(2024, 6, 2, tzinfo=UTC),
+    )
+    runtime_data = SimpleNamespace(
+        performance_stats={
+            "runtime_store_health": {
+                "checks": 0,
+                "divergence_events": 0,
+                "status_counts": "invalid",
+            }
+        },
+    )
+    history = telemetry_module.update_runtime_store_health(runtime_data, _snapshot())
+    assert history is not None
+    status_counts = history["status_counts"]
+    assert isinstance(status_counts, dict)
+    assert status_counts["current"] == 1
+
+
+def test_build_runtime_store_assessment_branch_variants() -> None:
+    """Assessment helper should cover action/watch/divergence and duration filtering."""
+    snapshot = _snapshot()
+    base_history: RuntimeStoreHealthHistory = {
+        "checks": 2,
+        "divergence_events": 0,
+        "last_status": "current",
+        "last_entry_status": "future_incompatible",
+        "last_store_status": "current",
+        "last_checked": "2024-07-01T00:00:00+00:00",
+        "divergence_detected": False,
+    }
+    action_assessment = telemetry_module._build_runtime_store_assessment(
+        snapshot,
+        base_history,
+        recorded=True,
+        previous_assessment=None,
+    )
+    assert action_assessment["level"] == "action_required"
+
+    watch_history: RuntimeStoreHealthHistory = {
+        "checks": 2,
+        "divergence_events": 0,
+        "last_status": "current",
+        "last_entry_status": "upgrade_pending",
+        "last_store_status": "current",
+        "last_checked": "2024-07-01T00:00:00+00:00",
+        "divergence_detected": False,
+    }
+    watch_assessment = telemetry_module._build_runtime_store_assessment(
+        snapshot,
+        watch_history,
+        recorded=True,
+        previous_assessment=None,
+    )
+    assert watch_assessment["level"] == "watch"
+
+    divergence_history: RuntimeStoreHealthHistory = {
+        "checks": 2,
+        "divergence_events": 0,
+        "last_status": "current",
+        "last_entry_status": "current",
+        "last_store_status": "current",
+        "last_checked": "2024-07-01T00:00:00+00:00",
+        "divergence_detected": True,
+    }
+    divergence_assessment = telemetry_module._build_runtime_store_assessment(
+        snapshot,
+        divergence_history,
+        recorded=True,
+        previous_assessment={"level": "watch"},
+    )
+    assert divergence_assessment["previous_level"] == "watch"
+    assert divergence_assessment["level"] == "watch"
+
+    duration_history: RuntimeStoreHealthHistory = {
+        "checks": 3,
+        "divergence_events": 0,
+        "last_status": "current",
+        "last_entry_status": "current",
+        "last_store_status": "current",
+        "last_checked": "2024-07-02T00:00:00+00:00",
+        "divergence_detected": False,
+        "assessment_last_level": "ok",
+        "assessment_level_streak": 0,
+        "assessment_last_level_change": None,
+        "assessment_current_level_duration_seconds": -5.0,
+        "assessment_level_durations": {
+            "ok": "bad",
+            "watch": float("inf"),
+            "unknown": 1.0,
+            "action_required": -2.0,
+        },
+    }
+    duration_assessment = telemetry_module._build_runtime_store_assessment(
+        snapshot,
+        duration_history,
+        recorded=False,
+        previous_assessment=None,
+    )
+    assert duration_assessment["level_streak"] == 1
+    assert duration_assessment["last_level_change"] == "2024-07-02T00:00:00+00:00"
+    assert duration_assessment["level_durations"]["action_required"] == pytest.approx(0.0)
+
+    elapsed_history: RuntimeStoreHealthHistory = {
+        "checks": 3,
+        "divergence_events": 0,
+        "last_status": "current",
+        "last_entry_status": "current",
+        "last_store_status": "current",
+        "last_checked": "2024-07-03T00:00:00+00:00",
+        "divergence_detected": False,
+        "assessment_last_level": "ok",
+        "assessment_level_streak": 2,
+        "assessment_last_level_change": "2024-07-02T00:00:00+00:00",
+        "assessment_current_level_duration_seconds": 10.0,
+    }
+    elapsed_assessment = telemetry_module._build_runtime_store_assessment(
+        snapshot,
+        elapsed_history,
+        recorded=False,
+        previous_assessment=None,
+    )
+    assert elapsed_assessment["current_level_duration_seconds"] == pytest.approx(86400.0)
+
+
+def test_normalise_runtime_store_assessment_events_skips_non_mappings() -> None:
+    """Normalisation should ignore list entries that are not mapping objects."""
+    events = telemetry_module._normalise_runtime_store_assessment_events(
+        [
+            {
+                "timestamp": "2024-01-01T00:00:00+00:00",
+                "level": "ok",
+                "status": "current",
+                "reason": "baseline",
+            },
+            123,
+            None,
+        ],
+    )
+
+    assert len(events) == 1
+    assert events[0]["level"] == "ok"
+    assert events[0]["status"] == "current"
+
+
+def test_calculate_duration_percentiles_ignores_none_percentiles(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Duration percentile helper should skip labels when percentile values are missing."""
+    values = [None, None, None]
+
+    def _fake_percentile(_sorted_values: object, _percentile: float) -> float | None:
+        return values.pop(0)
+
+    monkeypatch.setattr(
+        telemetry_module,
+        "_calculate_percentile_value",
+        _fake_percentile,
+    )
+
+    assert telemetry_module._calculate_duration_percentiles([5.0, 10.0]) == {}
+
+
+def test_summarise_runtime_store_events_handles_untracked_values() -> None:
+    """Summaries should tolerate malformed level/status/timestamp payloads."""
+    events: list[RuntimeStoreAssessmentEvent] = [
+        {
+            "timestamp": None,
+            "level": "invalid",  # type: ignore[typeddict-item]
+            "status": "mystery",  # type: ignore[typeddict-item]
+            "reason": None,
+            "recommended_action": 123,  # type: ignore[typeddict-item]
+            "divergence_detected": "yes",  # type: ignore[typeddict-item]
+            "divergence_rate": "bad",  # type: ignore[typeddict-item]
+            "level_changed": False,
+            "current_level_duration_seconds": "bad",  # type: ignore[typeddict-item]
+        }
+    ]
+
+    summary = telemetry_module._summarise_runtime_store_assessment_events(events)
+
+    assert summary["level_counts"] == {
+        "ok": 0,
+        "watch": 0,
+        "action_required": 0,
+    }
+    assert summary["timeline_window_seconds"] is None
+    assert summary["timeline_window_days"] is None
+    assert summary["events_per_day"] is None
+    assert summary["most_common_level"] is None
+    assert summary["most_common_status"] is None
+    assert summary["last_level"] is None
+    assert summary["last_status"] is None
+    assert summary["last_recommended_action"] is None
+
+
+def test_summarise_runtime_store_events_skips_invalid_duration_candidates() -> None:
+    """Duration backfills should skip candidates without usable chronological timestamps."""
+    events: list[RuntimeStoreAssessmentEvent] = [
+        {
+            "timestamp": "2024-01-02T00:00:00+00:00",
+            "level": "ok",
+            "status": "current",
+            "current_level_duration_seconds": "invalid",  # type: ignore[typeddict-item]
+        },
+        {
+            "timestamp": None,
+            "level": "watch",
+            "status": "current",
+            "current_level_duration_seconds": "invalid",  # type: ignore[typeddict-item]
+        },
+        {
+            "timestamp": "2024-01-01T00:00:00+00:00",
+            "level": "watch",
+            "status": "current",
+            "current_level_duration_seconds": "invalid",  # type: ignore[typeddict-item]
+        },
+    ]
+
+    summary = telemetry_module._summarise_runtime_store_assessment_events(events)
+
+    assert summary["level_duration_samples"]["ok"] == 0
+    assert summary["level_duration_samples"]["watch"] == 0
+    assert summary["level_duration_latest"]["ok"] is None
+
+
+def test_summarise_runtime_store_events_zero_window_without_events_per_day(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """A zero-length active window with no events should keep events/day unset."""
+    monkeypatch.setattr(
+        telemetry_module,
+        "_calculate_active_window_seconds",
+        lambda _start, _end: 0.0,
+    )
+
+    summary = telemetry_module._summarise_runtime_store_assessment_events([])
+
+    assert summary["timeline_window_seconds"] == pytest.approx(0.0)
+    assert summary["timeline_window_days"] == pytest.approx(0.0)
+    assert summary["events_per_day"] is None
+
+
+def test_record_runtime_store_assessment_event_replaces_matching_latest_event() -> None:
+    """Recording should overwrite the latest event when timestamp/level/reason/status match."""
+    history: RuntimeStoreHealthHistory = {
+        "assessment_events": [
+            {
+                "timestamp": "2024-08-01T00:00:00+00:00",
+                "level": "watch",
+                "status": "diverged",
+                "reason": "drift",
+                "checks": 1,
+                "divergence_events": 0,
+            }
+        ],
+        "last_checked": "2024-08-01T00:00:00+00:00",
+    }
+    assessment: RuntimeStoreHealthAssessment = {
+        "level": "watch",
+        "previous_level": "ok",
+        "reason": "drift",
+        "recommended_action": "Investigate runtime store divergence.",
+        "checks": 2,
+        "divergence_events": 1,
+        "level_streak": 2,
+        "escalations": 1,
+        "deescalations": 0,
+        "current_level_duration_seconds": 30.0,
+    }
+
+    events, summary = telemetry_module._record_runtime_store_assessment_event(
+        history,
+        assessment,
+        recorded=True,
+        previous_assessment=None,
+        status="diverged",
+        entry_status="current",
+        store_status="current",
+    )
+
+    assert len(events) == 1
+    assert events[0]["checks"] == 2
+    assert events[0]["divergence_events"] == 1
+    assert events[0]["level_streak"] == 2
+    assert summary["total_events"] == 1
+
+
+def test_build_runtime_store_assessment_handles_tied_level_order(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Assessment generation should tolerate tied ordering without escalation changes."""
+    monkeypatch.setattr(
+        telemetry_module,
+        "_RUNTIME_STORE_LEVEL_ORDER",
+        {
+            "ok": 0,
+            "watch": 0,
+            "action_required": 2,
+        },
+    )
+    history: RuntimeStoreHealthHistory = {
+        "checks": 4,
+        "divergence_events": 1,
+        "last_status": "diverged",
+        "last_entry_status": "current",
+        "last_store_status": "current",
+        "last_checked": None,
+        "divergence_detected": False,
+        "assessment_last_level": "ok",
+        "assessment_level_streak": 2,
+        "assessment_last_level_change": "2024-08-01T00:00:00+00:00",
+        "assessment_current_level_duration_seconds": 5.0,
+        "assessment_level_durations": {"ok": 10.0},
+        "assessment_escalations": 0,
+        "assessment_deescalations": 0,
+    }
+
+    assessment = telemetry_module._build_runtime_store_assessment(
+        _snapshot(status="diverged"),
+        history,
+        recorded=True,
+        previous_assessment=None,
+    )
+
+    assert assessment["level"] == "watch"
+    assert assessment["escalations"] == 0
+    assert assessment["deescalations"] == 0
+    assert assessment["level_durations"]["ok"] == pytest.approx(10.0)
+
+
+def test_build_runtime_store_assessment_preserves_last_change_when_present() -> None:
+    """When streak resets without a level change, the existing change timestamp is retained."""
+    history: RuntimeStoreHealthHistory = {
+        "checks": 3,
+        "divergence_events": 0,
+        "last_status": "current",
+        "last_entry_status": "current",
+        "last_store_status": "current",
+        "last_checked": "2024-08-02T00:00:00+00:00",
+        "divergence_detected": False,
+        "assessment_last_level": "ok",
+        "assessment_level_streak": 0,
+        "assessment_last_level_change": "2024-08-01T00:00:00+00:00",
+        "assessment_current_level_duration_seconds": 5.0,
+    }
+
+    assessment = telemetry_module._build_runtime_store_assessment(
+        _snapshot(status="current"),
+        history,
+        recorded=False,
+        previous_assessment=None,
+    )
+
+    assert assessment["level"] == "ok"
+    assert assessment["level_streak"] == 1
+    assert assessment["last_level_change"] == "2024-08-01T00:00:00+00:00"

@@ -48,7 +48,7 @@ def _new_session(
 
 def _local_export_root() -> Path:
     """Return a workspace-local export root for deterministic file IO tests."""
-    root = Path("pytest_tmp_local").resolve()
+    root = Path(".ptmp_garden_exports").resolve()
     root.mkdir(parents=True, exist_ok=True)
     return root
 
@@ -1163,6 +1163,29 @@ def test_build_garden_snapshot_excludes_old_session_and_empty_weather(
 
     assert snapshot["sessions_today"] == 0
     assert snapshot["weather_summary"] is None
+
+
+@pytest.mark.unit
+def test_build_garden_snapshot_counts_active_session_when_not_in_history(
+    hass: HomeAssistant,
+) -> None:
+    """Active sessions started today should be counted even when not in history."""
+    manager = GardenManager(hass, "entry")
+    local_start = dt_util.start_of_local_day(dt_util.now()) + timedelta(hours=1)
+    start_time = dt_util.as_utc(local_start)
+    active = _new_session(
+        "dog-1",
+        start_time=start_time,
+        status=GardenSessionStatus.ACTIVE,
+    )
+    manager._active_sessions["dog-1"] = active
+    manager._session_history = []
+
+    snapshot = manager.build_garden_snapshot("dog-1")
+
+    assert snapshot["status"] == "active"
+    assert snapshot["active_session"] is not None
+    assert snapshot["sessions_today"] == 1
 
 
 @pytest.mark.unit

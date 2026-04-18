@@ -105,3 +105,48 @@ def test_get_compliance_level_threshold_edges() -> None:
         mc.get_compliance_level(mc.BRONZE_COMPLIANCE_THRESHOLD - 1)
         == "needs_improvement"
     )
+
+
+def test_compliance_report_add_issue_unknown_severity_keeps_score() -> None:
+    """Unknown severities should not change compliance score."""
+    report = mc.ComplianceReport(manager_name="unknown")
+    report.add_issue("debug", "misc", "custom severity")
+    assert report.score == 100
+    assert report.is_compliant is True
+
+
+def test_check_method_signatures_skips_absent_methods() -> None:
+    """Signature checks should no-op when optional methods are absent."""
+
+    class _NoSignatureMethods:
+        pass
+
+    report = mc.ComplianceReport(manager_name="nosig")
+    mc.check_method_signatures(_NoSignatureMethods, report)
+    assert report.issues == []
+
+
+def test_check_documentation_skips_missing_methods_without_issue() -> None:
+    """Documentation checks should skip method-doc checks for absent methods."""
+
+    class _PartialManager:
+        """Long enough manager docs to avoid brief-docstring warning."""
+
+        async def async_setup(self) -> None:
+            """Setup docs."""
+
+    report = mc.ComplianceReport(manager_name="partial")
+    mc.check_documentation(_PartialManager, report)
+    assert report.issues == []
+
+
+def test_print_compliance_report_without_issues_logs_summary_only() -> None:
+    """Printing a clean report should not emit per-issue log lines."""
+    report = mc.ComplianceReport(manager_name="clean")
+    logger = _ProbeLogger()
+    mc.print_compliance_report(report, logger)
+
+    assert ("info", "Compliance report for clean: score=100/100, compliant=True") in (
+        logger.messages
+    )
+    assert all("Found" not in message for _level, message in logger.messages)

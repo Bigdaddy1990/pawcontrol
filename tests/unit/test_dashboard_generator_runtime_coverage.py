@@ -436,6 +436,64 @@ def test_runtime_view_normalisation_edge_cases() -> None:
         },
     ]
 
+    assert PawControlDashboardGenerator._summarise_dashboard_views({"views": "invalid"}) == []
+    assert (
+        PawControlDashboardGenerator._normalize_view_summaries(
+            [{"path": "module-b", "title": "B", "icon": "mdi:b", "card_count": object()}],
+        )
+        == [
+            {
+                "path": "module-b",
+                "title": "B",
+                "icon": "mdi:b",
+                "card_count": 0,
+                "module": "module-b",
+            },
+        ]
+    )
+    assert (
+        PawControlDashboardGenerator._normalize_view_summaries(
+            [{"path": "module-c", "title": "C"}, "bad-item"],
+        )
+        is None
+    )
+
+
+def test_runtime_constructor_initializes_state(
+    hass: Any,
+    config_entry_factory: Callable[..., Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercise ``__init__`` and validate the initialized runtime state."""
+
+    class _StoreCtor:
+        def __class_getitem__(cls, item: Any) -> type["_StoreCtor"]:
+            _ = item
+            return cls
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            self.args = args
+            self.kwargs = kwargs
+
+    monkeypatch.setattr(dg, "Store", _StoreCtor)
+    monkeypatch.setattr(dg, "DashboardRenderer", lambda hass_obj: SimpleNamespace(hass=hass_obj))
+    monkeypatch.setattr(
+        dg,
+        "DashboardTemplates",
+        lambda hass_obj: SimpleNamespace(hass=hass_obj),
+    )
+
+    entry = config_entry_factory(entry_id="coverage-constructor")
+    generator = PawControlDashboardGenerator(hass, entry)
+
+    assert generator.hass is hass
+    assert generator.entry is entry
+    assert generator._initialized is False
+    assert isinstance(generator._lock, asyncio.Lock)
+    assert generator._performance_metrics["total_generations"] == 0
+    assert generator._performance_metrics["errors"] == 0
+    assert generator._cleanup_tasks == set()
+
 
 @pytest.mark.asyncio
 async def test_runtime_track_task_scheduling_and_error_paths(
@@ -544,6 +602,56 @@ async def test_runtime_track_task_scheduling_and_error_paths(
     generator.hass = None
     fallback_without_hass = generator._track_task(_quick(), name="no-hass")
     await fallback_without_hass
+
+
+@pytest.mark.asyncio
+async def test_runtime_track_task_runtime_error_and_cancelled_done_paths(
+    config_entry_factory: Callable[..., Any],
+) -> None:
+    """Cover task scheduling RuntimeError fallback and cancelled done callback branch."""
+    generator = object.__new__(PawControlDashboardGenerator)
+    generator.entry = config_entry_factory(entry_id="coverage-track-task-runtime")
+    generator._cleanup_tasks = set()
+
+    class _Loop:
+        @staticmethod
+        def create_task(awaitable: Awaitable[Any], name: str | None = None) -> Any:
+            if name is not None:
+                raise TypeError("name unsupported")
+            return asyncio.create_task(awaitable)
+
+    class _HassRuntimeError:
+        loop = _Loop()
+
+        @staticmethod
+        def async_create_task(
+            awaitable: Awaitable[Any],
+            name: str | None = None,
+        ) -> Any:
+            _ = awaitable, name
+            raise RuntimeError("loop not running")
+
+    generator.hass = _HassRuntimeError()
+
+    async def _quick() -> str:
+        await asyncio.sleep(0)
+        return "ok"
+
+    async def _slow() -> str:
+        await asyncio.sleep(10)
+        return "slow"
+
+    scheduled = generator._track_task(_quick(), name="runtime-fallback")
+    assert await scheduled == "ok"
+    await asyncio.sleep(0)
+
+    cancelled = generator._track_task(_slow(), name="cancelled-task")
+    cancelled.cancel()
+    with suppress(asyncio.CancelledError):
+        await cancelled
+    await asyncio.sleep(0)
+
+    assert cancelled not in generator._cleanup_tasks
 
 
 @pytest.mark.asyncio

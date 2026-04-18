@@ -15,11 +15,15 @@ from custom_components.pawcontrol.feeding_translations import (
     _SEQUENCE_SCAN_LIMIT,
     _as_float,
     _BoundedSequenceSnapshot,
+    _clean_structured_text_candidate,
     _collect_issue_summaries,
     _collect_missed_meals,
     _collect_recommendations,
+    _describe_issue,
+    _first_text_candidate,
     _format_structured_message,
     _is_structured_message_payload,
+    _iter_mapping_text_candidates,
     _iter_text_candidates,
     _load_static_common_translations,
     _normalise_count,
@@ -168,6 +172,7 @@ def test_normalise_helpers_cover_text_count_and_date_fallbacks() -> None:
     assert _normalise_count(" 4 ") == "4"
     assert _normalise_count("2.5") == "2.5"
     assert _normalise_count(object()) == "?"
+    assert _as_float("   ") is None
 
     assert _normalise_date(" 2026-03-20 ") == "2026-03-20"
     assert _normalise_date(None) == "unknown"
@@ -178,6 +183,153 @@ def test_normalise_helpers_cover_text_count_and_date_fallbacks() -> None:
     assert _normalise_text(b"  telemetry offline  ") == "telemetry offline"
     assert _normalise_text(memoryview(b"  Buddy  ")) == "Buddy"
     assert _normalise_text(None) is None
+
+
+class _BytesPathLike:
+    """Path-like helper returning bytes for decoding branch coverage."""
+
+    def __fspath__(self) -> bytes:
+        return b"  /tmp/feeding.log  "
+
+
+def test_normalise_text_decodes_bytes_pathlike_values() -> None:
+    """Path-like objects returning bytes should be decoded safely."""
+    assert _normalise_text(_BytesPathLike()) == "/tmp/feeding.log"
+
+
+def test_normalise_sequence_limit_paths() -> None:
+    """Sequence normalization should cover zero-limit and truncation branches."""
+    assert tuple(_normalise_sequence([1, 2], limit=0) or ()) == ()
+    assert tuple(_normalise_sequence([1, 2, 3], limit=2) or ()) == (1, 2)
+
+
+def test_iter_text_candidates_handles_previsited_and_binary_inputs() -> None:
+    """Text candidate iterator should short-circuit visited ids and binary payloads."""
+    recursive: list[object] = []
+    recursive.append(recursive)
+    assert list(_iter_text_candidates(recursive, _visited={id(recursive)})) == []
+
+    assert list(_iter_text_candidates(b"  hello  ")) == ["hello"]
+    assert list(_iter_text_candidates(memoryview(b"  world  "))) == ["world"]
+    assert list(_iter_text_candidates(b"   ")) == []
+    assert list(_iter_text_candidates(memoryview(b"   "))) == []
+
+
+def test_iter_mapping_text_candidates_handles_non_string_keys() -> None:
+    """Mappings with non-string keys should still be processed without key indexing."""
+    payload: dict[object, object] = {1: "numeric-key", "text": "ok"}
+    candidates = list(_iter_mapping_text_candidates(payload, _visited=set()))
+    assert "numeric-key" in candidates
+    assert "ok" in candidates
+
+
+def test_first_text_candidate_ignores_empty_results(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Empty candidate values should not be returned as first text."""
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.feeding_translations._iter_text_candidates",
+        lambda _value: iter([""]),
+    )
+    assert _first_text_candidate(object()) is None
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, None),
+        ("   ", None),
+        ("<Foo object at 0x123>", None),
+        ("{'k': 'v'}", None),
+        ("[a, b]", None),
+        ("(a, b)", None),
+    ],
+)
+def test_clean_structured_text_candidate_filters_non_descriptive_values(
+    value: object,
+    expected: str | None,
+) -> None:
+    """Structured candidate cleaning should drop blank and object-like payloads."""
+    assert _clean_structured_text_candidate(cast(str | None, value)) == expected
+
+
+def test_format_structured_message_deduplicates_candidates_case_insensitively() -> None:
+    """Duplicate messages should only appear once in formatted output."""
+    assert _format_structured_message(["Telemetry offline", " telemetry offline "]) == (
+        "Telemetry offline"
+    )
+
+
+def test_describe_issue_paths_cover_issue_fallback_logic() -> None:
+    """Issue descriptions should handle empty issues, retries, and fallback text."""
+    assert _describe_issue({"issues": [{}], "description": "From description"}) == (
+        "From description"
+    )
+    assert _describe_issue({"issues": [{}, "From issues list"]}) == "From issues list"
+    assert _describe_issue({"issues": "Raw issue"}) == "Raw issue"
+    assert _describe_issue({}) == "issue"
+
+
+def test_collect_missed_meals_returns_empty_for_non_sequence_entries() -> None:
+    """Missed meal summaries should ignore non-sequence payloads."""
+    translations = get_feeding_compliance_translations("en")
+    assert _collect_missed_meals(translations, object()) == []
+
+
+def test_collect_recommendations_returns_empty_for_none_input() -> None:
+    """Recommendation summaries should return an empty list for null payloads."""
+    translations = get_feeding_compliance_translations("en")
+    assert _collect_recommendations(translations, None) == []
+
+
+def test_build_summary_omits_recommendation_section_when_empty() -> None:
+    """Completed summaries without recommendations should keep score-only message."""
+    summary = build_feeding_compliance_summary(
+        "en",
+        display_name="Buddy",
+        compliance={
+            "status": "completed",
+            "compliance_score": 91,
+            "days_analyzed": 3,
+            "missed_meals": [],
+            "compliance_issues": [],
+            "recommendations": [],
+        },
+    )
+    message = summary["message"]
+    assert message is not None
+    assert "Next steps:" not in message
+
+
+def test_load_static_common_translations_handles_missing_and_invalid_files(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Static translation loading should gracefully handle missing/invalid files."""
+    assert _load_static_common_translations("zzzz") == _load_static_common_translations(
+        "en"
+    )
+
+    monkeypatch.setattr(
+        "pathlib.Path.exists",
+        lambda _self: True,
+    )
+    monkeypatch.setattr(
+        "pathlib.Path.read_text",
+        lambda _self, encoding=None: (_ for _ in ()).throw(OSError("boom")),
+    )
+    assert _load_static_common_translations("en") == {}
+
+    monkeypatch.setattr("pathlib.Path.read_text", lambda _self, encoding=None: "{")
+    assert _load_static_common_translations("en") == {}
+
+
+def test_bounded_sequence_snapshot_stops_iterator_when_limit_reached() -> None:
+    """Explicit cache consumption at limit should drop the underlying iterator."""
+    snapshot = _BoundedSequenceSnapshot(iter([3]), 2)
+    snapshot._cache = [1, 2]  # noqa: SLF001
+    snapshot._consume_to(2)
+    assert snapshot._iterator is None
 
 
 def test_format_structured_message_handles_recursive_mapping() -> None:

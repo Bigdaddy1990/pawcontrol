@@ -1,8 +1,13 @@
 from datetime import UTC, datetime, time  # noqa: D100
 import json
+from contextlib import suppress
+from collections.abc import Iterator
+from pathlib import Path
+from shutil import rmtree
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import ANY, AsyncMock, Mock, patch
+from uuid import uuid4
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -89,6 +94,20 @@ from custom_components.pawcontrol.types import (
     WeatherOptions,
     ensure_notification_options,
 )
+
+
+@pytest.fixture
+def tmp_path() -> Iterator[Path]:
+    """Provide a local temp directory path without pytest tmpdir plugin."""
+    base = Path(__file__).resolve().parents[2] / ".tmp_test_paths"
+    base.mkdir(parents=True, exist_ok=True)
+    temp_dir = base / f"options-flow-{uuid4().hex}"
+    temp_dir.mkdir(parents=True, exist_ok=False)
+    try:
+        yield temp_dir
+    finally:
+        with suppress(PermissionError):
+            rmtree(temp_dir, ignore_errors=True)
 
 
 def _assert_notification_values(

@@ -109,6 +109,20 @@ def test_validate_device_endpoint_accepts_http_and_https(
 
 
 @pytest.mark.unit
+def test_coerce_json_mutable_handles_none_and_generic_mapping(
+    device_api_module: ModuleType,
+) -> None:
+    """Coercion helper should normalize None and non-dict mappings."""
+    from collections import UserDict
+
+    assert device_api_module._coerce_json_mutable(None) == {}
+
+    coerced = device_api_module._coerce_json_mutable(UserDict({"a": 1, "b": 2}))
+    assert coerced == {"a": 1, "b": 2}
+    assert isinstance(coerced, dict)
+
+
+@pytest.mark.unit
 def test_device_client_forwards_bearer_token_and_feeding_path(
     device_api_module: ModuleType,
     session_factory,
@@ -248,6 +262,29 @@ def test_device_client_non_json_payload_raises_network_error(
         asyncio.run(client.async_get_json("/status"))
 
     assert "non-JSON" in str(excinfo.value)
+
+
+@pytest.mark.unit
+def test_device_client_unexpected_json_payload_type_raises_network_error(
+    device_api_module: ModuleType,
+    session_factory,
+) -> None:
+    """JSON payloads that are not objects should raise a network error."""
+    session = session_factory()
+    response = Mock()
+    response.status = 200
+    response.json = AsyncMock(return_value=["not", "an", "object"])
+    session.request = AsyncMock(return_value=response)
+
+    client = device_api_module.PawControlDeviceClient(
+        session=session,
+        endpoint="https://device.pawcontrol.invalid",
+    )
+
+    with pytest.raises(device_api_module.NetworkError) as excinfo:
+        asyncio.run(client.async_get_json("/status"))
+
+    assert "unexpected response payload" in str(excinfo.value)
 
 
 @pytest.mark.unit

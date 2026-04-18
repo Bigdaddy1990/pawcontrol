@@ -142,6 +142,56 @@ def test_coordinator_is_available_typeerror_and_awaitable() -> None:
     assert _coordinator_is_available(_AwaitableAvailable()) is True
 
 
+def test_normalize_cache_timestamp_within_tolerance() -> None:
+    """Future cache values inside tolerance should clamp to current time."""
+    normalized, adjusted = oeb._normalize_cache_timestamp(100.5, 100.0, tolerance=1.0)
+    assert normalized == 100.0
+    assert adjusted is True
+
+
+def test_coordinator_is_available_none_returns_true() -> None:
+    """Missing coordinators are treated as available for compatibility."""
+    assert _coordinator_is_available(None) is True
+
+
+def test_call_coordinator_method_guard_paths() -> None:
+    """Method guards should handle missing targets, type errors, and awaitables."""
+
+    class _NoMethods:
+        pass
+
+    class _NeedsArg:
+        def with_arg(self, value: int) -> int:
+            return value
+
+    class _AwaitableValue:
+        def __await__(self):
+            if False:
+                yield None
+            return 1
+
+    class _ReturnsAwaitable:
+        def async_like(self) -> _AwaitableValue:
+            return _AwaitableValue()
+
+    assert oeb._call_coordinator_method(None, "any") is None
+    assert oeb._call_coordinator_method(_NoMethods(), "missing") is None
+    assert oeb._call_coordinator_method(_NeedsArg(), "with_arg") is None
+    assert oeb._call_coordinator_method(_ReturnsAwaitable(), "async_like") is None
+
+
+def test_performance_tracker_trims_sample_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Operation time samples should be trimmed to the configured max size."""
+    tracker = PerformanceTracker("entity-1")
+    monkeypatch.setitem(oeb.MEMORY_OPTIMIZATION, "performance_sample_size", 2)
+    tracker.record_operation_time(0.1)
+    tracker.record_operation_time(0.2)
+    tracker.record_operation_time(0.3)
+    assert tracker._operation_times == [0.2, 0.3]
+
+
 def test_entity_configuration_defaults_and_properties() -> None:
     """Default and explicit naming/configuration branches should be reflected."""
     coordinator = _DummyCoordinator()

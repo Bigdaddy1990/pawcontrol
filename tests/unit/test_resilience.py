@@ -5,6 +5,7 @@ FallbackStrategy default/fallback resolution, ResilienceManager composition,
 global registry helpers, and decorator wrappers.
 """
 
+import time
 from unittest.mock import AsyncMock
 
 import pytest
@@ -270,6 +271,65 @@ def test_circuit_breaker_reset_clears_state() -> None:
     assert breaker.get_stats().failure_count == 0
 
 
+@pytest.mark.unit
+def test_circuit_breaker_name_and_half_open_property() -> None:
+    """Circuit breaker should expose name and half-open state helpers."""
+    breaker = CircuitBreaker("named_breaker")
+    breaker._stats.state = CircuitState.HALF_OPEN
+
+    assert breaker.name == "named_breaker"
+    assert breaker.is_half_open is True
+
+
+@pytest.mark.unit
+def test_circuit_breaker_should_attempt_reset_without_failure_time() -> None:
+    """Reset checks should allow an attempt when no failure timestamp is stored."""
+    breaker = CircuitBreaker("reset_without_failure_time")
+    breaker._stats.last_failure_time = None
+
+    assert breaker._should_attempt_reset() is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_circuit_breaker_aenter_open_without_reset_raises() -> None:
+    """Open circuit should reject entry until timeout allows a reset attempt."""
+    breaker = CircuitBreaker("open_no_reset_attempt")
+    breaker._stats.state = CircuitState.OPEN
+    breaker._stats.last_failure_time = time.time()
+
+    with pytest.raises(ServiceUnavailableError):
+        await breaker.__aenter__()
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_circuit_breaker_aenter_open_transitions_to_half_open() -> None:
+    """Open circuit should transition to HALF_OPEN once reset timeout has elapsed."""
+    breaker = CircuitBreaker("open_to_half_open")
+    breaker._stats.state = CircuitState.OPEN
+    breaker._stats.last_failure_time = time.time() - 3600
+    breaker._stats.success_count = 5
+
+    entered = await breaker.__aenter__()
+
+    assert entered is breaker
+    assert breaker.state is CircuitState.HALF_OPEN
+    assert breaker.get_stats().success_count == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_circuit_breaker_aexit_records_failure_for_non_excluded_error() -> None:
+    """Context exit should count failures for non-excluded exceptions."""
+    breaker = CircuitBreaker("aexit_non_excluded_failure")
+    stats = breaker.get_stats()
+
+    await breaker.__aexit__(NetworkError, NetworkError("boom"), None)
+
+    assert stats.total_failures == 1
+
+
 # ---------------------------------------------------------------------------
 # RetryConfig defaults
 # ---------------------------------------------------------------------------
@@ -362,6 +422,16 @@ async def test_retry_strategy_non_retryable_raises_immediately() -> None:
     with pytest.raises(ValueError):
         await strategy.execute(boom)
     assert calls == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_retry_strategy_zero_attempts_hits_defensive_runtime_error() -> None:
+    """Zero attempts should trigger the defensive fallback runtime error."""
+    strategy = RetryStrategy(RetryConfig(max_attempts=0))
+
+    with pytest.raises(RuntimeError, match="Retry logic failed unexpectedly"):
+        await strategy.execute(_ok)
 
 
 # ---------------------------------------------------------------------------

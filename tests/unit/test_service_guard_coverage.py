@@ -5,6 +5,7 @@ import pytest
 from custom_components.pawcontrol.service_guard import (
     ServiceGuardResult,
     ServiceGuardSnapshot,
+    _coerce_int,
     normalise_guard_history,
     normalise_guard_result_payload,
 )
@@ -198,3 +199,34 @@ def test_service_guard_snapshot_zero_metrics_and_history() -> None:  # noqa: D10
 def test_normalise_guard_history_filters_bytes_sequences() -> None:  # noqa: D103
     assert normalise_guard_history(b"binary") == []
     assert normalise_guard_history(bytearray(b"binary")) == []
+
+
+@pytest.mark.unit
+def test_coerce_int_invalid_string_and_object_values() -> None:  # noqa: D103
+    assert _coerce_int("not-a-number") == 0
+    assert _coerce_int(object()) == 0
+
+
+@pytest.mark.unit
+def test_service_guard_snapshot_accumulate_reasons_snapshot_non_mapping() -> None:  # noqa: D103
+    snapshot = ServiceGuardSnapshot.from_sequence([
+        ServiceGuardResult(domain="pawcontrol", service="walk", executed=False)
+    ])
+
+    class _ReasonsOpaqueMetrics(dict[str, object]):
+        def get(self, key: str, default: object = None) -> object:  # noqa: A003
+            if key == "reasons":
+                return "opaque"
+            return super().get(key, default)
+
+    metrics = _ReasonsOpaqueMetrics(
+        {
+            "executed": object(),
+            "skipped": "not-a-number",
+            "last_results": "invalid",
+        },
+    )
+    merged = snapshot.accumulate(metrics)
+    assert merged["executed"] == 0
+    assert merged["skipped"] == 1
+    assert merged["reasons"] == {}

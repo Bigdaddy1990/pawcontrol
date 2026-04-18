@@ -279,6 +279,27 @@ async def test_unregister_entry_mqtt_supports_async_unsubscribe() -> None:
 
 
 @pytest.mark.asyncio
+async def test_unregister_entry_mqtt_supports_sync_unsubscribe() -> None:
+    """Unregister should also accept plain synchronous unsubscribe callbacks."""
+    unsub_called = False
+
+    def _unsub() -> None:
+        nonlocal unsub_called
+        unsub_called = True
+        return None
+
+    hass = SimpleNamespace(
+        data={DOMAIN: {mqtt_push._MQTT_STORE_KEY: {"entry-id": _unsub}}}
+    )
+    entry = SimpleNamespace(entry_id="entry-id")
+
+    await mqtt_push.async_unregister_entry_mqtt(hass, entry)
+
+    assert unsub_called is True
+    assert hass.data[DOMAIN][mqtt_push._MQTT_STORE_KEY] == {}
+
+
+@pytest.mark.asyncio
 async def test_unregister_entry_mqtt_ignores_invalid_store_and_unsub_errors() -> None:
     """Unregister should be resilient to malformed storage and callback failures."""
     hass = SimpleNamespace(data={DOMAIN: {mqtt_push._MQTT_STORE_KEY: []}})

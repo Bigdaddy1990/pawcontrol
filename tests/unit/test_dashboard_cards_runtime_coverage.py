@@ -1316,3 +1316,103 @@ async def test_dashboard_cards_branch_fillers(monkeypatch: pytest.MonkeyPatch) -
         {"show_breed_advice": True, "show_weather_forecast": True},
     )
     assert full_weather_cards
+
+
+@pytest.mark.asyncio
+async def test_dashboard_cards_covers_remaining_map_quick_actions_walk_and_notifications_branches() -> None:
+    """Cover remaining map-option, quick-action, walk-history, and notification branches."""
+    templates = _TemplatesStub()
+
+    default_map_options = dc.DashboardTemplates._normalise_map_options({})
+    non_mapping_map_options = dc._coerce_map_options(
+        [("zoom", "9"), ("hours_to_show", "3")],
+    )
+    assert non_mapping_map_options["zoom"] == 9
+    assert non_mapping_map_options["hours_to_show"] == 3
+
+    nested_mapping_map_options = dc._coerce_map_options(
+        {"map_options": {"zoom": "7", "hours_to_show": "5"}},
+    )
+    assert nested_mapping_map_options["zoom"] == 7
+    assert nested_mapping_map_options["hours_to_show"] == 5
+
+    fallback_map_options = dc._coerce_map_options({1: "invalid", "unsupported": "value"})
+    assert fallback_map_options == default_map_options
+
+    overview_generator = dc.OverviewCardGenerator(_hass(), templates)
+    overview_generator._validate_entities_batch = AsyncMock(
+        return_value=[f"sensor.{dc.DOMAIN}_dogs_walking"],
+    )  # type: ignore[method-assign]
+    mixed_actions = await overview_generator.generate_quick_actions(
+        [
+            _dog(
+                "feed1",
+                "Feed 1",
+                modules={MODULE_FEEDING: True, MODULE_WALK: False},
+            ),
+            _dog(
+                "walk2",
+                "Walk 2",
+                modules={MODULE_FEEDING: True, MODULE_WALK: True},
+            ),
+        ],
+    )
+    assert mixed_actions is not None
+    mixed_entities = [
+        card.get("tap_action", {}).get("entity")
+        for card in mixed_actions["cards"]
+        if isinstance(card, Mapping)
+    ]
+    assert f"button.{dc.DOMAIN}_feed_all_dogs" not in mixed_entities
+    assert f"sensor.{dc.DOMAIN}_dogs_walking" in mixed_entities
+
+    overview_generator._validate_entities_batch = AsyncMock(
+        return_value=[f"sensor.{dc.DOMAIN}_dogs_walking"],
+    )  # type: ignore[method-assign]
+    walking_only_actions = await overview_generator.generate_quick_actions(
+        [
+            _dog(
+                "walk3",
+                "Walk 3",
+                modules={MODULE_FEEDING: False, MODULE_WALK: True},
+            ),
+        ],
+    )
+    assert walking_only_actions is not None
+    walking_entities = [
+        card.get("tap_action", {}).get("entity")
+        for card in walking_only_actions["cards"]
+        if isinstance(card, Mapping)
+    ]
+    assert f"button.{dc.DOMAIN}_feed_all_dogs" not in walking_entities
+    assert f"sensor.{dc.DOMAIN}_dogs_walking" in walking_entities
+
+    module_generator = dc.ModuleCardGenerator(_hass(), templates)
+    templates.get_history_graph_template = AsyncMock(
+        return_value={
+            "type": "history-graph",
+            "entities": ["sensor.walkdog_walks_today"],
+        },
+    )
+    history_card = await module_generator._generate_walk_history_card("walkdog", "en")
+    assert history_card is not None
+    templates.get_history_graph_template = AsyncMock(
+        return_value={"type": "history-graph", "entities": []},
+    )
+    assert await module_generator._generate_walk_history_card("walkdog", "en") is None
+
+    module_generator._validate_entities_batch = AsyncMock(
+        return_value=["switch.n2_notifications_enabled"],
+    )  # type: ignore[method-assign]
+    templates.get_notification_settings_card_template = AsyncMock(
+        return_value={
+            "type": "entities",
+            "entities": ["switch.n2_notifications_enabled"],
+        },
+    )
+    notification_cards = await module_generator.generate_notification_cards(
+        _dog("n2", "N2", modules={MODULE_NOTIFICATIONS: True}),
+        {},
+    )
+    assert len(notification_cards) == 3
+    assert notification_cards[0]["type"] == "entities"
