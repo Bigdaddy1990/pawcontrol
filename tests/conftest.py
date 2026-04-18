@@ -13,8 +13,11 @@ from collections.abc import Awaitable, Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from importlib import import_module
 from importlib.util import find_spec
+from pathlib import Path
+import shutil
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock
+from uuid import uuid4
 
 import pytest
 
@@ -82,6 +85,21 @@ def _run_async(coro):
 def hass() -> StubHomeAssistant:
     """Return a minimal Home Assistant test instance."""
     return StubHomeAssistant()
+
+
+@pytest.fixture
+def tmp_path() -> Path:
+    """Provide a workspace-local temp path when pytest tmpdir plugin is disabled."""
+    base_dir = Path(__file__).resolve().parents[1] / ".tmp_test_paths"
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    temp_dir = base_dir / f"pytest-{uuid4().hex}"
+    temp_dir.mkdir(parents=True, exist_ok=False)
+
+    try:
+        yield temp_dir
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 # ==============================================================================
