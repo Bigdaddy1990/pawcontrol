@@ -153,6 +153,14 @@ def test_base_module_adapter_cache_helpers_with_disabled_ttl() -> None:  # noqa:
     assert adapter.cache_metrics() == module_adapters.ModuleCacheMetrics()
 
 
+def test_base_module_adapter_clear_is_noop_without_cache() -> None:  # noqa: D103
+    adapter = _DummyAdapter(ttl=None)
+
+    adapter.clear()
+
+    assert adapter.cache_metrics() == module_adapters.ModuleCacheMetrics()
+
+
 def test_base_module_adapter_snapshot_sets_ttl_metadata(monkeypatch) -> None:  # noqa: D103
     adapter = _DummyAdapter(ttl=timedelta(seconds=30))
     assert adapter._cache is not None
@@ -905,3 +913,182 @@ async def test_health_and_weather_adapters_cover_cache_and_optional_branches() -
     weather_adapter.attach(_WeatherManagerNoDogConfig())
     ready_with_invalid_dogs = await weather_adapter.async_get_data("dog-2")
     assert ready_with_invalid_dogs["status"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_health_adapter_branch_paths_for_empty_and_non_mapping_history() -> None:  # noqa: D103
+    class _PseudoLatest:
+        def __init__(self, payload: dict[str, object]) -> None:
+            self._payload = payload
+
+        def get(self, key: str, default=None):  # type: ignore[no-untyped-def]
+            return self._payload.get(key, default)
+
+    class _HistoryManager:
+        async def async_get_module_history(
+            self,
+            _module: str,
+            dog_id: str,
+            *,
+            limit: int,
+        ) -> list[object]:
+            assert limit == 1
+            if dog_id == "dog-empty":
+                return []
+            return [
+                _PseudoLatest(
+                    {
+                        "medications": "unexpected",
+                        "health_alerts": "unexpected",
+                    },
+                ),
+            ]
+
+    class _WalkManager:
+        async def async_get_walk_data(self, _dog_id: str) -> dict[str, object]:
+            return {}
+
+    adapter = HealthModuleAdapter(ttl=timedelta(minutes=5))
+    adapter.attach(
+        feeding_manager=None,
+        data_manager=_HistoryManager(),
+        walk_manager=_WalkManager(),
+    )
+
+    empty_payload = await adapter.async_get_data("dog-empty")
+    assert empty_payload["status"] == "healthy"
+
+    odd_payload = await adapter.async_get_data("dog-odd")
+    assert odd_payload["status"] == "healthy"
+    assert odd_payload.get("activity_level") is None
+    assert odd_payload["medications"] == []
+    assert odd_payload["health_alerts"] == []
+
+
+@pytest.mark.asyncio
+async def test_health_adapter_ignores_unknown_items_in_stored_lists() -> None:  # noqa: D103
+    class _HistoryManager:
+        async def async_get_module_history(
+            self,
+            _module: str,
+            _dog_id: str,
+            *,
+            limit: int,
+        ) -> list[dict[str, object]]:
+            assert limit == 1
+            return [
+                {
+                    "medications": [1, {"name": "omega"}, "joint_support"],
+                    "health_alerts": [0, {"type": "hydration"}, "weight_alert"],
+                },
+            ]
+
+    adapter = HealthModuleAdapter(ttl=timedelta(minutes=5))
+    adapter.attach(
+        feeding_manager=None,
+        data_manager=_HistoryManager(),
+        walk_manager=None,
+    )
+
+    payload = await adapter.async_get_data("dog-lists")
+    assert payload["medications"][0]["name"] == "omega"
+    assert payload["medications"][1]["name"] == "joint_support"
+    assert payload["health_alerts"][0]["type"] == "hydration"
+    assert payload["health_alerts"][1]["type"] == "weight_alert"
+
+
+def test_weather_adapter_resolve_dog_config_continues_after_non_matching_string_id() -> None:  # noqa: D103
+    adapter = WeatherModuleAdapter(
+        config_entry=SimpleNamespace(
+            data={
+                "dogs": [
+                    {"dog_id": "other"},
+                    {"dog_id": "target"},
+                ],
+            },
+            options={},
+        ),
+        ttl=timedelta(minutes=5),
+    )
+
+    resolved = adapter._resolve_dog_config("target")
+    assert resolved is not None
+    assert resolved["dog_id"] == "target"
+
+
+@pytest.mark.asyncio
+async def test_weather_adapter_parses_string_age_when_building_recommendations() -> None:  # noqa: D103
+    recommendations_calls: list[tuple[str | None, int | None, list[str] | None]] = []
+
+    class _WeatherManager:
+        def get_active_alerts(self) -> list[SimpleNamespace]:
+            return []
+
+        def get_recommendations_for_dog(
+            self,
+            *,
+            dog_breed: str | None,
+            dog_age_months: int | None,
+            health_conditions: list[str] | None,
+        ) -> list[str]:
+            recommendations_calls.append((dog_breed, dog_age_months, health_conditions))
+            return []
+
+        def get_weather_health_score(self) -> int:
+            return 99
+
+        def get_current_conditions(self) -> None:
+            return None
+
+    adapter = WeatherModuleAdapter(
+        config_entry=SimpleNamespace(
+            data={"dogs": [{"dog_id": "dog-1", "dog_age": "12"}]},
+            options={},
+        ),
+        ttl=timedelta(minutes=5),
+    )
+    adapter.attach(_WeatherManager())
+
+    payload = await adapter.async_get_data("dog-1")
+
+    assert payload["status"] == "ready"
+    assert recommendations_calls == [(None, 12, None)]
+
+
+@pytest.mark.asyncio
+async def test_weather_adapter_ignores_non_scalar_age_values() -> None:  # noqa: D103
+    recommendations_calls: list[tuple[str | None, int | None, list[str] | None]] = []
+
+    class _WeatherManager:
+        def get_active_alerts(self) -> list[SimpleNamespace]:
+            return []
+
+        def get_recommendations_for_dog(
+            self,
+            *,
+            dog_breed: str | None,
+            dog_age_months: int | None,
+            health_conditions: list[str] | None,
+        ) -> list[str]:
+            recommendations_calls.append((dog_breed, dog_age_months, health_conditions))
+            return []
+
+        def get_weather_health_score(self) -> int:
+            return 95
+
+        def get_current_conditions(self) -> None:
+            return None
+
+    adapter = WeatherModuleAdapter(
+        config_entry=SimpleNamespace(
+            data={"dogs": [{"dog_id": "dog-2", "dog_age": {"months": 12}}]},
+            options={},
+        ),
+        ttl=timedelta(minutes=5),
+    )
+    adapter.attach(_WeatherManager())
+
+    payload = await adapter.async_get_data("dog-2")
+
+    assert payload["status"] == "ready"
+    assert recommendations_calls == [(None, None, None)]

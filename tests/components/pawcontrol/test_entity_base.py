@@ -143,6 +143,27 @@ def test_runtime_manager_accessors_use_runtime_data_first(
     assert entity._get_notification_manager() == "nm"
 
 
+def test_get_runtime_data_returns_none_when_config_entry_missing() -> None:
+    """Runtime data lookup should short-circuit when coordinator has no entry."""
+    entity = _make_entity()
+    entity.hass = cast(Any, object())
+    entity.coordinator.config_entry = None
+
+    assert entity._get_runtime_data() is None
+
+
+def test_get_data_manager_falls_back_to_runtime_manager_container() -> None:
+    """Data manager accessor should fallback to runtime manager container."""
+    entity = _make_entity()
+    entity.hass = cast(Any, object())
+    entity.coordinator.config_entry = None
+    entity.coordinator.runtime_managers = CoordinatorRuntimeManagers(
+        data_manager="fallback-dm",
+    )
+
+    assert entity._get_data_manager() == "fallback-dm"
+
+
 @pytest.mark.asyncio
 async def test_async_call_hass_service_delegates_to_guard_helper(
     monkeypatch: pytest.MonkeyPatch,
