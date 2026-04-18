@@ -456,7 +456,10 @@ def test_get_runtime_data_returns_runtime_value_when_available(
     entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "r1", "R1")
     entity.hass = hass
     runtime_value = SimpleNamespace(marker="runtime")
-    monkeypatch.setattr("custom_components.pawcontrol.entity.get_runtime_data", lambda *_args: runtime_value)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.entity.get_runtime_data",
+        lambda *_args: runtime_value,
+    )
 
     assert entity._get_runtime_data() is runtime_value
 
@@ -486,7 +489,9 @@ def test_get_runtime_managers_prefers_runtime_data_container(
 def test_get_runtime_managers_returns_existing_container_instance() -> None:
     """Existing CoordinatorRuntimeManagers should be returned directly."""
     coord = _StubCoordinator()
-    existing = CoordinatorRuntimeManagers(notification_manager=SimpleNamespace(name="notify"))
+    existing = CoordinatorRuntimeManagers(
+        notification_manager=SimpleNamespace(name="notify")
+    )
     coord.runtime_managers = existing
     entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "existing", "Existing")
 
@@ -550,7 +555,10 @@ async def test_async_call_hass_service_wrapper_forwards_arguments(
         assert "dog svc" in kwargs["description"]
         return expected
 
-    monkeypatch.setattr("custom_components.pawcontrol.entity.async_call_hass_service_if_available", _fake_call)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.entity.async_call_hass_service_if_available",
+        _fake_call,
+    )
 
     result = await entity._async_call_hass_service(
         "notify",

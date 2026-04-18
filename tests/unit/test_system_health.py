@@ -382,7 +382,11 @@ def test_coerce_automation_entries_preserves_explicit_boolean_values() -> None:
 def test_coerce_automation_entries_skips_empty_items_and_none_config_flags() -> None:
     """Entries without usable fields should be skipped while later entries are kept."""
     entries = _coerce_automation_entries([
-        {"configured_guard": None, "configured_breaker": None, "configured_check": None},
+        {
+            "configured_guard": None,
+            "configured_breaker": None,
+            "configured_check": None,
+        },
         {"title": "  Active automation  "},
     ])
 

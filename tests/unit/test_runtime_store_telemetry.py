@@ -1094,7 +1094,9 @@ def test_build_runtime_store_assessment_branch_variants() -> None:
     )
     assert duration_assessment["level_streak"] == 1
     assert duration_assessment["last_level_change"] == "2024-07-02T00:00:00+00:00"
-    assert duration_assessment["level_durations"]["action_required"] == pytest.approx(0.0)
+    assert duration_assessment["level_durations"]["action_required"] == pytest.approx(
+        0.0
+    )
 
     elapsed_history: RuntimeStoreHealthHistory = {
         "checks": 3,
@@ -1115,7 +1117,9 @@ def test_build_runtime_store_assessment_branch_variants() -> None:
         recorded=False,
         previous_assessment=None,
     )
-    assert elapsed_assessment["current_level_duration_seconds"] == pytest.approx(86400.0)
+    assert elapsed_assessment["current_level_duration_seconds"] == pytest.approx(
+        86400.0
+    )
 
 
 def test_normalise_runtime_store_assessment_events_skips_non_mappings() -> None:

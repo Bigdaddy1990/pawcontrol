@@ -122,7 +122,7 @@ class _SystemFlow(SystemSettingsOptionsMixin):
     ) -> int:
         try:
             number = int(value if value is not None else default)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             number = int(default)
         return max(minimum, min(maximum, number))
 
@@ -220,7 +220,9 @@ class _SystemFlow(SystemSettingsOptionsMixin):
             else:
                 merged[field] = raw
 
-        reset_time = self._coerce_time_string(user_input.get("reset_time"), reset_default)
+        reset_time = self._coerce_time_string(
+            user_input.get("reset_time"), reset_default
+        )
         return merged, reset_time
 
     def _build_dashboard_settings(
@@ -454,12 +456,10 @@ async def test_async_step_push_settings_keeps_secret_and_falls_back_topic() -> N
     """Push settings should keep non-empty secrets and fallback to current topic."""
     flow = _SystemFlow({CONF_MQTT_TOPIC: "pawcontrol/fallback"})
 
-    result = await flow.async_step_push_settings(
-        {
-            CONF_WEBHOOK_SECRET: "  top-secret  ",
-            CONF_MQTT_TOPIC: 17,
-        }
-    )
+    result = await flow.async_step_push_settings({
+        CONF_WEBHOOK_SECRET: "  top-secret  ",
+        CONF_MQTT_TOPIC: 17,
+    })
 
     assert result["type"] == "create_entry"
     assert result["data"][CONF_WEBHOOK_SECRET] == "top-secret"
@@ -633,18 +633,16 @@ async def test_async_step_system_settings_persists_manual_events_and_syncs_runti
     monkeypatch.setattr(
         system_settings,
         "_resolve_get_runtime_data",
-        lambda: (lambda _hass, _entry: runtime),
+        lambda: lambda _hass, _entry: runtime,
     )
 
     flow = _SystemFlow({"system_settings": {}})
-    result = await flow.async_step_system_settings(
-        {
-            "manual_check_event": "event.check",
-            "manual_guard_event": "none",
-            "manual_breaker_event": "event.breaker",
-            "enable_analytics": True,
-        }
-    )
+    result = await flow.async_step_system_settings({
+        "manual_check_event": "event.check",
+        "manual_guard_event": "none",
+        "manual_breaker_event": "event.breaker",
+        "enable_analytics": True,
+    })
 
     assert result["type"] == "create_entry"
     assert result["data"].get("manual_guard_event") is None
@@ -679,16 +677,14 @@ async def test_async_step_system_settings_persists_explicit_guard_event(
     monkeypatch.setattr(
         system_settings,
         "_resolve_get_runtime_data",
-        lambda: (lambda _hass, _entry: runtime),
+        lambda: lambda _hass, _entry: runtime,
     )
 
     flow = _SystemFlow({"system_settings": {}})
-    result = await flow.async_step_system_settings(
-        {
-            "manual_guard_event": "event.guard",
-            "enable_analytics": True,
-        }
-    )
+    result = await flow.async_step_system_settings({
+        "manual_guard_event": "event.guard",
+        "enable_analytics": True,
+    })
 
     assert result["type"] == "create_entry"
     assert result["data"]["manual_guard_event"] == "event.guard"
@@ -710,11 +706,13 @@ async def test_async_step_system_settings_skips_sync_when_runtime_has_no_script_
     monkeypatch.setattr(
         system_settings,
         "_resolve_get_runtime_data",
-        lambda: (lambda _hass, _entry: runtime),
+        lambda: lambda _hass, _entry: runtime,
     )
     flow = _SystemFlow({"system_settings": {}})
 
-    result = await flow.async_step_system_settings({"manual_check_event": "event.check"})
+    result = await flow.async_step_system_settings({
+        "manual_check_event": "event.check"
+    })
 
     assert result["type"] == "create_entry"
 
@@ -731,7 +729,9 @@ async def test_async_step_system_settings_handles_update_failures(
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
     )
 
-    result = await flow.async_step_system_settings({"manual_check_event": "event.check"})
+    result = await flow.async_step_system_settings({
+        "manual_check_event": "event.check"
+    })
 
     assert result["type"] == "form"
     assert result["step_id"] == "system_settings"
@@ -774,9 +774,10 @@ async def test_async_step_dashboard_settings_persists_updates() -> None:
     """Dashboard settings should persist schema-normalised values."""
     flow = _SystemFlow({"dashboard_settings": {"compact_mode": False}})
 
-    result = await flow.async_step_dashboard_settings(
-        {"dashboard_mode": "minimal", "compact_mode": True}
-    )
+    result = await flow.async_step_dashboard_settings({
+        "dashboard_mode": "minimal",
+        "compact_mode": True,
+    })
 
     assert result["type"] == "create_entry"
     assert result["data"]["dashboard_mode"] == "minimal"
@@ -803,18 +804,18 @@ async def test_async_step_dashboard_settings_handles_build_errors(
 
 
 @pytest.mark.asyncio
-async def test_async_step_advanced_settings_persists_valid_endpoint_and_mappings() -> None:
+async def test_async_step_advanced_settings_persists_valid_endpoint_and_mappings() -> (
+    None
+):
     """Advanced settings should persist valid endpoints and mapping payloads."""
     flow = _SystemFlow({"advanced_settings": {"debug_logging": False}})
 
-    result = await flow.async_step_advanced_settings(
-        {
-            CONF_API_ENDPOINT: "https://example.test",
-            "debug_logging": True,
-            "custom_mapping": {"enabled": True},
-            "custom_object": ["a", "b"],
-        }
-    )
+    result = await flow.async_step_advanced_settings({
+        CONF_API_ENDPOINT: "https://example.test",
+        "debug_logging": True,
+        "custom_mapping": {"enabled": True},
+        "custom_object": ["a", "b"],
+    })
 
     assert result["type"] == "create_entry"
     assert result["data"][CONF_API_ENDPOINT] == "https://example.test"
@@ -827,12 +828,10 @@ async def test_async_step_advanced_settings_allows_blank_endpoint_values() -> No
     """Blank endpoint strings should skip endpoint validation and still persist."""
     flow = _SystemFlow({})
 
-    result = await flow.async_step_advanced_settings(
-        {
-            CONF_API_ENDPOINT: "   ",
-            "debug_logging": True,
-        }
-    )
+    result = await flow.async_step_advanced_settings({
+        CONF_API_ENDPOINT: "   ",
+        "debug_logging": True,
+    })
 
     assert result["type"] == "create_entry"
     assert result["data"][CONF_API_ENDPOINT] == "   "
@@ -850,9 +849,9 @@ async def test_async_step_advanced_settings_save_failure_returns_form(
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("save failed")),
     )
 
-    result = await flow.async_step_advanced_settings(
-        {CONF_API_ENDPOINT: "https://example.test"}
-    )
+    result = await flow.async_step_advanced_settings({
+        CONF_API_ENDPOINT: "https://example.test"
+    })
 
     assert result["type"] == "form"
     assert result["step_id"] == "advanced_settings"
