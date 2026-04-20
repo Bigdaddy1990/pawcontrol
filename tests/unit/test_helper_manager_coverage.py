@@ -1,7 +1,5 @@
 """High-coverage tests for helper_manager."""
 
-from __future__ import annotations
-
 from collections.abc import Callable, Mapping
 from datetime import time
 from types import SimpleNamespace
