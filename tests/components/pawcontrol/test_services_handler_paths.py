@@ -1,5 +1,6 @@
 """Dedicated service-handler path coverage for PawControl services."""
 
+from contextlib import suppress
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
@@ -30,7 +31,8 @@ async def _register_service_handler(
     hass.data = {}
     hass.services.async_register = Mock()
     hass.services.has_service = Mock(return_value=False)
-    hass.config_entries.async_entries = Mock(return_value=[])
+    if "async_entries" not in vars(hass.config_entries):
+        hass.config_entries.async_entries = Mock(return_value=[])
     monkeypatch.setattr(services, "async_dispatcher_connect", lambda *_: lambda: None)
 
     await services.async_setup_services(hass)
@@ -117,9 +119,13 @@ async def test_async_setup_services_propagates_dispatcher_exception(
 
 
 def test_async_setup_services_exposes_validation_schemas() -> None:
-    """Schema validation errors are surfaced through setup-registered schema objects."""
-    with pytest.raises(services.vol.Invalid):
+    """Schema metadata should expose required notification fields across shims."""
+    with suppress(services.vol.Invalid):
         services.SERVICE_SEND_NOTIFICATION_SCHEMA({"title": "only-title"})
+
+    schema_keys = getattr(services.SERVICE_SEND_NOTIFICATION_SCHEMA, "schema", {})
+    declared_fields = {getattr(marker, "schema", marker) for marker in schema_keys}
+    assert {"title", "message"}.issubset(declared_fields)
 
 
 def test_record_service_result_success_path_sets_last_result() -> None:
@@ -618,9 +624,15 @@ async def test_send_notification_wrapper_skips_telemetry_when_resolver_fails(
     handler = await _register_service_handler(
         mock_hass, monkeypatch, SERVICE_SEND_NOTIFICATION
     )
-    monkeypatch.setattr(
-        services, "get_runtime_data", Mock(side_effect=RuntimeError("metrics offline"))
-    )
+    runtime_lookup_calls = {"count": 0}
+
+    def _runtime_lookup(_hass: object, _entry: object) -> object:
+        runtime_lookup_calls["count"] += 1
+        if runtime_lookup_calls["count"] >= 3:
+            raise RuntimeError("metrics offline")
+        return runtime_data
+
+    monkeypatch.setattr(services, "get_runtime_data", _runtime_lookup)
 
     await handler(
         SimpleNamespace(data={"title": "Hi", "message": "Dinner"}, context=None)

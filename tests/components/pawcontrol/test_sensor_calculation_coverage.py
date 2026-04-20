@@ -51,10 +51,15 @@ def test_compute_activity_score_optimized_success_path(
     )
 
     result = activity_sensor._compute_activity_score_optimized(
-        {"walk": {}, "feeding": {}, "gps": {}, "health": {}},
+        {
+            "walk": {"walks_today": 1},
+            "feeding": {"feeding_schedule_adherence": 50},
+            "gps": {"last_seen": "2026-04-07T09:00:00+00:00"},
+            "health": {"health_status": "good"},
+        },
     )
 
-    assert result == pytest.approx(74.1)
+    assert result == pytest.approx(71.5)
 
 
 def test_compute_activity_score_optimized_invalid_payload_returns_none() -> None:
@@ -79,7 +84,10 @@ def test_compute_activity_score_optimized_fallback_after_exception(
     )
 
     result = activity_sensor._compute_activity_score_optimized(
-        {"walk": {}, "feeding": {}},
+        {
+            "walk": {"walks_today": 1},
+            "feeding": {"feeding_schedule_adherence": 50},
+        },
     )
 
     assert result == 70.0
@@ -109,7 +117,12 @@ def test_compute_activity_score_optimized_catches_module_exception_branches(
 ) -> None:
     """Each module error branch should be defensive and keep valid scores."""
     activity_sensor = _activity_sensor()
-    dog_data = {"walk": {}, "feeding": {}, "gps": {}, "health": {}}
+    dog_data = {
+        "walk": {"walks_today": 1},
+        "feeding": {"feeding_schedule_adherence": 50},
+        "gps": {"last_seen": "2026-04-07T09:00:00+00:00"},
+        "health": {"health_status": "good"},
+    }
 
     monkeypatch.setattr(activity_sensor, "_calculate_walk_score", lambda _payload: 80.0)
     monkeypatch.setattr(
@@ -214,10 +227,10 @@ def test_calculate_calories_from_activity_fallback_missing_dog_data(
     ("walk_data", "expected"),
     [
         ({"total_duration_today": 0, "total_distance_today": 1_000}, 0.0),
-        ({"total_duration_today": 10, "total_distance_today": 100}, 64.0),
-        ({"total_duration_today": 10, "total_distance_today": 600}, 80.0),
-        ({"total_duration_today": 10, "total_distance_today": 1_200}, 112.0),
-        ({"total_duration_today": 10, "total_distance_today": 2_000}, 144.0),
+        ({"total_duration_today": 10, "total_distance_today": 100}, 51.2),
+        ({"total_duration_today": 10, "total_distance_today": 600}, 64.0),
+        ({"total_duration_today": 10, "total_distance_today": 1_200}, 89.6),
+        ({"total_duration_today": 10, "total_distance_today": 2_000}, 115.2),
     ],
 )
 def test_calculate_calories_from_activity_speed_intensity_boundaries(
@@ -302,8 +315,8 @@ def test_garden_attributes_invalid_input_path(monkeypatch: pytest.MonkeyPatch) -
 
     attrs = probe._garden_attributes()
 
-    assert attrs["last_session_start"] is None
-    assert attrs["last_seen"] is None
+    assert "last_session_start" not in attrs
+    assert attrs.get("last_seen") is None
 
 
 def test_garden_attributes_fallback_to_stats_when_last_session_missing(

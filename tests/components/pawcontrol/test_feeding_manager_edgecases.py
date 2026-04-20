@@ -97,7 +97,7 @@ def test_build_feeding_snapshot_skips_invalid_amounts_regression(
 ) -> None:
     """Regression: malformed feeding amounts should not crash snapshot creation."""
     manager = FeedingManager(hass)
-    now = datetime(2026, 4, 7, 12, 0, tzinfo=UTC)
+    now = datetime.now(UTC)
     manager._configs["dog-1"] = FeedingConfig(
         dog_id="dog-1",
         meals_per_day=2,
@@ -125,7 +125,7 @@ async def test_async_check_feeding_compliance_handles_amount_type_errors(
 ) -> None:
     """Compliance checks should be resilient to malformed feeding amounts."""
     manager = FeedingManager(hass)
-    now = datetime(2026, 4, 7, 12, 0, tzinfo=UTC)
+    now = datetime.now(UTC)
     manager._configs["dog-1"] = FeedingConfig(
         dog_id="dog-1",
         meals_per_day=1,

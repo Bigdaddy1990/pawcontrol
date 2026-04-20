@@ -16,7 +16,7 @@ from custom_components.pawcontrol.feeding_manager import (
 async def test_async_check_feeding_compliance_success_path(hass) -> None:
     """Compliance API should return a completed payload for valid recent history."""
     manager = FeedingManager(hass)
-    now = datetime(2026, 4, 7, 12, 0, tzinfo=UTC)
+    now = datetime.now(UTC)
     manager._configs["dog-1"] = FeedingConfig(
         dog_id="dog-1",
         meals_per_day=1,

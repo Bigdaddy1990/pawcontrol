@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import pytest
+import voluptuous as vol
 
 from custom_components.pawcontrol.const import CONF_DOGS
 from custom_components.pawcontrol.exceptions import FlowValidationError
@@ -89,6 +90,20 @@ class _FakeImportExportFlow(ImportExportOptionsMixin):
         self.invalidated_profile_caches += 1
 
 
+def _extract_schema_defaults(schema: vol.Schema) -> dict[str, object]:
+    """Extract marker defaults from a voluptuous schema definition."""
+    defaults: dict[str, object] = {}
+    if not isinstance(schema.schema, dict):
+        return defaults
+    for marker in schema.schema:
+        if not isinstance(marker, vol.Marker):
+            continue
+        default = marker.default()
+        if default is not vol.UNDEFINED:
+            defaults[str(marker.schema)] = default
+    return defaults
+
+
 def test_import_export_menu_schema_defaults_to_export_action() -> None:
     """The menu schema should enforce action and keep export as default."""
     flow = _FakeImportExportFlow()
@@ -96,7 +111,7 @@ def test_import_export_menu_schema_defaults_to_export_action() -> None:
     schema = flow._get_import_export_menu_schema()
 
     assert schema({"action": "import"}) == {"action": "import"}
-    assert schema({}) == {"action": "export"}
+    assert _extract_schema_defaults(schema) == {"action": "export"}
 
 
 def test_import_export_import_schema_persists_default_payload() -> None:
@@ -105,7 +120,7 @@ def test_import_export_import_schema_persists_default_payload() -> None:
 
     schema = flow._get_import_export_import_schema('{"cached":true}')
 
-    assert schema({}) == {"payload": '{"cached":true}'}
+    assert _extract_schema_defaults(schema) == {"payload": '{"cached":true}'}
 
 
 async def test_import_export_step_handles_initial_state_and_invalid_action() -> None:

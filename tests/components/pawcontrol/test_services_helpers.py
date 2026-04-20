@@ -388,7 +388,7 @@ def test_merge_service_context_metadata_supports_include_none() -> None:  # noqa
 
 def test_service_manager_reuses_existing_registration_task() -> None:
     """Creating a second service manager should reuse the first manager's task."""
-    existing_task = asyncio.Future()
+    existing_task = Mock()
     existing_manager = SimpleNamespace(_services_task=existing_task)
     hass = SimpleNamespace(
         data={DOMAIN: {"service_manager": existing_manager}},
@@ -404,7 +404,7 @@ def test_service_manager_reuses_existing_registration_task() -> None:
 
 def test_service_manager_starts_setup_task_when_service_is_missing() -> None:
     """Service manager should schedule setup when the domain is not registered."""
-    created_task = asyncio.Future()
+    created_task = Mock()
     hass = SimpleNamespace(
         data={},
         services=SimpleNamespace(has_service=lambda *_: False),

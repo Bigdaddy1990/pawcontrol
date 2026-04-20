@@ -997,9 +997,7 @@ async def test_health_adapter_ignores_unknown_items_in_stored_lists() -> None:  
     assert payload["health_alerts"][1]["type"] == "weight_alert"
 
 
-def test_weather_adapter_resolve_dog_config_continues_after_non_matching_string_id() -> (
-    None
-):  # noqa: D103
+def test_weather_adapter_resolve_dog_config_continues_after_non_matching_string_id() -> None:  # noqa: D103
     adapter = WeatherModuleAdapter(
         config_entry=SimpleNamespace(
             data={
@@ -1019,9 +1017,7 @@ def test_weather_adapter_resolve_dog_config_continues_after_non_matching_string_
 
 
 @pytest.mark.asyncio
-async def test_weather_adapter_parses_string_age_when_building_recommendations() -> (
-    None
-):  # noqa: D103
+async def test_weather_adapter_parses_string_age_when_building_recommendations() -> None:  # noqa: D103
     recommendations_calls: list[tuple[str | None, int | None, list[str] | None]] = []
 
     class _WeatherManager:

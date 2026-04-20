@@ -259,16 +259,14 @@ def test_runtime_store_timeline_summary_and_event_recording_fallbacks() -> None:
         "divergence_events": 0,
         "current_level_duration_seconds": "invalid",
     }
-    recorded_events, timeline_summary = (
-        telemetry._record_runtime_store_assessment_event(
-            history,
-            assessment,
-            recorded=False,
-            previous_assessment=None,
-            status="current",
-            entry_status="current",
-            store_status="current",
-        )
+    recorded_events, timeline_summary = telemetry._record_runtime_store_assessment_event(
+        history,
+        assessment,
+        recorded=False,
+        previous_assessment=None,
+        status="current",
+        entry_status="current",
+        store_status="current",
     )
     assert len(recorded_events) == 1
     assert recorded_events[0]["level"] == "ok"
@@ -371,9 +369,7 @@ def test_entity_factory_guard_metrics_init_none_runtime_and_defaults() -> None:
     assert metrics["recent_events"][-1] == "unknown"
 
 
-def test_record_door_sensor_persistence_failure_without_optional_error_history() -> (
-    None
-):
+def test_record_door_sensor_persistence_failure_without_optional_error_history() -> None:
     """Door-sensor telemetry should skip optional fields when not provided."""
     runtime_data = SimpleNamespace(
         performance_stats={},
@@ -394,9 +390,7 @@ def test_record_door_sensor_persistence_failure_without_optional_error_history()
 
 def test_runtime_resilience_and_reconfigure_getters_none_paths() -> None:
     """Getter helpers should return ``None`` when stats are missing or malformed."""
-    runtime_reconfigure = SimpleNamespace(
-        performance_stats={"reconfigure_summary": "bad"}
-    )
+    runtime_reconfigure = SimpleNamespace(performance_stats={"reconfigure_summary": "bad"})
     assert telemetry.get_runtime_reconfigure_summary(runtime_reconfigure) is None
 
     runtime_resilience = SimpleNamespace(
@@ -422,19 +416,13 @@ def test_runtime_resilience_update_branch_matrix() -> None:
     assert "resilience_diagnostics" not in runtime_data.performance_stats
     assert "resilience_summary" not in runtime_data.performance_stats
 
-    runtime_data.performance_stats["resilience_diagnostics"] = {
-        "breakers": {"api": {"state": "open"}}
-    }
-    stored = telemetry.update_runtime_resilience_summary(
-        runtime_data, {"state": "watch"}
-    )
+    runtime_data.performance_stats["resilience_diagnostics"] = {"breakers": {"api": {"state": "open"}}}
+    stored = telemetry.update_runtime_resilience_summary(runtime_data, {"state": "watch"})
     assert stored is not None
     diagnostics = runtime_data.performance_stats["resilience_diagnostics"]
     assert diagnostics["summary"]["state"] == "watch"
 
-    telemetry.update_runtime_resilience_diagnostics(
-        runtime_data, {"breakers": "bad", "summary": "bad"}
-    )
+    telemetry.update_runtime_resilience_diagnostics(runtime_data, {"breakers": "bad", "summary": "bad"})
     assert runtime_data.performance_stats["resilience_diagnostics"] == {}
     assert "resilience_summary" not in runtime_data.performance_stats
 
@@ -505,9 +493,7 @@ def test_entity_factory_guard_metrics_cover_contract_stable_and_trim_branches() 
     assert metrics_contract["min_duration"] <= 3.0
 
 
-def test_record_door_sensor_persistence_failure_error_history_without_error_field() -> (
-    None
-):
+def test_record_door_sensor_persistence_failure_error_history_without_error_field() -> None:
     """Error-history entries should omit the error key when no error is supplied."""
     runtime_data = SimpleNamespace(performance_stats={}, error_history=[])
     telemetry.record_door_sensor_persistence_failure(

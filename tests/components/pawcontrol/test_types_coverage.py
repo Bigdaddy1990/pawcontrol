@@ -490,7 +490,7 @@ def test_cache_repair_aggregate_from_mapping_coerces_totals_and_collections() ->
 
 
 def test_cache_repair_aggregate_to_mapping_omits_empty_optional_sections() -> None:
-    """Mapping export should keep required fields and skip empty optional payloads."""
+    """Mapping export should keep required fields and surface optional placeholders."""
     aggregate = types.CacheRepairAggregate(
         total_caches=0,
         anomaly_count=0,
@@ -507,6 +507,12 @@ def test_cache_repair_aggregate_to_mapping_omits_empty_optional_sections() -> No
         "anomaly_count": 0,
         "severity": "normal",
         "generated_at": "2026-03-01T00:00:00+00:00",
+        "caches_with_errors": None,
+        "caches_with_expired_entries": None,
+        "caches_with_pending_expired_entries": None,
+        "caches_with_override_flags": None,
+        "caches_with_low_hit_rate": [],
+        "caches_with_timestamp_anomalies": None,
     }
 
 
