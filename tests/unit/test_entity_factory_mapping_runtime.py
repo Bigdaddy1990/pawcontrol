@@ -1,7 +1,5 @@
 """Coverage tests for entity-factory mapping containers and runtime budgets."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 
 from homeassistant.const import Platform

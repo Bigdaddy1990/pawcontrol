@@ -1,7 +1,5 @@
 """Extended coverage for walk, GPS, health and garden action buttons."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 

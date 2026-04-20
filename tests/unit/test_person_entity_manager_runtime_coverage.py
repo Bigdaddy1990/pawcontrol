@@ -601,7 +601,7 @@ async def test_async_update_config_handles_success_toggle_and_failures(
 
     manager._config.enabled = True
 
-    async def _disable(_new_config):  # type: ignore[no-untyped-def]
+    async def _disable(_new_config) -> None:  # type: ignore[no-untyped-def]
         manager._config.enabled = False
 
     manager.async_initialize = AsyncMock(side_effect=_disable)  # type: ignore[method-assign]
@@ -609,7 +609,7 @@ async def test_async_update_config_handles_success_toggle_and_failures(
 
     manager._config.enabled = False
 
-    async def _enable(_new_config):  # type: ignore[no-untyped-def]
+    async def _enable(_new_config) -> None:  # type: ignore[no-untyped-def]
         manager._config.enabled = True
 
     manager.async_initialize = AsyncMock(side_effect=_enable)  # type: ignore[method-assign]
@@ -628,7 +628,7 @@ async def test_async_update_config_returns_true_when_enabled_state_unchanged(
     manager = PersonEntityManager(mock_hass, "entry-id")
     manager._config.enabled = True
 
-    async def _noop(_new_config):  # type: ignore[no-untyped-def]
+    async def _noop(_new_config) -> None:  # type: ignore[no-untyped-def]
         manager._config.enabled = True
 
     manager.async_initialize = AsyncMock(side_effect=_noop)  # type: ignore[method-assign]
