@@ -300,9 +300,9 @@ class TestOptimizedSwitchBase:
         assert switch.is_on is False
         assert cache_key in switch._state_cache
 
-    def test_extra_state_attributes_include_enabled_modules_from_dog_config(
+    def test_extra_state_attributes_include_enabled_modules_from_dog_config(  # noqa: D102
         self,
-    ) -> None:  # noqa: D102
+    ) -> None:
         coordinator = _make_coordinator(
             cast(
                 CoordinatorDogData,
@@ -495,9 +495,9 @@ class TestPawControlVisitorModeSwitch:
         assert switch.is_on is True
 
     @pytest.mark.asyncio
-    async def test_set_state_returns_when_service_declines_and_hass_missing(
+    async def test_set_state_returns_when_service_declines_and_hass_missing(  # noqa: D102
         self,
-    ) -> None:  # noqa: D102
+    ) -> None:
         switch = PawControlVisitorModeSwitch(_make_coordinator(), "rex", "Rex")
         switch.hass = None
         switch._async_call_hass_service = AsyncMock(return_value=False)  # type: ignore[method-assign]
