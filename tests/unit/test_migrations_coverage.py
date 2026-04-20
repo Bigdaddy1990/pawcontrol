@@ -1,7 +1,5 @@
 """Targeted branch-coverage tests for ``migrations.py``."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import Mock
 
