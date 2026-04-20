@@ -225,7 +225,7 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          python -m pytest \
+          python -m pytest_homeassistant_custom_component \
             --cov=custom_components/pawcontrol \
             --cov-branch \
             --cov-report=xml:"${{ env.COVERAGE_XML }}" \
