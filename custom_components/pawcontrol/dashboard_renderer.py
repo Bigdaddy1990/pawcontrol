@@ -16,10 +16,10 @@ import json
 import logging
 import os
 from pathlib import Path
-import tempfile
+import shutil
+import time
 from typing import Literal, TypeVar, cast
-
-import aiofiles  # type: ignore[import-untyped]
+from uuid import uuid4
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
@@ -928,6 +928,45 @@ class DashboardRenderer:
         Raises:
             HomeAssistantError: If file write fails
         """
+
+        def _replace_with_retry(source: Path, destination: Path) -> None:
+            """Atomically replace destination with retry and copy fallback."""
+            for _ in range(3):
+                try:
+                    return os.replace(source, destination)
+                except PermissionError:
+                    time.sleep(0.05)
+            shutil.copyfile(source, destination)
+            try:
+                source.unlink(missing_ok=True)
+            except OSError:
+                _LOGGER.debug(
+                    "Unable to remove temporary dashboard file after copy fallback: %s",
+                    source,
+                )
+
+        def _cleanup_temp(path: Path) -> None:
+            """Best-effort temporary file cleanup resilient to transient locks."""
+            for _ in range(20):
+                try:
+                    path.unlink(missing_ok=True)
+                    if not path.exists():
+                        return
+                except OSError:
+                    pass
+                time.sleep(0.05)
+            try:
+                path.unlink(missing_ok=True)
+            except OSError as err:
+                _LOGGER.debug(
+                    "Failed to remove temporary dashboard file %s: %s",
+                    path,
+                    err,
+                )
+            else:
+                if not path.exists():
+                    return
+
         temp_path: Path | None = None
         try:
             # Prepare dashboard data
@@ -956,29 +995,38 @@ class DashboardRenderer:
             )
 
             def _create_temp_path() -> Path:
-                with tempfile.NamedTemporaryFile(
-                    delete=False,
-                    dir=file_path.parent,
-                ) as temp_file:
-                    return Path(temp_file.name)
+                return file_path.parent / (
+                    f".{file_path.stem}.{uuid4().hex}.tmp"
+                )
 
             temp_path = await self.hass.async_add_executor_job(_create_temp_path)
-            # Write file asynchronously
-            async with aiofiles.open(temp_path, "w", encoding="utf-8") as file:
-                content = json.dumps(
-                    dashboard_data,
-                    indent=2,
-                    ensure_ascii=False,
-                )
-                await file.write(content)
+            content = json.dumps(
+                dashboard_data,
+                indent=2,
+                ensure_ascii=False,
+            )
 
-            await self.hass.async_add_executor_job(os.replace, temp_path, file_path)
+            def _write_temp_file(path: Path, payload: str) -> None:
+                path.write_text(payload, encoding="utf-8")
+
+            await self.hass.async_add_executor_job(
+                _write_temp_file,
+                temp_path,
+                content,
+            )
+
+            await self.hass.async_add_executor_job(
+                _replace_with_retry,
+                temp_path,
+                file_path,
+            )
             temp_path = None
             _LOGGER.debug("Dashboard file written: %s", file_path)
         except Exception as err:
             if temp_path is not None:
                 await self.hass.async_add_executor_job(
-                    partial(temp_path.unlink, missing_ok=True),
+                    _cleanup_temp,
+                    temp_path,
                 )
             _LOGGER.error(
                 "Failed to write dashboard file %s: %s",
