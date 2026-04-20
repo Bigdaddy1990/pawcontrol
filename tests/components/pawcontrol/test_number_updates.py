@@ -21,7 +21,7 @@ from custom_components.pawcontrol.const import (  # noqa: E402
     CONF_GPS_UPDATE_INTERVAL,
     CONF_MEALS_PER_DAY,
 )
-from custom_components.pawcontrol.data_manager import PawControlDataManager
+from custom_components.pawcontrol.data_manager import PawControlDataManager # noqa: E402
 from custom_components.pawcontrol.entity_factory import EntityFactory  # noqa: E402
 from custom_components.pawcontrol.number import (  # noqa: E402
     PawControlGPSUpdateIntervalNumber,
