@@ -2239,8 +2239,12 @@ def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdo
     return {
         "counts": module_counts,
         "percentages": module_percentages,
-        "most_used_module": max(module_counts, key=_module_score) if module_counts else None,
-        "least_used_module": min(module_counts, key=_module_score) if module_counts else None,
+        "most_used_module": max(module_counts, key=_module_score)
+        if module_counts
+        else None,
+        "least_used_module": min(module_counts, key=_module_score)
+        if module_counts
+        else None,
     }
 
 

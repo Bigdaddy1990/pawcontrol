@@ -172,7 +172,9 @@ async def test_button_async_setup_entry_single_batch(monkeypatch) -> None:
     monkeypatch.setattr(
         button,
         "ensure_dog_modules_projection",
-        lambda _dog: SimpleNamespace(config={"feeding": True}, mapping={"feeding": True}),
+        lambda _dog: SimpleNamespace(
+            config={"feeding": True}, mapping={"feeding": True}
+        ),
     )
     monkeypatch.setattr(button, "ProfileAwareButtonFactory", _SingleBatchFactory)
     monkeypatch.setattr(button, "async_call_add_entities", add_entities_helper)
@@ -215,7 +217,9 @@ async def test_button_async_setup_entry_batches_large_entity_sets(monkeypatch) -
     monkeypatch.setattr(
         button,
         "ensure_dog_modules_projection",
-        lambda _dog: SimpleNamespace(config={"feeding": True}, mapping={"feeding": True}),
+        lambda _dog: SimpleNamespace(
+            config={"feeding": True}, mapping={"feeding": True}
+        ),
     )
     monkeypatch.setattr(button, "ProfileAwareButtonFactory", _MultiBatchFactory)
     monkeypatch.setattr(button, "async_call_add_entities", add_entities_helper)
@@ -229,4 +233,7 @@ async def test_button_async_setup_entry_batches_large_entity_sets(monkeypatch) -
     assert add_entities_helper.await_count == 2
     batch_sizes = [len(call.args[1]) for call in add_entities_helper.await_args_list]
     assert batch_sizes == [15, 5]
-    assert all(call.kwargs["update_before_add"] is False for call in add_entities_helper.await_args_list)
+    assert all(
+        call.kwargs["update_before_add"] is False
+        for call in add_entities_helper.await_args_list
+    )

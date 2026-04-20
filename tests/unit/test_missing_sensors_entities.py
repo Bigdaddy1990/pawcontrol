@@ -7,8 +7,6 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 
-import pytest
-
 from custom_components.pawcontrol import missing_sensors
 
 
@@ -114,7 +112,9 @@ def test_derive_next_feeding_time_handles_zero_division_guard(monkeypatch) -> No
 
 def test_activity_level_sensor_native_value_and_attributes() -> None:
     """Activity sensor should derive value and expose walk/health metadata."""
-    sensor = missing_sensors.PawControlActivityLevelSensor(_coordinator(), "dog-1", "Buddy")
+    sensor = missing_sensors.PawControlActivityLevelSensor(
+        _coordinator(), "dog-1", "Buddy"
+    )
     walk_data = {
         "walks_today": "2",
         "total_duration_today": "65",
@@ -157,7 +157,9 @@ def test_calories_burned_sensor_native_value_and_attributes() -> None:
 
 def test_last_feeding_sensor_paths(monkeypatch) -> None:
     """Last feeding sensor should cover native value and attribute branches."""
-    sensor = missing_sensors.PawControlLastFeedingHoursSensor(_coordinator(), "dog-1", "Buddy")
+    sensor = missing_sensors.PawControlLastFeedingHoursSensor(
+        _coordinator(), "dog-1", "Buddy"
+    )
     reference = datetime(2026, 1, 8, 12, tzinfo=UTC)
     monkeypatch.setattr(
         "custom_components.pawcontrol.missing_sensors.dt_util.utcnow",
@@ -210,7 +212,9 @@ def test_last_feeding_sensor_paths(monkeypatch) -> None:
 
 def test_total_walk_distance_sensor_paths() -> None:
     """Total distance sensor should aggregate history and guard invalid values."""
-    sensor = missing_sensors.PawControlTotalWalkDistanceSensor(_coordinator(), "dog-1", "Buddy")
+    sensor = missing_sensors.PawControlTotalWalkDistanceSensor(
+        _coordinator(), "dog-1", "Buddy"
+    )
 
     walk_data = {
         "total_distance_lifetime": 0,
@@ -244,7 +248,9 @@ def test_total_walk_distance_sensor_paths() -> None:
 
 def test_walks_this_week_sensor_paths(monkeypatch) -> None:
     """Weekly walk sensor should count history and expose weekly summaries."""
-    sensor = missing_sensors.PawControlWalksThisWeekSensor(_coordinator(), "dog-1", "Buddy")
+    sensor = missing_sensors.PawControlWalksThisWeekSensor(
+        _coordinator(), "dog-1", "Buddy"
+    )
     now = datetime(2026, 1, 8, 12, tzinfo=UTC)
     monkeypatch.setattr(
         "custom_components.pawcontrol.missing_sensors.dt_util.utcnow",

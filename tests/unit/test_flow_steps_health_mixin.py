@@ -92,7 +92,9 @@ class _DogHealthHost(DogHealthFlowMixin):
             "warnings": ["warning"] if diet_options else [],
         }
 
-    async def _async_get_translation_lookup(self) -> tuple[dict[str, str], dict[str, str]]:
+    async def _async_get_translation_lookup(
+        self,
+    ) -> tuple[dict[str, str], dict[str, str]]:
         return self.translation_lookup
 
     async def _get_diet_compatibility_guidance(
@@ -128,7 +130,9 @@ class _HealthOptionsHost(HealthOptionsMixin):
     """Minimal host for exercising health options branches."""
 
     def __init__(self) -> None:
-        self._dogs: list[dict[str, Any]] = [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}]
+        self._dogs: list[dict[str, Any]] = [
+            {DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}
+        ]
         self._current_dog: dict[str, Any] | None = self._dogs[0]
         self._options: dict[str, JSONValue] = {
             DOG_OPTIONS_FIELD: cast(JSONValue, {"buddy": {DOG_ID_FIELD: "buddy"}})
@@ -158,7 +162,9 @@ class _HealthOptionsHost(HealthOptionsMixin):
         return self._current_dog
 
     def _select_dog_by_id(self, dog_id: str | None) -> dict[str, Any] | None:
-        selected = next((dog for dog in self._dogs if dog.get(DOG_ID_FIELD) == dog_id), None)
+        selected = next(
+            (dog for dog in self._dogs if dog.get(DOG_ID_FIELD) == dog_id), None
+        )
         self._current_dog = selected
         return selected
 
@@ -191,7 +197,9 @@ class _HealthOptionsHost(HealthOptionsMixin):
         }
         return self.last_form
 
-    def async_create_entry(self, *, title: str, data: Mapping[str, JSONValue]) -> dict[str, Any]:
+    def async_create_entry(
+        self, *, title: str, data: Mapping[str, JSONValue]
+    ) -> dict[str, Any]:
         self.last_entry = {"type": "create_entry", "title": title, "data": dict(data)}
         return self.last_entry
 
@@ -203,7 +211,9 @@ def test_health_summary_mixin_delegates_to_helper() -> None:
     """Summary helper should render canonical fallback text for non-mappings."""
     host = _HealthSummaryHost()
 
-    assert host._summarise_health_summary("invalid-summary") == "No recent health summary"
+    assert (
+        host._summarise_health_summary("invalid-summary") == "No recent health summary"
+    )
 
 
 @pytest.mark.asyncio
@@ -218,42 +228,46 @@ async def test_dog_health_step_redirects_when_no_current_dog() -> None:
 
 
 @pytest.mark.asyncio
-async def test_dog_health_step_updates_health_and_feeding_config_with_medication() -> None:
+async def test_dog_health_step_updates_health_and_feeding_config_with_medication() -> (
+    None
+):
     """Submitting health input should enrich dog and feeding configuration."""
     host = _DogHealthHost()
     assert host._current_dog_config is not None
     host._current_dog_config["medications"] = [{"name": "existing"}]
 
-    result = await host.async_step_dog_health(
-        {
-            "vet_name": "Dr Vet",
-            "vet_phone": "123456",
-            "weight_tracking": True,
-            "ideal_weight": 23.5,
-            "body_condition_score": 6,
-            "activity_level": "high",
-            "weight_goal": "lose",
-            "spayed_neutered": False,
-            "health_aware_portions": False,
-            "last_vet_visit": "2025-01-01",
-            "next_checkup": "2026-01-01",
-            "special": "yes",
-            "vaccinated": True,
-            "medicate": True,
-        }
-    )
+    result = await host.async_step_dog_health({
+        "vet_name": "Dr Vet",
+        "vet_phone": "123456",
+        "weight_tracking": True,
+        "ideal_weight": 23.5,
+        "body_condition_score": 6,
+        "activity_level": "high",
+        "weight_goal": "lose",
+        "spayed_neutered": False,
+        "health_aware_portions": False,
+        "last_vet_visit": "2025-01-01",
+        "next_checkup": "2026-01-01",
+        "special": "yes",
+        "vaccinated": True,
+        "medicate": True,
+    })
 
     assert result == {"type": "menu", "step_id": "add_another_dog"}
     assert host._dogs and host._dogs[0] is host._current_dog_config
 
-    health_config = cast(dict[str, Any], host._current_dog_config[DOG_HEALTH_CONFIG_FIELD])
+    health_config = cast(
+        dict[str, Any], host._current_dog_config[DOG_HEALTH_CONFIG_FIELD]
+    )
     assert health_config["vet_name"] == "Dr Vet"
     assert health_config["last_vet_visit"] == "2025-01-01"
     assert health_config["next_checkup"] == "2026-01-01"
     assert "vaccinations" in health_config
     assert health_config["medications"][0]["with_meals"] is True
 
-    feeding_config = cast(dict[str, Any], host._current_dog_config[DOG_FEEDING_CONFIG_FIELD])
+    feeding_config = cast(
+        dict[str, Any], host._current_dog_config[DOG_FEEDING_CONFIG_FIELD]
+    )
     assert feeding_config["health_aware_portions"] is False
     assert feeding_config["age_months"] == 48
     assert feeding_config["diet_validation"]["recommended_vet_consultation"] is True
@@ -268,17 +282,17 @@ async def test_dog_health_step_handles_missing_optional_sections() -> None:
     host._current_dog_config[DOG_MODULES_FIELD] = {MODULE_MEDICATION: False}
     host._current_dog_config[DOG_FEEDING_CONFIG_FIELD] = "invalid"
 
-    result = await host.async_step_dog_health(
-        {
-            "vet_name": "",
-            "vet_phone": "",
-            "weight_tracking": False,
-            "spayed_neutered": True,
-        }
-    )
+    result = await host.async_step_dog_health({
+        "vet_name": "",
+        "vet_phone": "",
+        "weight_tracking": False,
+        "spayed_neutered": True,
+    })
 
     assert result == {"type": "menu", "step_id": "add_another_dog"}
-    health_config = cast(dict[str, Any], host._current_dog_config[DOG_HEALTH_CONFIG_FIELD])
+    health_config = cast(
+        dict[str, Any], host._current_dog_config[DOG_HEALTH_CONFIG_FIELD]
+    )
     assert "vaccinations" not in health_config
     assert "medications" not in health_config
 
@@ -292,25 +306,29 @@ async def test_dog_health_step_with_medication_module_can_skip_medications_and_d
     assert host._current_dog_config is not None
     host._current_dog_config[DOG_MODULES_FIELD] = {MODULE_MEDICATION: True}
 
-    result = await host.async_step_dog_health(
-        {
-            "vet_name": "Dr Vet",
-            "vet_phone": "555",
-            "weight_tracking": True,
-            "spayed_neutered": True,
-            # Intentionally omit "medicate" and "special" to exercise false branches.
-        }
-    )
+    result = await host.async_step_dog_health({
+        "vet_name": "Dr Vet",
+        "vet_phone": "555",
+        "weight_tracking": True,
+        "spayed_neutered": True,
+        # Intentionally omit "medicate" and "special" to exercise false branches.
+    })
 
     assert result == {"type": "menu", "step_id": "add_another_dog"}
-    health_config = cast(dict[str, Any], host._current_dog_config[DOG_HEALTH_CONFIG_FIELD])
+    health_config = cast(
+        dict[str, Any], host._current_dog_config[DOG_HEALTH_CONFIG_FIELD]
+    )
     assert "medications" not in health_config
-    feeding_config = cast(dict[str, Any], host._current_dog_config[DOG_FEEDING_CONFIG_FIELD])
+    feeding_config = cast(
+        dict[str, Any], host._current_dog_config[DOG_FEEDING_CONFIG_FIELD]
+    )
     assert feeding_config["diet_validation"]["recommended_vet_consultation"] is False
 
 
 @pytest.mark.asyncio
-async def test_dog_health_step_shows_form_with_defaults_and_translation_fallbacks() -> None:
+async def test_dog_health_step_shows_form_with_defaults_and_translation_fallbacks() -> (
+    None
+):
     """Initial dog health form should derive placeholder defaults from dog profile."""
     host = _DogHealthHost()
     assert host._current_dog_config is not None
@@ -335,7 +353,9 @@ async def test_dog_health_step_shows_form_with_defaults_and_translation_fallback
 
 
 @pytest.mark.asyncio
-async def test_dog_health_step_shows_form_with_primary_translation_and_medication_flag() -> None:
+async def test_dog_health_step_shows_form_with_primary_translation_and_medication_flag() -> (
+    None
+):
     """Primary translations and medication marker should be used when available."""
     host = _DogHealthHost()
     assert host._current_dog_config is not None
@@ -357,7 +377,12 @@ def test_current_health_options_prefers_dog_scoped_then_legacy_then_empty() -> N
     host = _HealthOptionsHost()
     host._options[DOG_OPTIONS_FIELD] = cast(
         JSONValue,
-        {"buddy": {DOG_ID_FIELD: "buddy", "health_settings": {"weight_tracking": False}}},
+        {
+            "buddy": {
+                DOG_ID_FIELD: "buddy",
+                "health_settings": {"weight_tracking": False},
+            }
+        },
     )
     assert host._current_health_options("buddy") == {"weight_tracking": False}
 
@@ -383,7 +408,9 @@ async def test_select_dog_for_health_settings_handles_all_routes() -> None:
     }
 
     host = _HealthOptionsHost()
-    assert await host.async_step_select_dog_for_health_settings({"dog_id": "missing"}) == {
+    assert await host.async_step_select_dog_for_health_settings({
+        "dog_id": "missing"
+    }) == {
         "type": "menu",
         "step_id": "init",
     }
@@ -435,15 +462,13 @@ async def test_health_settings_submission_updates_expected_option_targets(
     host = _HealthOptionsHost()
     host._options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
 
-    result = await host.async_step_health_settings(
-        {
-            "weight_tracking": "false",
-            "medication_reminders": "yes",
-            "vet_reminders": True,
-            "grooming_reminders": False,
-            "health_alerts": "1",
-        }
-    )
+    result = await host.async_step_health_settings({
+        "weight_tracking": "false",
+        "medication_reminders": "yes",
+        "vet_reminders": True,
+        "grooming_reminders": False,
+        "health_alerts": "1",
+    })
 
     assert result["type"] == "create_entry"
     data = cast(dict[str, Any], result["data"])
@@ -473,12 +498,14 @@ async def test_health_settings_reports_validation_and_unexpected_errors() -> Non
         ) -> HealthOptions:
             raise RuntimeError("boom")
 
-    validation_result = await _ValidationHost().async_step_health_settings(
-        {"health_alerts": True}
-    )
+    validation_result = await _ValidationHost().async_step_health_settings({
+        "health_alerts": True
+    })
     assert validation_result["errors"] == {"health_alerts": "invalid_value"}
 
-    runtime_result = await _RuntimeHost().async_step_health_settings({"health_alerts": True})
+    runtime_result = await _RuntimeHost().async_step_health_settings({
+        "health_alerts": True
+    })
     assert runtime_result["errors"] == {"base": "update_failed"}
 
 

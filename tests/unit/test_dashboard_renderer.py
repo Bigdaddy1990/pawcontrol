@@ -376,7 +376,9 @@ async def test_write_dashboard_file_cleanup_reaches_final_exists_check(
             return temp_exists_checks <= 20
         return original_exists(path)
 
-    def _patched_unlink(path: dashboard_renderer.Path, *args: Any, **kwargs: Any) -> None:
+    def _patched_unlink(
+        path: dashboard_renderer.Path, *args: Any, **kwargs: Any
+    ) -> None:
         if str(path).endswith(".tmp"):
             return None
         original_unlink(path, *args, **kwargs)

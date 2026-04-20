@@ -16,7 +16,7 @@ def _patch_path_io(
 ) -> None:
     monkeypatch.setattr(helpers.Path, "exists", lambda _self: exists)
 
-    def _read_text(_self, *_args, **_kwargs):  # noqa: ANN001
+    def _read_text(_self, *_args, **_kwargs):
         if exc is not None:
             raise exc
         return payload if payload is not None else '{"common": {"ok": "yes"}}'
@@ -185,7 +185,11 @@ def test_cached_translation_lookup_paths_cover_english_and_non_english(
     assert fallback == {"fallback": "v"}
 
     hass_en = SimpleNamespace(
-        data={helpers.DOMAIN: {"translations": {"en": {"component.pawcontrol.common.en": "en"}}}}
+        data={
+            helpers.DOMAIN: {
+                "translations": {"en": {"component.pawcontrol.common.en": "en"}}
+            }
+        }
     )
     translations, fallback = helpers.get_cached_component_translation_lookup(
         hass_en,
@@ -216,7 +220,9 @@ async def test_async_translation_helpers_cover_cache_fetch_exception_and_preload
     monkeypatch.setattr(
         helpers,
         "_load_bundled_component_translations",
-        lambda language: {f"component.pawcontrol.common.{language}": f"bundled-{language}"},
+        lambda language: {
+            f"component.pawcontrol.common.{language}": f"bundled-{language}"
+        },
     )
 
     hass = SimpleNamespace(data={})
@@ -241,7 +247,10 @@ async def test_async_translation_helpers_cover_cache_fetch_exception_and_preload
     assert de_lookup == {}
     assert en_fallback == {"component.pawcontrol.common.en": "bundled-en"}
 
-    en_lookup, en_lookup_fallback = await helpers.async_get_component_translation_lookup(
+    (
+        en_lookup,
+        en_lookup_fallback,
+    ) = await helpers.async_get_component_translation_lookup(
         hass,
         "en",
     )
@@ -249,4 +258,3 @@ async def test_async_translation_helpers_cover_cache_fetch_exception_and_preload
 
     await helpers.async_preload_component_translations(hass, ["de", None, "en"])
     assert "de" in calls
-

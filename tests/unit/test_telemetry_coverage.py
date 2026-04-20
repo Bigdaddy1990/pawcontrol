@@ -181,7 +181,9 @@ def test_runtime_bool_coercion_summary_helpers_cover_mapping_and_store_paths(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Runtime bool-coercion helpers should return None for invalid data and store summaries."""
-    runtime_invalid = SimpleNamespace(performance_stats={"bool_coercion_summary": "bad"})
+    runtime_invalid = SimpleNamespace(
+        performance_stats={"bool_coercion_summary": "bad"}
+    )
     assert telemetry.get_runtime_bool_coercion_summary(runtime_invalid) is None
 
     runtime_data = SimpleNamespace(performance_stats={})

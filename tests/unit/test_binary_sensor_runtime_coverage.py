@@ -356,7 +356,9 @@ def test_sensor_fallback_paths_without_status_snapshot_or_module_payloads() -> N
     walk_sensor = bs.PawControlWalkInProgressBinarySensor(coordinator, "rex", "Rex")
     needs_walk_sensor = bs.PawControlNeedsWalkBinarySensor(coordinator, "rex", "Rex")
     safe_zone_sensor = bs.PawControlInSafeZoneBinarySensor(coordinator, "rex", "Rex")
-    attention_sensor = bs.PawControlAttentionNeededBinarySensor(coordinator, "rex", "Rex")
+    attention_sensor = bs.PawControlAttentionNeededBinarySensor(
+        coordinator, "rex", "Rex"
+    )
 
     assert walk_sensor.is_on is False
     assert needs_walk_sensor.is_on is False
@@ -364,9 +366,13 @@ def test_sensor_fallback_paths_without_status_snapshot_or_module_payloads() -> N
     assert isinstance(attention_sensor.is_on, bool)
 
     # Branches where no payload should short-circuit with safe defaults.
-    assert bs.PawControlFeedingScheduleOnTrackBinarySensor(coordinator, "rex", "Rex").is_on
+    assert bs.PawControlFeedingScheduleOnTrackBinarySensor(
+        coordinator, "rex", "Rex"
+    ).is_on
     assert bs.PawControlIsHomeBinarySensor(coordinator, "rex", "Rex").is_on is False
-    assert bs.PawControlGPSBatteryLowBinarySensor(coordinator, "rex", "Rex").is_on is False
+    assert (
+        bs.PawControlGPSBatteryLowBinarySensor(coordinator, "rex", "Rex").is_on is False
+    )
 
 
 def test_online_sensor_property_and_attribute_branches() -> None:
@@ -472,27 +478,43 @@ def test_domain_specific_helper_methods_cover_threshold_classifications() -> Non
     needs_walk = bs.PawControlNeedsWalkBinarySensor(coordinator, "rex", "Rex")
     activity = bs.PawControlActivityLevelConcernBinarySensor(coordinator, "rex", "Rex")
 
-    assert hungry._calculate_hunger_level({"last_feeding_hours": "bad"}) == bs.STATE_UNKNOWN
+    assert (
+        hungry._calculate_hunger_level({"last_feeding_hours": "bad"})
+        == bs.STATE_UNKNOWN
+    )
     assert hungry._calculate_hunger_level({"last_feeding_hours": 13}) == "very_hungry"
     assert hungry._calculate_hunger_level({"last_feeding_hours": 8}) == "hungry"
-    assert hungry._calculate_hunger_level({"last_feeding_hours": 6}) == "somewhat_hungry"
+    assert (
+        hungry._calculate_hunger_level({"last_feeding_hours": 6}) == "somewhat_hungry"
+    )
     assert hungry._calculate_hunger_level({"last_feeding_hours": 2}) == "satisfied"
 
-    assert walk._estimate_remaining_time(
-        {"current_walk_duration": 10, "average_walk_duration": 25},
-    ) == 15
-    assert walk._estimate_remaining_time(
-        {"current_walk_duration": 30, "average_walk_duration": 25},
-    ) is None
+    assert (
+        walk._estimate_remaining_time(
+            {"current_walk_duration": 10, "average_walk_duration": 25},
+        )
+        == 15
+    )
+    assert (
+        walk._estimate_remaining_time(
+            {"current_walk_duration": 30, "average_walk_duration": 25},
+        )
+        is None
+    )
 
-    assert needs_walk._calculate_walk_urgency({"last_walk_hours": "bad"}) == bs.STATE_UNKNOWN
+    assert (
+        needs_walk._calculate_walk_urgency({"last_walk_hours": "bad"})
+        == bs.STATE_UNKNOWN
+    )
     assert needs_walk._calculate_walk_urgency({"last_walk_hours": 13}) == "urgent"
     assert needs_walk._calculate_walk_urgency({"last_walk_hours": 9}) == "high"
     assert needs_walk._calculate_walk_urgency({"last_walk_hours": 7}) == "medium"
     assert needs_walk._calculate_walk_urgency({"last_walk_hours": 2}) == "low"
 
     assert activity._get_concern_reason("very_low") == "Activity level is unusually low"
-    assert activity._get_concern_reason("very_high") == "Activity level is unusually high"
+    assert (
+        activity._get_concern_reason("very_high") == "Activity level is unusually high"
+    )
     assert activity._get_concern_reason("normal") == "No concern"
     assert (
         activity._get_recommended_action("very_low")
@@ -511,11 +533,16 @@ def test_core_sensor_no_data_and_invalid_data_fallbacks() -> None:
 
     assert bs.PawControlVisitorModeBinarySensor(empty, "rex", "Rex").is_on is False
     assert bs.PawControlIsHungryBinarySensor(empty, "rex", "Rex").is_on is False
-    assert bs.PawControlDailyFeedingGoalMetBinarySensor(empty, "rex", "Rex").is_on is False
+    assert (
+        bs.PawControlDailyFeedingGoalMetBinarySensor(empty, "rex", "Rex").is_on is False
+    )
     assert bs.PawControlWalkGoalMetBinarySensor(empty, "rex", "Rex").is_on is False
     assert bs.PawControlLongWalkOverdueBinarySensor(empty, "rex", "Rex").is_on is False
     assert bs.PawControlIsHomeBinarySensor(empty, "rex", "Rex").is_on is True
-    assert bs.PawControlGPSAccuratelyTrackedBinarySensor(empty, "rex", "Rex").is_on is False
+    assert (
+        bs.PawControlGPSAccuratelyTrackedBinarySensor(empty, "rex", "Rex").is_on
+        is False
+    )
     assert bs.PawControlMovingBinarySensor(empty, "rex", "Rex").is_on is False
     assert bs.PawControlGeofenceAlertBinarySensor(empty, "rex", "Rex").is_on is False
     assert bs.PawControlGPSBatteryLowBinarySensor(empty, "rex", "Rex").is_on is False
@@ -524,10 +551,16 @@ def test_core_sensor_no_data_and_invalid_data_fallbacks() -> None:
     assert bs.PawControlMedicationDueBinarySensor(empty, "rex", "Rex").is_on is False
     assert bs.PawControlVetCheckupDueBinarySensor(empty, "rex", "Rex").is_on is False
     assert bs.PawControlGroomingDueBinarySensor(empty, "rex", "Rex").is_on is False
-    assert bs.PawControlHealthAwareFeedingBinarySensor(empty, "rex", "Rex").is_on is False
-    assert bs.PawControlMedicationWithMealsBinarySensor(empty, "rex", "Rex").is_on is False
+    assert (
+        bs.PawControlHealthAwareFeedingBinarySensor(empty, "rex", "Rex").is_on is False
+    )
+    assert (
+        bs.PawControlMedicationWithMealsBinarySensor(empty, "rex", "Rex").is_on is False
+    )
     assert bs.PawControlHealthEmergencyBinarySensor(empty, "rex", "Rex").is_on is False
-    assert bs.PawControlGardenSessionActiveBinarySensor(empty, "rex", "Rex").is_on is False
+    assert (
+        bs.PawControlGardenSessionActiveBinarySensor(empty, "rex", "Rex").is_on is False
+    )
 
     visitor_data = cast(
         CoordinatorDogData,
@@ -572,7 +605,9 @@ def test_core_sensor_no_data_and_invalid_data_fallbacks() -> None:
     feeding_due_non_str = bs.PawControlFeedingDueBinarySensor(
         cast(
             PawControlCoordinator,
-            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_FEEDING: {"next_feeding_due": 1}})),
+            _CoordinatorStub(
+                cast(CoordinatorDogData, {MODULE_FEEDING: {"next_feeding_due": 1}})
+            ),
         ),
         "rex",
         "Rex",
@@ -647,7 +682,10 @@ def test_walk_and_location_sensors_cover_status_snapshot_fallback_branches(
     assert attrs["last_seen"] == "2026-01-01T12:00:00+00:00"
 
     no_walk = bs.PawControlWalkInProgressBinarySensor(
-        cast(PawControlCoordinator, _CoordinatorStub(cast(CoordinatorDogData, {MODULE_WALK: {}}))),
+        cast(
+            PawControlCoordinator,
+            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_WALK: {}})),
+        ),
         "rex",
         "Rex",
     )
@@ -655,7 +693,10 @@ def test_walk_and_location_sensors_cover_status_snapshot_fallback_branches(
     assert no_walk.is_on is False
 
     no_needs_walk = bs.PawControlNeedsWalkBinarySensor(
-        cast(PawControlCoordinator, _CoordinatorStub(cast(CoordinatorDogData, {MODULE_WALK: {}}))),
+        cast(
+            PawControlCoordinator,
+            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_WALK: {}})),
+        ),
         "rex",
         "Rex",
     )
@@ -665,7 +706,9 @@ def test_walk_and_location_sensors_cover_status_snapshot_fallback_branches(
     overdue_invalid = bs.PawControlLongWalkOverdueBinarySensor(
         cast(
             PawControlCoordinator,
-            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_WALK: {"last_long_walk": object()}})),
+            _CoordinatorStub(
+                cast(CoordinatorDogData, {MODULE_WALK: {"last_long_walk": object()}})
+            ),
         ),
         "rex",
         "Rex",
@@ -705,9 +748,15 @@ def test_health_and_feeding_diagnostic_sensor_fallback_attributes() -> None:
     health_attrs = health_alert.extra_state_attributes
     assert health_attrs["alert_count"] == 0
 
-    assert bs.PawControlWeightAlertBinarySensor(coordinator, "rex", "Rex").is_on is False
-    assert bs.PawControlMedicationDueBinarySensor(coordinator, "rex", "Rex").is_on is False
-    assert bs.PawControlVetCheckupDueBinarySensor(coordinator, "rex", "Rex").is_on is False
+    assert (
+        bs.PawControlWeightAlertBinarySensor(coordinator, "rex", "Rex").is_on is False
+    )
+    assert (
+        bs.PawControlMedicationDueBinarySensor(coordinator, "rex", "Rex").is_on is False
+    )
+    assert (
+        bs.PawControlVetCheckupDueBinarySensor(coordinator, "rex", "Rex").is_on is False
+    )
 
     aware = bs.PawControlHealthAwareFeedingBinarySensor(coordinator, "rex", "Rex")
     aware_attrs = aware.extra_state_attributes
@@ -751,9 +800,13 @@ def test_garden_sensor_manager_fallbacks_and_attribute_shapes() -> None:
         ),
     )
 
-    session_sensor = bs.PawControlGardenSessionActiveBinarySensor(coordinator, "rex", "Rex")
+    session_sensor = bs.PawControlGardenSessionActiveBinarySensor(
+        coordinator, "rex", "Rex"
+    )
     in_garden_sensor = bs.PawControlInGardenBinarySensor(coordinator, "rex", "Rex")
-    pending_sensor = bs.PawControlGardenPoopPendingBinarySensor(coordinator, "rex", "Rex")
+    pending_sensor = bs.PawControlGardenPoopPendingBinarySensor(
+        coordinator, "rex", "Rex"
+    )
 
     assert session_sensor.is_on is True
     assert in_garden_sensor.is_on is True
@@ -780,7 +833,12 @@ def test_garden_sensor_manager_fallbacks_and_attribute_shapes() -> None:
     empty_pending_sensor = bs.PawControlGardenPoopPendingBinarySensor(
         cast(
             PawControlCoordinator,
-            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_GARDEN: {"pending_confirmations": "bad"}})),
+            _CoordinatorStub(
+                cast(
+                    CoordinatorDogData,
+                    {MODULE_GARDEN: {"pending_confirmations": "bad"}},
+                )
+            ),
         ),
         "rex",
         "Rex",
@@ -839,7 +897,9 @@ def test_online_and_visitor_attribute_edge_branches() -> None:
     online_sensor = bs.PawControlOnlineBinarySensor(
         cast(
             PawControlCoordinator,
-            _CoordinatorStub(cast(CoordinatorDogData, {"last_update": 123, "status": "ok"})),
+            _CoordinatorStub(
+                cast(CoordinatorDogData, {"last_update": 123, "status": "ok"})
+            ),
         ),
         "rex",
         "Rex",
@@ -897,7 +957,10 @@ def test_attention_recommendation_and_geofence_branch_matrix(
 
     # No snapshot and no GPS data -> fallback branch.
     no_gps_sensor = bs.PawControlAttentionNeededBinarySensor(
-        cast(PawControlCoordinator, _CoordinatorStub(cast(CoordinatorDogData, {MODULE_FEEDING: {}}))),
+        cast(
+            PawControlCoordinator,
+            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_FEEDING: {}})),
+        ),
         "rex",
         "Rex",
     )
@@ -908,7 +971,9 @@ def test_attention_recommendation_and_geofence_branch_matrix(
     geofence_sensor = bs.PawControlAttentionNeededBinarySensor(
         cast(
             PawControlCoordinator,
-            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_GPS: {"geofence_status": "bad"}})),
+            _CoordinatorStub(
+                cast(CoordinatorDogData, {MODULE_GPS: {"geofence_status": "bad"}})
+            ),
         ),
         "rex",
         "Rex",
@@ -960,7 +1025,12 @@ def test_hungry_walk_needs_and_home_attribute_branch_fallbacks(
             _CoordinatorStub(
                 cast(
                     CoordinatorDogData,
-                    {MODULE_WALK: {bs.WALK_IN_PROGRESS_FIELD: True, "current_walk": "bad"}},
+                    {
+                        MODULE_WALK: {
+                            bs.WALK_IN_PROGRESS_FIELD: True,
+                            "current_walk": "bad",
+                        }
+                    },
                 ),
             ),
         ),
@@ -978,7 +1048,12 @@ def test_hungry_walk_needs_and_home_attribute_branch_fallbacks(
             _CoordinatorStub(
                 cast(
                     CoordinatorDogData,
-                    {MODULE_WALK: {"last_walk": "2026-01-01T10:00:00+00:00", "walks_today": "bad"}},
+                    {
+                        MODULE_WALK: {
+                            "last_walk": "2026-01-01T10:00:00+00:00",
+                            "walks_today": "bad",
+                        }
+                    },
                 ),
             ),
         ),
@@ -1000,7 +1075,10 @@ def test_hungry_walk_needs_and_home_attribute_branch_fallbacks(
         cast(
             PawControlCoordinator,
             _CoordinatorStub(
-                cast(CoordinatorDogData, {MODULE_GPS: {"last_seen": 1, "accuracy": "bad"}}),
+                cast(
+                    CoordinatorDogData,
+                    {MODULE_GPS: {"last_seen": 1, "accuracy": "bad"}},
+                ),
             ),
         ),
         "rex",
@@ -1030,17 +1108,23 @@ def test_health_activity_and_emergency_attribute_branch_fallbacks() -> None:
     checkup_sensor = bs.PawControlVetCheckupDueBinarySensor(
         cast(
             PawControlCoordinator,
-            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_HEALTH: {"next_checkup_due": 123}})),
+            _CoordinatorStub(
+                cast(CoordinatorDogData, {MODULE_HEALTH: {"next_checkup_due": 123}})
+            ),
         ),
         "rex",
         "Rex",
     )
     assert checkup_sensor.is_on is False
 
-    activity_sensor = bs.PawControlActivityLevelConcernBinarySensor(health_empty, "rex", "Rex")
+    activity_sensor = bs.PawControlActivityLevelConcernBinarySensor(
+        health_empty, "rex", "Rex"
+    )
     assert isinstance(activity_sensor.extra_state_attributes, dict)
 
-    aware_sensor = bs.PawControlHealthAwareFeedingBinarySensor(health_empty, "rex", "Rex")
+    aware_sensor = bs.PawControlHealthAwareFeedingBinarySensor(
+        health_empty, "rex", "Rex"
+    )
     aware_attrs = aware_sensor.extra_state_attributes
     assert aware_attrs["health_conditions"] == []
 
@@ -1050,7 +1134,12 @@ def test_health_activity_and_emergency_attribute_branch_fallbacks() -> None:
             _CoordinatorStub(
                 cast(
                     CoordinatorDogData,
-                    {MODULE_FEEDING: {"portion_adjustment_factor": "bad", "health_conditions": []}},
+                    {
+                        MODULE_FEEDING: {
+                            "portion_adjustment_factor": "bad",
+                            "health_conditions": [],
+                        }
+                    },
                 ),
             ),
         ),
@@ -1078,7 +1167,9 @@ def test_health_activity_and_emergency_attribute_branch_fallbacks() -> None:
     emergency_no_mapping = bs.PawControlHealthEmergencyBinarySensor(
         cast(
             PawControlCoordinator,
-            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_FEEDING: {"emergency_mode": "bad"}})),
+            _CoordinatorStub(
+                cast(CoordinatorDogData, {MODULE_FEEDING: {"emergency_mode": "bad"}})
+            ),
         ),
         "rex",
         "Rex",
@@ -1115,7 +1206,9 @@ def test_remaining_branch_paths_for_garden_walk_health_and_medication_attrs() ->
     garden_sensor = bs.PawControlInGardenBinarySensor(
         cast(
             PawControlCoordinator,
-            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_GARDEN: {"status": "idle"}})),
+            _CoordinatorStub(
+                cast(CoordinatorDogData, {MODULE_GARDEN: {"status": "idle"}})
+            ),
         ),
         "rex",
         "Rex",
@@ -1124,7 +1217,10 @@ def test_remaining_branch_paths_for_garden_walk_health_and_medication_attrs() ->
     assert "pending_confirmations" not in garden_attrs
 
     needs_walk_empty = bs.PawControlNeedsWalkBinarySensor(
-        cast(PawControlCoordinator, _CoordinatorStub(cast(CoordinatorDogData, {MODULE_WALK: {}}))),
+        cast(
+            PawControlCoordinator,
+            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_WALK: {}})),
+        ),
         "rex",
         "Rex",
     )
@@ -1133,7 +1229,9 @@ def test_remaining_branch_paths_for_garden_walk_health_and_medication_attrs() ->
     needs_walk_weird = bs.PawControlNeedsWalkBinarySensor(
         cast(
             PawControlCoordinator,
-            _CoordinatorStub(cast(CoordinatorDogData, {MODULE_WALK: {"last_walk": 123}})),
+            _CoordinatorStub(
+                cast(CoordinatorDogData, {MODULE_WALK: {"last_walk": 123}})
+            ),
         ),
         "rex",
         "Rex",

@@ -119,7 +119,9 @@ def test_validate_and_sanitize_wraps_type_errors_and_unknown_validators() -> Non
 
 
 @pytest.mark.unit
-def test_resolve_validator_method_returns_none_for_non_callable_dispatch_target() -> None:
+def test_resolve_validator_method_returns_none_for_non_callable_dispatch_target() -> (
+    None
+):
     """Dispatch resolution should return None when target attribute is not callable."""
     validator = InputValidator()
     validator.validate_string = "not-callable"  # type: ignore[method-assign]

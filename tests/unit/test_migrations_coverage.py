@@ -7,7 +7,6 @@ from unittest.mock import Mock
 
 import pytest
 
-import custom_components.pawcontrol.migrations as migrations
 from custom_components.pawcontrol.const import (
     CONF_DOG_OPTIONS,
     CONF_DOGS,
@@ -15,7 +14,12 @@ from custom_components.pawcontrol.const import (
     CONFIG_ENTRY_VERSION,
 )
 from custom_components.pawcontrol.exceptions import ValidationError
-from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_MODULES_FIELD, DOG_NAME_FIELD
+import custom_components.pawcontrol.migrations as migrations
+from custom_components.pawcontrol.types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+)
 from custom_components.pawcontrol.validation import InputCoercionError
 
 
@@ -97,7 +101,10 @@ def test_coerce_modules_payload_from_sequence_branches() -> None:
 @pytest.mark.unit
 def test_coerce_modules_payload_invalid_sequence_and_non_sequence() -> None:
     """Unsupported payload shapes should yield ``None``."""
-    assert migrations._coerce_modules_payload(["unknown", {"module": "invalid"}, 5]) is None
+    assert (
+        migrations._coerce_modules_payload(["unknown", {"module": "invalid"}, 5])
+        is None
+    )
     assert migrations._coerce_modules_payload("gps") is None
 
 
@@ -127,11 +134,11 @@ def test_resolve_dog_identifier_fallback_branches(
     monkeypatch.setattr(
         migrations,
         "normalize_dog_id",
-        lambda value: (_ for _ in ()).throw(
-            InputCoercionError("dog_id", value, "invalid")
-        )
-        if str(value).strip() == "Raw Fallback"
-        else str(value).strip().lower(),
+        lambda value: (
+            (_ for _ in ()).throw(InputCoercionError("dog_id", value, "invalid"))
+            if str(value).strip() == "Raw Fallback"
+            else str(value).strip().lower()
+        ),
     )
 
     assert migrations._resolve_dog_identifier({}, "  Alpha  ") == "alpha"
@@ -147,10 +154,15 @@ def test_resolve_dog_identifier_continues_after_empty_normalized_value(
     monkeypatch.setattr(
         migrations,
         "normalize_dog_id",
-        lambda value: "" if str(value).strip().lower() == "empty" else str(value).strip().lower(),
+        lambda value: (
+            "" if str(value).strip().lower() == "empty" else str(value).strip().lower()
+        ),
     )
 
-    assert migrations._resolve_dog_identifier({DOG_ID_FIELD: "empty", "id": "Final"}, None) == "final"
+    assert (
+        migrations._resolve_dog_identifier({DOG_ID_FIELD: "empty", "id": "Final"}, None)
+        == "final"
+    )
 
 
 @pytest.mark.unit
@@ -165,7 +177,9 @@ def test_normalize_dog_entry_name_fallback_and_module_cleanup(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Name fallback and invalid module cleanup paths should be applied."""
-    monkeypatch.setattr(migrations, "_resolve_dog_identifier", lambda *_args, **_kwargs: "buddy")
+    monkeypatch.setattr(
+        migrations, "_resolve_dog_identifier", lambda *_args, **_kwargs: "buddy"
+    )
     monkeypatch.setattr(migrations, "_coerce_modules_payload", lambda _payload: None)
 
     def _validate_name(value: object, *, required: bool = False) -> str | None:
@@ -198,8 +212,12 @@ def test_normalize_dog_entry_defaults_name_and_keeps_coerced_modules(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Missing/invalid names should fall back to dog ID and preserve valid modules."""
-    monkeypatch.setattr(migrations, "_resolve_dog_identifier", lambda *_args, **_kwargs: "buddy")
-    monkeypatch.setattr(migrations, "_coerce_modules_payload", lambda _payload: {"gps": True})
+    monkeypatch.setattr(
+        migrations, "_resolve_dog_identifier", lambda *_args, **_kwargs: "buddy"
+    )
+    monkeypatch.setattr(
+        migrations, "_coerce_modules_payload", lambda _payload: {"gps": True}
+    )
     monkeypatch.setattr(migrations, "validate_dog_name", lambda *_args, **_kwargs: None)
 
     normalized = migrations._normalize_dog_entry({DOG_MODULES_FIELD: {"legacy": 1}})
@@ -215,9 +233,13 @@ def test_normalize_dog_entry_keeps_payload_when_modules_field_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Entries without a modules payload should avoid module-pop cleanup branch."""
-    monkeypatch.setattr(migrations, "_resolve_dog_identifier", lambda *_args, **_kwargs: "buddy")
+    monkeypatch.setattr(
+        migrations, "_resolve_dog_identifier", lambda *_args, **_kwargs: "buddy"
+    )
     monkeypatch.setattr(migrations, "_coerce_modules_payload", lambda _payload: None)
-    monkeypatch.setattr(migrations, "validate_dog_name", lambda *_args, **_kwargs: "Buddy")
+    monkeypatch.setattr(
+        migrations, "validate_dog_name", lambda *_args, **_kwargs: "Buddy"
+    )
 
     normalized = migrations._normalize_dog_entry({"name": "Buddy"})
 
@@ -233,9 +255,13 @@ def test_normalize_dog_options_mapping_branch_and_key_filtering(
 ) -> None:
     """Mapping payload normalization should filter non-mappings and empty keys."""
     calls: list[str | None] = []
-    monkeypatch.setattr(migrations, "normalize_dog_id", lambda value: str(value).strip().lower())
+    monkeypatch.setattr(
+        migrations, "normalize_dog_id", lambda value: str(value).strip().lower()
+    )
 
-    def _ensure_entry(value: dict[str, object], *, dog_id: str | None = None) -> dict[str, object]:
+    def _ensure_entry(
+        value: dict[str, object], *, dog_id: str | None = None
+    ) -> dict[str, object]:
         calls.append(dog_id)
         if value.get("drop"):
             return {"modules": {"gps": True}}
@@ -271,9 +297,13 @@ def test_normalize_dog_options_sequence_and_fallback_branch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Sequence payload normalization should keep only entries with resolved IDs."""
-    monkeypatch.setattr(migrations, "normalize_dog_id", lambda value: str(value).strip().lower())
+    monkeypatch.setattr(
+        migrations, "normalize_dog_id", lambda value: str(value).strip().lower()
+    )
 
-    def _ensure_entry(value: dict[str, object], *, dog_id: str | None = None) -> dict[str, object]:
+    def _ensure_entry(
+        value: dict[str, object], *, dog_id: str | None = None
+    ) -> dict[str, object]:
         if value.get("drop"):
             return {"notes": "missing-id"}
         if dog_id:
@@ -302,7 +332,9 @@ def test_migrate_v1_to_v2_mapping_modules_and_options_merge(
     """v1->v2 migration should normalize dogs, apply legacy modules, and merge options."""
     seen_fallback_ids: list[str] = []
 
-    def _normalize_entry(raw_entry: object, *, fallback_id: str | None = None) -> dict[str, object] | None:
+    def _normalize_entry(
+        raw_entry: object, *, fallback_id: str | None = None
+    ) -> dict[str, object] | None:
         if fallback_id is None:
             return None
         seen_fallback_ids.append(fallback_id)
@@ -418,7 +450,9 @@ def test_migrate_v1_to_v2_sequence_appends_normalized_entries(
 
     migrated_data, _migrated_options = migrations._migrate_v1_to_v2(data, options)
 
-    assert migrated_data[CONF_DOGS] == [{DOG_ID_FIELD: "alpha", DOG_NAME_FIELD: "Alpha"}]
+    assert migrated_data[CONF_DOGS] == [
+        {DOG_ID_FIELD: "alpha", DOG_NAME_FIELD: "Alpha"}
+    ]
 
 
 @pytest.mark.unit
@@ -462,7 +496,9 @@ def test_migrate_v1_to_v2_non_collection_dogs_branch(
 async def test_async_migrate_entry_rejects_future_entry_versions() -> None:
     """Migration must fail when entry version exceeds the supported version."""
     update_entry = Mock()
-    hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update_entry))
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_update_entry=update_entry)
+    )
     entry = SimpleNamespace(
         entry_id="entry-1",
         version=CONFIG_ENTRY_VERSION + 1,
@@ -481,7 +517,9 @@ async def test_async_migrate_entry_runs_legacy_upgrade_and_updates_entry(
 ) -> None:
     """Legacy versions (<1 and v1) should migrate to v2 and call update."""
     update_entry = Mock()
-    hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update_entry))
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_update_entry=update_entry)
+    )
     entry = SimpleNamespace(
         entry_id="entry-2",
         version=0,
@@ -490,7 +528,9 @@ async def test_async_migrate_entry_runs_legacy_upgrade_and_updates_entry(
     )
     captured: dict[str, object] = {}
 
-    def _migrate(data: dict[str, object], options: dict[str, object]) -> tuple[dict[str, object], dict[str, object]]:
+    def _migrate(
+        data: dict[str, object], options: dict[str, object]
+    ) -> tuple[dict[str, object], dict[str, object]]:
         captured["data_arg"] = data
         captured["options_arg"] = options
         assert data is not entry.data
@@ -515,7 +555,9 @@ async def test_async_migrate_entry_runs_legacy_upgrade_and_updates_entry(
 async def test_async_migrate_entry_noop_for_current_version() -> None:
     """Current versions should return success without mutating the entry."""
     update_entry = Mock()
-    hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update_entry))
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_update_entry=update_entry)
+    )
     entry = SimpleNamespace(
         entry_id="entry-3",
         version=CONFIG_ENTRY_VERSION,
