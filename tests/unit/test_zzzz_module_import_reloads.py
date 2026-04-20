@@ -1,7 +1,5 @@
 """Import-reload coverage tests for modules loaded during test bootstrap."""
 
-from __future__ import annotations
-
 import importlib
 
 import pytest

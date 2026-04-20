@@ -1,7 +1,5 @@
 """Entity-focused coverage tests for ``missing_sensors`` sensors."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace

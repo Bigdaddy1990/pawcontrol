@@ -1,7 +1,5 @@
 """Runtime-path coverage tests for diagnostics helpers."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 import importlib
 from types import SimpleNamespace

@@ -260,9 +260,9 @@ async def test_async_added_to_hass_skips_unavailable_state() -> None:  # noqa: D
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_birthdate_set_value_calculates_age(
+async def test_birthdate_set_value_calculates_age(  # noqa: D103
     monkeypatch: pytest.MonkeyPatch,
-) -> None:  # noqa: D103
+) -> None:
     entity = _make_datetime_entity(PawControlBirthdateDateTime)
     entity.async_write_ha_state = MagicMock()
     fixed_now = datetime(2025, 1, 1, tzinfo=UTC)
@@ -314,9 +314,9 @@ def test_native_value_returns_current_when_module_payload_missing(  # noqa: D103
     ],
 )
 @pytest.mark.unit
-def test_native_value_returns_current_when_dog_payload_missing(
+def test_native_value_returns_current_when_dog_payload_missing(  # noqa: D103
     entity_cls: type,
-) -> None:  # noqa: D103
+) -> None:
     coordinator = _make_coordinator({})
     entity = _make_datetime_entity(entity_cls, coordinator=coordinator)
     fallback = datetime(2024, 5, 1, 9, 15, tzinfo=UTC)
@@ -383,9 +383,9 @@ def test_native_value_falls_back_when_timestamp_parse_fails(  # noqa: D103
 @pytest.mark.unit
 @pytest.mark.asyncio
 @pytest.mark.parametrize("service_result", [True, False])
-async def test_last_feeding_set_value_covers_service_branches(
+async def test_last_feeding_set_value_covers_service_branches(  # noqa: D103
     service_result: bool,
-) -> None:  # noqa: D103
+) -> None:
     entity = _make_datetime_entity(PawControlLastFeedingDateTime)
     entity.async_write_ha_state = MagicMock()
     entity._async_call_hass_service = AsyncMock(return_value=service_result)
@@ -506,9 +506,9 @@ async def test_last_medication_set_value_covers_service_branches(  # noqa: D103
 @pytest.mark.unit
 @pytest.mark.asyncio
 @pytest.mark.parametrize("service_result", [True, False])
-async def test_vaccination_set_value_covers_service_branches(
+async def test_vaccination_set_value_covers_service_branches(  # noqa: D103
     service_result: bool,
-) -> None:  # noqa: D103
+) -> None:
     entity = _make_datetime_entity(PawControlVaccinationDateDateTime)
     entity.async_write_ha_state = MagicMock()
     entity._async_call_hass_service = AsyncMock(return_value=service_result)
@@ -596,9 +596,9 @@ async def test_last_walk_set_value_covers_all_service_paths(  # noqa: D103
         PawControlNextWalkReminderDateTime,
     ],
 )
-async def test_next_datetime_entities_set_value_without_services(
+async def test_next_datetime_entities_set_value_without_services(  # noqa: D103
     entity_cls: type,
-) -> None:  # noqa: D103
+) -> None:
     entity = _make_datetime_entity(entity_cls)
     entity.async_write_ha_state = MagicMock()
 

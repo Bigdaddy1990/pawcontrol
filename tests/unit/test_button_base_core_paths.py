@@ -1,7 +1,5 @@
 """Additional coverage tests for button base helpers and core actions."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
