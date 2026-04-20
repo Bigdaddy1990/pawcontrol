@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
-
 from homeassistant.const import Platform
+import pytest
 
 import custom_components.pawcontrol.entity_factory as entity_factory
 from custom_components.pawcontrol.entity_factory import (
@@ -147,7 +146,9 @@ def test_entity_factory_init_enforces_min_runtime_floor_after_prewarm(
     def _force_low_floor(self: EntityFactory) -> None:
         self._runtime_guard_floor = 0.0
 
-    monkeypatch.setattr(entity_factory.EntityFactory, "_prewarm_caches", _force_low_floor)
+    monkeypatch.setattr(
+        entity_factory.EntityFactory, "_prewarm_caches", _force_low_floor
+    )
 
     factory = EntityFactory(coordinator=None, prewarm=True)
 
@@ -164,8 +165,12 @@ def test_entity_factory_prewarm_updates_runtime_guard_metrics_payload() -> None:
             }
         }
     )
-    coordinator = SimpleNamespace(config_entry=SimpleNamespace(runtime_data=runtime_data))
-    factory = EntityFactory(coordinator=coordinator, prewarm=False, enforce_min_runtime=True)
+    coordinator = SimpleNamespace(
+        config_entry=SimpleNamespace(runtime_data=runtime_data)
+    )
+    factory = EntityFactory(
+        coordinator=coordinator, prewarm=False, enforce_min_runtime=True
+    )
     factory._runtime_guard_floor = _MIN_OPERATION_DURATION * 2
 
     factory._prewarm_caches()

@@ -6,13 +6,13 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
+from homeassistant.exceptions import ConfigEntryNotReady
 import pytest
 
 import custom_components.pawcontrol as pawcontrol_init
 from custom_components.pawcontrol.const import CONF_DOG_OPTIONS, CONF_DOGS, DOMAIN
 from custom_components.pawcontrol.exceptions import PawControlSetupError
 from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
-from homeassistant.exceptions import ConfigEntryNotReady
 
 
 def _fake_ensure_dog_config_data(candidate: dict[str, Any]) -> dict[str, Any] | None:
@@ -126,7 +126,9 @@ async def test_remove_device_refuses_when_identifier_is_still_configured(
         },
     )
 
-    result = await pawcontrol_init.async_remove_config_entry_device(hass=SimpleNamespace(), entry=entry, device_entry=device)
+    result = await pawcontrol_init.async_remove_config_entry_device(
+        hass=SimpleNamespace(), entry=entry, device_entry=device
+    )
 
     assert result is False
 
@@ -168,7 +170,9 @@ async def test_remove_device_allows_when_no_active_identifier_matches(
     )
     device = SimpleNamespace(id="device-ghost", identifiers={(DOMAIN, "ghost-id")})
 
-    result = await pawcontrol_init.async_remove_config_entry_device(hass=SimpleNamespace(), entry=entry, device_entry=device)
+    result = await pawcontrol_init.async_remove_config_entry_device(
+        hass=SimpleNamespace(), entry=entry, device_entry=device
+    )
 
     assert result is True
 
@@ -271,9 +275,13 @@ async def test_async_unload_entry_skips_service_shutdown_when_other_entries_load
         "custom_components.pawcontrol.async_unload_external_bindings",
         AsyncMock(),
     )
-    monkeypatch.setattr("custom_components.pawcontrol.get_runtime_data", lambda *_: runtime_data)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.get_runtime_data", lambda *_: runtime_data
+    )
     monkeypatch.setattr("custom_components.pawcontrol.pop_runtime_data", MagicMock())
-    monkeypatch.setattr("custom_components.pawcontrol._disable_debug_logging", MagicMock())
+    monkeypatch.setattr(
+        "custom_components.pawcontrol._disable_debug_logging", MagicMock()
+    )
 
     assert await pawcontrol_init.async_unload_entry(hass, entry) is True
     service_manager.async_shutdown.assert_not_called()
@@ -307,7 +315,10 @@ async def test_remove_device_covers_additional_sequence_and_option_edge_paths(
             CONF_DOG_OPTIONS: 5,
         },
         options={
-            CONF_DOGS: [{DOG_ID_FIELD: "opt-seq", DOG_NAME_FIELD: "already-string"}, "invalid"],
+            CONF_DOGS: [
+                {DOG_ID_FIELD: "opt-seq", DOG_NAME_FIELD: "already-string"},
+                "invalid",
+            ],
             CONF_DOG_OPTIONS: {"map-id": {DOG_ID_FIELD: "skip-me"}},
         },
     )
@@ -607,7 +618,19 @@ async def test_async_monitor_background_tasks_covers_remaining_branch_paths(
 
     await pawcontrol_init._async_monitor_background_tasks(runtime_data)
 
-    if garden_manager and callable(getattr(garden_manager, "async_start_cleanup_task", None)):
-        assert bool(getattr(garden_manager.async_start_cleanup_task, "await_count", 0)) is expect_cleanup_restart
-    if garden_manager and callable(getattr(garden_manager, "async_start_stats_update_task", None)):
-        assert bool(getattr(garden_manager.async_start_stats_update_task, "await_count", 0)) is expect_stats_restart
+    if garden_manager and callable(
+        getattr(garden_manager, "async_start_cleanup_task", None)
+    ):
+        assert (
+            bool(getattr(garden_manager.async_start_cleanup_task, "await_count", 0))
+            is expect_cleanup_restart
+        )
+    if garden_manager and callable(
+        getattr(garden_manager, "async_start_stats_update_task", None)
+    ):
+        assert (
+            bool(
+                getattr(garden_manager.async_start_stats_update_task, "await_count", 0)
+            )
+            is expect_stats_restart
+        )

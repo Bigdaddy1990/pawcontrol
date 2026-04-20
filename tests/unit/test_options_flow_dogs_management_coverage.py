@@ -365,9 +365,9 @@ async def test_add_new_dog_success_updates_entry_and_resets_to_init(  # noqa: D1
     assert host._dogs[-1][DOG_ID_FIELD] == "dog-2"
     assert host._current_dog is not None
     assert host._current_dog[DOG_ID_FIELD] == "dog-2"
-    assert host.hass.config_entries.updates[-1]["data"][CONF_DOGS][-1][DOG_ID_FIELD] == (
-        "dog-2"
-    )
+    assert host.hass.config_entries.updates[-1]["data"][CONF_DOGS][-1][
+        DOG_ID_FIELD
+    ] == ("dog-2")
     assert host.invalidations == 1
 
 
@@ -492,9 +492,9 @@ async def test_edit_dog_success_updates_entry_and_invalidates_cache(  # noqa: D1
     assert host._dogs[0][DOG_NAME_FIELD] == "Luna-2"
     assert host._current_dog is not None
     assert host._current_dog[DOG_NAME_FIELD] == "Luna-2"
-    assert host.hass.config_entries.updates[-1]["data"][CONF_DOGS][0][DOG_NAME_FIELD] == (
-        "Luna-2"
-    )
+    assert host.hass.config_entries.updates[-1]["data"][CONF_DOGS][0][
+        DOG_NAME_FIELD
+    ] == ("Luna-2")
     assert host.invalidations == 1
 
 

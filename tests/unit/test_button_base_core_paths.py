@@ -29,7 +29,9 @@ def _registry() -> SimpleNamespace:
 
 
 @pytest.mark.unit
-def test_button_base_helpers_cover_normalization_and_payload_access(monkeypatch) -> None:
+def test_button_base_helpers_cover_normalization_and_payload_access(
+    monkeypatch,
+) -> None:
     """Base helper methods should normalize flags, parse datetimes and payloads."""
     entity = button.PawControlTestNotificationButton(_coordinator(), "dog-1", "Buddy")
 
@@ -71,7 +73,9 @@ def test_button_base_helpers_cover_normalization_and_payload_access(monkeypatch)
 
 
 @pytest.mark.unit
-def test_ensure_patchable_services_prefers_proxy_then_hass_service_like(monkeypatch) -> None:
+def test_ensure_patchable_services_prefers_proxy_then_hass_service_like(
+    monkeypatch,
+) -> None:
     """When hass exists, use proxy first and fallback to service-like objects."""
     entity = button.PawControlTestNotificationButton(_coordinator(), "dog-1", "Buddy")
 
@@ -100,13 +104,19 @@ async def test_async_service_call_handles_missing_registry_and_payload_changes(
     registry = _registry()
     entity._ensure_patchable_services = lambda: registry  # type: ignore[method-assign]
 
-    monkeypatch.setattr(button, "normalize_value", lambda payload: {"x": payload["x"] + 1})
+    monkeypatch.setattr(
+        button, "normalize_value", lambda payload: {"x": payload["x"] + 1}
+    )
     await entity._async_service_call("pawcontrol", "value_change", {"x": 1})
     registry.async_call.assert_awaited_with("pawcontrol", "value_change", {"x": 2})
 
-    monkeypatch.setattr(button, "normalize_value", lambda _payload: {"x": 1, "extra": 2})
+    monkeypatch.setattr(
+        button, "normalize_value", lambda _payload: {"x": 1, "extra": 2}
+    )
     await entity._async_service_call("pawcontrol", "key_change", {"x": 1})
-    registry.async_call.assert_awaited_with("pawcontrol", "key_change", {"x": 1, "extra": 2})
+    registry.async_call.assert_awaited_with(
+        "pawcontrol", "key_change", {"x": 1, "extra": 2}
+    )
 
 
 @pytest.mark.unit
@@ -144,9 +154,13 @@ async def test_core_button_actions_cover_press_paths(monkeypatch) -> None:
 
     sync_btn = button.PawControlSyncDataButton(coordinator, "dog-1", "Buddy")
     await sync_btn.async_press()
-    coordinator.async_request_selective_refresh.assert_awaited_with(["dog-1"], priority=10)
+    coordinator.async_request_selective_refresh.assert_awaited_with(
+        ["dog-1"], priority=10
+    )
 
-    visitor_btn = button.PawControlToggleVisitorModeButton(coordinator, "dog-1", "Buddy")
+    visitor_btn = button.PawControlToggleVisitorModeButton(
+        coordinator, "dog-1", "Buddy"
+    )
     visitor_btn._async_service_call = AsyncMock()  # type: ignore[method-assign]
     await visitor_btn.async_press()
     visitor_btn._async_service_call.assert_awaited()
@@ -154,15 +168,21 @@ async def test_core_button_actions_cover_press_paths(monkeypatch) -> None:
     assert payload["enabled"] is False
 
     runtime = SimpleNamespace(
-        runtime_managers=SimpleNamespace(data_manager=SimpleNamespace(async_reset_dog_daily_stats=AsyncMock())),
+        runtime_managers=SimpleNamespace(
+            data_manager=SimpleNamespace(async_reset_dog_daily_stats=AsyncMock())
+        ),
         data_manager=None,
     )
     monkeypatch.setattr(button, "get_runtime_data", lambda _hass, _entry: runtime)
     reset_btn = button.PawControlResetDailyStatsButton(coordinator, "dog-1", "Buddy")
     reset_btn.hass = SimpleNamespace()
     await reset_btn.async_press()
-    runtime.runtime_managers.data_manager.async_reset_dog_daily_stats.assert_awaited_with("dog-1")
-    coordinator.async_request_selective_refresh.assert_awaited_with(["dog-1"], priority=8)
+    runtime.runtime_managers.data_manager.async_reset_dog_daily_stats.assert_awaited_with(
+        "dog-1"
+    )
+    coordinator.async_request_selective_refresh.assert_awaited_with(
+        ["dog-1"], priority=8
+    )
 
 
 @pytest.mark.unit
@@ -194,12 +214,16 @@ async def test_core_button_actions_raise_expected_errors(monkeypatch) -> None:
     with pytest.raises(HomeAssistantError):
         await refresh_btn.async_press()
 
-    coordinator.async_request_selective_refresh = AsyncMock(side_effect=RuntimeError("sync"))
+    coordinator.async_request_selective_refresh = AsyncMock(
+        side_effect=RuntimeError("sync")
+    )
     sync_btn = button.PawControlSyncDataButton(coordinator, "dog-1", "Buddy")
     with pytest.raises(HomeAssistantError):
         await sync_btn.async_press()
 
-    visitor_btn = button.PawControlToggleVisitorModeButton(coordinator, "dog-1", "Buddy")
+    visitor_btn = button.PawControlToggleVisitorModeButton(
+        coordinator, "dog-1", "Buddy"
+    )
     visitor_btn._async_service_call = AsyncMock(side_effect=RuntimeError("visitor"))  # type: ignore[method-assign]
     with pytest.raises(HomeAssistantError):
         await visitor_btn.async_press()
@@ -214,25 +238,40 @@ async def test_feeding_buttons_cover_meal_selection_and_payloads(monkeypatch) ->
 
     mark_fed_btn = button.PawControlMarkFedButton(coordinator, "dog-1", "Buddy")
     mark_fed_btn._async_press_service = AsyncMock()  # type: ignore[method-assign]
-    monkeypatch.setattr(button.dt_util, "now", lambda: datetime(2026, 1, 1, 9, tzinfo=UTC))
+    monkeypatch.setattr(
+        button.dt_util, "now", lambda: datetime(2026, 1, 1, 9, tzinfo=UTC)
+    )
     await mark_fed_btn.async_press()
-    assert mark_fed_btn._async_press_service.await_args.args[2]["meal_type"] == "breakfast"
+    assert (
+        mark_fed_btn._async_press_service.await_args.args[2]["meal_type"] == "breakfast"
+    )
 
-    monkeypatch.setattr(button.dt_util, "now", lambda: datetime(2026, 1, 1, 23, tzinfo=UTC))
+    monkeypatch.setattr(
+        button.dt_util, "now", lambda: datetime(2026, 1, 1, 23, tzinfo=UTC)
+    )
     await mark_fed_btn.async_press()
     assert mark_fed_btn._async_press_service.await_args.args[2]["meal_type"] == "snack"
 
     feed_now_btn = button.PawControlFeedNowButton(coordinator, "dog-1", "Buddy")
     feed_now_btn._async_press_service = AsyncMock()  # type: ignore[method-assign]
     await feed_now_btn.async_press()
-    assert feed_now_btn._async_press_service.await_args.args[2]["meal_type"] == "immediate"
+    assert (
+        feed_now_btn._async_press_service.await_args.args[2]["meal_type"] == "immediate"
+    )
 
-    feed_meal_btn = button.PawControlFeedMealButton(coordinator, "dog-1", "Buddy", "dinner")
+    feed_meal_btn = button.PawControlFeedMealButton(
+        coordinator, "dog-1", "Buddy", "dinner"
+    )
     feed_meal_btn._async_press_service = AsyncMock()  # type: ignore[method-assign]
     await feed_meal_btn.async_press()
-    assert feed_meal_btn._async_press_service.await_args.args[2]["meal_type"] == "dinner"
+    assert (
+        feed_meal_btn._async_press_service.await_args.args[2]["meal_type"] == "dinner"
+    )
 
     custom_btn = button.PawControlLogCustomFeedingButton(coordinator, "dog-1", "Buddy")
     custom_btn._async_press_service = AsyncMock()  # type: ignore[method-assign]
     await custom_btn.async_press()
-    assert custom_btn._async_press_service.await_args.args[2]["notes"] == "Custom feeding via button"
+    assert (
+        custom_btn._async_press_service.await_args.args[2]["notes"]
+        == "Custom feeding via button"
+    )

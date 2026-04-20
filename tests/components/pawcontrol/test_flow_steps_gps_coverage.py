@@ -289,7 +289,9 @@ async def test_dog_gps_logs_schema_issues_and_routes_to_health_step(
     assert DOG_GPS_CONFIG_FIELD in flow._current_dog_config
 
 
-def test_current_gps_options_handles_per_dog_mapping_and_numeric_legacy_values() -> None:
+def test_current_gps_options_handles_per_dog_mapping_and_numeric_legacy_values() -> (
+    None
+):
     """Per-dog raw GPS settings should merge numeric legacy values."""
     flow = _GPSOptionsFlow(
         options={
@@ -403,10 +405,14 @@ async def test_select_dog_for_geofence_settings_covers_all_navigation_paths() ->
     assert form["type"] == "form"
     assert form["step_id"] == "select_dog_for_geofence_settings"
 
-    missing = await flow.async_step_select_dog_for_geofence_settings({"dog_id": "missing"})
+    missing = await flow.async_step_select_dog_for_geofence_settings({
+        "dog_id": "missing"
+    })
     assert missing == {"type": "init"}
 
-    selected = await flow.async_step_select_dog_for_geofence_settings({"dog_id": "dog-1"})
+    selected = await flow.async_step_select_dog_for_geofence_settings({
+        "dog_id": "dog-1"
+    })
     assert selected["type"] == "form"
     assert selected["step_id"] == "geofence_settings"
 
@@ -523,12 +529,17 @@ async def test_geofence_settings_rounds_radius_and_persists_selected_dog() -> No
     assert result["type"] == "create_entry"
     data = result["data"]
     assert data["geofence_settings"][GEOFENCE_RADIUS_FIELD] == 123
-    assert data[DOG_OPTIONS_FIELD]["dog-1"]["geofence_settings"][GEOFENCE_RADIUS_FIELD] == 123
+    assert (
+        data[DOG_OPTIONS_FIELD]["dog-1"]["geofence_settings"][GEOFENCE_RADIUS_FIELD]
+        == 123
+    )
     assert data[DOG_OPTIONS_FIELD]["dog-1"][DOG_ID_FIELD] == "dog-1"
 
 
 @pytest.mark.asyncio
-async def test_geofence_settings_uses_legacy_path_when_explicit_id_is_not_string() -> None:
+async def test_geofence_settings_uses_legacy_path_when_explicit_id_is_not_string() -> (
+    None
+):
     """Geofence settings should use legacy storage path for non-string explicit IDs."""
     flow = _GPSOptionsFlow(
         current_dog={DOG_ID_FIELD: 42},

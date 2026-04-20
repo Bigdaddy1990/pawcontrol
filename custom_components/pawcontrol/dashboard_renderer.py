@@ -20,6 +20,7 @@ import shutil
 import time
 from typing import Literal, TypeVar, cast
 from uuid import uuid4
+
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
@@ -995,9 +996,7 @@ class DashboardRenderer:
             )
 
             def _create_temp_path() -> Path:
-                return file_path.parent / (
-                    f".{file_path.stem}.{uuid4().hex}.tmp"
-                )
+                return file_path.parent / (f".{file_path.stem}.{uuid4().hex}.tmp")
 
             temp_path = await self.hass.async_add_executor_job(_create_temp_path)
             content = json.dumps(

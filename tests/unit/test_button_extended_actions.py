@@ -102,9 +102,13 @@ async def test_gps_action_buttons_cover_success_and_error_paths() -> None:
 
     refresh_btn = button.PawControlRefreshLocationButton(coordinator, "dog-1", "Buddy")
     await refresh_btn.async_press()
-    coordinator.async_request_selective_refresh.assert_awaited_with(["dog-1"], priority=9)
+    coordinator.async_request_selective_refresh.assert_awaited_with(
+        ["dog-1"], priority=9
+    )
 
-    coordinator.async_request_selective_refresh = AsyncMock(side_effect=RuntimeError("gps"))
+    coordinator.async_request_selective_refresh = AsyncMock(
+        side_effect=RuntimeError("gps")
+    )
     with pytest.raises(HomeAssistantError):
         await refresh_btn.async_press()
 
@@ -139,7 +143,9 @@ async def test_health_buttons_cover_validation_and_translations(monkeypatch) -> 
     coordinator = _coordinator()
 
     weight_btn = button.PawControlLogWeightButton(coordinator, "dog-1", "Buddy")
-    weight_btn._get_module_data = lambda module: {"weight": 21} if module == button.MODULE_HEALTH else {}  # type: ignore[method-assign]
+    weight_btn._get_module_data = lambda module: (
+        {"weight": 21} if module == button.MODULE_HEALTH else {}
+    )  # type: ignore[method-assign]
     weight_btn._async_press_service = AsyncMock()  # type: ignore[method-assign]
     await weight_btn.async_press()
     payload = weight_btn._async_press_service.await_args.args[2]
@@ -149,7 +155,9 @@ async def test_health_buttons_cover_validation_and_translations(monkeypatch) -> 
     with pytest.raises(HomeAssistantError):
         await weight_btn.async_press()
 
-    weight_btn._get_module_data = lambda module: {"weight": 21} if module == button.MODULE_HEALTH else {}  # type: ignore[method-assign]
+    weight_btn._get_module_data = lambda module: (
+        {"weight": 21} if module == button.MODULE_HEALTH else {}
+    )  # type: ignore[method-assign]
     weight_btn._async_press_service = AsyncMock(side_effect=RuntimeError("io"))  # type: ignore[method-assign]
     with pytest.raises(HomeAssistantError, match="Failed to log weight"):
         await weight_btn.async_press()
@@ -174,7 +182,9 @@ async def test_health_buttons_cover_validation_and_translations(monkeypatch) -> 
     with pytest.raises(HomeAssistantError):
         await med_btn.async_press()
 
-    monkeypatch.setattr(button, "translated_grooming_label", lambda *_args, **_kwargs: "Start Grooming")
+    monkeypatch.setattr(
+        button, "translated_grooming_label", lambda *_args, **_kwargs: "Start Grooming"
+    )
     monkeypatch.setattr(
         button,
         "translated_grooming_template",
@@ -193,7 +203,10 @@ async def test_health_buttons_cover_validation_and_translations(monkeypatch) -> 
     await vet_btn.async_press()
 
     check_btn = button.PawControlHealthCheckButton(coordinator, "dog-1", "Buddy")
-    check_btn._get_module_data = lambda _module: {"health_status": "ok", "health_alerts": ["a"]}  # type: ignore[method-assign]
+    check_btn._get_module_data = lambda _module: {
+        "health_status": "ok",
+        "health_alerts": ["a"],
+    }  # type: ignore[method-assign]
     await check_btn.async_press()
 
 
@@ -235,12 +248,16 @@ async def test_garden_buttons_cover_press_and_availability_paths() -> None:
     end_btn._get_garden_payload = lambda: {"status": "active"}  # type: ignore[method-assign]
     assert end_btn.available is True
 
-    activity_btn = button.PawControlLogGardenActivityButton(coordinator, "dog-1", "Buddy")
+    activity_btn = button.PawControlLogGardenActivityButton(
+        coordinator, "dog-1", "Buddy"
+    )
     activity_btn._get_garden_payload = lambda: {"status": "idle"}  # type: ignore[method-assign]
     with pytest.raises(HomeAssistantError):
         await activity_btn.async_press()
     activity_btn._get_garden_payload = lambda: {"status": "active"}  # type: ignore[method-assign]
-    activity_btn._async_service_call = AsyncMock(side_effect=ServiceValidationError("bad"))  # type: ignore[method-assign]
+    activity_btn._async_service_call = AsyncMock(
+        side_effect=ServiceValidationError("bad")
+    )  # type: ignore[method-assign]
     with pytest.raises(HomeAssistantError):
         await activity_btn.async_press()
     activity_btn._async_service_call = AsyncMock()  # type: ignore[method-assign]
@@ -250,12 +267,16 @@ async def test_garden_buttons_cover_press_and_availability_paths() -> None:
     activity_btn._get_dog_data_cached = lambda: {"ok": True}  # type: ignore[method-assign]
     assert activity_btn.available is True
 
-    confirm_btn = button.PawControlConfirmGardenPoopButton(coordinator, "dog-1", "Buddy")
+    confirm_btn = button.PawControlConfirmGardenPoopButton(
+        coordinator, "dog-1", "Buddy"
+    )
     confirm_btn._async_call_hass_service = AsyncMock(return_value=False)  # type: ignore[method-assign]
     await confirm_btn.async_press()
     confirm_btn._async_call_hass_service = AsyncMock(return_value=True)  # type: ignore[method-assign]
     await confirm_btn.async_press()
-    confirm_btn._async_call_hass_service = AsyncMock(side_effect=ServiceValidationError("bad"))  # type: ignore[method-assign]
+    confirm_btn._async_call_hass_service = AsyncMock(
+        side_effect=ServiceValidationError("bad")
+    )  # type: ignore[method-assign]
     with pytest.raises(HomeAssistantError):
         await confirm_btn.async_press()
     confirm_btn._get_dog_data_cached = lambda: None  # type: ignore[method-assign]

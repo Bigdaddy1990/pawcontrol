@@ -7,9 +7,9 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 from homeassistant.const import Platform
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.pawcontrol import device_tracker
 from custom_components.pawcontrol.device_tracker import PawControlGPSTracker
@@ -54,7 +54,9 @@ def _build_tracker(
     return tracker, coordinator
 
 
-def _patched_dog_normaliser(payload: Mapping[str, object] | object) -> Mapping[str, object] | None:
+def _patched_dog_normaliser(
+    payload: Mapping[str, object] | object,
+) -> Mapping[str, object] | None:
     """Normalize synthetic dog payloads for async setup tests."""
     if not isinstance(payload, Mapping):
         return None
@@ -100,7 +102,9 @@ async def test_async_setup_entry_handles_runtime_and_gps_filtering(
         entity_factory=entity_factory,
         entity_profile="default",
     )
-    monkeypatch.setattr(device_tracker, "get_runtime_data", lambda *_args: runtime_data_empty)
+    monkeypatch.setattr(
+        device_tracker, "get_runtime_data", lambda *_args: runtime_data_empty
+    )
     await device_tracker.async_setup_entry(hass, entry, async_add_entities)
     async_add_entities.assert_not_awaited()
 
@@ -115,9 +119,15 @@ async def test_async_setup_entry_handles_runtime_and_gps_filtering(
         entity_factory=entity_factory,
         entity_profile="default",
     )
-    monkeypatch.setattr(device_tracker, "get_runtime_data", lambda *_args: runtime_data_non_gps)
-    monkeypatch.setattr(device_tracker, "ensure_dog_config_data", _patched_dog_normaliser)
-    monkeypatch.setattr(device_tracker, "ensure_dog_modules_projection", _patched_module_projection)
+    monkeypatch.setattr(
+        device_tracker, "get_runtime_data", lambda *_args: runtime_data_non_gps
+    )
+    monkeypatch.setattr(
+        device_tracker, "ensure_dog_config_data", _patched_dog_normaliser
+    )
+    monkeypatch.setattr(
+        device_tracker, "ensure_dog_modules_projection", _patched_module_projection
+    )
     await device_tracker.async_setup_entry(hass, entry, async_add_entities)
     async_add_entities.assert_not_awaited()
 
@@ -133,13 +143,19 @@ async def test_async_setup_entry_entity_creation_and_baseline_fallback(
     add_entities = AsyncMock()
     created_trackers: list[tuple[str, str]] = []
 
-    def _fake_tracker(_coordinator: object, dog_id: str, dog_name: str) -> dict[str, str]:
+    def _fake_tracker(
+        _coordinator: object, dog_id: str, dog_name: str
+    ) -> dict[str, str]:
         created_trackers.append((dog_id, dog_name))
         return {"dog_id": dog_id, "dog_name": dog_name}
 
     monkeypatch.setattr(device_tracker, "PawControlGPSTracker", _fake_tracker)
-    monkeypatch.setattr(device_tracker, "ensure_dog_config_data", _patched_dog_normaliser)
-    monkeypatch.setattr(device_tracker, "ensure_dog_modules_projection", _patched_module_projection)
+    monkeypatch.setattr(
+        device_tracker, "ensure_dog_config_data", _patched_dog_normaliser
+    )
+    monkeypatch.setattr(
+        device_tracker, "ensure_dog_modules_projection", _patched_module_projection
+    )
     monkeypatch.setattr(device_tracker, "async_call_add_entities", AsyncMock())
 
     snapshot = SimpleNamespace(total_allocated=5)
@@ -197,8 +213,12 @@ async def test_async_setup_entry_no_entities_when_profile_blocks(
     )
 
     monkeypatch.setattr(device_tracker, "get_runtime_data", lambda *_args: runtime_data)
-    monkeypatch.setattr(device_tracker, "ensure_dog_config_data", _patched_dog_normaliser)
-    monkeypatch.setattr(device_tracker, "ensure_dog_modules_projection", _patched_module_projection)
+    monkeypatch.setattr(
+        device_tracker, "ensure_dog_config_data", _patched_dog_normaliser
+    )
+    monkeypatch.setattr(
+        device_tracker, "ensure_dog_modules_projection", _patched_module_projection
+    )
     monkeypatch.setattr(device_tracker, "async_call_add_entities", AsyncMock())
     monkeypatch.setattr(device_tracker, "PawControlGPSTracker", lambda *_args: object())
 
@@ -215,21 +235,22 @@ def test_serialize_helpers_and_state_property_branches(
     now = datetime(2026, 4, 7, 12, 0, tzinfo=UTC)
 
     assert tracker._serialize_timestamp(now) == dt_util.as_utc(now).isoformat()
-    assert tracker._serialize_timestamp("2026-04-07T12:00:00+00:00") == "2026-04-07T12:00:00+00:00"
+    assert (
+        tracker._serialize_timestamp("2026-04-07T12:00:00+00:00")
+        == "2026-04-07T12:00:00+00:00"
+    )
     assert tracker._serialize_timestamp(None) is None
 
     monkeypatch.setattr(device_tracker.dt_util, "utcnow", lambda: now)
-    serialized = tracker._serialize_route_point(
-        {
-            "latitude": 52.5,
-            "longitude": 13.4,
-            "timestamp": None,
-            "accuracy": 5,
-            "altitude": 42.0,
-            "speed": 3.5,
-            "heading": 180.0,
-        }
-    )
+    serialized = tracker._serialize_route_point({
+        "latitude": 52.5,
+        "longitude": 13.4,
+        "timestamp": None,
+        "accuracy": 5,
+        "altitude": 42.0,
+        "speed": 3.5,
+        "heading": 180.0,
+    })
     assert serialized["timestamp"] == now.isoformat()
     assert serialized["accuracy"] == 5.0
     assert serialized["altitude"] == 42.0
@@ -251,17 +272,15 @@ def test_serialize_helpers_and_state_property_branches(
 def test_serialize_route_point_skips_non_numeric_optional_fields() -> None:
     """Route-point serialization should omit optional fields with invalid types."""
     tracker, _ = _build_tracker({})
-    serialized = tracker._serialize_route_point(
-        {
-            "latitude": 52.5,
-            "longitude": 13.4,
-            "timestamp": "2026-04-07T12:00:00+00:00",
-            "accuracy": "bad",
-            "altitude": "bad",
-            "speed": "bad",
-            "heading": "bad",
-        }
-    )
+    serialized = tracker._serialize_route_point({
+        "latitude": 52.5,
+        "longitude": 13.4,
+        "timestamp": "2026-04-07T12:00:00+00:00",
+        "accuracy": "bad",
+        "altitude": "bad",
+        "speed": "bad",
+        "heading": "bad",
+    })
     assert "accuracy" not in serialized
     assert "altitude" not in serialized
     assert "speed" not in serialized
@@ -271,30 +290,26 @@ def test_serialize_route_point_skips_non_numeric_optional_fields() -> None:
 @pytest.mark.unit
 def test_coordinate_accuracy_battery_and_location_name_branches() -> None:
     """Numeric parsing properties should handle valid and invalid values."""
-    tracker_ok, _ = _build_tracker(
-        {
-            "latitude": "52.5",
-            "longitude": "13.4",
-            "accuracy": "9",
-            "battery": "82",
-            "zone": "yard",
-        }
-    )
+    tracker_ok, _ = _build_tracker({
+        "latitude": "52.5",
+        "longitude": "13.4",
+        "accuracy": "9",
+        "battery": "82",
+        "zone": "yard",
+    })
     assert tracker_ok.latitude == 52.5
     assert tracker_ok.longitude == 13.4
     assert tracker_ok.location_accuracy == 9
     assert tracker_ok.battery_level == 82
     assert tracker_ok.location_name == "yard"
 
-    tracker_bad, _ = _build_tracker(
-        {
-            "latitude": "bad",
-            "longitude": [],
-            "accuracy": "bad",
-            "battery": "bad",
-            "zone": "unknown",
-        }
-    )
+    tracker_bad, _ = _build_tracker({
+        "latitude": "bad",
+        "longitude": [],
+        "accuracy": "bad",
+        "battery": "bad",
+        "zone": "unknown",
+    })
     assert tracker_bad.latitude is None
     assert tracker_bad.longitude is None
     assert tracker_bad.location_accuracy == device_tracker.DEFAULT_GPS_ACCURACY
@@ -342,28 +357,26 @@ def test_extra_state_attributes_with_string_and_snapshot_branches(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Attribute export should include geofence and status snapshot fallback handling."""
-    tracker, _ = _build_tracker(
-        {
-            "source": 123,
-            "last_seen": "2026-04-07T10:00:00+00:00",
-            "distance_from_home": 12,
-            "current_route": {
-                "active": False,
-                "points": [],
-                "start_time": "2026-04-07T09:00:00+00:00",
-            },
-            "geofence_status": {
-                "in_safe_zone": False,
-                "zone_name": "Fence",
-                "distance_to_boundary": 3.2,
-            },
-            "walk_info": {
-                "active": False,
-                "walk_id": "walk-2",
-                "start_time": "2026-04-07T08:00:00+00:00",
-            },
-        }
-    )
+    tracker, _ = _build_tracker({
+        "source": 123,
+        "last_seen": "2026-04-07T10:00:00+00:00",
+        "distance_from_home": 12,
+        "current_route": {
+            "active": False,
+            "points": [],
+            "start_time": "2026-04-07T09:00:00+00:00",
+        },
+        "geofence_status": {
+            "in_safe_zone": False,
+            "zone_name": "Fence",
+            "distance_to_boundary": 3.2,
+        },
+        "walk_info": {
+            "active": False,
+            "walk_id": "walk-2",
+            "start_time": "2026-04-07T08:00:00+00:00",
+        },
+    })
     monkeypatch.setattr(tracker, "_get_status_snapshot", lambda: {"in_safe_zone": True})
     attrs = tracker.extra_state_attributes
     assert attrs["location_source"] == "unknown"
@@ -573,12 +586,16 @@ async def test_update_route_tracking_paths(
     assert len(tracker_none._route_points) == 0
 
     tracker_inactive, _ = _build_tracker({"current_route": {"active": False}})
-    monkeypatch.setattr(tracker_inactive, "_get_gps_data", lambda: {"current_route": {"active": False}})
+    monkeypatch.setattr(
+        tracker_inactive, "_get_gps_data", lambda: {"current_route": {"active": False}}
+    )
     await tracker_inactive._update_route_tracking(location_data)
     assert len(tracker_inactive._route_points) == 0
 
     tracker_active, _ = _build_tracker({"current_route": {"active": True}})
-    monkeypatch.setattr(tracker_active, "_get_gps_data", lambda: {"current_route": {"active": True}})
+    monkeypatch.setattr(
+        tracker_active, "_get_gps_data", lambda: {"current_route": {"active": True}}
+    )
     await tracker_active._update_route_tracking(location_data)
     assert len(tracker_active._route_points) == 1
 
@@ -587,7 +604,9 @@ async def test_update_route_tracking_paths(
             raise RuntimeError("append failure")
 
     tracker_error, _ = _build_tracker({"current_route": {"active": True}})
-    monkeypatch.setattr(tracker_error, "_get_gps_data", lambda: {"current_route": {"active": True}})
+    monkeypatch.setattr(
+        tracker_error, "_get_gps_data", lambda: {"current_route": {"active": True}}
+    )
     monkeypatch.setattr(tracker_error, "_route_points", _BrokenBuffer())
     await tracker_error._update_route_tracking(location_data)
 
@@ -619,27 +638,23 @@ async def test_update_coordinator_gps_data_base_route_and_exception(
     assert args[1] == device_tracker.MODULE_GPS
     assert "current_route" not in args[2]
 
-    tracker_route, coordinator_route = _build_tracker(
-        {
-            "current_route": {
-                "id": "route-1",
-                "name": "Route",
-                "active": True,
-                "start_time": now - timedelta(minutes=5),
-                "end_time": now,
-                "distance": 123.4,
-                "duration": 300.0,
-            }
+    tracker_route, coordinator_route = _build_tracker({
+        "current_route": {
+            "id": "route-1",
+            "name": "Route",
+            "active": True,
+            "start_time": now - timedelta(minutes=5),
+            "end_time": now,
+            "distance": 123.4,
+            "duration": 300.0,
         }
-    )
-    tracker_route._route_points.append(
-        {
-            "latitude": 52.4,
-            "longitude": 13.3,
-            "timestamp": now - timedelta(minutes=1),
-            "accuracy": 3,
-        }
-    )
+    })
+    tracker_route._route_points.append({
+        "latitude": 52.4,
+        "longitude": 13.3,
+        "timestamp": now - timedelta(minutes=1),
+        "accuracy": 3,
+    })
     await tracker_route._update_coordinator_gps_data(location_data)
     route_payload = coordinator_route.async_apply_module_updates.await_args.args[2]
     assert route_payload["current_route"]["id"] == "route-1"
@@ -648,21 +663,30 @@ async def test_update_coordinator_gps_data_base_route_and_exception(
     assert route_payload["current_route"]["end_time"] is not None
 
     tracker_error, coordinator_error = _build_tracker({})
-    coordinator_error.async_apply_module_updates = AsyncMock(side_effect=RuntimeError("apply failed"))
+    coordinator_error.async_apply_module_updates = AsyncMock(
+        side_effect=RuntimeError("apply failed")
+    )
     await tracker_error._update_coordinator_gps_data(location_data)
 
     tracker_fallback, coordinator_fallback = _build_tracker({})
     location_without_ts = dict(location_data)
     location_without_ts["timestamp"] = None
-    monkeypatch.setattr(device_tracker.dt_util, "utcnow", lambda: now + timedelta(minutes=1))
+    monkeypatch.setattr(
+        device_tracker.dt_util, "utcnow", lambda: now + timedelta(minutes=1)
+    )
     await tracker_fallback._update_coordinator_gps_data(location_without_ts)
-    fallback_payload = coordinator_fallback.async_apply_module_updates.await_args.args[2]
+    fallback_payload = coordinator_fallback.async_apply_module_updates.await_args.args[
+        2
+    ]
     assert fallback_payload["last_seen"] == (now + timedelta(minutes=1)).isoformat()
 
     tracker_optional, coordinator_optional = _build_tracker({})
-    tracker_optional._route_points.append(
-        {"latitude": 1.0, "longitude": 2.0, "timestamp": now, "accuracy": 1}
-    )
+    tracker_optional._route_points.append({
+        "latitude": 1.0,
+        "longitude": 2.0,
+        "timestamp": now,
+        "accuracy": 1,
+    })
     monkeypatch.setattr(
         tracker_optional,
         "_get_gps_data",
@@ -679,7 +703,9 @@ async def test_update_coordinator_gps_data_base_route_and_exception(
         },
     )
     await tracker_optional._update_coordinator_gps_data(location_data)
-    optional_payload = coordinator_optional.async_apply_module_updates.await_args.args[2]
+    optional_payload = coordinator_optional.async_apply_module_updates.await_args.args[
+        2
+    ]
     current_route = optional_payload["current_route"]
     assert "end_time" not in current_route
     assert "distance" not in current_route
@@ -702,39 +728,40 @@ async def test_start_and_stop_route_recording_paths(
     assert route_id == f"route_dog-1_{int(now.timestamp())}"
     assert gps_store["current_route"]["active"] is True  # type: ignore[index]
 
-    tracker._route_points.append(
-        {
-            "latitude": 52.5,
-            "longitude": 13.4,
-            "timestamp": now - timedelta(minutes=2),
-            "accuracy": 5,
-            "altitude": 30.0,
-            "speed": 2.0,
-            "heading": 90.0,
-        }
-    )
-    tracker._route_points.append(
-        {
-            "latitude": 52.6,
-            "longitude": 13.5,
-            "timestamp": now,
-            "accuracy": 4,
-        }
-    )
+    tracker._route_points.append({
+        "latitude": 52.5,
+        "longitude": 13.4,
+        "timestamp": now - timedelta(minutes=2),
+        "accuracy": 5,
+        "altitude": 30.0,
+        "speed": 2.0,
+        "heading": 90.0,
+    })
+    tracker._route_points.append({
+        "latitude": 52.6,
+        "longitude": 13.5,
+        "timestamp": now,
+        "accuracy": 4,
+    })
     route_data = await tracker.async_stop_route_recording(save_route=True)
     assert route_data is not None
     assert route_data["active"] is False
     assert route_data["point_count"] == 2
     assert gps_store["current_route"]["active"] is False  # type: ignore[index]
 
-    tracker_discard, _ = _build_tracker(
-        {"current_route": {"id": "x", "active": True, "start_time": now.isoformat()}}
-    )
-    gps_discard = {"current_route": {"id": "x", "active": True, "start_time": now.isoformat()}}
+    tracker_discard, _ = _build_tracker({
+        "current_route": {"id": "x", "active": True, "start_time": now.isoformat()}
+    })
+    gps_discard = {
+        "current_route": {"id": "x", "active": True, "start_time": now.isoformat()}
+    }
     monkeypatch.setattr(tracker_discard, "_get_gps_data", lambda: gps_discard)
-    tracker_discard._route_points.append(
-        {"latitude": 52.5, "longitude": 13.4, "timestamp": now, "accuracy": 1}
-    )
+    tracker_discard._route_points.append({
+        "latitude": 52.5,
+        "longitude": 13.4,
+        "timestamp": now,
+        "accuracy": 1,
+    })
     assert await tracker_discard.async_stop_route_recording(save_route=False) is None
 
     tracker_none, _ = _build_tracker(None)
@@ -742,18 +769,25 @@ async def test_start_and_stop_route_recording_paths(
     assert await tracker_none.async_stop_route_recording() is None
 
     tracker_inactive, _ = _build_tracker({"current_route": {"active": False}})
-    monkeypatch.setattr(tracker_inactive, "_get_gps_data", lambda: {"current_route": {"active": False}})
+    monkeypatch.setattr(
+        tracker_inactive, "_get_gps_data", lambda: {"current_route": {"active": False}}
+    )
     assert await tracker_inactive.async_stop_route_recording() is None
 
-    tracker_error, _ = _build_tracker({"current_route": {"active": True, "start_time": now}})
+    tracker_error, _ = _build_tracker({
+        "current_route": {"active": True, "start_time": now}
+    })
     monkeypatch.setattr(
         tracker_error,
         "_get_gps_data",
         lambda: {"current_route": {"active": True, "start_time": now}},
     )
-    tracker_error._route_points.append(
-        {"latitude": 52.5, "longitude": 13.4, "timestamp": now, "accuracy": 1}
-    )
+    tracker_error._route_points.append({
+        "latitude": 52.5,
+        "longitude": 13.4,
+        "timestamp": now,
+        "accuracy": 1,
+    })
     monkeypatch.setattr(
         tracker_error,
         "_calculate_route_distance",
@@ -776,22 +810,20 @@ def test_calculate_route_distance_paths() -> None:
     """Distance helper should handle short, valid and invalid routes."""
     tracker, _ = _build_tracker({})
     assert tracker._calculate_route_distance([]) == 0.0
-    assert tracker._calculate_route_distance([{"latitude": 1.0, "longitude": 2.0}]) == 0.0
-
-    valid_distance = tracker._calculate_route_distance(
-        [
-            {"latitude": 52.5, "longitude": 13.4},
-            {"latitude": 52.6, "longitude": 13.5},
-        ]
+    assert (
+        tracker._calculate_route_distance([{"latitude": 1.0, "longitude": 2.0}]) == 0.0
     )
+
+    valid_distance = tracker._calculate_route_distance([
+        {"latitude": 52.5, "longitude": 13.4},
+        {"latitude": 52.6, "longitude": 13.5},
+    ])
     assert valid_distance > 0.0
 
-    invalid_distance = tracker._calculate_route_distance(
-        [
-            {"latitude": "bad", "longitude": 13.4},
-            {"latitude": 52.6, "longitude": 13.5},
-        ]
-    )
+    invalid_distance = tracker._calculate_route_distance([
+        {"latitude": "bad", "longitude": 13.4},
+        {"latitude": 52.6, "longitude": 13.5},
+    ])
     assert invalid_distance == 0.0
 
 
@@ -806,25 +838,21 @@ async def test_export_route_dispatch_and_payload_variants(
     assert await tracker_empty.async_export_route("gpx") is None
 
     tracker, _ = _build_tracker({})
-    tracker._route_points.append(
-        {
-            "latitude": 52.5,
-            "longitude": 13.4,
-            "timestamp": now - timedelta(minutes=2),
-            "altitude": 30.0,
-            "accuracy": 5,
-            "speed": 2.0,
-            "heading": 90.0,
-        }
-    )
-    tracker._route_points.append(
-        {
-            "latitude": 52.6,
-            "longitude": 13.5,
-            "timestamp": "2026-04-07T12:01:00+00:00",
-            "accuracy": "n/a",
-        }
-    )
+    tracker._route_points.append({
+        "latitude": 52.5,
+        "longitude": 13.4,
+        "timestamp": now - timedelta(minutes=2),
+        "altitude": 30.0,
+        "accuracy": 5,
+        "speed": 2.0,
+        "heading": 90.0,
+    })
+    tracker._route_points.append({
+        "latitude": 52.6,
+        "longitude": 13.5,
+        "timestamp": "2026-04-07T12:01:00+00:00",
+        "accuracy": "n/a",
+    })
 
     gpx_payload = await tracker.async_export_route("gpx")
     json_payload = await tracker.async_export_route("json")
@@ -834,11 +862,16 @@ async def test_export_route_dispatch_and_payload_variants(
     assert json_payload is not None and json_payload["format"] == "json"
     assert json_payload["content"]["routes"][0]["duration_minutes"] is None
     assert csv_payload is not None and csv_payload["format"] == "csv"
-    assert "timestamp,latitude,longitude,altitude,accuracy,speed,heading" in csv_payload["content"]
+    assert (
+        "timestamp,latitude,longitude,altitude,accuracy,speed,heading"
+        in csv_payload["content"]
+    )
 
     assert await tracker.async_export_route("unsupported") is None
 
-    monkeypatch.setattr(tracker, "_export_route_gpx", AsyncMock(side_effect=RuntimeError("export boom")))
+    monkeypatch.setattr(
+        tracker, "_export_route_gpx", AsyncMock(side_effect=RuntimeError("export boom"))
+    )
     assert await tracker.async_export_route("gpx") is None
 
 

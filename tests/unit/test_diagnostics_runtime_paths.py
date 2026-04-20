@@ -180,9 +180,10 @@ async def test_async_resolve_setup_flag_translations_defaults_without_helper(
         language="en",
     )
     assert language == "en"
-    assert flag_labels["enable_analytics"] == diagnostics.SETUP_FLAG_LABELS[
-        "enable_analytics"
-    ]
+    assert (
+        flag_labels["enable_analytics"]
+        == diagnostics.SETUP_FLAG_LABELS["enable_analytics"]
+    )
     assert source_labels["options"] == diagnostics.SETUP_FLAG_SOURCE_LABELS["options"]
     assert title == diagnostics.SETUP_FLAGS_PANEL_TITLE
     assert description == diagnostics.SETUP_FLAGS_PANEL_DESCRIPTION
@@ -297,10 +298,13 @@ def test_entity_registry_entries_for_config_entry_helper_and_fallback(
         lambda _registry, _entry_id: expected,
         raising=False,
     )
-    assert diagnostics._entity_registry_entries_for_config_entry(
-        object(),
-        "entry-1",
-    ) == expected
+    assert (
+        diagnostics._entity_registry_entries_for_config_entry(
+            object(),
+            "entry-1",
+        )
+        == expected
+    )
 
     monkeypatch.setattr(
         diagnostics.er,
@@ -330,10 +334,13 @@ def test_device_registry_entries_for_config_entry_helper_and_fallback(
         lambda _registry, _entry_id: expected,
         raising=False,
     )
-    assert diagnostics._device_registry_entries_for_config_entry(
-        object(),
-        "entry-1",
-    ) == expected
+    assert (
+        diagnostics._device_registry_entries_for_config_entry(
+            object(),
+            "entry-1",
+        )
+        == expected
+    )
 
     monkeypatch.setattr(
         diagnostics.dr,
@@ -343,8 +350,12 @@ def test_device_registry_entries_for_config_entry_helper_and_fallback(
     )
     registry = SimpleNamespace(
         devices={
-            "device-1": SimpleNamespace(config_entry_id=None, config_entries={"entry-1"}),
-            "device-2": SimpleNamespace(config_entry_id="entry-2", config_entries=set()),
+            "device-1": SimpleNamespace(
+                config_entry_id=None, config_entries={"entry-1"}
+            ),
+            "device-2": SimpleNamespace(
+                config_entry_id="entry-2", config_entries=set()
+            ),
         },
     )
     entries = diagnostics._device_registry_entries_for_config_entry(registry, "entry-1")
@@ -508,21 +519,19 @@ async def test_async_get_config_entry_diagnostics_aggregates_runtime_sections(
 def test_resilience_escalation_snapshot_paths() -> None:
     """Escalation diagnostics should degrade gracefully when runtime data is missing."""
     assert diagnostics._get_resilience_escalation_snapshot(None) == {"available": False}
-    assert (
-        diagnostics._get_resilience_escalation_snapshot(_runtime(script_manager=None))
-        == {"available": False}
-    )
+    assert diagnostics._get_resilience_escalation_snapshot(
+        _runtime(script_manager=None)
+    ) == {"available": False}
 
     manager_none = SimpleNamespace(get_resilience_escalation_snapshot=lambda: None)
-    assert (
-        diagnostics._get_resilience_escalation_snapshot(
-            _runtime(script_manager=manager_none),
-        )
-        == {"available": False}
-    )
+    assert diagnostics._get_resilience_escalation_snapshot(
+        _runtime(script_manager=manager_none),
+    ) == {"available": False}
 
     manager = SimpleNamespace(
-        get_resilience_escalation_snapshot=lambda: {"captured": datetime(2024, 1, 1, tzinfo=UTC)}
+        get_resilience_escalation_snapshot=lambda: {
+            "captured": datetime(2024, 1, 1, tzinfo=UTC)
+        }
     )
     payload = diagnostics._get_resilience_escalation_snapshot(
         _runtime(script_manager=manager),
@@ -791,7 +800,9 @@ async def test_get_integration_status_with_runtime_and_without_runtime(
 async def test_get_notification_diagnostics_available_path() -> None:
     """Notification diagnostics should export manager stats and delivery snapshot."""
     manager = SimpleNamespace(
-        async_get_performance_statistics=AsyncMock(return_value={"window": timedelta(seconds=30)}),
+        async_get_performance_statistics=AsyncMock(
+            return_value={"window": timedelta(seconds=30)}
+        ),
         get_delivery_status_snapshot=lambda: {
             "services": {"notify.test": {"total_failures": 1}},
         },
@@ -804,11 +815,16 @@ async def test_get_notification_diagnostics_available_path() -> None:
     assert payload["rejection_metrics"]["total_failures"] == 1
 
 
-def test_build_notification_rejection_metrics_handles_invalid_services_payload() -> None:
+def test_build_notification_rejection_metrics_handles_invalid_services_payload() -> (
+    None
+):
     """Notification rejection helper should ignore malformed service entries."""
-    assert diagnostics._build_notification_rejection_metrics({"services": []})[
-        "total_services"
-    ] == 0
+    assert (
+        diagnostics._build_notification_rejection_metrics({"services": []})[
+            "total_services"
+        ]
+        == 0
+    )
 
     payload = diagnostics._build_notification_rejection_metrics(
         {
@@ -823,7 +839,9 @@ def test_build_notification_rejection_metrics_handles_invalid_services_payload()
     assert payload["total_failures"] == 2
 
 
-def test_build_guard_notification_error_metrics_handles_zero_and_invalid_entries() -> None:
+def test_build_guard_notification_error_metrics_handles_zero_and_invalid_entries() -> (
+    None
+):
     """Guard/notification aggregation should skip invalid entries and zero counts."""
     payload = diagnostics._build_guard_notification_error_metrics(
         {
@@ -919,7 +937,9 @@ async def test_get_entities_and_devices_diagnostics(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Entity and device diagnostics should export grouped registry snapshots."""
-    monkeypatch.setattr(diagnostics.er, "async_get", lambda _hass: object(), raising=False)
+    monkeypatch.setattr(
+        diagnostics.er, "async_get", lambda _hass: object(), raising=False
+    )
     monkeypatch.setattr(
         diagnostics,
         "_entity_registry_entries_for_config_entry",
@@ -948,7 +968,9 @@ async def test_get_entities_and_devices_diagnostics(
     assert entities_payload["total_entities"] == 1
     assert entities_payload["platform_counts"] == {"sensor": 1}
 
-    monkeypatch.setattr(diagnostics.dr, "async_get", lambda _hass: object(), raising=False)
+    monkeypatch.setattr(
+        diagnostics.dr, "async_get", lambda _hass: object(), raising=False
+    )
     monkeypatch.setattr(
         diagnostics,
         "_device_registry_entries_for_config_entry",
@@ -1071,6 +1093,7 @@ async def test_get_performance_metrics_merges_rejection_defaults_when_no_perf_pa
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Empty performance payload should still merge rejection metrics into output."""
+
     class _FalsyDict(dict[str, object]):
         def __bool__(self) -> bool:
             return False
@@ -1126,7 +1149,9 @@ async def test_get_door_sensor_diagnostics_paths() -> None:
 async def test_get_service_execution_diagnostics_non_mapping_and_merge_paths() -> None:
     """Service execution diagnostics should handle absent and present rejection payloads."""
     non_mapping_runtime = _runtime(performance_stats=["invalid"])
-    unavailable = await diagnostics._get_service_execution_diagnostics(non_mapping_runtime)
+    unavailable = await diagnostics._get_service_execution_diagnostics(
+        non_mapping_runtime
+    )
     assert unavailable["available"] is False
 
     runtime = _runtime(
@@ -1195,12 +1220,16 @@ async def test_get_data_statistics_paths(monkeypatch: pytest.MonkeyPatch) -> Non
         "metrics": {},
     }
 
-    assert await diagnostics._get_data_statistics(_runtime(data_manager=None), None) == {
+    assert await diagnostics._get_data_statistics(
+        _runtime(data_manager=None), None
+    ) == {
         "data_manager_available": False,
         "metrics": {},
     }
 
-    manager = SimpleNamespace(get_metrics=lambda: {"objects": 3, "window": timedelta(seconds=5)})
+    manager = SimpleNamespace(
+        get_metrics=lambda: {"objects": 3, "window": timedelta(seconds=5)}
+    )
     runtime = _runtime(data_manager=manager, dogs=[{"id": "a"}, {"id": "b"}])
     monkeypatch.setattr(
         diagnostics,
@@ -1218,7 +1247,9 @@ async def test_get_data_statistics_paths(monkeypatch: pytest.MonkeyPatch) -> Non
         data_manager=SimpleNamespace(get_metrics=lambda: ["invalid"]),
         dogs=[],
     )
-    provided_cache = {"provided": diagnostics.CacheDiagnosticsSnapshot(snapshot={"ok": True})}
+    provided_cache = {
+        "provided": diagnostics.CacheDiagnosticsSnapshot(snapshot={"ok": True})
+    }
     payload_with_provided_cache = await diagnostics._get_data_statistics(
         runtime_with_bad_metrics,
         provided_cache,
@@ -1243,7 +1274,9 @@ async def test_misc_debug_platform_service_and_module_usage_helpers(
     assert debug_payload["entry_id"] == "entry-1"
     assert debug_payload["ha_version"] == "2026.2"
 
-    monkeypatch.setattr(diagnostics.er, "async_get", lambda _hass: object(), raising=False)
+    monkeypatch.setattr(
+        diagnostics.er, "async_get", lambda _hass: object(), raising=False
+    )
     monkeypatch.setattr(
         diagnostics,
         "_entity_registry_entries_for_config_entry",

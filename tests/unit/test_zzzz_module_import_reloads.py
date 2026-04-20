@@ -32,4 +32,3 @@ def test_reload_module_re_executes_public_definitions(
 
     assert reloaded is module
     assert hasattr(reloaded, sentinel_attribute)
-

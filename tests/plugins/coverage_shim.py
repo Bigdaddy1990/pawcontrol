@@ -200,15 +200,13 @@ if coverage is not None and not hasattr(coverage.Coverage, "_resolve_event_path"
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", CoverageWarning)
                 data = self.get_data()
-        except (DataError, OSError):
+        except DataError, OSError:
             # Some nested coverage scenarios can leave the underlying SQL data
             # file in a temporary "lines vs arcs" mismatch while flushing.
             # Skipping shim line injection keeps the outer session coverage
             # report intact and avoids hard failures during teardown.
             return
-        lines = {
-            str(path): set(executed) for path, executed in self._executed.items()
-        }
+        lines = {str(path): set(executed) for path, executed in self._executed.items()}
         try:
             if data.has_arcs():
                 # The shim only records executed line events, not control-flow
@@ -220,7 +218,7 @@ if coverage is not None and not hasattr(coverage.Coverage, "_resolve_event_path"
                 }
                 data.add_arcs(arcs)
             data.add_lines(lines)
-        except (DataError, OSError):
+        except DataError, OSError:
             # Windows test runs can transiently lock ``.coverage`` when multiple
             # coverage controllers overlap (e.g. nested tools). Dropping the
             # supplemental shim events is safe because core coverage data has
