@@ -81,13 +81,8 @@ def test_coerce_helpers_cover_default_and_clamped_paths() -> None:
     assert PersonEntityManager._coerce_discovery_interval("bad") == (
         pem.DEFAULT_DISCOVERY_INTERVAL
     )
-    assert (
-        PersonEntityManager._coerce_discovery_interval(10) == pem.MIN_DISCOVERY_INTERVAL
-    )
-    assert (
-        PersonEntityManager._coerce_discovery_interval(9999)
-        == pem.MAX_DISCOVERY_INTERVAL
-    )
+    assert PersonEntityManager._coerce_discovery_interval(10) == pem.MIN_DISCOVERY_INTERVAL
+    assert PersonEntityManager._coerce_discovery_interval(9999) == pem.MAX_DISCOVERY_INTERVAL
 
     assert PersonEntityManager._coerce_positive_int(None, default=7) == 7
     assert PersonEntityManager._coerce_positive_int(0, default=7) == 7
@@ -179,9 +174,7 @@ async def test_async_initialize_locked_uses_existing_config_when_none_passed(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_async_initialize_locked_runs_discovery_tracking_and_task(
-    mock_hass,
-) -> None:
+async def test_async_initialize_locked_runs_discovery_tracking_and_task(mock_hass) -> None:
     """Enabled config with auto discovery should execute all startup steps."""
     manager = PersonEntityManager(mock_hass, "entry-id")
     manager._cancel_discovery_task_locked = AsyncMock()  # type: ignore[method-assign]
@@ -190,12 +183,14 @@ async def test_async_initialize_locked_runs_discovery_tracking_and_task(
     manager._setup_state_tracking = AsyncMock()  # type: ignore[method-assign]
     manager._start_discovery_task = AsyncMock()  # type: ignore[method-assign]
 
-    await manager._async_initialize_locked({
-        "enabled": True,
-        "auto_discovery": True,
-        "discovery_interval": 120,
-        "cache_ttl": 60,
-    })
+    await manager._async_initialize_locked(
+        {
+            "enabled": True,
+            "auto_discovery": True,
+            "discovery_interval": 120,
+            "cache_ttl": 60,
+        }
+    )
 
     manager._discover_person_entities.assert_awaited_once()
     manager._setup_state_tracking.assert_awaited_once()
@@ -249,9 +244,7 @@ async def test_discover_person_entities_populates_persons_and_stats(mock_hass) -
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_discover_person_entities_skips_registry_entries_without_state(
-    mock_hass,
-) -> None:
+async def test_discover_person_entities_skips_registry_entries_without_state(mock_hass) -> None:
     """Discovery should ignore person entries when no current state exists."""
     manager = PersonEntityManager(mock_hass, "entry-id")
     registry = SimpleNamespace(
@@ -280,13 +273,11 @@ async def test_discover_person_entities_swallows_registry_errors(mock_hass) -> N
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_find_mobile_device_for_person_source_patterns_and_user_id(
-    mock_hass,
-) -> None:
+async def test_find_mobile_device_for_person_source_patterns_and_user_id(mock_hass) -> None:
     """Source mapping and user-id fallback branch should both be exercised."""
     manager = PersonEntityManager(mock_hass, "entry-id")
-    mock_hass.services.has_service = lambda domain, service: (
-        domain == "notify" and service == "mobile_app_device_one"
+    mock_hass.services.has_service = (
+        lambda domain, service: domain == "notify" and service == "mobile_app_device_one"
     )
 
     state_with_source = _state(
@@ -294,18 +285,12 @@ async def test_find_mobile_device_for_person_source_patterns_and_user_id(
         friendly_name="Device One",
         source="device_tracker.device_one",
     )
-    resolved = await manager._find_mobile_device_for_person(
-        "person.one", state_with_source
-    )
+    resolved = await manager._find_mobile_device_for_person("person.one", state_with_source)
     assert resolved == "mobile_app_device_one"
 
     mock_hass.services.has_service = lambda *_: False
-    user_id_only = _state(
-        state="not_home", source="device_tracker.ghost", user_id="user-1"
-    )
-    unresolved = await manager._find_mobile_device_for_person(
-        "person.two", user_id_only
-    )
+    user_id_only = _state(state="not_home", source="device_tracker.ghost", user_id="user-1")
+    unresolved = await manager._find_mobile_device_for_person("person.two", user_id_only)
     assert unresolved is None
 
 
@@ -324,9 +309,7 @@ async def test_find_mobile_device_for_person_handles_non_tracker_source_without_
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_find_mobile_device_for_person_handles_attribute_errors(
-    mock_hass,
-) -> None:
+async def test_find_mobile_device_for_person_handles_attribute_errors(mock_hass) -> None:
     """Source values without startswith should hit the error-handling branch."""
     manager = PersonEntityManager(mock_hass, "entry-id")
     bad_state = _state(state="not_home", source=object())
@@ -368,11 +351,7 @@ async def test_setup_state_tracking_registers_listener_and_callback(mock_hass) -
 
     assert captured["entity_ids"] == ["person.alice"]
     callback = captured["callback"]
-    await callback(
-        SimpleNamespace(
-            data={"entity_id": "person.alice", "new_state": _state(state=STATE_HOME)}
-        )
-    )
+    await callback(SimpleNamespace(data={"entity_id": "person.alice", "new_state": _state(state=STATE_HOME)}))
     manager._handle_person_state_change.assert_awaited_once()
     assert len(manager._state_listeners) == 1
 
@@ -436,17 +415,13 @@ async def test_handle_person_state_change_without_status_transition_keeps_cache(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_handle_person_state_change_ignores_missing_or_unknown_entities(
-    mock_hass,
-) -> None:
+async def test_handle_person_state_change_ignores_missing_or_unknown_entities(mock_hass) -> None:
     """No-op branches should handle unknown entities and missing new_state."""
     manager = PersonEntityManager(mock_hass, "entry-id")
     manager._persons["person.alice"] = _person("person.alice", state="not_home")
 
     await manager._handle_person_state_change(
-        SimpleNamespace(
-            data={"entity_id": "person.ghost", "new_state": _state(state=STATE_HOME)}
-        )
+        SimpleNamespace(data={"entity_id": "person.ghost", "new_state": _state(state=STATE_HOME)})
     )
     await manager._handle_person_state_change(
         SimpleNamespace(data={"entity_id": "person.alice", "new_state": None})
@@ -496,23 +471,14 @@ def test_get_person_accessors_cover_all_paths(mock_hass) -> None:
 
     all_persons = manager.get_all_persons()
     assert len(all_persons) == 2
-    assert [person.entity_id for person in manager.get_home_persons()] == [
-        "person.home"
-    ]
-    assert [person.entity_id for person in manager.get_away_persons()] == [
-        "person.away"
-    ]
-    assert (
-        manager.get_person_by_entity_id("person.home")
-        is manager._persons["person.home"]
-    )
+    assert [person.entity_id for person in manager.get_home_persons()] == ["person.home"]
+    assert [person.entity_id for person in manager.get_away_persons()] == ["person.away"]
+    assert manager.get_person_by_entity_id("person.home") is manager._persons["person.home"]
     assert manager.get_person_by_entity_id("person.missing") is None
 
 
 @pytest.mark.unit
-def test_get_notification_targets_handles_cache_hits_priority_and_fallback(
-    mock_hass,
-) -> None:
+def test_get_notification_targets_handles_cache_hits_priority_and_fallback(mock_hass) -> None:
     """Notification target selection should cover cache, filters, and fallbacks."""
     manager = PersonEntityManager(mock_hass, "entry-id")
     manager._config.include_away_persons = False
@@ -539,8 +505,8 @@ def test_get_notification_targets_handles_cache_hits_priority_and_fallback(
         name="auto_user",
     )
 
-    mock_hass.services.has_service = lambda domain, service: (
-        domain == "notify" and service == "mobile_app_auto_user"
+    mock_hass.services.has_service = (
+        lambda domain, service: domain == "notify" and service == "mobile_app_auto_user"
     )
 
     first = manager.get_notification_targets()
@@ -572,9 +538,7 @@ def test_get_notification_targets_handles_cache_hits_priority_and_fallback(
 
 
 @pytest.mark.unit
-def test_get_notification_targets_skips_auto_mobile_when_service_missing(
-    mock_hass,
-) -> None:
+def test_get_notification_targets_skips_auto_mobile_when_service_missing(mock_hass) -> None:
     """Auto mobile-app fallback should skip persons without matching notify service."""
     manager = PersonEntityManager(mock_hass, "entry-id")
     manager._config.include_away_persons = True
@@ -593,15 +557,13 @@ def test_get_notification_targets_skips_auto_mobile_when_service_missing(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_async_update_config_handles_success_toggle_and_failures(
-    mock_hass,
-) -> None:
+async def test_async_update_config_handles_success_toggle_and_failures(mock_hass) -> None:
     """Config updates should report success, toggles, and failure paths."""
     manager = PersonEntityManager(mock_hass, "entry-id")
 
     manager._config.enabled = True
 
-    async def _disable(_new_config) -> None:  # type: ignore[no-untyped-def]
+    async def _disable(_new_config):  # type: ignore[no-untyped-def]
         manager._config.enabled = False
 
     manager.async_initialize = AsyncMock(side_effect=_disable)  # type: ignore[method-assign]
@@ -609,7 +571,7 @@ async def test_async_update_config_handles_success_toggle_and_failures(
 
     manager._config.enabled = False
 
-    async def _enable(_new_config) -> None:  # type: ignore[no-untyped-def]
+    async def _enable(_new_config):  # type: ignore[no-untyped-def]
         manager._config.enabled = True
 
     manager.async_initialize = AsyncMock(side_effect=_enable)  # type: ignore[method-assign]
@@ -628,7 +590,7 @@ async def test_async_update_config_returns_true_when_enabled_state_unchanged(
     manager = PersonEntityManager(mock_hass, "entry-id")
     manager._config.enabled = True
 
-    async def _noop(_new_config) -> None:  # type: ignore[no-untyped-def]
+    async def _noop(_new_config):  # type: ignore[no-untyped-def]
         manager._config.enabled = True
 
     manager.async_initialize = AsyncMock(side_effect=_noop)  # type: ignore[method-assign]
@@ -656,13 +618,8 @@ async def test_async_validate_configuration_covers_issue_branches(mock_hass) -> 
 
     assert result["valid"] is False
     assert any("Fallback to static enabled" in issue for issue in result["issues"])
-    assert any(
-        "Persons without notification mapping" in issue for issue in result["issues"]
-    )
-    assert any(
-        "Excluded entity person.missing not found" in issue
-        for issue in result["issues"]
-    )
+    assert any("Persons without notification mapping" in issue for issue in result["issues"])
+    assert any("Excluded entity person.missing not found" in issue for issue in result["issues"])
 
 
 @pytest.mark.unit
@@ -688,9 +645,7 @@ async def test_async_validate_configuration_valid_path(mock_hass) -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_shutdown_and_locked_helpers_cover_task_and_listener_cleanup(
-    mock_hass,
-) -> None:
+async def test_shutdown_and_locked_helpers_cover_task_and_listener_cleanup(mock_hass) -> None:
     """Shutdown should cancel running tasks, invoke listeners, and clear caches."""
     manager = PersonEntityManager(mock_hass, "entry-id")
     listener_called = False
@@ -715,9 +670,7 @@ async def test_shutdown_and_locked_helpers_cover_task_and_listener_cleanup(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_cancel_discovery_task_locked_handles_none_and_completed_task(
-    mock_hass,
-) -> None:
+async def test_cancel_discovery_task_locked_handles_none_and_completed_task(mock_hass) -> None:
     """Cancellation helper should no-op for None and clear completed tasks."""
     manager = PersonEntityManager(mock_hass, "entry-id")
 
@@ -767,9 +720,7 @@ def test_register_cache_monitors_and_clear_listeners_helpers(mock_hass) -> None:
     manager.register_cache_monitors(registrar, prefix="custom_person")
 
     assert manager._cache_registrar is registrar
-    registrar.register_cache_monitor.assert_called_once_with(
-        "custom_person_targets", manager
-    )
+    registrar.register_cache_monitor.assert_called_once_with("custom_person_targets", manager)
 
     manager._state_listeners = []
     manager._clear_state_listeners_locked()

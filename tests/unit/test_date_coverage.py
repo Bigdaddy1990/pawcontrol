@@ -321,9 +321,7 @@ async def test_async_setup_entry_handles_key_and_runtime_errors_per_dog() -> Non
             new=AsyncMock(),
         ) as add_batches,
     ):
-        await async_setup_entry(
-            MagicMock(), MagicMock(entry_id="entry-errors"), AsyncMock()
-        )
+        await async_setup_entry(MagicMock(), MagicMock(entry_id="entry-errors"), AsyncMock())
 
     entities = add_batches.await_args.args[1]
     assert len(entities) == 2
@@ -417,9 +415,7 @@ async def test_birthdate_handler_propagates_profile_update_errors(
     """Birthdate handler should bubble up profile update errors."""
     entity = PawControlBirthdateDate(MagicMock(), "dog-1", "Rex")
     manager = SimpleNamespace(
-        async_update_dog_profile=AsyncMock(
-            side_effect=RuntimeError("profile update failed")
-        )
+        async_update_dog_profile=AsyncMock(side_effect=RuntimeError("profile update failed"))
     )
     monkeypatch.setattr(entity, "_get_data_manager", lambda: manager)
 

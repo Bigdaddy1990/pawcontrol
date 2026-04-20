@@ -386,9 +386,7 @@ async def test_async_step_notifications_creates_typed_entry() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_step_notifications_skips_per_dog_write_when_other_dogs_exist() -> (
-    None
-):
+async def test_async_step_notifications_skips_per_dog_write_when_other_dogs_exist() -> None:
     """Per-dog options should remain unchanged when current dog is absent from map."""
     host = _NotificationHost()
     host._options[DOG_OPTIONS_FIELD] = cast(

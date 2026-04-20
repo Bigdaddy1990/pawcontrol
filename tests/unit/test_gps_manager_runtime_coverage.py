@@ -59,7 +59,7 @@ async def test_async_configure_dog_gps_re_raises_builder_errors(
     mock_gps_manager,
 ) -> None:
     """Configuration should propagate builder failures."""
-    with patch.object(gm, "_build_tracking_config", side_effect=RuntimeError("boom")):  # noqa: SIM117
+    with patch.object(gm, "_build_tracking_config", side_effect=RuntimeError("boom")):
         with pytest.raises(RuntimeError, match="boom"):
             await mock_gps_manager.async_configure_dog_gps("dog-1", {"enabled": True})
 
@@ -95,7 +95,7 @@ async def test_async_setup_geofence_zone_re_raises_constructor_errors(
     mock_gps_manager,
 ) -> None:
     """Zone construction errors should bubble up to callers."""
-    with patch.object(gm, "GeofenceZone", side_effect=RuntimeError("zone-fail")):  # noqa: SIM117
+    with patch.object(gm, "GeofenceZone", side_effect=RuntimeError("zone-fail")):
         with pytest.raises(RuntimeError, match="zone-fail"):
             await mock_gps_manager.async_setup_geofence_zone(
                 "dog-1",
@@ -117,15 +117,13 @@ async def test_async_start_gps_tracking_re_raises_tracking_task_errors(
         {"enabled": True, "track_route": True},
     )
 
-    with (
-        patch.object(
-            mock_gps_manager,
-            "_start_tracking_task",
-            AsyncMock(side_effect=RuntimeError("task-fail")),
-        ),
-        pytest.raises(RuntimeError, match="task-fail"),
+    with patch.object(
+        mock_gps_manager,
+        "_start_tracking_task",
+        AsyncMock(side_effect=RuntimeError("task-fail")),
     ):
-        await mock_gps_manager.async_start_gps_tracking("dog-1", track_route=True)
+        with pytest.raises(RuntimeError, match="task-fail"):
+            await mock_gps_manager.async_start_gps_tracking("dog-1", track_route=True)
 
 
 @pytest.mark.unit
@@ -161,15 +159,13 @@ async def test_async_end_gps_tracking_re_raises_stop_errors(mock_gps_manager) ->
         dog_id="dog-1",
         start_time=datetime.now(UTC),
     )
-    with (
-        patch.object(
-            mock_gps_manager,
-            "_stop_tracking_task",
-            AsyncMock(side_effect=RuntimeError("stop-fail")),
-        ),
-        pytest.raises(RuntimeError, match="stop-fail"),
+    with patch.object(
+        mock_gps_manager,
+        "_stop_tracking_task",
+        AsyncMock(side_effect=RuntimeError("stop-fail")),
     ):
-        await mock_gps_manager.async_end_gps_tracking("dog-1")
+        with pytest.raises(RuntimeError, match="stop-fail"):
+            await mock_gps_manager.async_end_gps_tracking("dog-1")
 
 
 @pytest.mark.unit
@@ -225,9 +221,7 @@ async def test_async_export_routes_filters_to_empty_result(mock_gps_manager) -> 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_async_export_routes_re_raises_unsupported_format(
-    mock_gps_manager,
-) -> None:
+async def test_async_export_routes_re_raises_unsupported_format(mock_gps_manager) -> None:
     """Unsupported export formats should raise ValueError."""
     route = WalkRoute(
         dog_id="dog-1",
@@ -506,7 +500,9 @@ async def test_send_geofence_notification_handles_return_and_breach_payloads(
 ) -> None:
     """Return and breach events should build branch-specific messages and payloads."""
     manager = mock_gps_manager
-    manager._notification_manager = SimpleNamespace(async_send_notification=AsyncMock())
+    manager._notification_manager = SimpleNamespace(
+        async_send_notification=AsyncMock()
+    )
     zone = GeofenceZone("yard", 52.5, 13.4, 100.0, zone_type="safe_zone")
     point = GPSPoint(
         latitude=52.5001,
@@ -575,16 +571,8 @@ async def test_calculate_route_statistics_handles_empty_and_invalid_segments(
         dog_id="dog-1",
         start_time=datetime.now(UTC) - timedelta(minutes=20),
     )
-    p1 = GPSPoint(
-        latitude=52.5,
-        longitude=13.4,
-        timestamp=datetime.now(UTC) - timedelta(minutes=10),
-    )
-    p2 = GPSPoint(
-        latitude=60.0,
-        longitude=25.0,
-        timestamp=datetime.now(UTC) - timedelta(minutes=9),
-    )
+    p1 = GPSPoint(latitude=52.5, longitude=13.4, timestamp=datetime.now(UTC) - timedelta(minutes=10))
+    p2 = GPSPoint(latitude=60.0, longitude=25.0, timestamp=datetime.now(UTC) - timedelta(minutes=9))
     invalid_route.gps_points = [p1, p2]
     await manager._calculate_route_statistics(invalid_route)
     assert invalid_route.segments == []
@@ -677,9 +665,7 @@ async def test_export_routes_json_includes_geofence_event_payloads(
         location=point,
         distance_from_center=150.0,
     )
-    route = WalkRoute(
-        dog_id="dog-1", start_time=datetime.now(UTC), end_time=datetime.now(UTC)
-    )
+    route = WalkRoute(dog_id="dog-1", start_time=datetime.now(UTC), end_time=datetime.now(UTC))
     route.gps_points.append(point)
     route.geofence_events.append(event)
 
@@ -727,8 +713,8 @@ async def test_start_tracking_task_loop_handles_cancelled_error_branch(
         await blocker.wait()
 
     manager._update_location_from_device_tracker = AsyncMock(side_effect=_never_returns)  # type: ignore[method-assign]
-    manager.hass.async_create_task = lambda coro, name=None: asyncio.create_task(
-        coro, name=name
+    manager.hass.async_create_task = (
+        lambda coro, name=None: asyncio.create_task(coro, name=name)
     )
 
     await manager._start_tracking_task("dog-1")
@@ -752,8 +738,8 @@ async def test_start_tracking_task_loop_handles_generic_error_branch(
     manager._update_location_from_device_tracker = AsyncMock(  # type: ignore[method-assign]
         side_effect=RuntimeError("loop-boom")
     )
-    manager.hass.async_create_task = lambda coro, name=None: asyncio.create_task(
-        coro, name=name
+    manager.hass.async_create_task = (
+        lambda coro, name=None: asyncio.create_task(coro, name=name)
     )
 
     await manager._start_tracking_task("dog-1")

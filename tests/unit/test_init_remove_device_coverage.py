@@ -6,13 +6,13 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-from homeassistant.exceptions import ConfigEntryNotReady
 import pytest
 
 import custom_components.pawcontrol as pawcontrol_init
 from custom_components.pawcontrol.const import CONF_DOG_OPTIONS, CONF_DOGS, DOMAIN
 from custom_components.pawcontrol.exceptions import PawControlSetupError
 from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
+from homeassistant.exceptions import ConfigEntryNotReady
 
 
 def _fake_ensure_dog_config_data(candidate: dict[str, Any]) -> dict[str, Any] | None:
@@ -28,6 +28,26 @@ def _fake_sanitize_dog_id(raw_id: str) -> str:
     if raw_id == "skip-me":
         return ""
     return str(raw_id).strip().lower().replace(" ", "_")
+
+
+def _patch_setup_global(
+    monkeypatch: pytest.MonkeyPatch,
+    name: str,
+    value: Any,
+) -> None:
+    monkeypatch.setitem(pawcontrol_init.async_setup_entry.__globals__, name, value)
+
+
+def _patch_rollback_global(
+    monkeypatch: pytest.MonkeyPatch,
+    name: str,
+    value: Any,
+) -> None:
+    monkeypatch.setitem(
+        pawcontrol_init._async_rollback_failed_setup.__globals__,
+        name,
+        value,
+    )
 
 
 @pytest.mark.asyncio
@@ -48,11 +68,13 @@ async def test_remove_device_refuses_when_identifier_is_still_configured(
 ) -> None:
     """A device must not be removed while any matching dog ID remains configured."""
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.ensure_dog_config_data",
+        pawcontrol_init,
+        "ensure_dog_config_data",
         _fake_ensure_dog_config_data,
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.sanitize_dog_id",
+        pawcontrol_init,
+        "sanitize_dog_id",
         _fake_sanitize_dog_id,
     )
 
@@ -65,7 +87,8 @@ async def test_remove_device_refuses_when_identifier_is_still_configured(
         ]
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.get_runtime_data",
+        pawcontrol_init,
+        "get_runtime_data",
         lambda *_: runtime_data,
     )
 
@@ -103,9 +126,7 @@ async def test_remove_device_refuses_when_identifier_is_still_configured(
         },
     )
 
-    result = await pawcontrol_init.async_remove_config_entry_device(
-        hass=SimpleNamespace(), entry=entry, device_entry=device
-    )
+    result = await pawcontrol_init.async_remove_config_entry_device(hass=SimpleNamespace(), entry=entry, device_entry=device)
 
     assert result is False
 
@@ -116,15 +137,18 @@ async def test_remove_device_allows_when_no_active_identifier_matches(
 ) -> None:
     """Removal should be allowed once no configured dog maps to the device identifiers."""
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.ensure_dog_config_data",
+        pawcontrol_init,
+        "ensure_dog_config_data",
         _fake_ensure_dog_config_data,
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.sanitize_dog_id",
+        pawcontrol_init,
+        "sanitize_dog_id",
         _fake_sanitize_dog_id,
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.get_runtime_data",
+        pawcontrol_init,
+        "get_runtime_data",
         lambda *_: None,
     )
 
@@ -144,9 +168,7 @@ async def test_remove_device_allows_when_no_active_identifier_matches(
     )
     device = SimpleNamespace(id="device-ghost", identifiers={(DOMAIN, "ghost-id")})
 
-    result = await pawcontrol_init.async_remove_config_entry_device(
-        hass=SimpleNamespace(), entry=entry, device_entry=device
-    )
+    result = await pawcontrol_init.async_remove_config_entry_device(hass=SimpleNamespace(), entry=entry, device_entry=device)
 
     assert result is True
 
@@ -195,22 +217,10 @@ async def test_async_rollback_failed_setup_runs_best_effort_cleanup(
     cleanup_runtime = AsyncMock()
     pop_runtime = MagicMock()
 
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_unregister_entry_mqtt",
-        mqtt_unreg,
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_unregister_entry_webhook",
-        webhook_unreg,
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_cleanup_runtime_data",
-        cleanup_runtime,
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.pop_runtime_data",
-        pop_runtime,
-    )
+    _patch_rollback_global(monkeypatch, "async_unregister_entry_mqtt", mqtt_unreg)
+    _patch_rollback_global(monkeypatch, "async_unregister_entry_webhook", webhook_unreg)
+    _patch_rollback_global(monkeypatch, "async_cleanup_runtime_data", cleanup_runtime)
+    _patch_rollback_global(monkeypatch, "pop_runtime_data", pop_runtime)
 
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry-rollback")
@@ -261,13 +271,9 @@ async def test_async_unload_entry_skips_service_shutdown_when_other_entries_load
         "custom_components.pawcontrol.async_unload_external_bindings",
         AsyncMock(),
     )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.get_runtime_data", lambda *_: runtime_data
-    )
+    monkeypatch.setattr("custom_components.pawcontrol.get_runtime_data", lambda *_: runtime_data)
     monkeypatch.setattr("custom_components.pawcontrol.pop_runtime_data", MagicMock())
-    monkeypatch.setattr(
-        "custom_components.pawcontrol._disable_debug_logging", MagicMock()
-    )
+    monkeypatch.setattr("custom_components.pawcontrol._disable_debug_logging", MagicMock())
 
     assert await pawcontrol_init.async_unload_entry(hass, entry) is True
     service_manager.async_shutdown.assert_not_called()
@@ -279,15 +285,18 @@ async def test_remove_device_covers_additional_sequence_and_option_edge_paths(
 ) -> None:
     """Additional shapes should traverse remaining mapping/sequence branches."""
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.ensure_dog_config_data",
+        pawcontrol_init,
+        "ensure_dog_config_data",
         _fake_ensure_dog_config_data,
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.sanitize_dog_id",
+        pawcontrol_init,
+        "sanitize_dog_id",
         _fake_sanitize_dog_id,
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.get_runtime_data",
+        pawcontrol_init,
+        "get_runtime_data",
         lambda *_: SimpleNamespace(dogs=[{DOG_ID_FIELD: "skip-me"}, "invalid"]),
     )
 
@@ -298,10 +307,7 @@ async def test_remove_device_covers_additional_sequence_and_option_edge_paths(
             CONF_DOG_OPTIONS: 5,
         },
         options={
-            CONF_DOGS: [
-                {DOG_ID_FIELD: "opt-seq", DOG_NAME_FIELD: "already-string"},
-                "invalid",
-            ],
+            CONF_DOGS: [{DOG_ID_FIELD: "opt-seq", DOG_NAME_FIELD: "already-string"}, "invalid"],
             CONF_DOG_OPTIONS: {"map-id": {DOG_ID_FIELD: "skip-me"}},
         },
     )
@@ -323,15 +329,18 @@ async def test_remove_device_covers_non_mapping_entry_options_and_loop_back_edge
 ) -> None:
     """Non-mapping options and multi-item sources should traverse remaining branches."""
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.ensure_dog_config_data",
+        pawcontrol_init,
+        "ensure_dog_config_data",
         _fake_ensure_dog_config_data,
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.sanitize_dog_id",
+        pawcontrol_init,
+        "sanitize_dog_id",
         _fake_sanitize_dog_id,
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.get_runtime_data",
+        pawcontrol_init,
+        "get_runtime_data",
         lambda *_: SimpleNamespace(
             dogs=[
                 {DOG_ID_FIELD: "runtime-a", DOG_NAME_FIELD: "A"},
@@ -373,15 +382,18 @@ async def test_remove_device_covers_remaining_iter_loop_and_option_raw_id_paths(
 ) -> None:
     """Exercise loop-back and key-only option branches in nested iterators."""
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.ensure_dog_config_data",
+        pawcontrol_init,
+        "ensure_dog_config_data",
         _fake_ensure_dog_config_data,
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.sanitize_dog_id",
+        pawcontrol_init,
+        "sanitize_dog_id",
         _fake_sanitize_dog_id,
     )
     monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.get_runtime_data",
+        pawcontrol_init,
+        "get_runtime_data",
         lambda *_: SimpleNamespace(
             dogs=[
                 # Empty ID forces ensure_dog_config_data -> None (630->621).
@@ -437,19 +449,14 @@ async def test_async_setup_entry_handles_known_error_without_debug_tracking(
     """Known setup errors should propagate even when debug logging is not tracked."""
     rollback = AsyncMock()
     disable_debug = MagicMock()
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__._enable_debug_logging", lambda *_: False
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_validate_entry_config",
+    _patch_setup_global(monkeypatch, "_enable_debug_logging", lambda *_: False)
+    _patch_setup_global(
+        monkeypatch,
+        "async_validate_entry_config",
         AsyncMock(side_effect=ConfigEntryNotReady("not ready")),
     )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__._async_rollback_failed_setup", rollback
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__._disable_debug_logging", disable_debug
-    )
+    _patch_setup_global(monkeypatch, "_async_rollback_failed_setup", rollback)
+    _patch_setup_global(monkeypatch, "_disable_debug_logging", disable_debug)
 
     hass = SimpleNamespace(data={DOMAIN: {}})
     entry = SimpleNamespace(entry_id="entry-known", options={})
@@ -468,19 +475,14 @@ async def test_async_setup_entry_wraps_unexpected_error_without_debug_tracking(
     """Unexpected setup errors should be wrapped as PawControlSetupError."""
     rollback = AsyncMock()
     disable_debug = MagicMock()
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__._enable_debug_logging", lambda *_: False
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_validate_entry_config",
+    _patch_setup_global(monkeypatch, "_enable_debug_logging", lambda *_: False)
+    _patch_setup_global(
+        monkeypatch,
+        "async_validate_entry_config",
         AsyncMock(side_effect=RuntimeError("boom")),
     )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__._async_rollback_failed_setup", rollback
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__._disable_debug_logging", disable_debug
-    )
+    _patch_setup_global(monkeypatch, "_async_rollback_failed_setup", rollback)
+    _patch_setup_global(monkeypatch, "_disable_debug_logging", disable_debug)
 
     hass = SimpleNamespace(data={DOMAIN: {}})
     entry = SimpleNamespace(entry_id="entry-unexpected", options={})
@@ -506,11 +508,10 @@ async def test_async_setup_entry_handles_none_reset_unsubscriber(
         background_monitor_task=None,
     )
 
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__._enable_debug_logging", lambda *_: False
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_validate_entry_config",
+    _patch_setup_global(monkeypatch, "_enable_debug_logging", lambda *_: False)
+    _patch_setup_global(
+        monkeypatch,
+        "async_validate_entry_config",
         AsyncMock(
             return_value=(
                 [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}],
@@ -519,39 +520,26 @@ async def test_async_setup_entry_handles_none_reset_unsubscriber(
             )
         ),
     )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__._should_skip_optional_setup",
-        lambda *_: False,
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_initialize_managers",
+    _patch_setup_global(monkeypatch, "_should_skip_optional_setup", lambda *_: False)
+    _patch_setup_global(
+        monkeypatch,
+        "async_initialize_managers",
         AsyncMock(return_value=runtime_data),
     )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.store_runtime_data", MagicMock()
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_register_entry_webhook",
-        AsyncMock(),
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_register_entry_mqtt", AsyncMock()
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_setup_platforms", AsyncMock()
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_register_cleanup", AsyncMock()
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_setup_daily_reset_scheduler",
+    _patch_setup_global(monkeypatch, "store_runtime_data", MagicMock())
+    _patch_setup_global(monkeypatch, "async_register_entry_webhook", AsyncMock())
+    _patch_setup_global(monkeypatch, "async_register_entry_mqtt", AsyncMock())
+    _patch_setup_global(monkeypatch, "async_setup_platforms", AsyncMock())
+    _patch_setup_global(monkeypatch, "async_register_cleanup", AsyncMock())
+    _patch_setup_global(
+        monkeypatch,
+        "async_setup_daily_reset_scheduler",
         AsyncMock(return_value=None),
     )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.async_check_for_issues", AsyncMock()
-    )
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__._async_monitor_background_tasks",
+    _patch_setup_global(monkeypatch, "async_check_for_issues", AsyncMock())
+    _patch_setup_global(
+        monkeypatch,
+        "_async_monitor_background_tasks",
         AsyncMock(),
     )
 
@@ -614,26 +602,12 @@ async def test_async_monitor_background_tasks_covers_remaining_branch_paths(
         if sleep_calls["count"] >= 2:
             raise asyncio.CancelledError
 
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.__init__.asyncio.sleep", _fake_sleep
-    )
+    monkeypatch.setattr(pawcontrol_init.asyncio, "sleep", _fake_sleep)
     runtime_data = SimpleNamespace(garden_manager=garden_manager)
 
     await pawcontrol_init._async_monitor_background_tasks(runtime_data)
 
-    if garden_manager and callable(
-        getattr(garden_manager, "async_start_cleanup_task", None)
-    ):
-        assert (
-            bool(getattr(garden_manager.async_start_cleanup_task, "await_count", 0))
-            is expect_cleanup_restart
-        )
-    if garden_manager and callable(
-        getattr(garden_manager, "async_start_stats_update_task", None)
-    ):
-        assert (
-            bool(
-                getattr(garden_manager.async_start_stats_update_task, "await_count", 0)
-            )
-            is expect_stats_restart
-        )
+    if garden_manager and callable(getattr(garden_manager, "async_start_cleanup_task", None)):
+        assert bool(getattr(garden_manager.async_start_cleanup_task, "await_count", 0)) is expect_cleanup_restart
+    if garden_manager and callable(getattr(garden_manager, "async_start_stats_update_task", None)):
+        assert bool(getattr(garden_manager.async_start_stats_update_task, "await_count", 0)) is expect_stats_restart

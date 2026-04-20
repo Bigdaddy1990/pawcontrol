@@ -4,8 +4,8 @@ import json
 import os
 from pathlib import Path
 import shutil
-import time
 from types import SimpleNamespace
+import time
 from typing import Any
 
 from homeassistant.exceptions import HomeAssistantError
@@ -330,26 +330,15 @@ async def test_runtime_write_dashboard_file_success_and_failure_paths(
 async def test_runtime_write_dashboard_file_handles_aiofiles_failure(
     renderer: dr.DashboardRenderer,
     local_tmp_dir: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Unexpected file open failures should bubble as HomeAssistantError."""
+    """Unexpected temp-write failures should bubble as HomeAssistantError."""
 
     async def _explode_executor_job(func: Any, *args: Any) -> Any:
-        if callable(func) and getattr(func, "__name__", "") == "_create_temp_path":
-            return Path(local_tmp_dir / "temp-write-error.json")
+        if callable(func) and getattr(func, "__name__", "") == "_write_temp_file":
+            raise OSError("open failed")
         return func(*args)
 
     renderer.hass.async_add_executor_job = _explode_executor_job  # type: ignore[assignment]
-
-    class _BadAsyncOpen:
-        async def __aenter__(self) -> Any:
-            raise OSError("open failed")
-
-        async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> bool:
-            _ = exc_type, exc, tb
-            return False
-
-    monkeypatch.setattr(dr.aiofiles, "open", lambda *args, **kwargs: _BadAsyncOpen())
 
     with pytest.raises(HomeAssistantError, match="Dashboard file write failed"):
         await renderer.write_dashboard_file(
@@ -388,12 +377,9 @@ async def test_runtime_entrypoint_helpers_and_dog_dashboard_branches(
     """Exercise helper coercion and dog dashboard entrypoint paths."""
     options = {"theme": "default"}
     assert dr._as_card_options(options) is options
-    assert (
-        dr.DashboardRenderer._ensure_dog_config(
-            {"dog_id": "rex", "dog_name": "Rex"},
-        )
-        is not None
-    )
+    assert dr.DashboardRenderer._ensure_dog_config(
+        {"dog_id": "rex", "dog_name": "Rex"},
+    ) is not None
     assert dr.DashboardRenderer._ensure_dog_config("invalid") is None
     assert dr.DashboardRenderer._ensure_dog_configs("invalid") == []
     assert await renderer.render_main_dashboard("invalid") == {"views": []}
@@ -484,9 +470,7 @@ async def test_runtime_execute_render_job_main_dog_error_and_timeout_paths(
             _ = exc_type, exc, tb
             return False
 
-    monkeypatch.setattr(
-        dr.asyncio, "timeout", lambda *_args, **_kwargs: _TimeoutContext()
-    )
+    monkeypatch.setattr(dr.asyncio, "timeout", lambda *_args, **_kwargs: _TimeoutContext())
 
     timeout_job = dr.RenderJob(
         job_id="timeout-job",
@@ -611,10 +595,7 @@ async def test_runtime_render_main_and_dog_job_paths_cover_optional_views(
         options={},
     )
     full_dog_result = await renderer._render_dog_dashboard_job(full_dog_job)
-    assert [view["title"] for view in full_dog_result["views"]] == [
-        "Overview",
-        "Health",
-    ]
+    assert [view["title"] for view in full_dog_result["views"]] == ["Overview", "Health"]
 
 
 @pytest.mark.asyncio
@@ -663,11 +644,7 @@ async def test_runtime_overview_activity_and_dog_batch_paths(
         {"dashboard_url": "/paw", "show_activity_summary": True},
     )
     assert captured_navigation_urls[0] == "/paw"
-    assert [card["type"] for card in first_view["cards"]] == [
-        "welcome",
-        "grid",
-        "summary",
-    ]
+    assert [card["type"] for card in first_view["cards"]] == ["welcome", "grid", "summary"]
 
     async def _quick_actions_ok(
         dogs_config: list[dict[str, Any]],
@@ -835,12 +812,7 @@ async def test_runtime_single_dog_module_statistics_settings_cleanup_and_stats(
     ) -> dict[str, Any] | None:
         _ = dog_config, options, title, icon, generator
         if module_key == MODULE_FEEDING:
-            return {
-                "title": "Feeding",
-                "path": MODULE_FEEDING,
-                "icon": "mdi:food",
-                "cards": [],
-            }
+            return {"title": "Feeding", "path": MODULE_FEEDING, "icon": "mdi:food", "cards": []}
         if module_key == MODULE_WALK:
             raise RuntimeError("walk failed")
         return None
@@ -884,9 +856,7 @@ async def test_runtime_single_dog_module_statistics_settings_cleanup_and_stats(
     )
     assert stats_view["title"] == "Statistics"
     assert captured_statistics["coordinator_statistics"] == {"updates": 2}
-    assert captured_statistics["service_execution_metrics"] == {
-        "rejected_call_count": 3
-    }
+    assert captured_statistics["service_execution_metrics"] == {"rejected_call_count": 3}
     assert captured_statistics["service_guard_metrics"] == {"executed": 4, "skipped": 1}
 
     settings_view = await renderer._render_settings_view(

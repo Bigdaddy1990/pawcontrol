@@ -1,5 +1,7 @@
 """High-coverage tests for helper_manager."""
 
+from __future__ import annotations
+
 from collections.abc import Callable, Mapping
 from datetime import time
 from types import SimpleNamespace
@@ -8,6 +10,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+import custom_components.pawcontrol.helper_manager as helper_manager
 from custom_components.pawcontrol.const import (
     CONF_DOGS,
     CONF_MODULES,
@@ -16,7 +19,6 @@ from custom_components.pawcontrol.const import (
     MODULE_HEALTH,
     MODULE_MEDICATION,
 )
-import custom_components.pawcontrol.helper_manager as helper_manager
 from custom_components.pawcontrol.helper_manager import PawControlHelperManager
 from custom_components.pawcontrol.service_guard import ServiceGuardResult
 
@@ -78,12 +80,8 @@ def test_guard_metrics_state_record_and_reset() -> None:
     """Guard metrics aggregate executed/skipped calls and can be reset."""
     state = helper_manager._HelperGuardMetricsState()
 
-    state.record(
-        _service_result(domain="input_boolean", service="create", executed=True)
-    )
-    state.record(
-        _service_result(domain="input_boolean", service="create", executed=False)
-    )
+    state.record(_service_result(domain="input_boolean", service="create", executed=True))
+    state.record(_service_result(domain="input_boolean", service="create", executed=False))
 
     snapshot_before = state.snapshot()
     assert snapshot_before["executed"] == 1
@@ -212,9 +210,7 @@ def test_normalize_dogs_config_variants() -> None:
         },
     )
     assert {dog["dog_id"] for dog in mapping_result} == {"rex", "otto"}
-    assert any(
-        dog["dog_id"] == "otto" and dog["dog_name"] == "otto" for dog in mapping_result
-    )
+    assert any(dog["dog_id"] == "otto" and dog["dog_name"] == "otto" for dog in mapping_result)
 
     sequence_result = PawControlHelperManager._normalize_dogs_config(
         [
@@ -226,9 +222,7 @@ def test_normalize_dogs_config_variants() -> None:
         ],
     )
     assert {dog["dog_id"] for dog in sequence_result} == {"luna", "milo"}
-    assert any(
-        dog["dog_id"] == "milo" and dog["dog_name"] == "milo" for dog in sequence_result
-    )
+    assert any(dog["dog_id"] == "milo" and dog["dog_name"] == "milo" for dog in sequence_result)
 
     assert PawControlHelperManager._normalize_dogs_config("nope") == []
     assert PawControlHelperManager._normalize_dogs_config(b"nope") == []
@@ -251,9 +245,7 @@ def test_normalize_enabled_modules_variants() -> None:
     )
     assert sequenced == frozenset({MODULE_FEEDING, MODULE_MEDICATION})
 
-    assert PawControlHelperManager._normalize_enabled_modules(
-        MODULE_HEALTH
-    ) == frozenset(
+    assert PawControlHelperManager._normalize_enabled_modules(MODULE_HEALTH) == frozenset(
         {MODULE_HEALTH},
     )
     assert PawControlHelperManager._normalize_enabled_modules(7) == frozenset()
@@ -324,9 +316,7 @@ async def test_async_setup_creates_helpers_and_schedules_reset(
         },
         language="de",
     )
-    monkeypatch.setattr(
-        helper_manager.er, "async_get", lambda _hass: _DummyEntityRegistry()
-    )
+    monkeypatch.setattr(helper_manager.er, "async_get", lambda _hass: _DummyEntityRegistry())
 
     captured_calls: list[dict[str, object]] = []
 
@@ -383,9 +373,7 @@ async def test_async_setup_creates_helpers_and_schedules_reset(
 
         return _unsub
 
-    monkeypatch.setattr(
-        helper_manager, "async_track_time_change", _fake_track_time_change
-    )
+    monkeypatch.setattr(helper_manager, "async_track_time_change", _fake_track_time_change)
     monkeypatch.setattr(
         helper_manager,
         "dt_util",
@@ -424,18 +412,14 @@ async def test_async_setup_wraps_failures_as_home_assistant_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Setup should raise HomeAssistantError when helper creation fails."""
-    manager, _hass, _entry = _make_manager(
-        dogs=[{"dog_id": "dog-1", "dog_name": "Dog"}]
-    )
+    manager, _hass, _entry = _make_manager(dogs=[{"dog_id": "dog-1", "dog_name": "Dog"}])
     monkeypatch.setattr(
         manager,
         "async_create_helpers_for_dogs",
         AsyncMock(side_effect=RuntimeError("boom")),
     )
 
-    with pytest.raises(
-        helper_manager.HomeAssistantError, match="Helper manager setup failed: boom"
-    ):
+    with pytest.raises(helper_manager.HomeAssistantError, match="Helper manager setup failed: boom"):
         await manager.async_setup()
 
 
@@ -479,9 +463,7 @@ async def test_async_create_helpers_for_dogs_mapping_and_sequence_modules(
         AsyncMock(return_value=None),
     )
     ensure_listener_two = AsyncMock()
-    monkeypatch.setattr(
-        manager_two, "_ensure_daily_reset_listener", ensure_listener_two
-    )
+    monkeypatch.setattr(manager_two, "_ensure_daily_reset_listener", ensure_listener_two)
 
     created_two = await manager_two.async_create_helpers_for_dogs(
         [{"dog_id": "dog-3", "dog_name": "Three"}],
@@ -491,9 +473,7 @@ async def test_async_create_helpers_for_dogs_mapping_and_sequence_modules(
     ensure_listener_two.assert_not_awaited()
 
     manager_three, _hass_three, _entry_three = _make_manager()
-    manager_three._dog_helpers["dog-dup"] = [
-        "input_boolean.pawcontrol_dog_dup_breakfast_fed"
-    ]
+    manager_three._dog_helpers["dog-dup"] = ["input_boolean.pawcontrol_dog_dup_breakfast_fed"]
 
     async def _create_duplicate_helper(
         dog_id: str,
@@ -501,28 +481,18 @@ async def test_async_create_helpers_for_dogs_mapping_and_sequence_modules(
         _enabled: helper_manager.DogModulesConfig,
     ) -> None:
         if dog_id == "dog-dup":
-            manager_three._created_helpers.add(
-                "input_boolean.pawcontrol_dog_dup_breakfast_fed"
-            )
+            manager_three._created_helpers.add("input_boolean.pawcontrol_dog_dup_breakfast_fed")
 
     ensure_listener_three = AsyncMock()
-    monkeypatch.setattr(
-        manager_three, "_async_create_helpers_for_dog", _create_duplicate_helper
-    )
-    monkeypatch.setattr(
-        manager_three, "_ensure_daily_reset_listener", ensure_listener_three
-    )
+    monkeypatch.setattr(manager_three, "_async_create_helpers_for_dog", _create_duplicate_helper)
+    monkeypatch.setattr(manager_three, "_ensure_daily_reset_listener", ensure_listener_three)
 
     created_three = await manager_three.async_create_helpers_for_dogs(
         [{"dog_id": "dog-dup", "dog_name": "Duplicate"}],
         {MODULE_FEEDING: True},
     )
-    assert created_three["dog-dup"] == [
-        "input_boolean.pawcontrol_dog_dup_breakfast_fed"
-    ]
-    assert manager_three._dog_helpers["dog-dup"] == [
-        "input_boolean.pawcontrol_dog_dup_breakfast_fed"
-    ]
+    assert created_three["dog-dup"] == ["input_boolean.pawcontrol_dog_dup_breakfast_fed"]
+    assert manager_three._dog_helpers["dog-dup"] == ["input_boolean.pawcontrol_dog_dup_breakfast_fed"]
     ensure_listener_three.assert_awaited_once()
 
 
@@ -616,9 +586,7 @@ async def test_health_helpers_build_weight_status_and_dates(
 ) -> None:
     """Health helper builder should create number/select/datetime helpers."""
     manager, _hass, _entry = _make_manager(language="fr")
-    number_calls: list[
-        tuple[str, str, float, float, float, str | None, str | None, str, float | None]
-    ] = []
+    number_calls: list[tuple[str, str, float, float, float, str | None, str | None, str, float | None]] = []
     select_calls: list[tuple[str, str, list[str], str | None, str | None]] = []
     datetime_calls: list[tuple[str, str, bool, bool, str | None]] = []
 
@@ -728,9 +696,7 @@ async def test_input_helper_creation_success_with_optional_fields_omitted(
 ) -> None:
     """Input helper creators should succeed with minimal payloads."""
     manager, _hass, _entry = _make_manager()
-    monkeypatch.setattr(
-        helper_manager.er, "async_get", lambda _hass: _DummyEntityRegistry()
-    )
+    monkeypatch.setattr(helper_manager.er, "async_get", lambda _hass: _DummyEntityRegistry())
 
     captured: list[tuple[str, Mapping[str, object]]] = []
 
@@ -755,9 +721,7 @@ async def test_input_helper_creation_success_with_optional_fields_omitted(
         _capture_service_call,
     )
 
-    await manager._async_create_input_boolean(
-        "input_boolean.min", "Minimal", icon=None, initial=True
-    )
+    await manager._async_create_input_boolean("input_boolean.min", "Minimal", icon=None, initial=True)
     await manager._async_create_input_datetime(
         "input_datetime.min",
         "Minimal DT",
@@ -819,17 +783,11 @@ async def test_input_helper_creation_skips_existing_false_guards_and_exceptions(
 
     await manager._async_create_input_boolean("input_boolean.existing", "Existing")
     await manager._async_create_input_datetime("input_datetime.existing", "Existing")
-    await manager._async_create_input_number(
-        "input_number.existing", "Existing", min=0.0, max=1.0
-    )
-    await manager._async_create_input_select(
-        "input_select.existing", "Existing", options=["a"]
-    )
+    await manager._async_create_input_number("input_number.existing", "Existing", min=0.0, max=1.0)
+    await manager._async_create_input_select("input_select.existing", "Existing", options=["a"])
     service_not_called.assert_not_awaited()
 
-    monkeypatch.setattr(
-        helper_manager.er, "async_get", lambda _hass: _DummyEntityRegistry()
-    )
+    monkeypatch.setattr(helper_manager.er, "async_get", lambda _hass: _DummyEntityRegistry())
 
     async def _return_false(
         _hass: Any,
@@ -850,35 +808,23 @@ async def test_input_helper_creation_skips_existing_false_guards_and_exceptions(
             reason="disabled",
         )
 
-    monkeypatch.setattr(
-        helper_manager, "async_call_hass_service_if_available", _return_false
-    )
+    monkeypatch.setattr(helper_manager, "async_call_hass_service_if_available", _return_false)
 
     await manager._async_create_input_boolean("input_boolean.false", "False")
     await manager._async_create_input_datetime("input_datetime.false", "False")
-    await manager._async_create_input_number(
-        "input_number.false", "False", min=0.0, max=1.0
-    )
-    await manager._async_create_input_select(
-        "input_select.false", "False", options=["x"]
-    )
+    await manager._async_create_input_number("input_number.false", "False", min=0.0, max=1.0)
+    await manager._async_create_input_select("input_select.false", "False", options=["x"])
     assert "input_boolean.false" not in manager._created_helpers
 
     async def _raise_error(*_args: Any, **_kwargs: Any) -> ServiceGuardResult:
         raise RuntimeError("service failure")
 
-    monkeypatch.setattr(
-        helper_manager, "async_call_hass_service_if_available", _raise_error
-    )
+    monkeypatch.setattr(helper_manager, "async_call_hass_service_if_available", _raise_error)
 
     await manager._async_create_input_boolean("input_boolean.error", "Error")
     await manager._async_create_input_datetime("input_datetime.error", "Error")
-    await manager._async_create_input_number(
-        "input_number.error", "Error", min=0.0, max=1.0
-    )
-    await manager._async_create_input_select(
-        "input_select.error", "Error", options=["x"]
-    )
+    await manager._async_create_input_number("input_number.error", "Error", min=0.0, max=1.0)
+    await manager._async_create_input_select("input_select.error", "Error", options=["x"])
 
 
 @pytest.mark.unit
@@ -920,9 +866,7 @@ async def test_async_setup_daily_reset_handles_invalid_times(
         parse_calls.append(value)
         return None
 
-    monkeypatch.setattr(
-        helper_manager, "dt_util", SimpleNamespace(parse_time=_parse_time)
-    )
+    monkeypatch.setattr(helper_manager, "dt_util", SimpleNamespace(parse_time=_parse_time))
     await manager._async_setup_daily_reset()
     assert parse_calls == ["invalid", DEFAULT_RESET_TIME]
     assert manager._cleanup_listeners == []
@@ -953,18 +897,14 @@ async def test_async_reset_feeding_toggles_paths(
         reset_calls.append(cast(str, (target or {}).get("entity_id", "")))
         return _service_result(domain=domain, service=service, executed=True)
 
-    monkeypatch.setattr(
-        helper_manager, "async_call_hass_service_if_available", _turn_off
-    )
+    monkeypatch.setattr(helper_manager, "async_call_hass_service_if_available", _turn_off)
     await manager._async_reset_feeding_toggles()
     assert len(reset_calls) == len(helper_manager.MEAL_TYPES)
 
     manager_mapping, _hass_mapping, _entry_mapping = _make_manager(
         dogs={"dog-map": {"dog_name": "Mapped"}},
     )
-    monkeypatch.setattr(
-        helper_manager, "async_call_hass_service_if_available", _turn_off
-    )
+    monkeypatch.setattr(helper_manager, "async_call_hass_service_if_available", _turn_off)
     await manager_mapping._async_reset_feeding_toggles()
     assert any(
         ("dog-map" in entity_id) or ("dog_map" in entity_id)
@@ -1000,30 +940,20 @@ async def test_async_reset_feeding_toggles_paths(
             reason="disabled",
         )
 
-    monkeypatch.setattr(
-        helper_manager, "async_call_hass_service_if_available", _turn_off_false
-    )
+    monkeypatch.setattr(helper_manager, "async_call_hass_service_if_available", _turn_off_false)
     await manager_sequence._async_reset_feeding_toggles()
     assert len(short_circuit_calls) == 1
 
-    manager_error, _hass_error, _entry_error = _make_manager(
-        dogs={"dog-err": {"dog_name": "Err"}}
-    )
+    manager_error, _hass_error, _entry_error = _make_manager(dogs={"dog-err": {"dog_name": "Err"}})
 
     async def _turn_off_error(*_args: Any, **_kwargs: Any) -> ServiceGuardResult:
         raise RuntimeError("reset failed")
 
-    monkeypatch.setattr(
-        helper_manager, "async_call_hass_service_if_available", _turn_off_error
-    )
+    monkeypatch.setattr(helper_manager, "async_call_hass_service_if_available", _turn_off_error)
     await manager_error._async_reset_feeding_toggles()
 
-    manager_string, _hass_string, _entry_string = _make_manager(
-        dogs="not-a-dog-sequence"
-    )
-    monkeypatch.setattr(
-        helper_manager, "async_call_hass_service_if_available", _turn_off
-    )
+    manager_string, _hass_string, _entry_string = _make_manager(dogs="not-a-dog-sequence")
+    monkeypatch.setattr(helper_manager, "async_call_hass_service_if_available", _turn_off)
     before = len(reset_calls)
     await manager_string._async_reset_feeding_toggles()
     assert len(reset_calls) == before
@@ -1035,9 +965,7 @@ async def test_async_add_dog_helpers_invalid_and_valid_payloads(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Adding dog helpers should ignore invalid payloads and normalize valid data."""
-    manager, _hass, _entry = _make_manager(
-        options={CONF_MODULES: [MODULE_FEEDING, MODULE_HEALTH]}
-    )
+    manager, _hass, _entry = _make_manager(options={CONF_MODULES: [MODULE_FEEDING, MODULE_HEALTH]})
     create_mock = AsyncMock()
     monkeypatch.setattr(manager, "async_create_helpers_for_dogs", create_mock)
 
@@ -1113,20 +1041,12 @@ async def test_async_remove_update_accessors_cleanup_and_unload(
             return _service_result(domain=domain, service=service, executed=True)
         return _service_result(domain=domain, service=service, executed=True)
 
-    monkeypatch.setattr(
-        helper_manager, "async_call_hass_service_if_available", _delete_helper
-    )
+    monkeypatch.setattr(helper_manager, "async_call_hass_service_if_available", _delete_helper)
     await manager.async_remove_dog_helpers("dog-1")
 
     assert "dog-1" not in manager._dog_helpers
-    assert (
-        f"input_number.pawcontrol_{slug_dog_id}_current_weight"
-        not in manager._created_helpers
-    )
-    assert (
-        f"input_datetime.pawcontrol_{slug_dog_id}_breakfast_time"
-        in manager._created_helpers
-    )
+    assert f"input_number.pawcontrol_{slug_dog_id}_current_weight" not in manager._created_helpers
+    assert f"input_datetime.pawcontrol_{slug_dog_id}_breakfast_time" in manager._created_helpers
 
     remove_mock = AsyncMock()
     add_mock = AsyncMock()

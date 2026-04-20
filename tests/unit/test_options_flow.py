@@ -1,7 +1,7 @@
-from collections.abc import Iterator  # noqa: D100
-from contextlib import suppress
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time  # noqa: D100
 import json
+from contextlib import suppress
+from collections.abc import Iterator
 from pathlib import Path
 from shutil import rmtree
 from types import SimpleNamespace

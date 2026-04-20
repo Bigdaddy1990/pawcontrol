@@ -1,7 +1,6 @@
 """Regression tests ensuring key modules remain syntactically valid."""
 
 from pathlib import Path
-import py_compile
 
 import pytest
 
@@ -15,4 +14,5 @@ SYNTAX_GUARD_MODULES = (
 @pytest.mark.parametrize("module", SYNTAX_GUARD_MODULES, ids=str)
 def test_syntax_guard_modules_compile(module: Path) -> None:
     """Guarded modules should compile without parser errors."""
-    py_compile.compile(module, doraise=True)
+    source = module.read_text(encoding="utf-8")
+    compile(source, str(module), "exec")

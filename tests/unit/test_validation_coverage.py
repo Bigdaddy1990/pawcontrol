@@ -6,10 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.pawcontrol.exceptions import (
-    InvalidCoordinatesError,
-    ValidationError,
-)
+from custom_components.pawcontrol.exceptions import InvalidCoordinatesError, ValidationError
 from custom_components.pawcontrol.validation import (
     InputCoercionError,
     InputValidator,
@@ -307,13 +304,16 @@ def test_validate_gps_accuracy_value_none_low_high_and_valid_paths() -> None:
 @pytest.mark.unit
 def test_validate_gps_accuracy_value_default_required_and_clamp_edges() -> None:
     """Cover default/required handling and both clamped bounds."""
-    assert validate_gps_accuracy_value(
-        None,
-        required=False,
-        default=2.5,
-        min_value=1.0,
-        max_value=5.0,
-    ) == pytest.approx(2.5)
+    assert (
+        validate_gps_accuracy_value(
+            None,
+            required=False,
+            default=2.5,
+            min_value=1.0,
+            max_value=5.0,
+        )
+        == pytest.approx(2.5)
+    )
 
     with pytest.raises(ValidationError, match="gps_accuracy_required"):
         validate_gps_accuracy_value(
@@ -324,12 +324,14 @@ def test_validate_gps_accuracy_value_default_required_and_clamp_edges() -> None:
             max_value=5.0,
         )
 
-    assert validate_gps_accuracy_value(
-        0.5, min_value=1.0, max_value=5.0, clamp=True
-    ) == pytest.approx(1.0)
-    assert validate_gps_accuracy_value(
-        8.0, min_value=1.0, max_value=5.0, clamp=True
-    ) == pytest.approx(5.0)
+    assert (
+        validate_gps_accuracy_value(0.5, min_value=1.0, max_value=5.0, clamp=True)
+        == pytest.approx(1.0)
+    )
+    assert (
+        validate_gps_accuracy_value(8.0, min_value=1.0, max_value=5.0, clamp=True)
+        == pytest.approx(5.0)
+    )
 
 
 @pytest.mark.unit
@@ -406,13 +408,16 @@ def test_validate_float_and_int_range_remaining_error_paths() -> None:
             required=True,
         )
 
-    assert validate_float_range(
-        0.5,
-        minimum=1.0,
-        maximum=5.0,
-        field="ratio",
-        clamp=True,
-    ) == pytest.approx(1.0)
+    assert (
+        validate_float_range(
+            0.5,
+            minimum=1.0,
+            maximum=5.0,
+            field="ratio",
+            clamp=True,
+        )
+        == pytest.approx(1.0)
+    )
 
     assert (
         validate_int_range(
@@ -504,10 +509,9 @@ def test_validate_gps_coordinates_out_of_range_and_static_wrapper_path() -> None
     with pytest.raises(InvalidCoordinatesError):
         validate_gps_coordinates(95.0, 13.0)
 
-    assert InputValidator.validate_gps_coordinates("52.52", "13.405") == pytest.approx((
-        52.52,
-        13.405,
-    ))
+    assert InputValidator.validate_gps_coordinates("52.52", "13.405") == pytest.approx(
+        (52.52, 13.405)
+    )
 
 
 def test_input_validator_dog_id_and_wrapper_paths() -> None:

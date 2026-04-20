@@ -395,9 +395,7 @@ async def test_async_close_keeps_shared_session_open(hass: HomeAssistant) -> Non
 
 
 @pytest.mark.asyncio
-async def test_async_close_noops_when_session_already_closed(
-    hass: HomeAssistant,
-) -> None:
+async def test_async_close_noops_when_session_already_closed(hass: HomeAssistant) -> None:
     """Closing should be a no-op when the shared session is already closed."""
     session = DummySession([])
     validator = APIValidator(hass, cast(ClientSession, session))

@@ -21,9 +21,9 @@ from custom_components.pawcontrol.switch import (
     PawControlVisitorModeSwitch,
     ProfileOptimizedSwitchFactory,
     _async_add_entities_in_batches,
+    async_reproduce_state,
     _async_reproduce_switch_state,
     _preprocess_switch_state,
-    async_reproduce_state,
     async_setup_entry,
 )
 from custom_components.pawcontrol.types import (
@@ -300,9 +300,7 @@ class TestOptimizedSwitchBase:
         assert switch.is_on is False
         assert cache_key in switch._state_cache
 
-    def test_extra_state_attributes_include_enabled_modules_from_dog_config(
-        self,
-    ) -> None:  # noqa: D102
+    def test_extra_state_attributes_include_enabled_modules_from_dog_config(self) -> None:  # noqa: D102
         coordinator = _make_coordinator(
             cast(
                 CoordinatorDogData,
@@ -338,9 +336,7 @@ class TestOptimizedSwitchBase:
 
     def test_get_dog_config_returns_mapping_when_present(self) -> None:  # noqa: D102
         coordinator = _make_coordinator(
-            cast(
-                CoordinatorDogData, {"dog_info": {"name": "Rex", DOG_MODULES_FIELD: {}}}
-            )
+            cast(CoordinatorDogData, {"dog_info": {"name": "Rex", DOG_MODULES_FIELD: {}}})
         )
         switch = OptimizedSwitchBase(coordinator, "rex", "Rex", "test_switch")
 
@@ -454,9 +450,7 @@ class TestPawControlDoNotDisturbSwitch:
         switch = self._make()
         switch.hass = MagicMock()
         notification_manager = MagicMock()
-        notification_manager.async_set_dnd_mode = AsyncMock(
-            side_effect=RuntimeError("boom")
-        )
+        notification_manager.async_set_dnd_mode = AsyncMock(side_effect=RuntimeError("boom"))
         switch._get_notification_manager = MagicMock(  # type: ignore[method-assign]
             return_value=notification_manager
         )
@@ -495,9 +489,7 @@ class TestPawControlVisitorModeSwitch:
         assert switch.is_on is True
 
     @pytest.mark.asyncio
-    async def test_set_state_returns_when_service_declines_and_hass_missing(
-        self,
-    ) -> None:  # noqa: D102
+    async def test_set_state_returns_when_service_declines_and_hass_missing(self) -> None:  # noqa: D102
         switch = PawControlVisitorModeSwitch(_make_coordinator(), "rex", "Rex")
         switch.hass = None
         switch._async_call_hass_service = AsyncMock(return_value=False)  # type: ignore[method-assign]
@@ -966,9 +958,7 @@ class TestModuleSwitchUpdates:
         coordinator.config_entry.data = {"dogs": []}
         coordinator.async_request_selective_refresh = AsyncMock()
         hass = MagicMock()
-        hass.config_entries.async_update_entry = MagicMock(
-            side_effect=RuntimeError("boom")
-        )
+        hass.config_entries.async_update_entry = MagicMock(side_effect=RuntimeError("boom"))
 
         switch = PawControlModuleSwitch(
             coordinator,

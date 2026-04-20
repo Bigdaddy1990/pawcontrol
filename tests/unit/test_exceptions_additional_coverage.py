@@ -1,6 +1,6 @@
-from datetime import UTC, datetime  # noqa: D100
+from datetime import UTC, datetime
 
-import pytest
+import pytest  # noqa: D100
 
 """Additional branch coverage for ``custom_components.pawcontrol.exceptions``."""
 
@@ -289,9 +289,7 @@ def test_validation_error_message_and_suggestion_branches() -> None:
     """ValidationError should cover value-only, constraint-only, and valid-values paths."""
     value_only = ValidationError("mode", value="turbo")
     constraint_only = ValidationError("mode", constraint="must be provided")
-    with_valid_values = ValidationError(
-        "mode", value="turbo", valid_values=["eco", "normal"]
-    )
+    with_valid_values = ValidationError("mode", value="turbo", valid_values=["eco", "normal"])
 
     assert "invalid value turbo" in str(value_only)
     assert str(constraint_only) == "Validation failed for 'mode': must be provided"
@@ -310,9 +308,7 @@ def test_invalid_coordinates_meal_type_and_weight_constraint_branches() -> None:
     max_only_weight = InvalidWeightError(80.0, max_weight=40.0)
 
     assert str(invalid_coordinates) == "Invalid GPS coordinates: (91.0, 181.0)"
-    assert (
-        "Latitude must be between -90 and 90" in invalid_coordinates.technical_details
-    )
+    assert "Latitude must be between -90 and 90" in invalid_coordinates.technical_details
     assert invalid_meal.meal_type == "brunch"
     assert invalid_meal.valid_types == []
     assert "between 5.0kg and 35.0kg" in str(bounded_weight)

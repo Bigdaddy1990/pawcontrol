@@ -63,6 +63,16 @@ def test_prepare_service_proxy_wraps_and_reuses_service_registry() -> None:
     assert hass.services is proxy
 
 
+def test_prepare_service_proxy_returns_existing_proxy_instance() -> None:
+    """A pre-wrapped services proxy should be returned unchanged."""
+    hass = HomeAssistant()
+    proxy = _ServiceRegistryProxy(hass.services)
+    hass.services = proxy
+    hass.data["_pawcontrol_service_proxy"] = proxy
+
+    assert _prepare_service_proxy(hass) is proxy
+
+
 def test_prepare_service_proxy_preserves_service_like_protocol_instance() -> None:
     """Objects matching the service protocol should be returned unchanged."""
 

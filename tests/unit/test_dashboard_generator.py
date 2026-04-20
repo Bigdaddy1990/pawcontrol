@@ -1192,13 +1192,14 @@ async def test_write_dashboard_file_preserves_existing_file_on_error(
     file_path = tmp_path / "dashboard.json"
     file_path.write_text("original", encoding="utf-8")
 
-    def _raise_open(*args: object, **kwargs: object) -> None:
-        raise OSError("disk full")
+    async def _raise_on_write(func: object, *args: object) -> object:
+        if callable(func) and getattr(func, "__name__", "") == "_write_temp_file":
+            raise OSError("disk full")
+        if callable(func):
+            return func(*args)
+        return None
 
-    monkeypatch.setattr(
-        "custom_components.pawcontrol.dashboard_renderer.aiofiles.open",
-        _raise_open,
-    )
+    renderer.hass.async_add_executor_job = _raise_on_write  # type: ignore[assignment]
 
     with pytest.raises(HomeAssistantError):
         await renderer.write_dashboard_file({"views": []}, file_path)

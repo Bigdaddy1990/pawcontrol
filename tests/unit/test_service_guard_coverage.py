@@ -214,7 +214,7 @@ def test_service_guard_snapshot_accumulate_reasons_snapshot_non_mapping() -> Non
     ])
 
     class _ReasonsOpaqueMetrics(dict[str, object]):
-        def get(self, key: str, default: object = None) -> object:
+        def get(self, key: str, default: object = None) -> object:  # noqa: A003
             if key == "reasons":
                 return "opaque"
             return super().get(key, default)

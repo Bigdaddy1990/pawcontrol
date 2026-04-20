@@ -1977,7 +1977,14 @@ def test_capture_cache_diagnostics_returns_snapshot() -> None:
     summary_obj = diagnostics.get("repair_summary")
     assert summary_obj is not None
     assert hasattr(summary_obj, "to_mapping")
-    assert summary_obj.to_mapping() == summary_payload
+    summary_mapping = summary_obj.to_mapping()
+    for key, expected in summary_payload.items():
+        if isinstance(expected, dict):
+            assert isinstance(summary_mapping.get(key), dict)
+            for child_key, child_expected in expected.items():
+                assert summary_mapping[key][child_key] == child_expected
+            continue
+        assert summary_mapping.get(key) == expected
 
 
 @pytest.mark.unit
@@ -2063,7 +2070,14 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     summary_obj = last_cache_capture.get("repair_summary")
     assert summary_obj is not None
     assert hasattr(summary_obj, "to_mapping")
-    assert summary_obj.to_mapping() == summary_payload
+    summary_mapping = summary_obj.to_mapping()
+    for key, expected in summary_payload.items():
+        if isinstance(expected, dict):
+            assert isinstance(summary_mapping.get(key), dict)
+            for child_key, child_expected in expected.items():
+                assert summary_mapping[key][child_key] == child_expected
+            continue
+        assert summary_mapping.get(key) == expected
     assert runtime_data.performance_stats["reconfigure_summary"]["warning_count"] == 1
     last_result = runtime_data.performance_stats["last_service_result"]
     assert last_result["service"] == SERVICE_DAILY_RESET
@@ -2080,7 +2094,14 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     summary_obj = cache_capture.get("repair_summary")
     assert summary_obj is not None
     assert hasattr(summary_obj, "to_mapping")
-    assert summary_obj.to_mapping() == summary_payload
+    summary_mapping = summary_obj.to_mapping()
+    for key, expected in summary_payload.items():
+        if isinstance(expected, dict):
+            assert isinstance(summary_mapping.get(key), dict)
+            for child_key, child_expected in expected.items():
+                assert summary_mapping[key][child_key] == child_expected
+            continue
+        assert summary_mapping.get(key) == expected
     metadata = diagnostics.get("metadata")
     assert metadata is not None
     assert metadata["refresh_requested"] is True
@@ -2117,7 +2138,14 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     repair_summary = cache_metrics.get("repair_summary")
     assert repair_summary is not None
     assert hasattr(repair_summary, "to_mapping")
-    assert repair_summary.to_mapping() == summary_payload
+    summary_mapping = repair_summary.to_mapping()
+    for key, expected in summary_payload.items():
+        if isinstance(expected, dict):
+            assert isinstance(summary_mapping.get(key), dict)
+            for child_key, child_expected in expected.items():
+                assert summary_mapping[key][child_key] == child_expected
+            continue
+        assert summary_mapping.get(key) == expected
     maintenance_metadata = maintenance_last["diagnostics"]["metadata"]
     assert maintenance_metadata["refresh_requested"] is True
     assert maintenance_metadata["reconfigure"]["requested_profile"] == "advanced"

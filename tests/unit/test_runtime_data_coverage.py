@@ -2,13 +2,15 @@
 
 # ruff: noqa: D103
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.pawcontrol.const import DOMAIN
 import custom_components.pawcontrol.runtime_data as runtime_mod
+from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.runtime_data import (
     RuntimeDataIncompatibleError,
     RuntimeDataUnavailableError,
@@ -18,10 +20,7 @@ from custom_components.pawcontrol.runtime_data import (
     require_runtime_data,
     store_runtime_data,
 )
-from custom_components.pawcontrol.types import (
-    DomainRuntimeStoreEntry,
-    PawControlRuntimeData,
-)
+from custom_components.pawcontrol.types import DomainRuntimeStoreEntry, PawControlRuntimeData
 
 
 def _make_runtime_data(
@@ -136,9 +135,7 @@ def test_stamp_runtime_schema_upgrades_and_rejects_future(
     with pytest.raises(RuntimeDataIncompatibleError):
         runtime_mod._stamp_runtime_schema("entry-future", future)
 
-    monkeypatch.setattr(
-        runtime_mod.DomainRuntimeStoreEntry, "MINIMUM_COMPATIBLE_VERSION", 2
-    )
+    monkeypatch.setattr(runtime_mod.DomainRuntimeStoreEntry, "MINIMUM_COMPATIBLE_VERSION", 2)
     legacy = _make_runtime_data(schema_version=current, created_version=1)
     _, legacy_created = runtime_mod._stamp_runtime_schema("entry-legacy", legacy)
     assert legacy_created == 2
@@ -159,19 +156,16 @@ def test_as_store_entry_from_supported_shapes() -> None:
     assert isinstance(mapping_default, DomainRuntimeStoreEntry)
     assert mapping_default.version == DomainRuntimeStoreEntry.CURRENT_VERSION
 
-    mapping_with_version = runtime_mod._as_store_entry({
-        "runtime_data": runtime,
-        "version": 1,
-    })
+    mapping_with_version = runtime_mod._as_store_entry(
+        {"runtime_data": runtime, "version": 1}
+    )
     assert isinstance(mapping_with_version, DomainRuntimeStoreEntry)
     assert mapping_with_version.version == 1
     assert mapping_with_version.created_version == 1
 
-    mapping_with_created = runtime_mod._as_store_entry({
-        "runtime_data": runtime,
-        "version": 1,
-        "created_version": 1,
-    })
+    mapping_with_created = runtime_mod._as_store_entry(
+        {"runtime_data": runtime, "version": 1, "created_version": 1}
+    )
     assert isinstance(mapping_with_created, DomainRuntimeStoreEntry)
     assert mapping_with_created.version == 1
     assert mapping_with_created.created_version == 1
@@ -297,9 +291,7 @@ def test_normalise_store_entry_upgrades_and_rejects_future(
     assert normalized.version == DomainRuntimeStoreEntry.CURRENT_VERSION
     assert normalized.created_version >= 1
 
-    monkeypatch.setattr(
-        runtime_mod.DomainRuntimeStoreEntry, "MINIMUM_COMPATIBLE_VERSION", 2
-    )
+    monkeypatch.setattr(runtime_mod.DomainRuntimeStoreEntry, "MINIMUM_COMPATIBLE_VERSION", 2)
     runtime_with_legacy_created = _make_runtime_data(
         schema_version=DomainRuntimeStoreEntry.CURRENT_VERSION,
         created_version=1,
@@ -355,9 +347,7 @@ def test_get_runtime_data_handles_entry_incompatible_paths(
     monkeypatch.setattr(
         runtime_mod,
         "_get_store_entry_from_entry",
-        MagicMock(
-            return_value=DomainRuntimeStoreEntry(runtime_data=_make_runtime_data())
-        ),
+        MagicMock(return_value=DomainRuntimeStoreEntry(runtime_data=_make_runtime_data())),
     )
     monkeypatch.setattr(
         runtime_mod,
@@ -383,9 +373,7 @@ def test_get_runtime_data_store_paths_and_cleanup() -> None:
         version=DomainRuntimeStoreEntry.CURRENT_VERSION + 1,
         created_version=DomainRuntimeStoreEntry.CURRENT_VERSION + 1,
     )
-    hass_incompatible = _make_hass(
-        data={DOMAIN: {"entry-1": future_store}}, entry=entry
-    )
+    hass_incompatible = _make_hass(data={DOMAIN: {"entry-1": future_store}}, entry=entry)
     assert get_runtime_data(hass_incompatible, "entry-1") is None
     hass_incompatible_raise = _make_hass(
         data={DOMAIN: {"entry-1": future_store}},
@@ -434,11 +422,7 @@ def test_describe_runtime_store_status_variants() -> None:
     )
 
     detached_entry_hass = _make_hass(
-        data={
-            DOMAIN: {
-                "entry-1": DomainRuntimeStoreEntry(runtime_data=_make_runtime_data())
-            }
-        },
+        data={DOMAIN: {"entry-1": DomainRuntimeStoreEntry(runtime_data=_make_runtime_data())}},
         entry=_make_entry("entry-1", runtime_data=None),
     )
     assert describe_runtime_store_status(detached_entry_hass, "entry-1")["status"] == (
@@ -474,9 +458,9 @@ def test_describe_runtime_store_status_variants() -> None:
         data={DOMAIN: {"entry-4": _make_runtime_data()}},
         entry=_make_entry("entry-4", runtime_data=None),
     )
-    assert describe_runtime_store_status(direct_runtime_store_hass, "entry-4")[
-        "status"
-    ] == ("needs_migration")
+    assert describe_runtime_store_status(direct_runtime_store_hass, "entry-4")["status"] == (
+        "needs_migration"
+    )
 
     future_store_hass = _make_hass(
         data={
@@ -513,11 +497,7 @@ def test_pop_runtime_data_prefers_entry_then_falls_back_to_store() -> None:
 
     store_only_runtime = _make_runtime_data()
     store_only_hass = _make_hass(
-        data={
-            DOMAIN: {
-                "entry-2": DomainRuntimeStoreEntry(runtime_data=store_only_runtime)
-            }
-        },
+        data={DOMAIN: {"entry-2": DomainRuntimeStoreEntry(runtime_data=store_only_runtime)}},
         entry=_make_entry("entry-2", runtime_data=None),
     )
     assert pop_runtime_data(store_only_hass, "entry-2") is store_only_runtime
@@ -600,9 +580,7 @@ def test_as_store_entry_handles_classless_and_fake_entry_shapes() -> None:
     assert converted.created_version == 1
 
 
-def test_get_store_entry_from_entry_uses_schema_defaults_when_metadata_missing() -> (
-    None
-):
+def test_get_store_entry_from_entry_uses_schema_defaults_when_metadata_missing() -> None:
     runtime = _make_runtime_data(schema_version=1, created_version=1)
     entry = _make_entry("entry-schema-defaults", runtime_data=runtime)
     store_entry = runtime_mod._get_store_entry_from_entry(entry)
@@ -625,22 +603,16 @@ def test_normalise_store_entry_exercises_legacy_upgrade_branches(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     runtime = _make_runtime_data()
-    store_entry = DomainRuntimeStoreEntry(
-        runtime_data=runtime, version=1, created_version=1
-    )
+    store_entry = DomainRuntimeStoreEntry(runtime_data=runtime, version=1, created_version=1)
 
-    monkeypatch.setattr(
-        runtime_mod.DomainRuntimeStoreEntry, "MINIMUM_COMPATIBLE_VERSION", 2
-    )
+    monkeypatch.setattr(runtime_mod.DomainRuntimeStoreEntry, "MINIMUM_COMPATIBLE_VERSION", 2)
     monkeypatch.setattr(
         runtime_mod,
         "_stamp_runtime_schema",
         MagicMock(return_value=(1, 1)),
     )
 
-    normalised = runtime_mod._normalise_store_entry(
-        "entry-legacy-branches", store_entry
-    )
+    normalised = runtime_mod._normalise_store_entry("entry-legacy-branches", store_entry)
     assert normalised.created_version == 2
     assert normalised.version == DomainRuntimeStoreEntry.CURRENT_VERSION
 
@@ -651,11 +623,7 @@ def test_get_runtime_data_entry_store_sync_edge_cases(
     runtime = _make_runtime_data()
     entry = _make_entry("entry-sync", runtime_data=runtime)
     hass = _make_hass(
-        data={
-            DOMAIN: {
-                "entry-sync": DomainRuntimeStoreEntry(runtime_data=_make_runtime_data())
-            }
-        },
+        data={DOMAIN: {"entry-sync": DomainRuntimeStoreEntry(runtime_data=_make_runtime_data())}},
         entry=entry,
     )
     result = get_runtime_data(hass, entry)
@@ -700,9 +668,7 @@ def test_get_runtime_data_store_missing_and_incompatible_pop_branches() -> None:
         version=DomainRuntimeStoreEntry.CURRENT_VERSION + 1,
         created_version=DomainRuntimeStoreEntry.CURRENT_VERSION + 1,
     )
-    phantom_hass = _make_hass(
-        data={DOMAIN: _PhantomStore(future_store_entry)}, entry=entry
-    )
+    phantom_hass = _make_hass(data={DOMAIN: _PhantomStore(future_store_entry)}, entry=entry)
     assert get_runtime_data(phantom_hass, "entry-pop") is None
 
     runtime = _make_runtime_data()
@@ -716,9 +682,7 @@ def test_get_runtime_data_store_missing_and_incompatible_pop_branches() -> None:
 def test_pop_runtime_data_covers_remaining_fallback_paths() -> None:
     current = DomainRuntimeStoreEntry.CURRENT_VERSION
 
-    future_runtime = _make_runtime_data(
-        schema_version=current + 1, created_version=current
-    )
+    future_runtime = _make_runtime_data(schema_version=current + 1, created_version=current)
     incompatible_entry = _make_entry("entry-future", runtime_data=future_runtime)
     incompatible_hass = _make_hass(data={}, entry=incompatible_entry)
     assert pop_runtime_data(incompatible_hass, incompatible_entry) is None

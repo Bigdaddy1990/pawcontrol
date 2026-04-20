@@ -436,21 +436,21 @@ def test_runtime_view_normalisation_edge_cases() -> None:
         },
     ]
 
+    assert PawControlDashboardGenerator._summarise_dashboard_views({"views": "invalid"}) == []
     assert (
-        PawControlDashboardGenerator._summarise_dashboard_views({"views": "invalid"})
-        == []
+        PawControlDashboardGenerator._normalize_view_summaries(
+            [{"path": "module-b", "title": "B", "icon": "mdi:b", "card_count": object()}],
+        )
+        == [
+            {
+                "path": "module-b",
+                "title": "B",
+                "icon": "mdi:b",
+                "card_count": 0,
+                "module": "module-b",
+            },
+        ]
     )
-    assert PawControlDashboardGenerator._normalize_view_summaries(
-        [{"path": "module-b", "title": "B", "icon": "mdi:b", "card_count": object()}],
-    ) == [
-        {
-            "path": "module-b",
-            "title": "B",
-            "icon": "mdi:b",
-            "card_count": 0,
-            "module": "module-b",
-        },
-    ]
     assert (
         PawControlDashboardGenerator._normalize_view_summaries(
             [{"path": "module-c", "title": "C"}, "bad-item"],
@@ -467,7 +467,7 @@ def test_runtime_constructor_initializes_state(
     """Exercise ``__init__`` and validate the initialized runtime state."""
 
     class _StoreCtor:
-        def __class_getitem__(cls, item: Any) -> type[_StoreCtor]:
+        def __class_getitem__(cls, item: Any) -> type["_StoreCtor"]:
             _ = item
             return cls
 
@@ -476,9 +476,7 @@ def test_runtime_constructor_initializes_state(
             self.kwargs = kwargs
 
     monkeypatch.setattr(dg, "Store", _StoreCtor)
-    monkeypatch.setattr(
-        dg, "DashboardRenderer", lambda hass_obj: SimpleNamespace(hass=hass_obj)
-    )
+    monkeypatch.setattr(dg, "DashboardRenderer", lambda hass_obj: SimpleNamespace(hass=hass_obj))
     monkeypatch.setattr(
         dg,
         "DashboardTemplates",

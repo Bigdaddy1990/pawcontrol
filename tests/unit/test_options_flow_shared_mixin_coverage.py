@@ -635,9 +635,7 @@ def test_selection_and_system_option_helpers_cover_remaining_branches(  # noqa: 
         "resolve_resilience_script_thresholds",
         lambda _hass, _entry: (11, 22),
     )
-    assert host._resolve_script_threshold_fallbacks(
-        has_skip=False, has_breaker=True
-    ) == (
+    assert host._resolve_script_threshold_fallbacks(has_skip=False, has_breaker=True) == (
         11,
         22,
     )

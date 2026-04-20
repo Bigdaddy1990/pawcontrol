@@ -227,6 +227,7 @@ def test_first_text_candidate_ignores_empty_results(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Empty candidate values should not be returned as first text."""
+
     monkeypatch.setattr(
         "custom_components.pawcontrol.feeding_translations._iter_text_candidates",
         lambda _value: iter([""]),
@@ -326,7 +327,7 @@ def test_load_static_common_translations_handles_missing_and_invalid_files(
 def test_bounded_sequence_snapshot_stops_iterator_when_limit_reached() -> None:
     """Explicit cache consumption at limit should drop the underlying iterator."""
     snapshot = _BoundedSequenceSnapshot(iter([3]), 2)
-    snapshot._cache = [1, 2]
+    snapshot._cache = [1, 2]  # noqa: SLF001
     snapshot._consume_to(2)
     assert snapshot._iterator is None
 

@@ -65,11 +65,35 @@ if not hasattr(ha_util_logging, "log_exception"):
     ha_util_logging.log_exception = log_exception  # type: ignore[attr-defined]
 
 
+@pytest.fixture(autouse=True, scope="module")
+def _skip_under_session_coverage(request) -> None:
+    """Keep tooling self-tests from perturbing integration coverage accounting."""
+    if getattr(request.config, "_pawcontrol_cov", None) is not None:
+        pytest.skip(
+            "coverage-shim self-tests are run in dedicated no-cov mode only",
+        )
+
+
+@pytest.fixture(autouse=True)
+def _isolate_coverage_data_file(monkeypatch, tmp_path) -> None:
+    """Prevent shim self-tests from writing into the session coverage database."""
+    monkeypatch.setenv("COVERAGE_FILE", str(tmp_path / ".coverage.shim-test"))
+
+
+@pytest.fixture(autouse=True)
+def _restore_outer_trace() -> None:
+    """Keep global pytest-cov tracing stable across shim self-tests."""
+    previous_trace = sys.gettrace()
+    yield
+    if sys.gettrace() is not previous_trace:
+        sys.settrace(previous_trace)
+
+
 @_skip_no_report
-def test_runtime_metrics_generation(tmp_path) -> None:
+def test_runtime_metrics_generation(monkeypatch, tmp_path) -> None:
     """Ensure the coverage shim emits JSON and CSV runtime metrics.【F:coverage.py†L471-L506】."""
-    _ = tmp_path
-    metrics_dir = Path("generated/coverage")
+    metrics_dir = tmp_path / "coverage-metrics"
+    monkeypatch.setenv("PAWCONTROL_RUNTIME_METRICS_DIR", str(metrics_dir))
     json_path = metrics_dir / "runtime.json"
     csv_path = metrics_dir / "runtime.csv"
     if json_path.exists():
@@ -111,8 +135,8 @@ def test_runtime_metrics_generation(tmp_path) -> None:
 def test_runtime_metrics_can_be_disabled(monkeypatch, tmp_path) -> None:
     """Environment flag bypasses runtime metrics emission entirely.【F:coverage.py†L437-L442】."""
     monkeypatch.setenv("PAWCONTROL_DISABLE_RUNTIME_METRICS", "1")
-    _ = tmp_path
-    metrics_dir = Path("generated/coverage")
+    metrics_dir = tmp_path / "coverage-metrics"
+    monkeypatch.setenv("PAWCONTROL_RUNTIME_METRICS_DIR", str(metrics_dir))
     json_path = metrics_dir / "runtime.json"
     csv_path = metrics_dir / "runtime.csv"
     if json_path.exists():
