@@ -69,13 +69,7 @@ from .types import (
     normalize_performance_mode,
 )
 from .utils import normalize_value
-from .validation import (
-    InputCoercionError,
-    clamp_float_range,
-    clamp_int_range,
-    coerce_float,
-    coerce_int,
-)
+from .validation import clamp_float_range, clamp_int_range, coerce_float, coerce_int
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -707,7 +701,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):  # noqa: D101
             return default
         try:
             return coerce_int("options_flow", value)
-        except InputCoercionError:
+        except Exception:
             return default
 
     @staticmethod
@@ -729,7 +723,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):  # noqa: D101
             return default
         try:
             return coerce_float("options_flow", value)
-        except InputCoercionError:
+        except Exception:
             return default
 
     def _coerce_clamped_float(

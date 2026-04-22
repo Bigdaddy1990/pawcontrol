@@ -172,19 +172,29 @@ class PawControlEntity(
 
     def _get_runtime_managers(self) -> CoordinatorRuntimeManagers:
         """Return the runtime manager container for this entity."""
+        manager_attrs = CoordinatorRuntimeManagers.attribute_names()
         runtime_data = self._get_runtime_data()
         if runtime_data is not None:
             container = runtime_data.runtime_managers
-            for attr in CoordinatorRuntimeManagers.attribute_names():
+            for attr in manager_attrs:
                 if getattr(container, attr) is None and hasattr(runtime_data, attr):
                     setattr(container, attr, getattr(runtime_data, attr))
             return container
+
         manager_container = getattr(self.coordinator, "runtime_managers", None)
         if isinstance(manager_container, CoordinatorRuntimeManagers):
             return manager_container
+        if manager_container is not None and all(
+            hasattr(manager_container, attr) for attr in manager_attrs
+        ):
+            rebuilt = CoordinatorRuntimeManagers(
+                **{attr: getattr(manager_container, attr, None) for attr in manager_attrs}
+            )
+            self.coordinator.runtime_managers = rebuilt
+            return rebuilt
+
         manager_kwargs = {
-            attr: getattr(self.coordinator, attr, None)
-            for attr in CoordinatorRuntimeManagers.attribute_names()
+            attr: getattr(self.coordinator, attr, None) for attr in manager_attrs
         }
 
         if any(value is not None for value in manager_kwargs.values()):
@@ -198,7 +208,10 @@ class PawControlEntity(
         runtime_data = self._get_runtime_data()
         if runtime_data is not None and runtime_data.data_manager is not None:
             return runtime_data.data_manager
-        return self._get_runtime_managers().data_manager
+        manager_data = self._get_runtime_managers().data_manager
+        if manager_data is not None:
+            return manager_data
+        return cast(Any, getattr(self.coordinator, "data_manager", None))
 
     def _get_notification_manager(self) -> PawControlNotificationManager | None:
         """Return the notification manager from the runtime container."""

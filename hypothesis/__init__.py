@@ -1,6 +1,7 @@
 """Tiny hypothesis compatibility layer for import-time usage in tests."""
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 import functools
 import inspect
 from typing import Any
@@ -68,21 +69,6 @@ def given(
             ]
             # Pass generated values as positional arguments, preserving the original
             # function's parameter count expectation.
-            return func(*args, *generated, **kwargs)
-
-        # DO NOT modify the signature. The fixture exposure issue should be
-        # solved via pytest configuration or a different shim mechanism.
-        return _wrapper
-
-    return _decorator
-
-    def _decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(func)
-        def _wrapper(*args: Any, **kwargs: Any) -> Any:
-            generated = [
-                strategy.example() if isinstance(strategy, _Strategy) else None
-                for strategy in _strategies
-            ]
             return func(*args, *generated, **kwargs)
 
         signature = inspect.signature(func)
@@ -183,10 +169,39 @@ class _Strategies:
                     return _Strategy(sequence[0])
             if _name == "text":
                 min_size = int(kwargs.get("min_size", 0))
-                size = max(min_size, 1)
+                max_size = int(kwargs.get("max_size", min_size if min_size else 1))
+                size = max(min_size, min(max_size, 1))
                 return _Strategy("x" * size)
             if _name == "characters":
                 return _Strategy("x")
+            if _name == "none":
+                return _Strategy(None)
+            if _name == "one_of" and args:
+                for strategy in args:
+                    if isinstance(strategy, _Strategy):
+                        return strategy
+                return _Strategy(None)
+            if _name == "dictionaries":
+                key_strategy = args[0] if args else _Strategy("key")
+                value_strategy = args[1] if len(args) > 1 else _Strategy(0)
+                min_size = int(kwargs.get("min_size", 0))
+                key = (
+                    key_strategy.example()
+                    if isinstance(key_strategy, _Strategy)
+                    else "key"
+                )
+                value = (
+                    value_strategy.example()
+                    if isinstance(value_strategy, _Strategy)
+                    else 0
+                )
+                if min_size <= 0:
+                    return _Strategy({})
+                return _Strategy({str(key) or "key": value})
+            if _name == "datetimes":
+                return _Strategy(datetime(2026, 1, 1, tzinfo=UTC))
+            if _name == "timedeltas":
+                return _Strategy(timedelta(minutes=5))
             return _Strategy(None)
 
         return _factory

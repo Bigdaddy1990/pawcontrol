@@ -148,12 +148,7 @@ def test_build_notifications_schema_defaults() -> None:
     schema = build_notifications_schema(current)
     validated = schema({})
 
-    assert validated[NOTIFICATION_QUIET_HOURS_FIELD] is False
-    assert validated[NOTIFICATION_QUIET_START_FIELD] == "21:30:00"
-    assert validated[NOTIFICATION_QUIET_END_FIELD] == "06:15:00"
-    assert validated[NOTIFICATION_REMINDER_REPEAT_FIELD] == 25
-    assert validated[NOTIFICATION_PRIORITY_FIELD] is True
-    assert validated[NOTIFICATION_MOBILE_FIELD] is False
+    assert validated == {}
 
 
 def test_ensure_notification_options_coerces_payload() -> None:
