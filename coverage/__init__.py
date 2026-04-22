@@ -41,6 +41,26 @@ class _CoverageData:
         return None
 
 
+class _CoverageData:
+    """Minimal coverage data container used by shim tests."""
+
+    def measured_files(self) -> list[str]:
+        """Return measured file list."""
+        return []
+
+    def add_lines(self, _line_data: dict[str, set[int]]) -> None:
+        """Record synthetic line execution data (no-op in shim)."""
+        return None
+
+    def has_arcs(self) -> bool:
+        """Return whether arc data is enabled."""
+        return False
+
+    def add_arcs(self, _arc_data: dict[str, set[tuple[int, int]]]) -> None:
+        """Record synthetic arc execution data (no-op in shim)."""
+        return None
+
+
 class Coverage:
     """Tiny subset of ``coverage.Coverage`` used during tests."""
 

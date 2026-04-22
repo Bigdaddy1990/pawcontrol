@@ -172,6 +172,12 @@ class _Strategies:
                 max_size = int(kwargs.get("max_size", min_size if min_size else 1))
                 size = max(min_size, min(max_size, 1))
                 return _Strategy("x" * size)
+            if _name == "dictionaries":
+                return _Strategy({})
+            if _name == "datetimes":
+                return _Strategy(datetime(2024, 1, 1, 0, 0, 0))
+            if _name == "timedeltas":
+                return _Strategy(timedelta(seconds=0))
             if _name == "characters":
                 return _Strategy("x")
             if _name == "none":

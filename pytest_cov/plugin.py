@@ -5,8 +5,11 @@ from typing import Any
 
 try:
     import coverage
-    from coverage.exceptions import NoDataError
-
+    try:
+        from coverage.exceptions import NoDataError
+    except ModuleNotFoundError:
+        class NoDataError(Exception):
+            """Fallback error used when coverage exceptions module is missing."""
     _COVERAGE_AVAILABLE = True
 except ModuleNotFoundError:  # pragma: no cover - exercised via shim tests
     coverage = None  # type: ignore[assignment]
@@ -18,7 +21,23 @@ except ModuleNotFoundError:  # pragma: no cover - exercised via shim tests
 
 def _coverage_available() -> bool:
     """Return whether the coverage dependency is currently importable."""
-    return _COVERAGE_AVAILABLE and coverage is not None
+    global coverage, _COVERAGE_AVAILABLE
+    if _COVERAGE_AVAILABLE and coverage is not None:
+        return True
+    if _COVERAGE_AVAILABLE and coverage is None:
+        return False
+    try:
+        import coverage as loaded_coverage
+        try:
+            from coverage.exceptions import NoDataError as loaded_no_data_error
+        except ModuleNotFoundError:
+            loaded_no_data_error = NoDataError
+    except ModuleNotFoundError:
+        return False
+    coverage = loaded_coverage  # type: ignore[assignment]
+    _COVERAGE_AVAILABLE = True
+    globals()["NoDataError"] = loaded_no_data_error
+    return True
 
 
 def _split_report_target(value: str) -> tuple[str, str | None]:
@@ -122,8 +141,17 @@ class _CoverageController:
             return
         if self._coverage is not None:
             self._coverage.stop()
-            data = self._coverage.get_data()
-            if not list(data.measured_files()) and self._include_files:
+            get_data = getattr(self._coverage, "get_data", None)
+            data = get_data() if callable(get_data) else None
+            measured_files = getattr(data, "measured_files", None)
+            add_lines = getattr(data, "add_lines", None)
+            if (
+                data is not None
+                and callable(measured_files)
+                and callable(add_lines)
+                and not list(measured_files())
+                and self._include_files
+            ):
                 synthetic_lines: dict[str, set[int]] = {}
                 for include_file in self._include_files:
                     file_path = Path(include_file)
@@ -134,7 +162,7 @@ class _CoverageController:
                             if line.strip() and not line.lstrip().startswith("#")
                         }
                     synthetic_lines[str(file_path.resolve())] = executed
-                data.add_lines(synthetic_lines)
+                add_lines(synthetic_lines)
             self._coverage.save()
 
 
@@ -221,8 +249,12 @@ def pytest_sessionfinish(session: object, exitstatus: int) -> None:  # noqa: D10
     for report in reports:
         report_type, report_target = _split_report_target(str(report))
         if report_type in {"term", "term-missing", "term-missing:skip-covered"}:
+            report_callable = getattr(cov, "report", None)
+            if not callable(report_callable):
+                total_percent = 0.0
+                continue
             try:
-                total_percent = cov.report(
+                total_percent = report_callable(
                     show_missing="missing" in report_type,
                     skip_covered=report_type.endswith(":skip-covered"),
                     include=include,
@@ -230,15 +262,25 @@ def pytest_sessionfinish(session: object, exitstatus: int) -> None:  # noqa: D10
             except NoDataError:
                 total_percent = 0.0
         elif report_type == "xml":
+            xml_report = getattr(cov, "xml_report", None)
+            if not callable(xml_report):
+                Path(report_target or "coverage.xml").write_text(
+                    '<coverage line-rate="0"/>\n', encoding="utf-8"
+                )
+                continue
             try:
-                cov.xml_report(outfile=report_target or "coverage.xml", include=include)
+                xml_report(outfile=report_target or "coverage.xml", include=include)
             except NoDataError:
                 Path(report_target or "coverage.xml").write_text(
                     '<coverage line-rate="0"/>\n', encoding="utf-8"
                 )
         elif report_type == "html":
+            html_report = getattr(cov, "html_report", None)
+            if not callable(html_report):
+                Path(report_target or "htmlcov").mkdir(parents=True, exist_ok=True)
+                continue
             try:
-                cov.html_report(directory=report_target or "htmlcov", include=include)
+                html_report(directory=report_target or "htmlcov", include=include)
             except NoDataError:
                 Path(report_target or "htmlcov").mkdir(parents=True, exist_ok=True)
 

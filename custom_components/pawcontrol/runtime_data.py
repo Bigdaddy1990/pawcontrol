@@ -522,6 +522,15 @@ def describe_runtime_store_status(
         store_runtime = store_value.runtime_data
         store_version = store_value.version
         store_created_version = store_value.created_version
+    elif all(
+        hasattr(store_value, attr)
+        for attr in ("runtime_data", "version", "created_version")
+    ):
+        store_runtime = _as_runtime_data(store_value.runtime_data)
+        store_version = _coerce_version(store_value.version)
+        store_created_version = _coerce_version(
+            store_value.created_version,
+        )
     elif isinstance(store_value, Mapping):
         mapping_value = cast(Mapping[str, object], store_value)
         store_runtime = _as_runtime_data(mapping_value.get("runtime_data"))
