@@ -165,7 +165,7 @@ class Schema:
         if not isinstance(value, Mapping):
             raise Invalid("mapping value required")
 
-        result: dict[AnyType, AnyType] = (
+        mapping_result: dict[AnyType, AnyType] = (
             dict(value) if self.extra is ALLOW_EXTRA else {}
         )
         for key, validator in self.schema.items():
@@ -180,7 +180,7 @@ class Schema:
                 raw = default_value
             else:
                 continue
-            result[target_key] = self._validate_value(validator, raw)
+            mapping_result[target_key] = self._validate_value(validator, raw)
 
         if self.extra is not ALLOW_EXTRA:
             valid_keys = {
@@ -189,7 +189,7 @@ class Schema:
             unknown = [key for key in value if key not in valid_keys]
             if unknown:
                 raise Invalid(f"extra keys not allowed: {unknown!r}")
-        return result
+        return mapping_result
 
     @staticmethod
     def _validate_value(validator: AnyType, value: AnyType) -> AnyType:
