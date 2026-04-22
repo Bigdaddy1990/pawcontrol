@@ -30,7 +30,8 @@ Documentation = "https://github.com/BigDaddy1990/pawcontrol/blob/main/README.md"
 Issues = "https://github.com/BigDaddy1990/pawcontrol/issues"
 
 [tool.pytest.ini_options]
-addopts = "-p no:pytest_cov -p pytest-homeassistant-custom-component --cov=custom_components/pawcontrol --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-branch -q -ra --strict-markers --strict-config --tb=short --maxfail=20 -n auto"
+addopts = "pytest_homeassistant_custom_component --cov=custom_components/pawcontrol --cov-branch --cov-report=xml:coverage.xml --cov-report=term-missing:skip-covered --cov-report=html:htmlcov --junitxml=junit.xml -o junit_family=legacy --maxfail=20 --tb=short"
+#"-p no:pytest_cov -p pytest_cov.plugin --cov=custom_components/pawcontrol --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-branch -q -ra --strict-markers --strict-config --tb=short --maxfail=20 -n auto"
 markers = [
   "asyncio: mark a test as using asyncio",
   "ci_only: mark a test to run only in CI",
@@ -231,4 +232,4 @@ mixin-class-rgx = ".*[Mm]ix[Ii]n"
 class-const-naming-style = "any"
 
 [tool.pylint.REPORTS]
-score = false
+score = true
