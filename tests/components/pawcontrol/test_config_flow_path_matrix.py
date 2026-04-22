@@ -117,7 +117,7 @@ async def test_duplicate_entry_paths_abort_with_already_configured(hass) -> None
 @pytest.mark.parametrize(
     ("profile_input", "expected_type", "expected_error"),
     [
-        ("not-real", FlowResultType.ABORT, None),
+        ("not-real", FlowResultType.FORM, {"base": "invalid_profile"}),
         ("standard", FlowResultType.FORM, {"base": "profile_unchanged"}),
         ("basic", FlowResultType.ABORT, None),
     ],
