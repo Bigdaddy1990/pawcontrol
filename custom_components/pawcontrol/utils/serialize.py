@@ -7,7 +7,7 @@ Quality Scale: Platinum
 Python: 3.14+
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Set as AbstractSet
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -149,13 +149,17 @@ def _serialize_value(value: Any) -> Any:
         # Recursively serialize dataclass fields
         return {k: _serialize_value(v) for k, v in asdict(value).items()}
 
-    # Handle dict (recursively)
-    if isinstance(value, dict):
-        return {k: _serialize_value(v) for k, v in value.items()}
+    # Handle mappings (recursively) and coerce keys to JSON-safe strings.
+    if isinstance(value, Mapping):
+        return {str(k): _serialize_value(v) for k, v in value.items()}
 
     # Handle list/tuple (recursively)
     if isinstance(value, list | tuple):
         return [_serialize_value(item) for item in value]
+
+    # Handle set/frozenset with deterministic ordering for stable payloads.
+    if isinstance(value, AbstractSet):
+        return [_serialize_value(item) for item in sorted(value, key=repr)]
 
     # Handle primitives (str, int, float, bool)
     if isinstance(value, str | int | float | bool):
