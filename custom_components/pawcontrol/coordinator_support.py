@@ -168,15 +168,13 @@ def ensure_cache_repair_aggregate(
     for candidate in dict.fromkeys(candidate_classes):
         if isinstance(summary, candidate):
             return summary
-    if all(
-        hasattr(summary, field_name)
-        for field_name in (
-            "total_caches",
-            "anomaly_count",
-            "severity",
-            "generated_at",
-        )
-    ):
+    required_fields = (
+        "total_caches",
+        "anomaly_count",
+        "severity",
+        "generated_at",
+    )
+    if all(hasattr(summary, field) for field in required_fields):
         return cast(CacheRepairAggregate, summary)
     return None
 

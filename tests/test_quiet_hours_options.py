@@ -146,7 +146,9 @@ def test_build_notifications_schema_defaults() -> None:
     }
 
     schema = build_notifications_schema(current)
-    assert schema({}) == {}
+    validated = schema({})
+
+    assert validated == {}
 
 
 def test_ensure_notification_options_coerces_payload() -> None:

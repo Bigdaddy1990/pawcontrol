@@ -20,7 +20,7 @@ from .types import (
     ensure_dog_modules_config,
     ensure_dog_options_entry,
 )
-from .validation import InputCoercionError, normalize_dog_id, validate_dog_name
+from .validation import normalize_dog_id, validate_dog_name
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ def _resolve_dog_identifier(
         if isinstance(raw_value, str) and raw_value.strip():
             try:
                 normalized = normalize_dog_id(raw_value)
-            except (InputCoercionError, ValidationError, TypeError, ValueError):
+            except Exception:
                 continue
             if normalized:
                 return normalized
@@ -112,7 +112,7 @@ def _resolve_dog_identifier(
     if isinstance(fallback_id, str) and fallback_id.strip():
         try:
             normalized_fallback = normalize_dog_id(fallback_id)
-        except (InputCoercionError, ValidationError, TypeError, ValueError):
+        except Exception:
             return fallback_id.strip()
         return normalized_fallback or fallback_id.strip()
 
