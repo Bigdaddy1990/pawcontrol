@@ -35,6 +35,11 @@ _LEGACY_ID_KEYS: Final[tuple[str, ...]] = (
 )
 
 
+def _is_input_coercion_error(err: Exception) -> bool:
+    """Return ``True`` for InputCoercionError across module reload boundaries."""
+    return err.__class__.__name__ == InputCoercionError.__name__
+
+
 def _coerce_legacy_toggle(value: Any) -> bool:
     """Best-effort coercion for legacy module toggle payloads."""
     if value is None:
@@ -104,7 +109,9 @@ def _resolve_dog_identifier(
         if isinstance(raw_value, str) and raw_value.strip():
             try:
                 normalized = normalize_dog_id(raw_value)
-            except InputCoercionError:
+            except Exception as err:
+                if not _is_input_coercion_error(err):
+                    raise
                 continue
             if normalized:
                 return normalized
@@ -112,7 +119,9 @@ def _resolve_dog_identifier(
     if isinstance(fallback_id, str) and fallback_id.strip():
         try:
             normalized_fallback = normalize_dog_id(fallback_id)
-        except InputCoercionError:
+        except Exception as err:
+            if not _is_input_coercion_error(err):
+                raise
             return fallback_id.strip()
         return normalized_fallback or fallback_id.strip()
 

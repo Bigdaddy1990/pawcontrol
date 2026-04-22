@@ -137,8 +137,27 @@ class Schema:
         self.extra = extra
 
     def __call__(self, value: AnyType) -> AnyType:
-        """Return values unchanged in the lightweight compatibility shim."""
-        return value
+        """Validate mappings and apply marker defaults in the shim."""
+        if not isinstance(self.schema, Mapping):
+            return value
+        if not isinstance(value, Mapping):
+            raise Invalid("mapping value required")
+
+        result: dict[AnyType, AnyType] = {}
+        for key, validator in self.schema.items():
+            marker = key if isinstance(key, Marker) else None
+            target_key = marker.schema if marker is not None else key
+            if target_key in value:
+                raw = value[target_key]
+            elif marker is not None:
+                default_value = marker.default()
+                if default_value is UNDEFINED:
+                    continue
+                raw = default_value
+            else:
+                continue
+            result[target_key] = validator(raw) if callable(validator) else raw
+        return result
 
     def extend(self, schema: Mapping[AnyType, AnyType]) -> Schema:
         """Return a new schema containing the merged mapping definition."""

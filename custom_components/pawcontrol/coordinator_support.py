@@ -168,6 +168,8 @@ def ensure_cache_repair_aggregate(
     for candidate in dict.fromkeys(candidate_classes):
         if isinstance(summary, candidate):
             return summary
+    if summary.__class__.__name__ == CacheRepairAggregate.__name__:
+        return cast(CacheRepairAggregate, summary)
     return None
 
 

@@ -40,6 +40,14 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
+def _is_runtime_manager_container(value: Any) -> bool:
+    """Return ``True`` when ``value`` matches the runtime-manager shape."""
+    return all(
+        hasattr(value, attribute)
+        for attribute in CoordinatorRuntimeManagers.attribute_names()
+    )
+
+
 class PawControlEntity(
     PawControlDeviceLinkMixin,
     CoordinatorEntity[PawControlCoordinator],
@@ -182,6 +190,8 @@ class PawControlEntity(
         manager_container = getattr(self.coordinator, "runtime_managers", None)
         if isinstance(manager_container, CoordinatorRuntimeManagers):
             return manager_container
+        if _is_runtime_manager_container(manager_container):
+            return cast(CoordinatorRuntimeManagers, manager_container)
         manager_kwargs = {
             attr: getattr(self.coordinator, attr, None)
             for attr in CoordinatorRuntimeManagers.attribute_names()
@@ -202,6 +212,9 @@ class PawControlEntity(
 
     def _get_notification_manager(self) -> PawControlNotificationManager | None:
         """Return the notification manager from the runtime container."""
+        runtime_data = self._get_runtime_data()
+        if runtime_data is not None and runtime_data.notification_manager is not None:
+            return runtime_data.notification_manager
         return self._get_runtime_managers().notification_manager
 
     async def _async_call_hass_service(

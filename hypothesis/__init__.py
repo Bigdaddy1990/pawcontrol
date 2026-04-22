@@ -66,30 +66,14 @@ def given(
                 strategy.example() if isinstance(strategy, _Strategy) else None
                 for strategy in _strategies
             ]
-            # Pass generated values as positional arguments, preserving the original
-            # function's parameter count expectation.
-            return func(*args, *generated, **kwargs)
-
-        # DO NOT modify the signature. The fixture exposure issue should be
-        # solved via pytest configuration or a different shim mechanism.
-        return _wrapper
-
-    return _decorator
-
-    def _decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(func)
-        def _wrapper(*args: Any, **kwargs: Any) -> Any:
-            generated = [
-                strategy.example() if isinstance(strategy, _Strategy) else None
-                for strategy in _strategies
-            ]
             return func(*args, *generated, **kwargs)
 
         signature = inspect.signature(func)
         params = list(signature.parameters.values())
         if _strategies and len(params) >= len(_strategies):
-            params = params[: len(params) - len(_strategies)]
-            _wrapper.__signature__ = signature.replace(parameters=params)
+            _wrapper.__signature__ = signature.replace(
+                parameters=params[: len(params) - len(_strategies)],
+            )
         return _wrapper
 
     return _decorator
@@ -177,16 +161,54 @@ class _Strategies:
                 return _Strategy((int(min_value) + int(max_value)) // 2)
             if _name == "booleans":
                 return _Strategy(False)
+            if _name == "none":
+                return _Strategy(None)
             if _name == "sampled_from" and args:
                 sequence = args[0]
                 if isinstance(sequence, list | tuple) and sequence:
                     return _Strategy(sequence[0])
+            if _name == "one_of":
+                for strategy in args:
+                    if isinstance(strategy, _Strategy):
+                        return strategy
+                return _Strategy(None)
             if _name == "text":
                 min_size = int(kwargs.get("min_size", 0))
                 size = max(min_size, 1)
                 return _Strategy("x" * size)
             if _name == "characters":
                 return _Strategy("x")
+            if _name == "dictionaries":
+                key_strategy = args[0] if len(args) > 0 else _Strategy("key")
+                value_strategy = args[1] if len(args) > 1 else _Strategy(0)
+                min_size = int(kwargs.get("min_size", 0))
+                if min_size <= 0:
+                    return _Strategy({})
+                key = (
+                    key_strategy.example()
+                    if isinstance(key_strategy, _Strategy)
+                    else "key"
+                )
+                value = (
+                    value_strategy.example()
+                    if isinstance(value_strategy, _Strategy)
+                    else 0
+                )
+                return _Strategy({str(key): value})
+            if _name == "datetimes":
+                min_value = kwargs.get("min_value")
+                max_value = kwargs.get("max_value")
+                if min_value is not None and max_value is not None:
+                    midpoint = min_value + (max_value - min_value) / 2
+                    return _Strategy(midpoint)
+                return _Strategy(min_value or max_value)
+            if _name == "timedeltas":
+                min_value = kwargs.get("min_value")
+                max_value = kwargs.get("max_value")
+                if min_value is not None and max_value is not None:
+                    midpoint = min_value + (max_value - min_value) / 2
+                    return _Strategy(midpoint)
+                return _Strategy(min_value or max_value)
             return _Strategy(None)
 
         return _factory

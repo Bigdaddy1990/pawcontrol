@@ -118,6 +118,12 @@ from .validation import InputCoercionError, normalize_dog_id
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def _is_input_coercion_error(err: Exception) -> bool:
+    """Return ``True`` for InputCoercionError across module reload boundaries."""
+    return err.__class__.__name__ == InputCoercionError.__name__
+
+
 # Validation constants with performance optimization
 MAX_DOGS_PER_INTEGRATION = 10
 
@@ -2520,14 +2526,18 @@ class PawControlConfigFlow(
             if isinstance(value, str):
                 try:
                     normalized = normalize_dog_id(value)
-                except InputCoercionError:
+                except Exception as err:
+                    if not _is_input_coercion_error(err):
+                        raise
                     continue
                 if normalized:
                     return normalized
         if isinstance(fallback_id, str) and fallback_id.strip():
             try:
                 normalized_fallback = normalize_dog_id(fallback_id)
-            except InputCoercionError:
+            except Exception as err:
+                if not _is_input_coercion_error(err):
+                    raise
                 return fallback_id.strip()
             return normalized_fallback or fallback_id.strip()
         return None
