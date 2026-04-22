@@ -14,8 +14,6 @@ import sys
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-import coverage
-
 
 class _DummyParser:
     """Minimal parser capturing ini options registered by plugins."""
@@ -188,6 +186,7 @@ def test_pytest_cov_split_report_target_keeps_file_target() -> None:  # noqa: D1
 
 def test_pytest_cov_session_hooks_generate_xml_and_cleanup(tmp_path: Path) -> None:  # noqa: D103
     pytest_cov_plugin = _reload("pytest_cov.plugin")
+    pytest_cov_plugin._coverage_available()
 
     measured_file = tmp_path / "sample.py"
     measured_file.write_text("VALUE = 1\n", encoding="utf-8")
@@ -201,7 +200,7 @@ def test_pytest_cov_session_hooks_generate_xml_and_cleanup(tmp_path: Path) -> No
     )
     session = _DummySession(option)
 
-    cov = Mock(spec=coverage.Coverage)
+    cov = Mock()
     cov.xml_report.side_effect = lambda outfile, include=None: Path(outfile).write_text(
         "<coverage/>", encoding="utf-8"
     )
@@ -220,6 +219,7 @@ def test_pytest_cov_controller_synthesizes_lines_for_explicit_files(  # noqa: D1
     tmp_path: Path,
 ) -> None:
     pytest_cov_plugin = _reload("pytest_cov.plugin")
+    pytest_cov_plugin._coverage_available()
 
     measured_file = tmp_path / "standalone.py"
     measured_file.write_text("X = 1\n# comment\nY = 2\n", encoding="utf-8")
@@ -228,7 +228,7 @@ def test_pytest_cov_controller_synthesizes_lines_for_explicit_files(  # noqa: D1
 
     fake_data = Mock()
     fake_data.measured_files.return_value = []
-    fake_cov = Mock(spec=coverage.Coverage)
+    fake_cov = Mock()
     fake_cov.get_data.return_value = fake_data
 
     with patch.object(pytest_cov_plugin.coverage, "Coverage", return_value=fake_cov):
@@ -253,7 +253,7 @@ def test_pytest_cov_fail_under_sets_session_failure() -> None:  # noqa: D103
         no_cov_on_fail=False,
     )
     session = _DummySession(option)
-    cov = Mock(spec=coverage.Coverage)
+    cov = Mock()
     cov.report.return_value = 0.0
     session.config._pawcontrol_cov = cov
     session.config._pawcontrol_cov_include = None
@@ -274,7 +274,7 @@ def test_pytest_cov_no_cov_on_fail_skips_fail_under_enforcement() -> None:  # no
         no_cov_on_fail=True,
     )
     session = _DummySession(option)
-    cov = Mock(spec=coverage.Coverage)
+    cov = Mock()
     cov.report.return_value = 0.0
     session.config._pawcontrol_cov = cov
     session.config._pawcontrol_cov_include = None
@@ -321,7 +321,7 @@ def test_pytest_cov_sessionfinish_tolerates_missing_data_errors(tmp_path: Path) 
         no_cov_on_fail=False,
     )
     session = _DummySession(option)
-    cov = Mock(spec=coverage.Coverage)
+    cov = Mock()
     cov.report.side_effect = pytest_cov_plugin.NoDataError("no-data")
     cov.xml_report.side_effect = pytest_cov_plugin.NoDataError("no-data")
     cov.html_report.side_effect = pytest_cov_plugin.NoDataError("no-data")

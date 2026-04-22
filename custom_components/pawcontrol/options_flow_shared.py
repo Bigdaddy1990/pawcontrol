@@ -707,7 +707,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):  # noqa: D101
             return default
         try:
             return coerce_int("options_flow", value)
-        except InputCoercionError:
+        except (InputCoercionError, ValueError, TypeError):
             return default
 
     @staticmethod
@@ -729,7 +729,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):  # noqa: D101
             return default
         try:
             return coerce_float("options_flow", value)
-        except InputCoercionError:
+        except (InputCoercionError, ValueError, TypeError):
             return default
 
     def _coerce_clamped_float(

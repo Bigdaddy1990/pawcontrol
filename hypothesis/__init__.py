@@ -1,6 +1,7 @@
 """Tiny hypothesis compatibility layer for import-time usage in tests."""
 
 from collections.abc import Callable
+from datetime import datetime, timedelta
 import functools
 import inspect
 from typing import Any
@@ -68,21 +69,6 @@ def given(
             ]
             # Pass generated values as positional arguments, preserving the original
             # function's parameter count expectation.
-            return func(*args, *generated, **kwargs)
-
-        # DO NOT modify the signature. The fixture exposure issue should be
-        # solved via pytest configuration or a different shim mechanism.
-        return _wrapper
-
-    return _decorator
-
-    def _decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(func)
-        def _wrapper(*args: Any, **kwargs: Any) -> Any:
-            generated = [
-                strategy.example() if isinstance(strategy, _Strategy) else None
-                for strategy in _strategies
-            ]
             return func(*args, *generated, **kwargs)
 
         signature = inspect.signature(func)
@@ -185,6 +171,12 @@ class _Strategies:
                 min_size = int(kwargs.get("min_size", 0))
                 size = max(min_size, 1)
                 return _Strategy("x" * size)
+            if _name == "dictionaries":
+                return _Strategy({})
+            if _name == "datetimes":
+                return _Strategy(datetime(2024, 1, 1, 0, 0, 0))
+            if _name == "timedeltas":
+                return _Strategy(timedelta(seconds=0))
             if _name == "characters":
                 return _Strategy("x")
             return _Strategy(None)

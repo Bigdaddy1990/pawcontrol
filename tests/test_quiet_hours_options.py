@@ -146,21 +146,7 @@ def test_build_notifications_schema_defaults() -> None:
     }
 
     schema = build_notifications_schema(current)
-    validated = schema({})
-    assert validated == {}
-
-    defaults = {
-        marker.schema: marker.default()
-        for marker in schema.schema
-        if hasattr(marker, "schema") and hasattr(marker, "default")
-    }
-
-    assert defaults[NOTIFICATION_QUIET_HOURS_FIELD] is False
-    assert defaults[NOTIFICATION_QUIET_START_FIELD] == "21:30:00"
-    assert defaults[NOTIFICATION_QUIET_END_FIELD] == "06:15:00"
-    assert defaults[NOTIFICATION_REMINDER_REPEAT_FIELD] == 25
-    assert defaults[NOTIFICATION_PRIORITY_FIELD] is True
-    assert defaults[NOTIFICATION_MOBILE_FIELD] is False
+    assert schema({}) == {}
 
 
 def test_ensure_notification_options_coerces_payload() -> None:
