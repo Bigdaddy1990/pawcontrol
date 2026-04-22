@@ -168,3 +168,39 @@ def test_validate_dog_import_input_normalizes_none_modules() -> None:
     )
 
     assert validated[CONF_MODULES] == {}
+
+
+@pytest.mark.parametrize("error_type", [TypeError, ValueError])
+def test_validate_dog_setup_input_maps_breed_validation_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    error_type: type[Exception],
+) -> None:
+    """Breed validator type/value failures should map to flow field errors."""
+    from custom_components.pawcontrol import flow_validation
+
+    def _raise_breed_error(_breed: str) -> str:
+        raise error_type("boom")
+
+    monkeypatch.setattr(
+        flow_validation.HealthMetrics,
+        "_validate_breed",
+        _raise_breed_error,
+    )
+
+    with pytest.raises(FlowValidationError) as err:
+        flow_validation.validate_dog_setup_input(
+            {
+                CONF_DOG_ID: "buddy",
+                CONF_DOG_NAME: "Buddy",
+                CONF_DOG_WEIGHT: 20.0,
+                CONF_DOG_SIZE: "medium",
+                CONF_DOG_AGE: 4,
+                CONF_DOG_BREED: "Any",
+            },
+            existing_ids=set(),
+            existing_names=set(),
+            current_dog_count=0,
+            max_dogs=3,
+        )
+
+    assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
