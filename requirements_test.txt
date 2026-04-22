@@ -13,7 +13,7 @@ pytest
 # Installing upstream pytest-cov causes a duplicate plugin registration crash.
 pytest-github-actions-annotate-failures>=0.3.0
 pytest-homeassistant-custom-component  # follows daily HA version
-pytest-xdist>=3.8.0
+pytest-xdist
 pytest_cov
 pyyaml
 voluptuous>=0.16.0
