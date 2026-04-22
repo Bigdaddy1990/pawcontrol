@@ -58,7 +58,7 @@ def _is_runtime_manager_container(candidate: object) -> bool:
 def _build_runtime_manager_container(**kwargs: Any) -> CoordinatorRuntimeManagers:
     """Build a runtime manager container using the active types module class."""
     runtime_types = sys.modules.get("custom_components.pawcontrol.types")
-    runtime_class = getattr(runtime_types, "CoordinatorRuntimeManagers", None)
+    runtime_class = getattr(runtime_types, "CoordinatorRuntimeManagers", None) if runtime_types else None
     if isinstance(runtime_class, type):
         return cast(CoordinatorRuntimeManagers, runtime_class(**kwargs))
     return CoordinatorRuntimeManagers(**kwargs)
