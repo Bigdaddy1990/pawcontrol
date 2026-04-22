@@ -231,4 +231,4 @@ mixin-class-rgx = ".*[Mm]ix[Ii]n"
 class-const-naming-style = "any"
 
 [tool.pylint.REPORTS]
-score = false
+score = true

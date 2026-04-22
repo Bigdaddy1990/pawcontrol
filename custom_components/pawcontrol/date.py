@@ -50,7 +50,7 @@ from .types import (
     JSONMutableMapping,
     ensure_dog_modules_mapping,
 )
-from .utils import async_call_add_entities
+from .utils import async_call_add_entities, normalise_entity_attributes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -369,7 +369,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
                     1,
                 )
 
-        return self._finalize_entity_attributes(attributes)
+        return normalise_entity_attributes(self._finalize_entity_attributes(attributes))
 
     async def async_added_to_hass(self) -> None:
         """Called when entity is added to Home Assistant.
