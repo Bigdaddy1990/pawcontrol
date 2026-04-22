@@ -138,12 +138,36 @@ class Schema:
 
     def __call__(self, value: AnyType) -> AnyType:
         """Validate mappings and apply marker defaults in the shim."""
+        if isinstance(self.schema, list):
+            if not isinstance(value, list):
+                raise Invalid("list value required")
+            if not self.schema:
+                return value
+            validators = tuple(self.schema)
+            result: list[AnyType] = []
+            for item in value:
+                validated = None
+                matched = False
+                for validator in validators:
+                    try:
+                        validated = self._validate_value(validator, item)
+                    except Invalid:
+                        continue
+                    matched = True
+                    break
+                if not matched:
+                    raise Invalid(f"invalid list item: {item!r}")
+                result.append(validated)
+            return result
+
         if not isinstance(self.schema, Mapping):
             return value
         if not isinstance(value, Mapping):
             raise Invalid("mapping value required")
 
-        result: dict[AnyType, AnyType] = {}
+        result: dict[AnyType, AnyType] = (
+            dict(value) if self.extra is ALLOW_EXTRA else {}
+        )
         for key, validator in self.schema.items():
             marker = key if isinstance(key, Marker) else None
             target_key = marker.schema if marker is not None else key
@@ -156,8 +180,28 @@ class Schema:
                 raw = default_value
             else:
                 continue
-            result[target_key] = validator(raw) if callable(validator) else raw
+            result[target_key] = self._validate_value(validator, raw)
+
+        if self.extra is not ALLOW_EXTRA:
+            valid_keys = {
+                key.schema if isinstance(key, Marker) else key for key in self.schema
+            }
+            unknown = [key for key in value if key not in valid_keys]
+            if unknown:
+                raise Invalid(f"extra keys not allowed: {unknown!r}")
         return result
+
+    @staticmethod
+    def _validate_value(validator: AnyType, value: AnyType) -> AnyType:
+        """Validate values using callable, type, or equality checks."""
+        if callable(validator):
+            try:
+                return validator(value)
+            except Exception as err:
+                raise Invalid(str(err)) from err
+        if value != validator:
+            raise Invalid(f"expected {validator!r}")
+        return value
 
     def extend(self, schema: Mapping[AnyType, AnyType]) -> Schema:
         """Return a new schema containing the merged mapping definition."""

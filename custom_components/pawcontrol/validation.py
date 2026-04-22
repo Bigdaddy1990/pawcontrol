@@ -75,6 +75,11 @@ class InputCoercionError(ValueError):
         self.message = message
 
 
+def is_input_coercion_error(err: Exception) -> bool:
+    """Return ``True`` for ``InputCoercionError`` across module reload boundaries."""
+    return err.__class__.__name__ == InputCoercionError.__name__
+
+
 def _is_empty(value: Any) -> bool:
     """Return True when a value should be treated as missing."""
     return value is None or (isinstance(value, str) and not value.strip())

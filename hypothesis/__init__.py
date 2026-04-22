@@ -179,40 +179,56 @@ class _Strategies:
                 size = max(min_size, min(max_size, 1))
                 return _Strategy("x" * size)
             if _name == "dictionaries":
-                return _Strategy({})
+                key_strategy = args[0] if len(args) > 0 else _Strategy("key")
+                value_strategy = args[1] if len(args) > 1 else _Strategy(0)
+                min_size = max(0, int(kwargs.get("min_size", 0)))
+                max_size = kwargs.get("max_size")
+                if max_size is not None:
+                    size = min(min_size if min_size > 0 else 1, int(max_size))
+                else:
+                    size = max(1, min_size)
+                if size <= 0:
+                    return _Strategy({})
+
+                seed_key = (
+                    key_strategy.example()
+                    if isinstance(key_strategy, _Strategy)
+                    else "key"
+                )
+                seed_value = (
+                    value_strategy.example()
+                    if isinstance(value_strategy, _Strategy)
+                    else 0
+                )
+                generated: dict[Any, Any] = {}
+                for index in range(size):
+                    key = seed_key
+                    if isinstance(key, str):
+                        key = f"{key}_{index}"
+                    elif isinstance(key, int):
+                        key = key + index
+                    generated[key] = seed_value
+                return _Strategy(generated)
             if _name == "datetimes":
-                return _Strategy(datetime(2024, 1, 1, 0, 0, 0))
+                min_value = kwargs.get("min_value")
+                max_value = kwargs.get("max_value")
+                if min_value is not None and max_value is not None:
+                    midpoint = min_value + (max_value - min_value) / 2
+                    return _Strategy(midpoint)
+                return _Strategy(
+                    min_value or max_value or datetime(2024, 1, 1, 0, 0, 0)
+                )
             if _name == "timedeltas":
-                return _Strategy(timedelta(seconds=0))
+                min_value = kwargs.get("min_value")
+                max_value = kwargs.get("max_value")
+                if min_value is not None and max_value is not None:
+                    midpoint = min_value + (max_value - min_value) / 2
+                    return _Strategy(midpoint)
+                return _Strategy(min_value or max_value or timedelta(seconds=0))
             if _name == "characters":
                 return _Strategy("x")
             if _name == "none":
                 return _Strategy(None)
-            if _name == "one_of" and args:
-                for strategy in args:
-                    if isinstance(strategy, _Strategy):
-                        return strategy
-                return _Strategy(None)
-            if _name == "dictionaries":
-                args[0] if len(args) > 0 else _Strategy("key")
-                args[1] if len(args) > 1 else _Strategy(0)
-                min_size = int(kwargs.get("min_size", 0))
-                if min_size <= 0:
-                    return _Strategy({})
-            if _name == "datetimes":
-                min_value = kwargs.get("min_value")
-                max_value = kwargs.get("max_value")
-                if min_value is not None and max_value is not None:
-                    midpoint = min_value + (max_value - min_value) / 2
-                    return _Strategy(midpoint)
-                return _Strategy(min_value or max_value)
-            if _name == "timedeltas":
-                min_value = kwargs.get("min_value")
-                max_value = kwargs.get("max_value")
-                if min_value is not None and max_value is not None:
-                    midpoint = min_value + (max_value - min_value) / 2
-                    return _Strategy(midpoint)
-                return _Strategy(min_value or max_value)
             return _Strategy(None)
 
         return _factory
