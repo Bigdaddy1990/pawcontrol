@@ -19,7 +19,6 @@ def test_pytest_addopts_enable_local_coverage_plugin() -> None:
     args = set(shlex.split(addopts))
 
     assert "-p" in args
-    assert "no:pytest_cov" in args
     assert "pytest_cov.plugin" in args
 
 

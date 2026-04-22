@@ -16,8 +16,5 @@ class GardenModuleSelectorMixin:
     ) -> dict[vol.Marker, object]:
         """Return a selector mapping for a garden module toggle."""
         return {
-            vol.Optional(
-                field,
-                default=default,
-            ): selector.BooleanSelector(),
+            vol.Optional(field): selector.BooleanSelector(),
         }

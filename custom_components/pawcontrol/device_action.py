@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass
 import logging
-from typing import Final, cast
+import math
+from typing import Final
 
 from homeassistant.components.device_automation import DEVICE_ACTION_BASE_SCHEMA
 from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_METADATA, CONF_TYPE
@@ -29,6 +30,19 @@ CONF_WALK_NOTES = "walk_notes"
 CONF_SAVE_ROUTE = "save_route"
 
 
+def _validated_feeding_amount(value: object) -> float:
+    """Return a finite feeding amount or raise a HomeAssistantError."""
+    try:
+        amount = float(value)
+    except (TypeError, ValueError) as err:
+        raise HomeAssistantError("Feeding amount must be numeric") from err
+
+    if not math.isfinite(amount):
+        raise HomeAssistantError("Feeding amount must be finite")
+
+    return amount
+
+
 @dataclass(frozen=True, slots=True)
 class ActionDefinition:
     """Definition for a device action."""
@@ -47,7 +61,7 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
         vol.Required(CONF_TYPE): vol.In({
             definition.type for definition in ACTION_DEFINITIONS
         }),
-        vol.Optional(CONF_AMOUNT): vol.Coerce(float),
+        vol.Optional(CONF_AMOUNT): cv.string,
         vol.Optional(CONF_MEAL_TYPE): cv.string,
         vol.Optional(CONF_NOTES): cv.string,
         vol.Optional(CONF_SCHEDULED): cv.boolean,
@@ -120,7 +134,7 @@ async def async_get_action_capabilities(
 
 async def async_call_action(
     hass: HomeAssistant,
-    config: dict[str, str],
+    config: dict[str, object],
     variables: dict[str, object],
     context: object | None = None,
 ) -> None:
@@ -134,12 +148,16 @@ async def async_call_action(
 
     action_type = validated[CONF_TYPE]
     if action_type == "log_feeding":
-        amount = validated.get(CONF_AMOUNT)
-        if amount is None:
+        validated_amount = validated.get(CONF_AMOUNT)
+        if validated_amount is None:
             raise HomeAssistantError("Feeding amount is required for log_feeding")
+        raw_amount = config.get(CONF_AMOUNT)
+        amount: str | float = (
+            raw_amount if isinstance(raw_amount, str) else cast(float, validated_amount)
+        )
         await runtime_data.feeding_manager.async_add_feeding(
             dog_id,
-            cast(float, amount),
+            _validated_feeding_amount(amount),
             meal_type=validated.get(CONF_MEAL_TYPE),
             notes=validated.get(CONF_NOTES),
             scheduled=validated.get(CONF_SCHEDULED, False),
