@@ -154,7 +154,7 @@ async def test_async_call_action_dispatches_to_runtime_managers(monkeypatch) -> 
 
     feeding_manager.async_add_feeding.assert_awaited_once_with(
         "buddy",
-        "120",
+        120.0,
         meal_type="dinner",
         notes="extra",
         scheduled=True,
@@ -218,6 +218,40 @@ async def test_async_call_action_applies_default_optional_values(monkeypatch) ->
         notes=None,
         save_route=True,
     )
+
+
+async def test_async_call_action_rejects_non_finite_feeding_amount(monkeypatch) -> None:
+    """Feeding actions should reject NaN/Infinity inputs before manager dispatch."""
+    feeding_manager = SimpleNamespace(async_add_feeding=AsyncMock())
+    runtime_data = SimpleNamespace(
+        feeding_manager=feeding_manager,
+        walk_manager=SimpleNamespace(
+            async_start_walk=AsyncMock(),
+            async_end_walk=AsyncMock(),
+        ),
+    )
+    monkeypatch.setattr(
+        device_action,
+        "resolve_device_context",
+        lambda _hass, _device_id: SimpleNamespace(
+            dog_id="buddy",
+            runtime_data=runtime_data,
+        ),
+    )
+
+    with pytest.raises(HomeAssistantError, match="must be finite"):
+        await device_action.async_call_action(
+            SimpleNamespace(),
+            {
+                CONF_DEVICE_ID: "device-nan",
+                CONF_DOMAIN: DOMAIN,
+                CONF_TYPE: "log_feeding",
+                device_action.CONF_AMOUNT: float("nan"),
+            },
+            {},
+        )
+
+    feeding_manager.async_add_feeding.assert_not_awaited()
 
 
 async def test_async_call_action_requires_amount_for_log_feeding(monkeypatch) -> None:

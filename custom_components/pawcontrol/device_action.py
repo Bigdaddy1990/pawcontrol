@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import logging
+import math
 from typing import Final
 
 from homeassistant.components.device_automation import DEVICE_ACTION_BASE_SCHEMA
@@ -27,6 +28,19 @@ CONF_SCHEDULED = "scheduled"
 CONF_WALK_TYPE = "walk_type"
 CONF_WALK_NOTES = "walk_notes"
 CONF_SAVE_ROUTE = "save_route"
+
+
+def _validated_feeding_amount(value: object) -> float:
+    """Return a finite feeding amount or raise a HomeAssistantError."""
+    try:
+        amount = float(value)
+    except (TypeError, ValueError) as err:
+        raise HomeAssistantError("Feeding amount must be numeric") from err
+
+    if not math.isfinite(amount):
+        raise HomeAssistantError("Feeding amount must be finite")
+
+    return amount
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,7 +157,7 @@ async def async_call_action(
         )
         await runtime_data.feeding_manager.async_add_feeding(
             dog_id,
-            str(amount),
+            _validated_feeding_amount(amount),
             meal_type=validated.get(CONF_MEAL_TYPE),
             notes=validated.get(CONF_NOTES),
             scheduled=validated.get(CONF_SCHEDULED, False),

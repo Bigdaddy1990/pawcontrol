@@ -35,7 +35,7 @@ def test_dog_schema_accepts_minimal_valid_payload() -> None:
 
 @pytest.mark.unit
 def test_dog_schema_applies_defaults() -> None:
-    """Optional fields should be filled with integration defaults."""
+    """Optional fields should be injected with integration defaults."""
     data = {
         "dog_id": "max",
         "dog_name": "Max",
@@ -78,7 +78,7 @@ def test_dog_schema_rejects_missing_required_fields() -> None:
 
 @pytest.mark.unit
 def test_modules_schema_accepts_all_defaults() -> None:
-    """MODULES_SCHEMA should apply default module toggles on empty input."""
+    """MODULES_SCHEMA should inject defaults for all module toggles."""
     result = MODULES_SCHEMA({})
     assert result == {
         MODULE_FEEDING: True,
