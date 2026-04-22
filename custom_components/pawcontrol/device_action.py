@@ -61,7 +61,7 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
         vol.Required(CONF_TYPE): vol.In({
             definition.type for definition in ACTION_DEFINITIONS
         }),
-        vol.Optional(CONF_AMOUNT): vol.Coerce(float),
+        vol.Optional(CONF_AMOUNT): cv.string,
         vol.Optional(CONF_MEAL_TYPE): cv.string,
         vol.Optional(CONF_NOTES): cv.string,
         vol.Optional(CONF_SCHEDULED): cv.boolean,
@@ -134,7 +134,7 @@ async def async_get_action_capabilities(
 
 async def async_call_action(
     hass: HomeAssistant,
-    config: dict[str, str],
+    config: dict[str, object],
     variables: dict[str, object],
     context: object | None = None,
 ) -> None:
@@ -148,9 +148,13 @@ async def async_call_action(
 
     action_type = validated[CONF_TYPE]
     if action_type == "log_feeding":
-        amount = validated.get(CONF_AMOUNT)
-        if amount is None:
+        validated_amount = validated.get(CONF_AMOUNT)
+        if validated_amount is None:
             raise HomeAssistantError("Feeding amount is required for log_feeding")
+        raw_amount = config.get(CONF_AMOUNT)
+        amount: str | float = (
+            raw_amount if isinstance(raw_amount, str) else cast(float, validated_amount)
+        )
         await runtime_data.feeding_manager.async_add_feeding(
             dog_id,
             _validated_feeding_amount(amount),
