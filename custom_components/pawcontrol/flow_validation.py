@@ -100,7 +100,13 @@ def _validate_breed(raw_breed: object) -> str | None:
         raise ValidationError(CONF_DOG_BREED, breed, "Breed name too long")
     try:
         return HealthMetrics._validate_breed(breed)
-    except (TypeError, ValueError) as err:
+    except TypeError as err:
+        raise ValidationError(
+            CONF_DOG_BREED,
+            breed,
+            "Breed contains invalid characters",
+        ) from err
+    except ValueError as err:
         raise ValidationError(
             CONF_DOG_BREED,
             breed,

@@ -34,7 +34,6 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
           cache-dependency-path: |
             requirements.txt
             requirements_test.txt
@@ -43,6 +42,8 @@ jobs:
         uses: astral-sh/setup-uv@v8.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+          ignore-nothing-to-cache: true
       - uses: astral-sh/ruff-action@v3
         with:
          version: ">=0.4.0"
