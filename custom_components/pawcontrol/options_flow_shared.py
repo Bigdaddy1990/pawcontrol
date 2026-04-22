@@ -69,13 +69,7 @@ from .types import (
     normalize_performance_mode,
 )
 from .utils import normalize_value
-from .validation import (
-    InputCoercionError,
-    clamp_float_range,
-    clamp_int_range,
-    coerce_float,
-    coerce_int,
-)
+from .validation import clamp_float_range, clamp_int_range, coerce_float, coerce_int
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry

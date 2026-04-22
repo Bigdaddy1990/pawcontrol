@@ -114,7 +114,7 @@ from .types import (
     freeze_placeholders,
     normalize_performance_mode,
 )
-from .validation import InputCoercionError, normalize_dog_id
+from .validation import normalize_dog_id
 
 _LOGGER = logging.getLogger(__name__)
 

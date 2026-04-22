@@ -1,6 +1,7 @@
 """Tiny hypothesis compatibility layer for import-time usage in tests."""
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 import functools
 import inspect
 from typing import Any
@@ -174,27 +175,30 @@ class _Strategies:
                 return _Strategy(None)
             if _name == "text":
                 min_size = int(kwargs.get("min_size", 0))
-                size = max(min_size, 1)
+                max_size = int(kwargs.get("max_size", min_size if min_size else 1))
+                size = max(min_size, min(max_size, 1))
                 return _Strategy("x" * size)
+            if _name == "dictionaries":
+                return _Strategy({})
+            if _name == "datetimes":
+                return _Strategy(datetime(2024, 1, 1, 0, 0, 0))
+            if _name == "timedeltas":
+                return _Strategy(timedelta(seconds=0))
             if _name == "characters":
                 return _Strategy("x")
+            if _name == "none":
+                return _Strategy(None)
+            if _name == "one_of" and args:
+                for strategy in args:
+                    if isinstance(strategy, _Strategy):
+                        return strategy
+                return _Strategy(None)
             if _name == "dictionaries":
                 key_strategy = args[0] if len(args) > 0 else _Strategy("key")
                 value_strategy = args[1] if len(args) > 1 else _Strategy(0)
                 min_size = int(kwargs.get("min_size", 0))
                 if min_size <= 0:
                     return _Strategy({})
-                key = (
-                    key_strategy.example()
-                    if isinstance(key_strategy, _Strategy)
-                    else "key"
-                )
-                value = (
-                    value_strategy.example()
-                    if isinstance(value_strategy, _Strategy)
-                    else 0
-                )
-                return _Strategy({str(key): value})
             if _name == "datetimes":
                 min_value = kwargs.get("min_value")
                 max_value = kwargs.get("max_value")

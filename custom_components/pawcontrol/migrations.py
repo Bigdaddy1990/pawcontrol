@@ -20,7 +20,7 @@ from .types import (
     ensure_dog_modules_config,
     ensure_dog_options_entry,
 )
-from .validation import InputCoercionError, normalize_dog_id, validate_dog_name
+from .validation import normalize_dog_id, validate_dog_name
 
 _LOGGER = logging.getLogger(__name__)
 
