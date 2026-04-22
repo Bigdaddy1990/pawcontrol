@@ -51,7 +51,7 @@ jobs:
           uv pip install --system -r requirements.txt
           uv pip install --system -r requirements_test.txt --prerelease=allow
           uv pip install --system --upgrade pre-commit ruff pyupgrade flake8-type-checking reorder-python-imports
-          
+
       - uses: astral-sh/ruff-action@v3
         with:
          version: ">=0.4.0"
