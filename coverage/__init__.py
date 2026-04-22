@@ -116,15 +116,11 @@ class Coverage:
 
     def xml_report(self, outfile: str = "coverage.xml", **kwargs) -> float:  # noqa: ARG002
         """Write a tiny XML report and return a fake percentage."""
-        from pathlib import Path
-
         Path(outfile).write_text("<coverage/>\n", encoding="utf-8")
         return 100.0
 
     def html_report(self, directory: str = "htmlcov", **kwargs) -> float:  # noqa: ARG002
         """Create an HTML directory target and return a fake percentage."""
-        from pathlib import Path
-
         Path(directory).mkdir(parents=True, exist_ok=True)
         return 100.0
 

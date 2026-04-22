@@ -194,8 +194,8 @@ class _Strategies:
                         return strategy
                 return _Strategy(None)
             if _name == "dictionaries":
-                key_strategy = args[0] if len(args) > 0 else _Strategy("key")
-                value_strategy = args[1] if len(args) > 1 else _Strategy(0)
+                args[0] if len(args) > 0 else _Strategy("key")
+                args[1] if len(args) > 1 else _Strategy(0)
                 min_size = int(kwargs.get("min_size", 0))
                 if min_size <= 0:
                     return _Strategy({})

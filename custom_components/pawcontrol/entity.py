@@ -3,7 +3,6 @@
 from collections.abc import Mapping
 from datetime import datetime
 import logging
-import sys
 import time
 from typing import TYPE_CHECKING, Any, cast
 
