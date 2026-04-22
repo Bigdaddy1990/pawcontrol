@@ -10,6 +10,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
+from . import types as paw_types
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
 from .dog_status import build_dog_status_snapshot
@@ -18,7 +19,6 @@ from .service_guard import ServiceGuardResult
 from .types import (
     CoordinatorDogData,
     CoordinatorModuleLookupResult,
-    CoordinatorRuntimeManagers,
     CoordinatorUntypedModuleState,
     DogStatusSnapshot,
     JSONMutableMapping,
@@ -44,7 +44,7 @@ def _is_runtime_manager_container(value: Any) -> bool:
     """Return ``True`` when ``value`` matches the runtime-manager shape."""
     return all(
         hasattr(value, attribute)
-        for attribute in CoordinatorRuntimeManagers.attribute_names()
+        for attribute in paw_types.CoordinatorRuntimeManagers.attribute_names()
     )
 
 
@@ -178,9 +178,9 @@ class PawControlEntity(
             return None
         return get_runtime_data(self.hass, config_entry)
 
-    def _get_runtime_managers(self) -> CoordinatorRuntimeManagers:
+    def _get_runtime_managers(self) -> paw_types.CoordinatorRuntimeManagers:
         """Return the runtime manager container for this entity."""
-        manager_attrs = CoordinatorRuntimeManagers.attribute_names()
+        manager_attrs = paw_types.CoordinatorRuntimeManagers.attribute_names()
         runtime_data = self._get_runtime_data()
         if runtime_data is not None:
             container = runtime_data.runtime_managers
@@ -190,7 +190,7 @@ class PawControlEntity(
             return container
 
         manager_container = getattr(self.coordinator, "runtime_managers", None)
-        if isinstance(manager_container, CoordinatorRuntimeManagers):
+        if isinstance(manager_container, paw_types.CoordinatorRuntimeManagers):
             return manager_container
         if _is_runtime_manager_container(manager_container):
             return CoordinatorRuntimeManagers(
@@ -199,15 +199,16 @@ class PawControlEntity(
                     for attr in manager_attrs
                 },
             )
+            return cast(paw_types.CoordinatorRuntimeManagers, manager_container)
         manager_kwargs = {
             attr: getattr(self.coordinator, attr, None) for attr in manager_attrs
         }
 
         if any(value is not None for value in manager_kwargs.values()):
-            container = CoordinatorRuntimeManagers(**manager_kwargs)
+            container = paw_types.CoordinatorRuntimeManagers(**manager_kwargs)
             self.coordinator.runtime_managers = container
             return container
-        return CoordinatorRuntimeManagers()
+        return paw_types.CoordinatorRuntimeManagers()
 
     def _get_data_manager(self) -> PawControlDataManager | None:
         """Return the data manager from runtime data or fallback containers."""

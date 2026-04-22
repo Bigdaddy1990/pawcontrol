@@ -166,6 +166,18 @@ class GPSModuleDefaultsMixin(GPSDefaultsHost):
                 vol.Optional(MODULE_HEALTH): cv.boolean,
                 vol.Optional(MODULE_GPS): cv.boolean,
                 vol.Optional(MODULE_NOTIFICATIONS): cv.boolean,
+                vol.Optional(
+                    MODULE_FEEDING, default=defaults[MODULE_FEEDING]
+                ): cv.boolean,
+                vol.Optional(MODULE_WALK, default=defaults[MODULE_WALK]): cv.boolean,
+                vol.Optional(
+                    MODULE_HEALTH, default=defaults[MODULE_HEALTH]
+                ): cv.boolean,
+                vol.Optional(MODULE_GPS, default=defaults[MODULE_GPS]): cv.boolean,
+                vol.Optional(
+                    MODULE_NOTIFICATIONS,
+                    default=defaults[MODULE_NOTIFICATIONS],
+                ): cv.boolean,
             },
         )
 

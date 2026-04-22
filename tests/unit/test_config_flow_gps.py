@@ -101,8 +101,7 @@ def test_enhanced_modules_schema_sets_gps_default() -> None:
     flow = _GPSDefaultsFlow({})
     schema = flow._get_enhanced_modules_schema({"dog_size": "giant"})
     result = schema({})
-    # Schema no longer injects defaults; empty input yields empty output
-    assert MODULE_GPS not in result
+    assert result[MODULE_GPS] is True
 
 
 @pytest.mark.asyncio
