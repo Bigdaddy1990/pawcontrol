@@ -74,7 +74,7 @@ class _CoverageData:
     def add_lines(self, lines: dict[str, set[int]]) -> None:
         """Record measured line numbers."""
         for path, executed in lines.items():
-            self._lines[path] = set(executed)
+            self._lines.setdefault(path, set()).update(executed)
 
     def has_arcs(self) -> bool:
         """Return whether arc mode is enabled (not tracked in shim)."""
