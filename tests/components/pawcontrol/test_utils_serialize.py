@@ -109,6 +109,19 @@ def test_serialize_value_supports_tuple_and_primitive_types() -> None:
     assert _serialize_value(7) == 7
 
 
+def test_serialize_value_coerces_mapping_keys_and_normalizes_sets() -> None:
+    """Serializer should force string keys and keep set output deterministic."""
+    payload = {
+        5: {timedelta(seconds=3), timedelta(seconds=1)},
+        "nested": {"key": {2, 1}},
+    }
+
+    assert _serialize_value(payload) == {
+        "5": [1, 3],
+        "nested": {"key": [1, 2]},
+    }
+
+
 def test_module_reload_syncs_parent_utils_re_exports() -> None:
     """Reloading should refresh ``custom_components.pawcontrol.utils`` exports."""
     parent = importlib.import_module("custom_components.pawcontrol.utils")
