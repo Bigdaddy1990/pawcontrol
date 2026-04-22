@@ -69,17 +69,17 @@ from .types import (
     normalize_performance_mode,
 )
 from .utils import normalize_value
-from .validation import clamp_float_range, clamp_int_range, coerce_float, coerce_int
+from .validation import (
+    clamp_float_range,
+    clamp_int_range,
+    coerce_float,
+    coerce_int,
+    is_input_coercion_error,
+)
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 _LOGGER = logging.getLogger(__name__)
-
-
-def _is_input_coercion_error(err: Exception) -> bool:
-    """Return ``True`` for InputCoercionError across module reload boundaries."""
-    return err.__class__.__name__ == InputCoercionError.__name__
-
 
 SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal["enable_analytics"]] = "enable_analytics"
 SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: Final[Literal["enable_cloud_backup"]] = (
@@ -708,7 +708,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):  # noqa: D101
         try:
             return coerce_int("options_flow", value)
         except Exception as err:
-            if not _is_input_coercion_error(err):
+            if not is_input_coercion_error(err):
                 raise
             return default
 
@@ -732,7 +732,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):  # noqa: D101
         try:
             return coerce_float("options_flow", value)
         except Exception as err:
-            if not _is_input_coercion_error(err):
+            if not is_input_coercion_error(err):
                 raise
             return default
 

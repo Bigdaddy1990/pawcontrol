@@ -20,7 +20,7 @@ from .types import (
     ensure_dog_modules_config,
     ensure_dog_options_entry,
 )
-from .validation import normalize_dog_id, validate_dog_name
+from .validation import is_input_coercion_error, normalize_dog_id, validate_dog_name
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,11 +33,6 @@ _LEGACY_ID_KEYS: Final[tuple[str, ...]] = (
     "unique_id",
     "uniqueId",
 )
-
-
-def _is_input_coercion_error(err: Exception) -> bool:
-    """Return ``True`` for InputCoercionError across module reload boundaries."""
-    return err.__class__.__name__ == InputCoercionError.__name__
 
 
 def _coerce_legacy_toggle(value: Any) -> bool:
@@ -110,7 +105,7 @@ def _resolve_dog_identifier(
             try:
                 normalized = normalize_dog_id(raw_value)
             except Exception as err:
-                if not _is_input_coercion_error(err):
+                if not is_input_coercion_error(err):
                     raise
                 continue
             if normalized:
@@ -120,7 +115,7 @@ def _resolve_dog_identifier(
         try:
             normalized_fallback = normalize_dog_id(fallback_id)
         except Exception as err:
-            if not _is_input_coercion_error(err):
+            if not is_input_coercion_error(err):
                 raise
             return fallback_id.strip()
         return normalized_fallback or fallback_id.strip()

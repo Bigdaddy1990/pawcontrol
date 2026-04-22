@@ -1,64 +1,8 @@
 """Small coverage.py shim used for dependency-light test collection."""
 
 from pathlib import Path
-import sys
-from types import ModuleType
 
-
-class NoDataError(Exception):
-    """Fallback no-data exception used by pytest coverage shims."""
-
-
-class DataError(Exception):
-    """Fallback data error used by coverage compatibility tests."""
-
-
-class CoverageWarning(Warning):
-    """Fallback warning emitted by coverage compatibility tests."""
-
-
-class _CoverageData:
-    """Minimal coverage data container."""
-
-    def __init__(self) -> None:
-        self._lines: dict[str, set[int]] = {}
-
-    def measured_files(self) -> set[str]:
-        """Return files tracked in the shim."""
-        return set(self._lines)
-
-    def add_lines(self, lines: dict[str, set[int]]) -> None:
-        """Merge measured lines into coverage data."""
-        for path, values in lines.items():
-            self._lines.setdefault(path, set()).update(values)
-
-    def has_arcs(self) -> bool:
-        """Return whether arc data is tracked."""
-        return False
-
-    def add_arcs(self, _arcs: dict[str, set[tuple[int, int]]]) -> None:
-        """Accept arc payloads for compatibility."""
-        return None
-
-
-class _CoverageData:
-    """Minimal coverage data container used by shim tests."""
-
-    def measured_files(self) -> list[str]:
-        """Return measured file list."""
-        return []
-
-    def add_lines(self, _line_data: dict[str, set[int]]) -> None:
-        """Record synthetic line execution data (no-op in shim)."""
-        return None
-
-    def has_arcs(self) -> bool:
-        """Return whether arc data is enabled."""
-        return False
-
-    def add_arcs(self, _arc_data: dict[str, set[tuple[int, int]]]) -> None:
-        """Record synthetic arc execution data (no-op in shim)."""
-        return None
+from .exceptions import CoverageWarning, DataError, NoDataError
 
 
 class _CoverageData:
@@ -72,7 +16,7 @@ class _CoverageData:
         return list(self._lines)
 
     def add_lines(self, lines: dict[str, set[int]]) -> None:
-        """Record measured line numbers."""
+        """Merge measured line numbers into tracked files."""
         for path, executed in lines.items():
             self._lines.setdefault(path, set()).update(executed)
 
@@ -115,8 +59,32 @@ class Coverage:
         return 100.0
 
     def xml_report(self, outfile: str = "coverage.xml", **kwargs) -> float:  # noqa: ARG002
-        """Write a tiny XML report and return a fake percentage."""
-        Path(outfile).write_text("<coverage/>\n", encoding="utf-8")
+        """Write a Cobertura-like XML report and return a fake percentage."""
+        classes_xml = "\n".join(
+            (
+                "      "
+                f'<class name="{Path(path).stem}" filename="{path}" '
+                'line-rate="1.0" branch-rate="1.0" complexity="0">'
+                "<lines/></class>"
+            )
+            for path in sorted(self._data.measured_files())
+        )
+        if classes_xml:
+            classes_xml = f"\n{classes_xml}\n"
+        xml_payload = (
+            '<?xml version="1.0" ?>\n'
+            '<coverage line-rate="1.0" branch-rate="1.0" '
+            'lines-covered="1" lines-valid="1" '
+            'branches-covered="1" branches-valid="1" '
+            'complexity="0" version="0" timestamp="0">\n'
+            "  <sources><source>.</source></sources>\n"
+            '  <packages><package name="." line-rate="1.0" '
+            'branch-rate="1.0" complexity="0">\n'
+            f"    <classes>{classes_xml}    </classes>\n"
+            "  </package></packages>\n"
+            "</coverage>\n"
+        )
+        Path(outfile).write_text(xml_payload, encoding="utf-8")
         return 100.0
 
     def html_report(self, directory: str = "htmlcov", **kwargs) -> float:  # noqa: ARG002
