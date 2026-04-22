@@ -217,6 +217,46 @@ async def test_reconfigure_paths_and_updates(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("profile_input", [None, 7, object()])
+async def test_reconfigure_returns_invalid_profile_when_entity_profile_not_string(
+    hass,
+    monkeypatch: pytest.MonkeyPatch,
+    profile_input: object,
+) -> None:
+    """Non-string profile input should produce a stable invalid profile form error."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: [
+                {
+                    DOG_ID_FIELD: "buddy",
+                    DOG_NAME_FIELD: "Buddy",
+                    DOG_MODULES_FIELD: {"gps": True},
+                }
+            ],
+            "entity_profile": "standard",
+        },
+        options={"entity_profile": "standard"},
+    )
+    entry.add_to_hass(hass)
+
+    flow = PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {"entry_id": entry.entry_id}
+
+    async def _placeholders(*_args, **_kwargs):
+        return {"current_profile": "standard"}
+
+    monkeypatch.setattr(flow, "_build_reconfigure_placeholders", _placeholders)
+
+    result = await flow.async_step_reconfigure({"entity_profile": profile_input})
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+    assert result["errors"] == {"base": "invalid_profile"}
+
+
+@pytest.mark.asyncio
 async def test_reconfigure_returns_invalid_profile_when_profile_schema_rejects_input(
     hass,
     monkeypatch: pytest.MonkeyPatch,
