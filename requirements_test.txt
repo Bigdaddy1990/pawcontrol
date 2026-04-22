@@ -16,5 +16,5 @@ pytest-homeassistant-custom-component  # follows daily HA version
 pytest-xdist>=3.8.0
 pytest_cov
 pyyaml
-voluptuous>=0.15.2
+voluptuous>=0.16.0
 yarl
