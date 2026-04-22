@@ -46,7 +46,7 @@ def _is_runtime_manager_container(candidate: object) -> bool:
     if isinstance(candidate, CoordinatorRuntimeManagers):
         return True
     runtime_types = sys.modules.get("custom_components.pawcontrol.types")
-    runtime_class = getattr(runtime_types, "CoordinatorRuntimeManagers", None)
+    runtime_class = getattr(runtime_types, "CoordinatorRuntimeManagers", None) if runtime_types else None
     if isinstance(runtime_class, type) and isinstance(candidate, runtime_class):
         return True
     return all(
