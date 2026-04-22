@@ -1735,6 +1735,19 @@ class PawControlConfigFlow(
                 if not new_profile:
                     raise vol.Invalid("invalid_profile")
             except (TypeError, ValueError, vol.Invalid) as err:
+                return self.async_show_form(
+                    step_id="reconfigure",
+                    data_schema=form_schema,
+                    errors={"base": "invalid_profile"},
+                    description_placeholders=dict(
+                        cast(
+                            Mapping[str, str],
+                            freeze_placeholders(
+                                {**base_placeholders, "error_details": str(err)},
+                            ),
+                        ),
+                    ),
+                )
             requested_profile = user_input.get("entity_profile")
             if not isinstance(requested_profile, str):
                 return self.async_show_form(
@@ -1753,29 +1766,45 @@ class PawControlConfigFlow(
                         ),
                     ),
                 )
-            if requested_profile in VALID_PROFILES:
-                try:
-                    profile_data = cast(
-                        ReconfigureProfileInput,
-                        PROFILE_SCHEMA(dict(user_input)),
-                    )
-                    new_profile = profile_data["entity_profile"]
-                except vol.Invalid as err:
-                    return self.async_show_form(
-                        step_id="reconfigure",
-                        data_schema=form_schema,
-                        errors={"base": "invalid_profile"},
-                        description_placeholders=dict(
-                            cast(
-                                Mapping[str, str],
-                                freeze_placeholders(
-                                    {**base_placeholders, "error_details": str(err)},
-                                ),
+            if requested_profile not in VALID_PROFILES:
+                return self.async_show_form(
+                    step_id="reconfigure",
+                    data_schema=form_schema,
+                    errors={"base": "invalid_profile"},
+                    description_placeholders=dict(
+                        cast(
+                            Mapping[str, str],
+                            freeze_placeholders(
+                                {
+                                    **base_placeholders,
+                                    "error_details": "entity_profile must be one of the "
+                                    "supported profiles",
+                                },
                             ),
                         ),
-                    )
-            else:
-                new_profile = requested_profile
+                    ),
+                )
+
+            try:
+                profile_data = cast(
+                    ReconfigureProfileInput,
+                    PROFILE_SCHEMA(dict(user_input)),
+                )
+                new_profile = profile_data["entity_profile"]
+            except vol.Invalid as err:
+                return self.async_show_form(
+                    step_id="reconfigure",
+                    data_schema=form_schema,
+                    errors={"base": "invalid_profile"},
+                    description_placeholders=dict(
+                        cast(
+                            Mapping[str, str],
+                            freeze_placeholders(
+                                {**base_placeholders, "error_details": str(err)},
+                            ),
+                        ),
+                    ),
+                )
 
             if new_profile == current_profile:
                 return self.async_show_form(
