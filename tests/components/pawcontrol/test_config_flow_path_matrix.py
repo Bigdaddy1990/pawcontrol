@@ -259,6 +259,32 @@ async def test_reconfigure_returns_invalid_profile_when_profile_schema_rejects_i
 
 
 @pytest.mark.asyncio
+async def test_reconfigure_returns_invalid_profile_for_non_string_input(
+    hass,
+) -> None:
+    """Non-string profile input should be rejected before schema parsing."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}]},
+        options={"entity_profile": "standard"},
+    )
+    entry.add_to_hass(hass)
+
+    flow = PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {"entry_id": entry.entry_id}
+
+    result = await flow.async_step_reconfigure({"entity_profile": 99})
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+    assert result["errors"] == {"base": "invalid_profile"}
+    assert result["description_placeholders"]["error_details"] == (
+        "entity_profile must be a string"
+    )
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("profile_input", "expected_data"),
     [

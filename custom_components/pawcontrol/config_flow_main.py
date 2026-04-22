@@ -1727,14 +1727,6 @@ class PawControlConfigFlow(
         )
 
         if user_input is not None:
-            try:
-                profile_raw = user_input.get("entity_profile")
-                new_profile = (
-                    str(profile_raw).strip() if profile_raw is not None else ""
-                )
-                if not new_profile:
-                    raise vol.Invalid("invalid_profile")
-            except (TypeError, ValueError, vol.Invalid) as err:
             requested_profile = user_input.get("entity_profile")
             if not isinstance(requested_profile, str):
                 return self.async_show_form(
@@ -1749,6 +1741,24 @@ class PawControlConfigFlow(
                                     **base_placeholders,
                                     "error_details": "entity_profile must be a string",
                                 },
+                            ),
+                        ),
+                    ),
+                )
+            try:
+                new_profile = requested_profile.strip()
+                if not new_profile:
+                    raise vol.Invalid("invalid_profile")
+            except (TypeError, ValueError, vol.Invalid) as err:
+                return self.async_show_form(
+                    step_id="reconfigure",
+                    data_schema=form_schema,
+                    errors={"base": "invalid_profile"},
+                    description_placeholders=dict(
+                        cast(
+                            Mapping[str, str],
+                            freeze_placeholders(
+                                {**base_placeholders, "error_details": str(err)},
                             ),
                         ),
                     ),
@@ -1775,7 +1785,22 @@ class PawControlConfigFlow(
                         ),
                     )
             else:
-                new_profile = requested_profile
+                return self.async_show_form(
+                    step_id="reconfigure",
+                    data_schema=form_schema,
+                    errors={"base": "invalid_profile"},
+                    description_placeholders=dict(
+                        cast(
+                            Mapping[str, str],
+                            freeze_placeholders(
+                                {
+                                    **base_placeholders,
+                                    "error_details": "invalid_profile",
+                                },
+                            ),
+                        ),
+                    ),
+                )
 
             if new_profile == current_profile:
                 return self.async_show_form(
