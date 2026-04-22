@@ -2520,14 +2520,14 @@ class PawControlConfigFlow(
             if isinstance(value, str):
                 try:
                     normalized = normalize_dog_id(value)
-                except InputCoercionError:
+                except (InputCoercionError, ValidationError, TypeError, ValueError):
                     continue
                 if normalized:
                     return normalized
         if isinstance(fallback_id, str) and fallback_id.strip():
             try:
                 normalized_fallback = normalize_dog_id(fallback_id)
-            except InputCoercionError:
+            except (InputCoercionError, ValidationError, TypeError, ValueError):
                 return fallback_id.strip()
             return normalized_fallback or fallback_id.strip()
         return None

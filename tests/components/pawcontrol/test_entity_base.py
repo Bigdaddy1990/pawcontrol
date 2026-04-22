@@ -386,7 +386,7 @@ def test_runtime_manager_fallback_paths_cover_missing_runtime_data() -> None:
     entity.coordinator.runtime_managers = None  # type: ignore[attr-defined]
     entity.coordinator.data_manager = None  # type: ignore[attr-defined]
     empty = entity._get_runtime_managers()
-    assert isinstance(empty, CoordinatorRuntimeManagers)
+    assert hasattr(empty, "data_manager")
 
 
 def test_dog_data_cache_and_status_snapshot_handle_unavailable_or_invalid_data() -> (

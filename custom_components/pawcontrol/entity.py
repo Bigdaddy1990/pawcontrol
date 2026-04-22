@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from datetime import datetime
 import logging
+import sys
 import time
 from typing import TYPE_CHECKING, Any, cast
 
@@ -38,6 +39,29 @@ if TYPE_CHECKING:
     from .notifications import PawControlNotificationManager
     from .types import PawControlRuntimeData
 _LOGGER = logging.getLogger(__name__)
+
+
+def _is_runtime_manager_container(candidate: object) -> bool:
+    """Return whether ``candidate`` behaves like a runtime manager container."""
+    if isinstance(candidate, CoordinatorRuntimeManagers):
+        return True
+    runtime_types = sys.modules.get("custom_components.pawcontrol.types")
+    runtime_class = getattr(runtime_types, "CoordinatorRuntimeManagers", None)
+    if isinstance(runtime_class, type) and isinstance(candidate, runtime_class):
+        return True
+    return all(
+        hasattr(candidate, attr)
+        for attr in CoordinatorRuntimeManagers.attribute_names()
+    )
+
+
+def _build_runtime_manager_container(**kwargs: Any) -> CoordinatorRuntimeManagers:
+    """Build a runtime manager container using the active types module class."""
+    runtime_types = sys.modules.get("custom_components.pawcontrol.types")
+    runtime_class = getattr(runtime_types, "CoordinatorRuntimeManagers", None)
+    if isinstance(runtime_class, type):
+        return cast(CoordinatorRuntimeManagers, runtime_class(**kwargs))
+    return CoordinatorRuntimeManagers(**kwargs)
 
 
 class PawControlEntity(
@@ -180,18 +204,18 @@ class PawControlEntity(
                     setattr(container, attr, getattr(runtime_data, attr))
             return container
         manager_container = getattr(self.coordinator, "runtime_managers", None)
-        if isinstance(manager_container, CoordinatorRuntimeManagers):
-            return manager_container
+        if _is_runtime_manager_container(manager_container):
+            return cast(CoordinatorRuntimeManagers, manager_container)
         manager_kwargs = {
             attr: getattr(self.coordinator, attr, None)
             for attr in CoordinatorRuntimeManagers.attribute_names()
         }
 
         if any(value is not None for value in manager_kwargs.values()):
-            container = CoordinatorRuntimeManagers(**manager_kwargs)
+            container = _build_runtime_manager_container(**manager_kwargs)
             self.coordinator.runtime_managers = container
             return container
-        return CoordinatorRuntimeManagers()
+        return _build_runtime_manager_container()
 
     def _get_data_manager(self) -> PawControlDataManager | None:
         """Return the data manager from runtime data or fallback containers."""
