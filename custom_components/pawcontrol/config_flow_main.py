@@ -1745,14 +1745,11 @@ class PawControlConfigFlow(
                         ),
                     ),
                 )
-
             try:
-                profile_data = cast(
-                    ReconfigureProfileInput,
-                    PROFILE_SCHEMA(dict(user_input)),
-                )
-                new_profile = profile_data["entity_profile"]
-            except vol.Invalid as err:
+                new_profile = requested_profile.strip()
+                if not new_profile:
+                    raise vol.Invalid("invalid_profile")
+            except (TypeError, ValueError, vol.Invalid) as err:
                 return self.async_show_form(
                     step_id="reconfigure",
                     data_schema=form_schema,
@@ -1762,6 +1759,44 @@ class PawControlConfigFlow(
                             Mapping[str, str],
                             freeze_placeholders(
                                 {**base_placeholders, "error_details": str(err)},
+                            ),
+                        ),
+                    ),
+                )
+            if requested_profile in VALID_PROFILES:
+                try:
+                    profile_data = cast(
+                        ReconfigureProfileInput,
+                        PROFILE_SCHEMA(dict(user_input)),
+                    )
+                    new_profile = profile_data["entity_profile"]
+                except vol.Invalid as err:
+                    return self.async_show_form(
+                        step_id="reconfigure",
+                        data_schema=form_schema,
+                        errors={"base": "invalid_profile"},
+                        description_placeholders=dict(
+                            cast(
+                                Mapping[str, str],
+                                freeze_placeholders(
+                                    {**base_placeholders, "error_details": str(err)},
+                                ),
+                            ),
+                        ),
+                    )
+            else:
+                return self.async_show_form(
+                    step_id="reconfigure",
+                    data_schema=form_schema,
+                    errors={"base": "invalid_profile"},
+                    description_placeholders=dict(
+                        cast(
+                            Mapping[str, str],
+                            freeze_placeholders(
+                                {
+                                    **base_placeholders,
+                                    "error_details": "invalid_profile",
+                                },
                             ),
                         ),
                     ),

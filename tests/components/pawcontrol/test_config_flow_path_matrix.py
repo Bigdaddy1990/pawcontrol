@@ -299,17 +299,13 @@ async def test_reconfigure_returns_invalid_profile_when_profile_schema_rejects_i
 
 
 @pytest.mark.asyncio
-async def test_reconfigure_rejects_non_string_entity_profile_input(
+async def test_reconfigure_returns_invalid_profile_for_non_string_input(
     hass,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Non-string profile payloads should return a typed invalid-profile error."""
+    """Non-string profile input should be rejected before schema parsing."""
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={
-            CONF_DOGS: [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}],
-            "entity_profile": "standard",
-        },
+        data={CONF_DOGS: [{DOG_ID_FIELD: "buddy", DOG_NAME_FIELD: "Buddy"}]},
         options={"entity_profile": "standard"},
     )
     entry.add_to_hass(hass)
@@ -318,12 +314,16 @@ async def test_reconfigure_rejects_non_string_entity_profile_input(
     flow.hass = hass
     flow.context = {"entry_id": entry.entry_id}
 
+<<<<<<< codex/fix-coverage-and-improve-code
+    result = await flow.async_step_reconfigure({"entity_profile": 99})
+=======
     async def _placeholders(*_args, **_kwargs):
         return {"current_profile": "standard"}
 
     monkeypatch.setattr(flow, "_build_reconfigure_placeholders", _placeholders)
 
     result = await flow.async_step_reconfigure({"entity_profile": {"bad": "type"}})
+>>>>>>> main
 
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "reconfigure"
