@@ -254,7 +254,9 @@ def test_get_runtime_managers_builds_container_from_coordinator_attributes() -> 
 
     managers = entity._get_runtime_managers()
 
-    assert isinstance(managers, CoordinatorRuntimeManagers)
+    assert all(
+        hasattr(managers, name) for name in CoordinatorRuntimeManagers.attribute_names()
+    )
     assert managers.data_manager is coord.data_manager
     assert coord.runtime_managers is managers
 
@@ -506,7 +508,9 @@ def test_get_runtime_managers_returns_empty_container_when_no_sources() -> None:
     entity = _ConcreteEntity(cast(PawControlCoordinator, coord), "empty", "Empty")
 
     managers = entity._get_runtime_managers()
-    assert isinstance(managers, CoordinatorRuntimeManagers)
+    assert all(
+        hasattr(managers, name) for name in CoordinatorRuntimeManagers.attribute_names()
+    )
     assert managers.data_manager is None
 
 
