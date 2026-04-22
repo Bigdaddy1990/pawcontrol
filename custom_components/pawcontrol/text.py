@@ -57,7 +57,7 @@ from .types import (
     ensure_dog_text_metadata_snapshot,
     ensure_dog_text_snapshot,
 )
-from .utils import async_call_add_entities
+from .utils import async_call_add_entities, normalise_entity_attributes
 
 # ``ATTR_ENTITY_ID`` moved/changed over time; fall back to the canonical key.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
@@ -385,7 +385,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
             },
         )
 
-        return self._finalize_entity_attributes(merged)
+        return normalise_entity_attributes(self._finalize_entity_attributes(merged))
 
     def _clamp_value(self, value: str) -> str:
         """Clamp ``value`` to the configured maximum length when necessary."""
