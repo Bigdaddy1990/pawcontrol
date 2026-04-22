@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import logging
-from typing import Final, cast
+from typing import Final
 
 from homeassistant.components.device_automation import DEVICE_ACTION_BASE_SCHEMA
 from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_METADATA, CONF_TYPE
@@ -47,7 +47,7 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
         vol.Required(CONF_TYPE): vol.In({
             definition.type for definition in ACTION_DEFINITIONS
         }),
-        vol.Optional(CONF_AMOUNT): vol.Coerce(float),
+        vol.Optional(CONF_AMOUNT): cv.string,
         vol.Optional(CONF_MEAL_TYPE): cv.string,
         vol.Optional(CONF_NOTES): cv.string,
         vol.Optional(CONF_SCHEDULED): cv.boolean,
@@ -120,7 +120,7 @@ async def async_get_action_capabilities(
 
 async def async_call_action(
     hass: HomeAssistant,
-    config: dict[str, str],
+    config: dict[str, object],
     variables: dict[str, object],
     context: object | None = None,
 ) -> None:
@@ -139,7 +139,7 @@ async def async_call_action(
             raise HomeAssistantError("Feeding amount is required for log_feeding")
         await runtime_data.feeding_manager.async_add_feeding(
             dog_id,
-            cast(float, amount),
+            str(amount),
             meal_type=validated.get(CONF_MEAL_TYPE),
             notes=validated.get(CONF_NOTES),
             scheduled=validated.get(CONF_SCHEDULED, False),

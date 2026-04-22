@@ -1728,12 +1728,13 @@ class PawControlConfigFlow(
 
         if user_input is not None:
             try:
-                profile_data = cast(
-                    ReconfigureProfileInput,
-                    PROFILE_SCHEMA(dict(user_input)),
+                profile_raw = user_input.get("entity_profile")
+                new_profile = (
+                    str(profile_raw).strip() if profile_raw is not None else ""
                 )
-                new_profile = profile_data["entity_profile"]
-            except vol.Invalid as err:
+                if not new_profile:
+                    raise vol.Invalid("invalid_profile")
+            except (TypeError, ValueError, vol.Invalid) as err:
                 return self.async_show_form(
                     step_id="reconfigure",
                     data_schema=form_schema,

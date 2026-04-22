@@ -27,25 +27,25 @@ from .selector_shim import selector
 # Optimized schema definitions using constants from const.py
 DOG_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_DOG_ID): selector.TextSelector(
+        vol.Optional(CONF_DOG_ID): selector.TextSelector(
             selector.TextSelectorConfig(
                 type=selector.TextSelectorType.TEXT,
                 autocomplete="off",
             ),
         ),
-        vol.Required(CONF_DOG_NAME): selector.TextSelector(
+        vol.Optional(CONF_DOG_NAME): selector.TextSelector(
             selector.TextSelectorConfig(
                 type=selector.TextSelectorType.TEXT,
                 autocomplete="name",
             ),
         ),
-        vol.Optional(CONF_DOG_BREED, default=""): selector.TextSelector(
+        vol.Optional(CONF_DOG_BREED): selector.TextSelector(
             selector.TextSelectorConfig(
                 type=selector.TextSelectorType.TEXT,
                 autocomplete="off",
             ),
         ),
-        vol.Optional(CONF_DOG_AGE, default=3): selector.NumberSelector(
+        vol.Optional(CONF_DOG_AGE): selector.NumberSelector(
             selector.NumberSelectorConfig(
                 min=MIN_DOG_AGE,
                 max=MAX_DOG_AGE,
@@ -54,7 +54,7 @@ DOG_SCHEMA = vol.Schema(
                 unit_of_measurement="years",
             ),
         ),
-        vol.Optional(CONF_DOG_WEIGHT, default=20.0): selector.NumberSelector(
+        vol.Optional(CONF_DOG_WEIGHT): selector.NumberSelector(
             selector.NumberSelectorConfig(
                 min=MIN_DOG_WEIGHT,
                 max=MAX_DOG_WEIGHT,
@@ -63,7 +63,7 @@ DOG_SCHEMA = vol.Schema(
                 unit_of_measurement="kg",
             ),
         ),
-        vol.Optional(CONF_DOG_SIZE, default="medium"): selector.SelectSelector(
+        vol.Optional(CONF_DOG_SIZE): selector.SelectSelector(
             selector.SelectSelectorConfig(
                 options=list(DOG_SIZES),
                 mode=selector.SelectSelectorMode.DROPDOWN,
@@ -83,10 +83,10 @@ MODULE_SELECTION_KEYS: Final[tuple[str, ...]] = (
 
 MODULES_SCHEMA = vol.Schema(
     {
-        vol.Optional(MODULE_FEEDING, default=True): selector.BooleanSelector(),
-        vol.Optional(MODULE_WALK, default=True): selector.BooleanSelector(),
-        vol.Optional(MODULE_HEALTH, default=True): selector.BooleanSelector(),
-        vol.Optional(MODULE_GPS, default=False): selector.BooleanSelector(),
-        vol.Optional(MODULE_NOTIFICATIONS, default=True): selector.BooleanSelector(),
+        vol.Optional(MODULE_FEEDING): selector.BooleanSelector(),
+        vol.Optional(MODULE_WALK): selector.BooleanSelector(),
+        vol.Optional(MODULE_HEALTH): selector.BooleanSelector(),
+        vol.Optional(MODULE_GPS): selector.BooleanSelector(),
+        vol.Optional(MODULE_NOTIFICATIONS): selector.BooleanSelector(),
     },
 )
