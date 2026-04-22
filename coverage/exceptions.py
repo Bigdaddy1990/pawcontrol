@@ -1,13 +1,13 @@
-"""coverage.exceptions shim for dependency-light test execution."""
+"""Exceptions exposed by the local coverage compatibility shim."""
 
 
 class NoDataError(Exception):
-    """Raised when coverage data is not available."""
+    """Raised when coverage data is unavailable for reporting."""
 
 
 class DataError(Exception):
-    """Raised when coverage input data is invalid."""
+    """Raised when coverage data cannot be processed."""
 
 
 class CoverageWarning(Warning):
-    """Warning class used by coverage shim integration."""
+    """Compatibility warning used by the local coverage shim."""

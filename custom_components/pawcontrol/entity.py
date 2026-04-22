@@ -3,7 +3,6 @@
 from collections.abc import Mapping
 from datetime import datetime
 import logging
-import sys
 import time
 from typing import TYPE_CHECKING, Any, cast
 
@@ -41,27 +40,12 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-def _is_runtime_manager_container(candidate: object) -> bool:
-    """Return whether ``candidate`` behaves like a runtime manager container."""
-    if isinstance(candidate, CoordinatorRuntimeManagers):
-        return True
-    runtime_types = sys.modules.get("custom_components.pawcontrol.types")
-    runtime_class = getattr(runtime_types, "CoordinatorRuntimeManagers", None) if runtime_types else None
-    if isinstance(runtime_class, type) and isinstance(candidate, runtime_class):
-        return True
+def _is_runtime_manager_container(value: Any) -> bool:
+    """Return ``True`` when ``value`` matches the runtime-manager shape."""
     return all(
-        hasattr(candidate, attr)
-        for attr in CoordinatorRuntimeManagers.attribute_names()
+        hasattr(value, attribute)
+        for attribute in CoordinatorRuntimeManagers.attribute_names()
     )
-
-
-def _build_runtime_manager_container(**kwargs: Any) -> CoordinatorRuntimeManagers:
-    """Build a runtime manager container using the active types module class."""
-    runtime_types = sys.modules.get("custom_components.pawcontrol.types")
-    runtime_class = getattr(runtime_types, "CoordinatorRuntimeManagers", None) if runtime_types else None
-    if isinstance(runtime_class, type):
-        return cast(CoordinatorRuntimeManagers, runtime_class(**kwargs))
-    return CoordinatorRuntimeManagers(**kwargs)
 
 
 class PawControlEntity(
@@ -208,15 +192,8 @@ class PawControlEntity(
         manager_container = getattr(self.coordinator, "runtime_managers", None)
         if isinstance(manager_container, CoordinatorRuntimeManagers):
             return manager_container
-        if manager_container is not None and all(
-            hasattr(manager_container, attr) for attr in manager_attrs
-        ):
-            rebuilt = CoordinatorRuntimeManagers(
-                **{attr: getattr(manager_container, attr, None) for attr in manager_attrs}
-            )
-            self.coordinator.runtime_managers = rebuilt
-            return rebuilt
-
+        if _is_runtime_manager_container(manager_container):
+            return cast(CoordinatorRuntimeManagers, manager_container)
         manager_kwargs = {
             attr: getattr(self.coordinator, attr, None) for attr in manager_attrs
         }
@@ -239,6 +216,9 @@ class PawControlEntity(
 
     def _get_notification_manager(self) -> PawControlNotificationManager | None:
         """Return the notification manager from the runtime container."""
+        runtime_data = self._get_runtime_data()
+        if runtime_data is not None and runtime_data.notification_manager is not None:
+            return runtime_data.notification_manager
         return self._get_runtime_managers().notification_manager
 
     async def _async_call_hass_service(

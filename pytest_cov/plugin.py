@@ -5,11 +5,14 @@ from typing import Any
 
 try:
     import coverage
+
     try:
         from coverage.exceptions import NoDataError
     except ModuleNotFoundError:
+
         class NoDataError(Exception):
             """Fallback error used when coverage exceptions module is missing."""
+
     _COVERAGE_AVAILABLE = True
 except ModuleNotFoundError:  # pragma: no cover - exercised via shim tests
     coverage = None  # type: ignore[assignment]
@@ -28,6 +31,7 @@ def _coverage_available() -> bool:
         return False
     try:
         import coverage as loaded_coverage
+
         try:
             from coverage.exceptions import NoDataError as loaded_no_data_error
         except ModuleNotFoundError:

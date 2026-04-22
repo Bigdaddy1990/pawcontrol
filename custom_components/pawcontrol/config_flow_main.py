@@ -114,7 +114,7 @@ from .types import (
     freeze_placeholders,
     normalize_performance_mode,
 )
-from .validation import normalize_dog_id
+from .validation import is_input_coercion_error, normalize_dog_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -2520,14 +2520,18 @@ class PawControlConfigFlow(
             if isinstance(value, str):
                 try:
                     normalized = normalize_dog_id(value)
-                except Exception:
+                except Exception as err:
+                    if not is_input_coercion_error(err):
+                        raise
                     continue
                 if normalized:
                     return normalized
         if isinstance(fallback_id, str) and fallback_id.strip():
             try:
                 normalized_fallback = normalize_dog_id(fallback_id)
-            except Exception:
+            except Exception as err:
+                if not is_input_coercion_error(err):
+                    raise
                 return fallback_id.strip()
             return normalized_fallback or fallback_id.strip()
         return None

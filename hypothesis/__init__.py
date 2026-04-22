@@ -67,15 +67,14 @@ def given(
                 strategy.example() if isinstance(strategy, _Strategy) else None
                 for strategy in _strategies
             ]
-            # Pass generated values as positional arguments, preserving the original
-            # function's parameter count expectation.
             return func(*args, *generated, **kwargs)
 
         signature = inspect.signature(func)
         params = list(signature.parameters.values())
         if _strategies and len(params) >= len(_strategies):
-            params = params[: len(params) - len(_strategies)]
-            _wrapper.__signature__ = signature.replace(parameters=params)
+            _wrapper.__signature__ = signature.replace(
+                parameters=params[: len(params) - len(_strategies)],
+            )
         return _wrapper
 
     return _decorator
@@ -163,51 +162,73 @@ class _Strategies:
                 return _Strategy((int(min_value) + int(max_value)) // 2)
             if _name == "booleans":
                 return _Strategy(False)
+            if _name == "none":
+                return _Strategy(None)
             if _name == "sampled_from" and args:
                 sequence = args[0]
                 if isinstance(sequence, list | tuple) and sequence:
                     return _Strategy(sequence[0])
+            if _name == "one_of":
+                for strategy in args:
+                    if isinstance(strategy, _Strategy):
+                        return strategy
+                return _Strategy(None)
             if _name == "text":
                 min_size = int(kwargs.get("min_size", 0))
                 max_size = int(kwargs.get("max_size", min_size if min_size else 1))
                 size = max(min_size, min(max_size, 1))
                 return _Strategy("x" * size)
             if _name == "dictionaries":
-                return _Strategy({})
-            if _name == "datetimes":
-                return _Strategy(datetime(2024, 1, 1, 0, 0, 0))
-            if _name == "timedeltas":
-                return _Strategy(timedelta(seconds=0))
-            if _name == "characters":
-                return _Strategy("x")
-            if _name == "none":
-                return _Strategy(None)
-            if _name == "one_of" and args:
-                for strategy in args:
-                    if isinstance(strategy, _Strategy):
-                        return strategy
-                return _Strategy(None)
-            if _name == "dictionaries":
-                key_strategy = args[0] if args else _Strategy("key")
+                key_strategy = args[0] if len(args) > 0 else _Strategy("key")
                 value_strategy = args[1] if len(args) > 1 else _Strategy(0)
-                min_size = int(kwargs.get("min_size", 0))
-                key = (
+                min_size = max(0, int(kwargs.get("min_size", 0)))
+                max_size = kwargs.get("max_size")
+                if max_size is not None:
+                    size = min(min_size if min_size > 0 else 1, int(max_size))
+                else:
+                    size = max(1, min_size)
+                if size <= 0:
+                    return _Strategy({})
+
+                seed_key = (
                     key_strategy.example()
                     if isinstance(key_strategy, _Strategy)
                     else "key"
                 )
-                value = (
+                seed_value = (
                     value_strategy.example()
                     if isinstance(value_strategy, _Strategy)
                     else 0
                 )
-                if min_size <= 0:
-                    return _Strategy({})
-                return _Strategy({str(key) or "key": value})
+                generated: dict[Any, Any] = {}
+                for index in range(size):
+                    key = seed_key
+                    if isinstance(key, str):
+                        key = f"{key}_{index}"
+                    elif isinstance(key, int):
+                        key = key + index
+                    generated[key] = seed_value
+                return _Strategy(generated)
             if _name == "datetimes":
-                return _Strategy(datetime(2026, 1, 1, tzinfo=UTC))
+                min_value = kwargs.get("min_value")
+                max_value = kwargs.get("max_value")
+                if min_value is not None and max_value is not None:
+                    midpoint = min_value + (max_value - min_value) / 2
+                    return _Strategy(midpoint)
+                return _Strategy(
+                    min_value or max_value or datetime(2024, 1, 1, 0, 0, 0)
+                )
             if _name == "timedeltas":
-                return _Strategy(timedelta(minutes=5))
+                min_value = kwargs.get("min_value")
+                max_value = kwargs.get("max_value")
+                if min_value is not None and max_value is not None:
+                    midpoint = min_value + (max_value - min_value) / 2
+                    return _Strategy(midpoint)
+                return _Strategy(min_value or max_value or timedelta(seconds=0))
+            if _name == "characters":
+                return _Strategy("x")
+            if _name == "none":
+                return _Strategy(None)
             return _Strategy(None)
 
         return _factory
