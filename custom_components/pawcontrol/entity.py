@@ -199,10 +199,10 @@ class PawControlEntity(
         }
 
         if any(value is not None for value in manager_kwargs.values()):
-            container = _build_runtime_manager_container(**manager_kwargs)
+            container = _build_runtime_manager_container(**manager_kwargs)  # noqa: F821
             self.coordinator.runtime_managers = container
             return container
-        return _build_runtime_manager_container()
+        return _build_runtime_manager_container()  # noqa: F821
 
     def _get_data_manager(self) -> PawControlDataManager | None:
         """Return the data manager from runtime data or fallback containers."""

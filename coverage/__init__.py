@@ -54,11 +54,11 @@ class Coverage:
         """Return coverage data for compatibility with tests."""
         return self._data
 
-    def report(self, **kwargs) -> float:  # noqa: ARG002
+    def report(self, **kwargs) -> float:
         """Return a deterministic fake total coverage percentage."""
         return 100.0
 
-    def xml_report(self, outfile: str = "coverage.xml", **kwargs) -> float:  # noqa: ARG002
+    def xml_report(self, outfile: str = "coverage.xml", **kwargs) -> float:
         """Write a Cobertura-like XML report and return a fake percentage."""
         classes_xml = "\n".join(
             (
@@ -87,7 +87,7 @@ class Coverage:
         Path(outfile).write_text(xml_payload, encoding="utf-8")
         return 100.0
 
-    def html_report(self, directory: str = "htmlcov", **kwargs) -> float:  # noqa: ARG002
+    def html_report(self, directory: str = "htmlcov", **kwargs) -> float:
         """Create an HTML directory target and return a fake percentage."""
         Path(directory).mkdir(parents=True, exist_ok=True)
         return 100.0
