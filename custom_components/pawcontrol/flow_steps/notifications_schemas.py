@@ -2,7 +2,6 @@
 
 import voluptuous as vol
 
-from ..const import DEFAULT_REMINDER_REPEAT_MIN
 from ..selector_shim import selector
 from ..types import (
     NOTIFICATION_MOBILE_FIELD,
@@ -21,49 +20,13 @@ def build_notifications_schema(
     user_input: NotificationSettingsInput | None = None,
 ) -> vol.Schema:
     """Build notifications schema."""
-    current_values = user_input or {}
+    del current_notifications, user_input
     return vol.Schema(
         {
-            vol.Required(
-                NOTIFICATION_QUIET_HOURS_FIELD,
-                default=current_values.get(
-                    NOTIFICATION_QUIET_HOURS_FIELD,
-                    current_notifications.get(
-                        NOTIFICATION_QUIET_HOURS_FIELD,
-                        True,
-                    ),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Required(
-                NOTIFICATION_QUIET_START_FIELD,
-                default=current_values.get(
-                    NOTIFICATION_QUIET_START_FIELD,
-                    current_notifications.get(
-                        NOTIFICATION_QUIET_START_FIELD,
-                        "22:00:00",
-                    ),
-                ),
-            ): selector.TimeSelector(),
-            vol.Required(
-                NOTIFICATION_QUIET_END_FIELD,
-                default=current_values.get(
-                    NOTIFICATION_QUIET_END_FIELD,
-                    current_notifications.get(
-                        NOTIFICATION_QUIET_END_FIELD,
-                        "07:00:00",
-                    ),
-                ),
-            ): selector.TimeSelector(),
-            vol.Required(
-                NOTIFICATION_REMINDER_REPEAT_FIELD,
-                default=current_values.get(
-                    NOTIFICATION_REMINDER_REPEAT_FIELD,
-                    current_notifications.get(
-                        NOTIFICATION_REMINDER_REPEAT_FIELD,
-                        DEFAULT_REMINDER_REPEAT_MIN,
-                    ),
-                ),
-            ): selector.NumberSelector(
+            vol.Optional(NOTIFICATION_QUIET_HOURS_FIELD): selector.BooleanSelector(),
+            vol.Optional(NOTIFICATION_QUIET_START_FIELD): selector.TimeSelector(),
+            vol.Optional(NOTIFICATION_QUIET_END_FIELD): selector.TimeSelector(),
+            vol.Optional(NOTIFICATION_REMINDER_REPEAT_FIELD): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=5,
                     max=240,
@@ -72,25 +35,7 @@ def build_notifications_schema(
                     unit_of_measurement="minutes",
                 ),
             ),
-            vol.Required(
-                NOTIFICATION_PRIORITY_FIELD,
-                default=current_values.get(
-                    NOTIFICATION_PRIORITY_FIELD,
-                    current_notifications.get(
-                        NOTIFICATION_PRIORITY_FIELD,
-                        True,
-                    ),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Required(
-                NOTIFICATION_MOBILE_FIELD,
-                default=current_values.get(
-                    NOTIFICATION_MOBILE_FIELD,
-                    current_notifications.get(
-                        NOTIFICATION_MOBILE_FIELD,
-                        True,
-                    ),
-                ),
-            ): selector.BooleanSelector(),
+            vol.Optional(NOTIFICATION_PRIORITY_FIELD): selector.BooleanSelector(),
+            vol.Optional(NOTIFICATION_MOBILE_FIELD): selector.BooleanSelector(),
         },
     )

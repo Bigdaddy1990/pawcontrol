@@ -193,6 +193,12 @@ class PawControlEntity(
         if isinstance(manager_container, paw_types.CoordinatorRuntimeManagers):
             return manager_container
         if _is_runtime_manager_container(manager_container):
+            return CoordinatorRuntimeManagers(
+                **{
+                    attr: getattr(manager_container, attr, None)
+                    for attr in manager_attrs
+                },
+            )
             return cast(paw_types.CoordinatorRuntimeManagers, manager_container)
         manager_kwargs = {
             attr: getattr(self.coordinator, attr, None) for attr in manager_attrs

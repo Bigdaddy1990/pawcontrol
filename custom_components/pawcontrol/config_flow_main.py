@@ -1727,6 +1727,14 @@ class PawControlConfigFlow(
         )
 
         if user_input is not None:
+            try:
+                profile_raw = user_input.get("entity_profile")
+                new_profile = (
+                    str(profile_raw).strip() if profile_raw is not None else ""
+                )
+                if not new_profile:
+                    raise vol.Invalid("invalid_profile")
+            except (TypeError, ValueError, vol.Invalid) as err:
             requested_profile = user_input.get("entity_profile")
             if not isinstance(requested_profile, str):
                 return self.async_show_form(
