@@ -38,6 +38,7 @@ from .types import (
 from .utils import (
     async_call_add_entities,
     ensure_utc_datetime,
+    normalise_entity_attributes,
     resolve_default_feeding_amount,
 )
 
@@ -254,7 +255,7 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
         attributes = self._build_base_state_attributes(
             {"datetime_type": self._datetime_type},
         )
-        return self._finalize_entity_attributes(attributes)
+        return normalise_entity_attributes(self._finalize_entity_attributes(attributes))
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
