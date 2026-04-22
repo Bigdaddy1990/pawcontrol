@@ -27,8 +27,7 @@ def test_build_notifications_schema_uses_current_settings_defaults() -> None:
 
     schema = build_notifications_schema(current)
 
-    # Schema no longer injects defaults; empty input yields empty output
-    assert schema({}) == {}
+    assert schema({}) == current
 
 
 def test_build_notifications_schema_user_input_overrides_current_defaults() -> None:
@@ -52,16 +51,21 @@ def test_build_notifications_schema_user_input_overrides_current_defaults() -> N
 
     schema = build_notifications_schema(current, user_input)
 
-    # Schema no longer injects defaults; empty input yields empty output
-    assert schema({}) == {}
+    assert schema({}) == user_input
 
 
 def test_build_notifications_schema_falls_back_to_integration_defaults() -> None:
     """Missing current values should use integration-level defaults."""
     schema = build_notifications_schema({})
 
-    # Schema no longer injects defaults; empty input yields empty output
-    assert schema({}) == {}
+    assert schema({}) == {
+        NOTIFICATION_QUIET_HOURS_FIELD: True,
+        NOTIFICATION_QUIET_START_FIELD: "22:00:00",
+        NOTIFICATION_QUIET_END_FIELD: "07:00:00",
+        NOTIFICATION_REMINDER_REPEAT_FIELD: DEFAULT_REMINDER_REPEAT_MIN,
+        NOTIFICATION_PRIORITY_FIELD: True,
+        NOTIFICATION_MOBILE_FIELD: True,
+    }
 
 
 def test_build_notifications_schema_allows_explicit_overrides() -> None:

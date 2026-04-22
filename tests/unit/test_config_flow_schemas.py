@@ -35,17 +35,16 @@ def test_dog_schema_accepts_minimal_valid_payload() -> None:
 
 @pytest.mark.unit
 def test_dog_schema_applies_defaults() -> None:
-    """Optional fields should be absent when omitted (no defaults injected)."""
+    """Optional fields should be filled with integration defaults."""
     data = {
         "dog_id": "max",
         "dog_name": "Max",
     }
     result = DOG_SCHEMA(data)
-    # Schema no longer injects defaults for optional fields
-    assert "dog_breed" not in result
-    assert "dog_age" not in result
-    assert "dog_weight" not in result
-    assert "dog_size" not in result
+    assert result["dog_breed"] == ""
+    assert result["dog_age"] == 3
+    assert result["dog_weight"] == 20.0
+    assert result["dog_size"] == "medium"
 
 
 @pytest.mark.unit
@@ -79,10 +78,15 @@ def test_dog_schema_rejects_missing_required_fields() -> None:
 
 @pytest.mark.unit
 def test_modules_schema_accepts_all_defaults() -> None:
-    """MODULES_SCHEMA should accept an empty dict (pass-through, no defaults)."""
+    """MODULES_SCHEMA should apply default module toggles on empty input."""
     result = MODULES_SCHEMA({})
-    # Schema no longer injects defaults; empty input yields empty output
-    assert result == {}
+    assert result == {
+        MODULE_FEEDING: True,
+        MODULE_WALK: True,
+        MODULE_HEALTH: True,
+        MODULE_GPS: False,
+        MODULE_NOTIFICATIONS: True,
+    }
 
 
 @pytest.mark.unit
@@ -95,8 +99,7 @@ def test_modules_schema_accepts_explicit_overrides() -> None:
     result = MODULES_SCHEMA(data)
     assert result[MODULE_GPS] is True
     assert result[MODULE_FEEDING] is False
-    # Unset keys are not injected as defaults
-    assert MODULE_WALK not in result
+    assert result[MODULE_WALK] is True
 
 
 @pytest.mark.unit

@@ -134,12 +134,16 @@ async def async_call_action(
 
     action_type = validated[CONF_TYPE]
     if action_type == "log_feeding":
-        amount = validated.get(CONF_AMOUNT)
-        if amount is None:
+        validated_amount = validated.get(CONF_AMOUNT)
+        if validated_amount is None:
             raise HomeAssistantError("Feeding amount is required for log_feeding")
+        raw_amount = config.get(CONF_AMOUNT)
+        amount: str | float = (
+            raw_amount if isinstance(raw_amount, str) else cast(float, validated_amount)
+        )
         await runtime_data.feeding_manager.async_add_feeding(
             dog_id,
-            cast(float, amount),
+            amount,
             meal_type=validated.get(CONF_MEAL_TYPE),
             notes=validated.get(CONF_NOTES),
             scheduled=validated.get(CONF_SCHEDULED, False),
