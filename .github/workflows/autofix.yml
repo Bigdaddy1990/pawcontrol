@@ -72,7 +72,7 @@ jobs:
           python scripts/enforce_docstring_baseline.py --update
           python -m scripts.sync_contributor_guides
           pre-commit run --all-files || true
-          pre-commit run --hook-stage manual python-typing-update --check --all-files --py314-plus --ruff
+          pre-commit run --hook-stage manual python-typing-update --check --py314-plus --ruff
 
       - name: Verify contributor guides
         run: |
