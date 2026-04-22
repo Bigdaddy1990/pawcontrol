@@ -11,7 +11,7 @@ pylint
 pytest
 # NOTE: The repository vendors a local ``pytest_cov`` plugin package.
 # Installing upstream pytest-cov causes a duplicate plugin registration crash.
-pytest-github-actions-annotate-failures>=0.3.0
+pytest-github-actions-annotate-failures>=0.4.0
 pytest-homeassistant-custom-component  # follows daily HA version
 pytest-xdist
 pytest_cov
